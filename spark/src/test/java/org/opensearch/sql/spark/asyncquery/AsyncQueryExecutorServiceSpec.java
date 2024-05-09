@@ -55,6 +55,7 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
+import org.opensearch.sql.spark.config.OpenSearchSparkSubmitParameterModifier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -333,7 +334,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   }
 
   public SparkExecutionEngineConfig sparkExecutionEngineConfig() {
-    return new SparkExecutionEngineConfig("appId", "us-west-2", "roleArn", "", "myCluster");
+    return SparkExecutionEngineConfig.builder()
+        .applicationId("appId")
+        .region("us-west-2")
+        .executionRoleARN("roleArn")
+        .sparkSubmitParameterModifier(new OpenSearchSparkSubmitParameterModifier(""))
+        .clusterName("myCluster")
+        .build();
   }
 
   public void enableSession(boolean enabled) {

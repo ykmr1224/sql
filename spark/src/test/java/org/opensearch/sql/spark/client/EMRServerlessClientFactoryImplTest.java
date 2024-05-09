@@ -69,7 +69,8 @@ public class EMRServerlessClientFactoryImplTest {
 
   @Test
   public void testGetClientWithExceptionWithNullRegion() {
-    SparkExecutionEngineConfig sparkExecutionEngineConfig = new SparkExecutionEngineConfig();
+    SparkExecutionEngineConfig sparkExecutionEngineConfig =
+        SparkExecutionEngineConfig.builder().build();
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClientFactory emrServerlessClientFactory =
@@ -84,13 +85,12 @@ public class EMRServerlessClientFactoryImplTest {
   }
 
   private SparkExecutionEngineConfig createSparkExecutionEngineConfig() {
-    SparkExecutionEngineConfig sparkExecutionEngineConfig = new SparkExecutionEngineConfig();
-    sparkExecutionEngineConfig.setRegion(TestConstants.US_EAST_REGION);
-    sparkExecutionEngineConfig.setExecutionRoleARN(TestConstants.EMRS_EXECUTION_ROLE);
-    sparkExecutionEngineConfig.setSparkSubmitParameters(
-        SparkSubmitParameters.Builder.builder().build().toString());
-    sparkExecutionEngineConfig.setClusterName(TestConstants.TEST_CLUSTER_NAME);
-    sparkExecutionEngineConfig.setApplicationId(TestConstants.EMRS_APPLICATION_ID);
-    return sparkExecutionEngineConfig;
+    return SparkExecutionEngineConfig.builder()
+        .region(TestConstants.US_EAST_REGION)
+        .executionRoleARN(TestConstants.EMRS_EXECUTION_ROLE)
+        .sparkSubmitParameterModifier((sparkSubmitParameters) -> {})
+        .clusterName(TestConstants.TEST_CLUSTER_NAME)
+        .applicationId(TestConstants.EMRS_APPLICATION_ID)
+        .build();
   }
 }
