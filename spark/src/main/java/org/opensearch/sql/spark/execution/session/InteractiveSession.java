@@ -57,8 +57,7 @@ public class InteractiveSession implements Session {
           .acceptModifier(
               (parameters) -> {
                 parameters.sessionExecution(
-                    sessionId.getSessionId(),
-                    createSessionRequest.getDatasourceName());
+                    sessionId.getSessionId(), createSessionRequest.getDatasourceName());
               });
       createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
       StartJobRequest startJobRequest =

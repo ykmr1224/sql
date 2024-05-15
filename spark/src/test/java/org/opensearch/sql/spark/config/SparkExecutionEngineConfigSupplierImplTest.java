@@ -10,12 +10,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkExecutionEngineConfigSupplierImplTest {
 
   @Mock private Settings settings;
+  @Mock private RequestContext requestContext;
 
   @Test
   void testGetSparkExecutionEngineConfig() {
@@ -33,7 +35,7 @@ public class SparkExecutionEngineConfigSupplierImplTest {
         .thenReturn(new ClusterName(TEST_CLUSTER_NAME));
 
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
+        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(requestContext);
 
     Assertions.assertEquals("00fd775baqpu4g0p", sparkExecutionEngineConfig.getApplicationId());
     Assertions.assertEquals(
@@ -56,7 +58,7 @@ public class SparkExecutionEngineConfigSupplierImplTest {
         .thenReturn(new ClusterName(TEST_CLUSTER_NAME));
 
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
+        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(requestContext);
 
     Assertions.assertNull(sparkExecutionEngineConfig.getApplicationId());
     Assertions.assertNull(sparkExecutionEngineConfig.getExecutionRoleARN());

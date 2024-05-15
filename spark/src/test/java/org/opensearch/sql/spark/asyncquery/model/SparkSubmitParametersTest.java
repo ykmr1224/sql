@@ -5,15 +5,12 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JARS_KEY;
 
-import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import org.junit.jupiter.api.Test;
 
 public class SparkSubmitParametersTest {

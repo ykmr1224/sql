@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.client;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Assertions;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.constants.TestConstants;
@@ -24,7 +24,7 @@ public class EMRServerlessClientFactoryImplTest {
 
   @Test
   public void testGetClient() {
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(createSparkExecutionEngineConfig());
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier);
@@ -35,7 +35,7 @@ public class EMRServerlessClientFactoryImplTest {
   @Test
   public void testGetClientWithChangeInSetting() {
     SparkExecutionEngineConfig sparkExecutionEngineConfig = createSparkExecutionEngineConfig();
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier);
@@ -46,7 +46,7 @@ public class EMRServerlessClientFactoryImplTest {
     Assertions.assertEquals(emrServerlessClient1, emrserverlessClient);
 
     sparkExecutionEngineConfig.setRegion(TestConstants.US_WEST_REGION);
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClient emrServerlessClient2 = emrServerlessClientFactory.getClient();
     Assertions.assertNotEquals(emrServerlessClient2, emrserverlessClient);
@@ -55,7 +55,7 @@ public class EMRServerlessClientFactoryImplTest {
 
   @Test
   public void testGetClientWithException() {
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig()).thenReturn(null);
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any())).thenReturn(null);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier);
     IllegalArgumentException illegalArgumentException =
@@ -71,7 +71,7 @@ public class EMRServerlessClientFactoryImplTest {
   public void testGetClientWithExceptionWithNullRegion() {
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
         SparkExecutionEngineConfig.builder().build();
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier);

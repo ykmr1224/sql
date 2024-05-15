@@ -27,8 +27,8 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
-import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 
 /** Define Spark Submit Parameters. */
 @AllArgsConstructor
@@ -42,8 +42,7 @@ public class SparkSubmitParameters {
   private final Map<String, String> config;
 
   /** Extra parameters to append finally */
-  @Setter
-  private String extraParameters;
+  @Setter private String extraParameters;
 
   public void setConfigItem(String key, String value) {
     config.put(key, value);

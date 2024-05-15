@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 
 @AllArgsConstructor
 public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEngineConfigSupplier {
@@ -16,7 +17,7 @@ public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEng
   private Settings settings;
 
   @Override
-  public SparkExecutionEngineConfig getSparkExecutionEngineConfig() {
+  public SparkExecutionEngineConfig getSparkExecutionEngineConfig(RequestContext requestContext) {
     String sparkExecutionEngineConfigSettingString =
         this.settings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
     SparkExecutionEngineConfig.SparkExecutionEngineConfigBuilder builder =

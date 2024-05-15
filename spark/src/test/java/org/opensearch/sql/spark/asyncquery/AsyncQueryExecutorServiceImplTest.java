@@ -32,6 +32,7 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 import org.opensearch.sql.spark.config.OpenSearchSparkSubmitParameterModifier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
@@ -55,6 +56,7 @@ public class AsyncQueryExecutorServiceImplTest {
 
   @Mock private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
+  @Mock private RequestContext requestContext;
   private final AsyncQueryId QUERY_ID = AsyncQueryId.newAsyncQueryId(DS_NAME);
 
   @BeforeEach
@@ -71,7 +73,7 @@ public class AsyncQueryExecutorServiceImplTest {
     CreateAsyncQueryRequest createAsyncQueryRequest =
         new CreateAsyncQueryRequest(
             "select * from my_glue.default.http_logs", "my_glue", LangType.SQL);
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             new SparkExecutionEngineConfig(
                 APPLICATION_ID,
@@ -92,7 +94,7 @@ public class AsyncQueryExecutorServiceImplTest {
         .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
 
     CreateAsyncQueryResponse createAsyncQueryResponse =
-        jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
+        jobExecutorService.createAsyncQuery(createAsyncQueryRequest, requestContext);
 
     verify(asyncQueryJobMetadataStorageService, times(1))
         .storeJobMetadata(
@@ -101,7 +103,8 @@ public class AsyncQueryExecutorServiceImplTest {
                 .applicationId(APPLICATION_ID)
                 .jobId(EMR_JOB_ID)
                 .build());
-    verify(sparkExecutionEngineConfigSupplier, times(1)).getSparkExecutionEngineConfig();
+    verify(sparkExecutionEngineConfigSupplier, times(1))
+        .getSparkExecutionEngineConfig(requestContext);
     verify(sparkQueryDispatcher, times(1)).dispatch(expectedDispatchQueryRequest);
     Assertions.assertEquals(QUERY_ID.getId(), createAsyncQueryResponse.getQueryId());
   }
@@ -110,7 +113,7 @@ public class AsyncQueryExecutorServiceImplTest {
   void testCreateAsyncQueryWithExtraSparkSubmitParameter() {
     OpenSearchSparkSubmitParameterModifier modifier =
         new OpenSearchSparkSubmitParameterModifier("--conf spark.dynamicAllocation.enabled=false");
-    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig())
+    when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             new SparkExecutionEngineConfig(
                 APPLICATION_ID,
@@ -123,7 +126,8 @@ public class AsyncQueryExecutorServiceImplTest {
 
     jobExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest(
-            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL));
+            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL),
+        requestContext);
 
     verify(sparkQueryDispatcher, times(1))
         .dispatch(
