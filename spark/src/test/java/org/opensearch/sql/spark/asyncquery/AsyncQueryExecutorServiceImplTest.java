@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
+import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
@@ -46,9 +47,6 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @ExtendWith(MockitoExtension.class)
 public class AsyncQueryExecutorServiceImplTest {
 
-  public static final String APPLICATION_ID = "00fd775baqpu4g0p";
-  public static final String EMR_JOB_EXECUTION_ROLE_ARN =
-      "arn:aws:iam::270824043731:role/emr-job-execution-role";
   @Mock private SparkQueryDispatcher sparkQueryDispatcher;
   @Mock private AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService;
   private AsyncQueryExecutorService jobExecutorService;
@@ -75,18 +73,15 @@ public class AsyncQueryExecutorServiceImplTest {
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             new SparkExecutionEngineConfig(
-                APPLICATION_ID,
-                "eu-west-1",
-                EMR_JOB_EXECUTION_ROLE_ARN,
-                sparkSubmitParameterModifier,
-                TEST_CLUSTER_NAME));
+
+                EMRS_APPLICATION_ID, "eu-west-1", EMRS_EXECUTION_ROLE, sparkSubmitParameterModifier, TEST_CLUSTER_NAME));
     DispatchQueryRequest expectedDispatchQueryRequest =
         new DispatchQueryRequest(
-            APPLICATION_ID,
+            EMRS_APPLICATION_ID,
             "select * from my_glue.default.http_logs",
             "my_glue",
             LangType.SQL,
-            EMR_JOB_EXECUTION_ROLE_ARN,
+            EMRS_EXECUTION_ROLE,
             TEST_CLUSTER_NAME,
             sparkSubmitParameterModifier);
     when(sparkQueryDispatcher.dispatch(expectedDispatchQueryRequest))
@@ -101,14 +96,10 @@ public class AsyncQueryExecutorServiceImplTest {
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest, requestContext);
 
     verify(asyncQueryJobMetadataStorageService, times(1))
-        .storeJobMetadata(
-            AsyncQueryJobMetadata.builder()
-                .queryId(QUERY_ID)
-                .applicationId(APPLICATION_ID)
-                .jobId(EMR_JOB_ID)
-                .build());
+        .storeJobMetadata(getAsyncQueryJobMetadata());
     verify(sparkExecutionEngineConfigSupplier, times(1))
         .getSparkExecutionEngineConfig(requestContext);
+    verify(sparkExecutionEngineConfigSupplier, times(1)).getSparkExecutionEngineConfig(requestContext);
     verify(sparkQueryDispatcher, times(1)).dispatch(expectedDispatchQueryRequest);
     Assertions.assertEquals(QUERY_ID, createAsyncQueryResponse.getQueryId());
   }
@@ -120,9 +111,9 @@ public class AsyncQueryExecutorServiceImplTest {
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             new SparkExecutionEngineConfig(
-                APPLICATION_ID,
+                EMRS_APPLICATION_ID,
                 "eu-west-1",
-                EMR_JOB_EXECUTION_ROLE_ARN,
+                EMRS_EXECUTION_ROLE,
                 modifier,
                 TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(any()))
@@ -176,14 +167,6 @@ public class AsyncQueryExecutorServiceImplTest {
     verifyNoInteractions(sparkExecutionEngineConfigSupplier);
   }
 
-  private AsyncQueryJobMetadata getAsyncQueryJobMetadata() {
-    return AsyncQueryJobMetadata.builder()
-        .queryId(QUERY_ID)
-        .applicationId(EMRS_APPLICATION_ID)
-        .jobId(EMR_JOB_ID)
-        .build();
-  }
-
   @Test
   void testGetAsyncQueryResultsWithSuccessJob() throws IOException {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
@@ -231,5 +214,13 @@ public class AsyncQueryExecutorServiceImplTest {
 
     Assertions.assertEquals(EMR_JOB_ID, jobId);
     verifyNoInteractions(sparkExecutionEngineConfigSupplier);
+  }
+
+  private AsyncQueryJobMetadata getAsyncQueryJobMetadata() {
+    return AsyncQueryJobMetadata.builder()
+        .queryId(QUERY_ID)
+        .applicationId(EMRS_APPLICATION_ID)
+        .jobId(EMR_JOB_ID)
+        .build();
   }
 }

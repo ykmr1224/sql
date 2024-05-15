@@ -12,6 +12,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSI
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer.SESSION_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer.SESSION_ID;
+import static org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer.STATEMENT_DOC_TYPE;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
@@ -37,7 +38,6 @@ import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
-import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -207,7 +207,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             QueryBuilders.boolQuery()
                 .must(
                     QueryBuilders.termQuery(
-                        "type", StatementModelXContentSerializer.STATEMENT_DOC_TYPE))
+                        "type", STATEMENT_DOC_TYPE))
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel =
