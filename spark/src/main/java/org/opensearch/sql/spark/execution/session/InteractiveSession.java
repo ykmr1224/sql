@@ -64,9 +64,10 @@ public class InteractiveSession implements Session {
           createSessionRequest.getStartJobRequest(sessionId.getSessionId());
       String jobID = serverlessClient.startJobRun(startJobRequest);
       String applicationId = startJobRequest.getApplicationId();
+      String accountId = createSessionRequest.getAccountId();
 
       sessionModel =
-          initInteractiveSession(
+          initInteractiveSession(accountId,
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
       sessionStorageService.createSession(sessionModel);
     } catch (VersionConflictEngineException e) {
@@ -103,6 +104,7 @@ public class InteractiveSession implements Session {
         Statement st =
             Statement.builder()
                 .sessionId(sessionId)
+                .accountId(sessionModel.getAccountId())
                 .applicationId(sessionModel.getApplicationId())
                 .jobId(sessionModel.getJobId())
                 .statementStorageService(statementStorageService)
@@ -134,6 +136,7 @@ public class InteractiveSession implements Session {
             model ->
                 Statement.builder()
                     .sessionId(sessionId)
+                    .accountId(model.getAccountId())
                     .applicationId(model.getApplicationId())
                     .jobId(model.getJobId())
                     .statementId(model.getStatementId())
