@@ -17,6 +17,7 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
@@ -49,7 +50,7 @@ public class InteractiveSession implements Session {
   private TimeProvider timeProvider;
 
   @Override
-  public void open(CreateSessionRequest createSessionRequest) {
+  public void open(CreateSessionRequest createSessionRequest, AsyncQueryRequestContext asyncQueryRequestContext) {
     try {
       // append session id;
       createSessionRequest
@@ -69,7 +70,7 @@ public class InteractiveSession implements Session {
       sessionModel =
           initInteractiveSession(accountId,
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      sessionStorageService.createSession(sessionModel);
+      sessionStorageService.createSession(sessionModel, asyncQueryRequestContext);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
@@ -91,7 +92,7 @@ public class InteractiveSession implements Session {
   }
 
   /** Submit statement. If submit successfully, Statement in waiting state. */
-  public StatementId submit(QueryRequest request) {
+  public StatementId submit(QueryRequest request, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<SessionModel> model =
         sessionStorageService.getSession(sessionModel.getId(), sessionModel.getDatasourceName());
     if (model.isEmpty()) {
@@ -113,6 +114,7 @@ public class InteractiveSession implements Session {
                 .datasourceName(sessionModel.getDatasourceName())
                 .query(request.getQuery())
                 .queryId(qid)
+                .asyncQueryRequestContext(asyncQueryRequestContext)
                 .build();
         st.open();
         return statementId;
