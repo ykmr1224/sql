@@ -136,6 +136,12 @@ public class DataSourceMetadata {
       return new DataSourceMetadata(this);
     }
 
+    // special build method to avoid validation failure
+    public DataSourceMetadata buildWithoutValidation() {
+      fillNullAttributes();
+      return new DataSourceMetadata(this);
+    }
+
     private void fillNullAttributes() {
       if (resultIndex == null) {
         this.resultIndex = fromNameToCustomResultIndex();
