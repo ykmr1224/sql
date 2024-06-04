@@ -22,7 +22,8 @@ public interface AsyncQueryExecutorService {
    * @return {@link CreateAsyncQueryResponse}
    */
   CreateAsyncQueryResponse createAsyncQuery(
-      CreateAsyncQueryRequest createAsyncQueryRequest, AsyncQueryRequestContext asyncQueryRequestContext);
+      CreateAsyncQueryRequest createAsyncQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
   /**
    * Returns async query response for a given queryId.

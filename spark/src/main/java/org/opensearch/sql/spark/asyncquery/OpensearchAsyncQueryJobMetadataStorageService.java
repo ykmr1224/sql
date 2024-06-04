@@ -31,7 +31,9 @@ public class OpensearchAsyncQueryJobMetadataStorageService
       LogManager.getLogger(OpensearchAsyncQueryJobMetadataStorageService.class);
 
   @Override
-  public void storeJobMetadata(AsyncQueryJobMetadata asyncQueryJobMetadata, AsyncQueryRequestContext asyncQueryRequestContext) {
+  public void storeJobMetadata(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     stateStore.create(
         asyncQueryJobMetadata,
         AsyncQueryJobMetadata::copy,

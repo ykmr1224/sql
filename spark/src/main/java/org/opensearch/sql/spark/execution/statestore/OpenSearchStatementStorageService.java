@@ -19,7 +19,8 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
   private final StatementModelXContentSerializer serializer;
 
   @Override
-  public StatementModel createStatement(StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext) {
+  public StatementModel createStatement(
+      StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.create(
         statementModel,
         StatementModel::copy,

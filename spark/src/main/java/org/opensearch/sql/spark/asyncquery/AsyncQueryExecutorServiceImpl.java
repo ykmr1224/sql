@@ -37,7 +37,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
 
   @Override
   public CreateAsyncQueryResponse createAsyncQuery(
-      CreateAsyncQueryRequest createAsyncQueryRequest, AsyncQueryRequestContext asyncQueryRequestContext) {
+      CreateAsyncQueryRequest createAsyncQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
         sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(asyncQueryRequestContext);
     DispatchQueryResponse dispatchQueryResponse =

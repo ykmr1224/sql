@@ -16,7 +16,8 @@ import org.opensearch.sql.spark.execution.statement.StatementState;
  */
 public interface StatementStorageService {
 
-  StatementModel createStatement(StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext);
+  StatementModel createStatement(
+      StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext);
 
   StatementModel updateStatementState(
       StatementModel oldStatementModel, StatementState statementState);

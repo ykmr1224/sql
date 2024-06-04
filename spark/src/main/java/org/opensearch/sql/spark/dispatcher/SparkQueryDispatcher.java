@@ -38,7 +38,9 @@ public class SparkQueryDispatcher {
   private final QueryHandlerFactory queryHandlerFactory;
   private final QueryIdProvider queryIdProvider;
 
-  public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest, AsyncQueryRequestContext asyncQueryRequestContext) {
+  public DispatchQueryResponse dispatch(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             dispatchQueryRequest.getDatasource());

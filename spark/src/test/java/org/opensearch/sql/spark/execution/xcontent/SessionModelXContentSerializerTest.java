@@ -12,13 +12,9 @@ import static org.mockito.Mockito.mock;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
@@ -33,7 +29,7 @@ class SessionModelXContentSerializerTest {
         SessionModel.builder()
             .version("1.0")
             .sessionType(SessionType.INTERACTIVE)
-            .sessionId(new SessionId("session1"))
+            .sessionId("session1")
             .sessionState(SessionState.FAIL)
             .datasourceName("datasource1")
             .accountId("account1")
@@ -57,7 +53,6 @@ class SessionModelXContentSerializerTest {
     assertEquals(true, json.contains("\"jobId\":\"job1\""));
   }
 
-
   @Test
   void fromXContentShouldDeserializeSessionModel() throws Exception {
     String json = getBaseJson().toString();
@@ -67,7 +62,7 @@ class SessionModelXContentSerializerTest {
 
     assertEquals("1.0", sessionModel.getVersion());
     assertEquals(SessionType.INTERACTIVE, sessionModel.getSessionType());
-    assertEquals("session1", sessionModel.getSessionId().getSessionId());
+    assertEquals("session1", sessionModel.getSessionId());
     assertEquals(SessionState.FAIL, sessionModel.getSessionState());
     assertEquals("datasource1", sessionModel.getDatasourceName());
     assertEquals("account1", sessionModel.getAccountId());
@@ -84,7 +79,7 @@ class SessionModelXContentSerializerTest {
 
     assertEquals("1.0", sessionModel.getVersion());
     assertEquals(SessionType.INTERACTIVE, sessionModel.getSessionType());
-    assertEquals("session1", sessionModel.getSessionId().getSessionId());
+    assertEquals("session1", sessionModel.getSessionId());
     assertEquals(SessionState.FAIL, sessionModel.getSessionState());
     assertEquals("datasource1", sessionModel.getDatasourceName());
     assertNull(sessionModel.getAccountId());
@@ -104,13 +99,13 @@ class SessionModelXContentSerializerTest {
         .put("type", "session")
         .put("sessionType", "interactive")
         .put("sessionId", "session1")
-        .put("state","fail")
-        .put("dataSourceName","datasource1")
-        .put("accountId","account1")
-        .put("applicationId","app1")
-        .put("jobId","job1")
-        .put("lastUpdateTime",1623456789)
-        .put("error","");
+        .put("state", "fail")
+        .put("dataSourceName", "datasource1")
+        .put("accountId", "account1")
+        .put("applicationId", "app1")
+        .put("jobId", "job1")
+        .put("lastUpdateTime", 1623456789)
+        .put("error", "");
   }
 
   @Test

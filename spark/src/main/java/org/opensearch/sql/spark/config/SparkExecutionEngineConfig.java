@@ -1,6 +1,5 @@
 package org.opensearch.sql.spark.config;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 

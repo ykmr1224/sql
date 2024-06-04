@@ -50,8 +50,7 @@ public class OpenSearchJobExecutionResponseReaderTest {
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
 
-    assertFalse(
-        jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null).isEmpty());
+    assertFalse(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null).isEmpty());
   }
 
   @Test
@@ -65,8 +64,7 @@ public class OpenSearchJobExecutionResponseReaderTest {
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
 
-    assertFalse(
-        jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
+    assertFalse(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
   }
 
   @Test
@@ -101,7 +99,6 @@ public class OpenSearchJobExecutionResponseReaderTest {
   public void testIndexNotFoundException() {
     when(client.search(any())).thenThrow(IndexNotFoundException.class);
 
-    assertTrue(
-        jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
+    assertTrue(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
   }
 }

@@ -19,7 +19,8 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
   private final SessionModelXContentSerializer serializer;
 
   @Override
-  public SessionModel createSession(SessionModel sessionModel, AsyncQueryRequestContext asyncQueryRequestContext) {
+  public SessionModel createSession(
+      SessionModel sessionModel, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.create(
         sessionModel,
         SessionModel::of,

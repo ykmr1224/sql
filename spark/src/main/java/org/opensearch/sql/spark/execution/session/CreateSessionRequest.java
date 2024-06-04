@@ -42,7 +42,15 @@ public class CreateSessionRequest {
         String sparkSubmitParams,
         Map<String, String> tags,
         String resultIndex) {
-      super(jobName, accountId, applicationId, executionRoleArn, sparkSubmitParams, tags, false, resultIndex);
+      super(
+          jobName,
+          accountId,
+          applicationId,
+          executionRoleArn,
+          sparkSubmitParams,
+          tags,
+          false,
+          resultIndex);
     }
 
     /** Interactive query keep running. */

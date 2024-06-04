@@ -24,10 +24,10 @@ import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -498,7 +498,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate PPL plugin search query_execution_result */
     JSONObject pluginSearchQueryResult() {
-      return new OpenSearchJobExecutionResponseReader(client).getResultWithQueryId(queryId, resultIndex);
+      return new OpenSearchJobExecutionResponseReader(client)
+          .getResultWithQueryId(queryId, resultIndex);
     }
 
     /** Simulate EMR-S bulk writes query_execution_result with refresh = wait_for */

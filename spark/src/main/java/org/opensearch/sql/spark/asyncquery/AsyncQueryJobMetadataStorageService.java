@@ -13,7 +13,9 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 
 public interface AsyncQueryJobMetadataStorageService {
 
-  void storeJobMetadata(AsyncQueryJobMetadata asyncQueryJobMetadata, AsyncQueryRequestContext asyncQueryRequestContext);
+  void storeJobMetadata(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
   Optional<AsyncQueryJobMetadata> getJobMetadata(String jobId);
 }

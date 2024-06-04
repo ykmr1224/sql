@@ -14,9 +14,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -98,15 +95,15 @@ class FlintIndexStateModelXContentSerializerTest {
         .put("version", "1.0")
         .put("type", "flintindexstate")
         .put("state", "active")
-        .put("statementId","statement1")
-        .put("sessionId","session1")
-        .put("accountId","account1")
-        .put("applicationId","app1")
-        .put("jobId","job1")
-        .put("latestId","latest1")
-        .put("dataSourceName","datasource1")
-        .put("lastUpdateTime",1623456789)
-        .put("error","");
+        .put("statementId", "statement1")
+        .put("sessionId", "session1")
+        .put("accountId", "account1")
+        .put("applicationId", "app1")
+        .put("jobId", "job1")
+        .put("latestId", "latest1")
+        .put("dataSourceName", "datasource1")
+        .put("lastUpdateTime", 1623456789)
+        .put("error", "");
   }
 
   @Test

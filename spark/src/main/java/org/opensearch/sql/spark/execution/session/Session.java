@@ -14,7 +14,8 @@ import org.opensearch.sql.spark.execution.statement.StatementId;
 /** Session define the statement execution context. Each session is binding to one Spark Job. */
 public interface Session {
   /** open session. */
-  void open(CreateSessionRequest createSessionRequest, AsyncQueryRequestContext asyncQueryRequestContext);
+  void open(
+      CreateSessionRequest createSessionRequest, AsyncQueryRequestContext asyncQueryRequestContext);
 
   /** close session. */
   void close();
@@ -38,7 +39,7 @@ public interface Session {
 
   SessionModel getSessionModel();
 
-  SessionId getSessionId();
+  String getSessionId();
 
   /** return true if session is ready to use. */
   boolean isOperationalForDataSource(String dataSourceName);

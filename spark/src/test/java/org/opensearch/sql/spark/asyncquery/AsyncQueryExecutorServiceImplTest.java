@@ -105,10 +105,10 @@ public class AsyncQueryExecutorServiceImplTest {
         .storeJobMetadata(getAsyncQueryJobMetadata(), asyncQueryRequestContext);
     verify(sparkExecutionEngineConfigSupplier, times(1))
         .getSparkExecutionEngineConfig(asyncQueryRequestContext);
-    verify(sparkExecutionEngineConfigSupplier, times(1)).getSparkExecutionEngineConfig(
-        asyncQueryRequestContext);
-    verify(sparkQueryDispatcher, times(1)).dispatch(expectedDispatchQueryRequest,
-        asyncQueryRequestContext);
+    verify(sparkExecutionEngineConfigSupplier, times(1))
+        .getSparkExecutionEngineConfig(asyncQueryRequestContext);
+    verify(sparkQueryDispatcher, times(1))
+        .dispatch(expectedDispatchQueryRequest, asyncQueryRequestContext);
     Assertions.assertEquals(QUERY_ID, createAsyncQueryResponse.getQueryId());
   }
 
