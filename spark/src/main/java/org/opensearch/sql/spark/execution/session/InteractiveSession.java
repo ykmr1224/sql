@@ -111,7 +111,7 @@ public class InteractiveSession implements Session {
                 .jobId(sessionModel.getJobId())
                 .statementStorageService(statementStorageService)
                 .statementId(statementId)
-                .langType(LangType.SQL)
+                .langType(request.getLangType())
                 .datasourceName(sessionModel.getDatasourceName())
                 .query(request.getQuery())
                 .queryId(qid)
