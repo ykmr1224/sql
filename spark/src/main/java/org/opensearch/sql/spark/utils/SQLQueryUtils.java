@@ -9,6 +9,7 @@ import java.util.Locale;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
@@ -16,6 +17,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.MaterializedViewQueryContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
@@ -323,6 +325,15 @@ public class SQLQueryUtils {
       indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
       visitPropertyList(ctx.propertyList());
       return super.visitAlterMaterializedViewStatement(ctx);
+    }
+
+    @Override
+    public Void visitMaterializedViewQuery(MaterializedViewQueryContext ctx) {
+      int a = ctx.start.getStartIndex();
+      int b = ctx.stop.getStopIndex();
+      String query = ctx.start.getInputStream().getText(new Interval(a, b));
+      indexQueryDetailsBuilder.mvQuery(query);
+      return super.visitMaterializedViewQuery(ctx);
     }
 
     private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {

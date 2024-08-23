@@ -25,7 +25,6 @@ import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
-import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.TimeProvider;
 
 /**
