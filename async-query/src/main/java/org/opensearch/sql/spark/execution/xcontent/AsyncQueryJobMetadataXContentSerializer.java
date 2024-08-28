@@ -9,8 +9,12 @@ import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedTok
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ACCOUNT_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.APPLICATION_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.DATASOURCE_NAME;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ERROR;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.JOB_ID;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.LANG;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.QUERY;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.QUERY_ID;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.STATE;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.TYPE;
 
 import java.io.IOException;
@@ -22,7 +26,9 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.rest.model.LangType;
 
 public class AsyncQueryJobMetadataXContentSerializer
     implements XContentSerializer<AsyncQueryJobMetadata> {
@@ -47,6 +53,10 @@ public class AsyncQueryJobMetadataXContentSerializer
         .field(DATASOURCE_NAME, jobMetadata.getDatasourceName())
         .field(JOB_TYPE, jobMetadata.getJobType().getText().toLowerCase(Locale.ROOT))
         .field(INDEX_NAME, jobMetadata.getIndexName())
+        .field(QUERY, jobMetadata.getQuery())
+        .field(LANG, jobMetadata.getLangType())
+        .field(STATE, jobMetadata.getState())
+        .field(ERROR, jobMetadata.getError())
         .endObject();
   }
 
@@ -89,6 +99,21 @@ public class AsyncQueryJobMetadataXContentSerializer
           builder.indexName(parser.textOrNull());
           break;
         case TYPE:
+          break;
+        case QUERY:
+          builder.query(parser.textOrNull());
+          break;
+        case LANG:
+          String lang = parser.textOrNull();
+          builder.langType(Strings.isNullOrEmpty(lang) ? null : LangType.fromString(lang));
+          break;
+        case STATE:
+          String state = parser.textOrNull();
+          builder.state(
+              Strings.isNullOrEmpty(state) ? null : QueryState.fromString(parser.textOrNull()));
+          break;
+        case ERROR:
+          builder.error(parser.textOrNull());
           break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
