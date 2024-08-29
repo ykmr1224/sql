@@ -203,7 +203,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH, QueryState.SUCCESS);
   }
 
   @Test
@@ -225,7 +225,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(flintIndexClient).deleteIndex(indexName);
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH, QueryState.SUCCESS);
   }
 
   @Test
@@ -256,7 +256,7 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH, QueryState.SUCCESS);
   }
 
   @Test
@@ -281,7 +281,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.STREAMING, QueryState.WAITING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -316,7 +316,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH, QueryState.WAITING);
   }
 
   @Test
@@ -338,7 +338,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH, QueryState.WAITING);
   }
 
   @Test
@@ -364,7 +364,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.INTERACTIVE, QueryState.WAITING);
   }
 
   @Test
@@ -556,7 +556,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId, QueryState state) {
+  private void verifyStoreJobMetadataCalled(String jobId, JobType jobType, QueryState state) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -567,6 +567,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(asyncQueryJobMetadata.getError());
     assertEquals(LangType.SQL, asyncQueryJobMetadata.getLangType());
     assertEquals(state, asyncQueryJobMetadata.getState());
+    assertEquals(jobType, asyncQueryJobMetadata.getJobType());
     assertNull(asyncQueryJobMetadata.getError());
   }
 

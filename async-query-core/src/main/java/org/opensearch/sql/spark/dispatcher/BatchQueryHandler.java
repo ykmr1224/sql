@@ -106,7 +106,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         .jobId(jobId)
         .resultIndex(dataSourceMetadata.getResultIndex())
         .datasourceName(dataSourceMetadata.getName())
-        .jobType(JobType.INTERACTIVE)
+        .jobType(JobType.BATCH)
         .status(QueryState.WAITING)
         .build();
   }

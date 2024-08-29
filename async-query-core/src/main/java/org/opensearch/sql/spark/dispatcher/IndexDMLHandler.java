@@ -83,7 +83,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .status(QueryState.SUCCESS)
           .build();
     } catch (Exception e) {
@@ -102,7 +102,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .status(QueryState.FAILED)
           .error(e.getMessage())
           .build();
