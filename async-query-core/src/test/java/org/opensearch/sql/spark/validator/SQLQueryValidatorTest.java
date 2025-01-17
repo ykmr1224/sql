@@ -195,7 +195,12 @@ class SQLQueryValidatorTest {
     // UDFs (User-Defined Functions)
     SCALAR_USER_DEFINED_FUNCTIONS("SELECT my_udf(name) FROM my_table;"),
     USER_DEFINED_AGGREGATE_FUNCTIONS("SELECT my_udaf(age) FROM my_table GROUP BY name;"),
-    INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS("SELECT my_hive_udf(name) FROM my_table;");
+    INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS("SELECT my_hive_udf(name) FROM my_table;"),
+
+    // UNCATEGORIZED functions
+    NAMED_STRUCT("SELECT named_struct('a', 1);"),
+    PARSE_URL("SELECT parse_url(url) FROM my_table;");
+    ;
 
     @Getter private final String[] queries;
 
@@ -327,6 +332,10 @@ class SQLQueryValidatorTest {
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
     v.ng(TestElement.USER_DEFINED_AGGREGATE_FUNCTIONS);
     v.ng(TestElement.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
+
+    // UNSUPPORTED Functions
+    v.ng(TestElement.NAMED_STRUCT);
+    v.ng(TestElement.PARSE_URL);
   }
 
   @Test
@@ -444,6 +453,10 @@ class SQLQueryValidatorTest {
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
     v.ng(TestElement.USER_DEFINED_AGGREGATE_FUNCTIONS);
     v.ng(TestElement.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
+
+    // UNSUPPORTED Functions
+    v.ng(TestElement.NAMED_STRUCT);
+    v.ng(TestElement.PARSE_URL);
   }
 
   @Test
@@ -619,6 +632,13 @@ class SQLQueryValidatorTest {
     v.ng("COMMIT");
     v.ng("ROLLBACK");
     v.ng("DFS");
+  }
+
+  @Test
+  void testException() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
   }
 
   @AllArgsConstructor

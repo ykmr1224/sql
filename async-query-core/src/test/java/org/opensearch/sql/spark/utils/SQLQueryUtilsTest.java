@@ -141,6 +141,7 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "DROP SKIPPING INDEX ON myS3.default.alb_logs",
       "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
+      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs"
     };
 
     for (String query : createSkippingIndexQueries) {
