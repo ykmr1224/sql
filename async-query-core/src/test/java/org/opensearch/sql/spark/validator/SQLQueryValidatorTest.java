@@ -192,6 +192,8 @@ class SQLQueryValidatorTest {
     // Generator Functions
     GENERATOR_FUNCTIONS("SELECT explode(array(1, 2, 3));"),
 
+    UNCATEGORIZED_FUNCTIONS("SELECT named_struct('a', 1);", "SELECT url_decode('%23%24');"),
+
     // UDFs (User-Defined Functions)
     SCALAR_USER_DEFINED_FUNCTIONS("SELECT my_udf(name) FROM my_table;"),
     USER_DEFINED_AGGREGATE_FUNCTIONS("SELECT my_udaf(age) FROM my_table GROUP BY name;"),
@@ -439,6 +441,8 @@ class SQLQueryValidatorTest {
 
     // Generator Functions
     v.ok(TestElement.GENERATOR_FUNCTIONS);
+
+    v.ok(TestElement.UNCATEGORIZED_FUNCTIONS);
 
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
