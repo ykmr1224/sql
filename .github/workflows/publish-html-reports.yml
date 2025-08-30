@@ -26,6 +26,7 @@ on:
 
 jobs:
   publish-html-reports:
+    if: always()
     runs-on: ubuntu-latest
     steps:
     # Download all the artifacts from the previous jobs
