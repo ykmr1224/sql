@@ -43,7 +43,39 @@ jobs:
         cp -r downloaded-artifacts/* site/
         echo "Collected all artifacts into 'site' directory."
 
-    # 👇 generate an index.html that links every folder/file
+    # Generate index.html listing all index.html files
+    - name: Generate HTML reports index
+      run: |
+        # Create a simple index.html that lists all index.html files
+        cat > site/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>HTML Reports Index</title>
+        </head>
+        <body>
+            <h1>HTML Reports Index</h1>
+            <p>Generated on: $(date)</p>
+            <ul>
+        EOF
+        
+        # Find all index.html files and add them to the list
+        find site -name "index.html" -type f | sort | while read -r file; do
+            # Get relative path from site directory
+            rel_path=$(echo "$file" | sed 's|^site/||')
+            echo "                <li><a href=\"$rel_path\">$file</a></li>" >> site/index.html
+        done
+        
+        # Close HTML file
+        cat >> site/index.html << 'EOF'
+            </ul>
+        </body>
+        </html>
+        EOF
+        
+        echo "Generated reports index at: site/index.html"
+
+    # generate an index.html that links every folder/file
     - name: Generate directory listing
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
