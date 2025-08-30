@@ -94,11 +94,6 @@ jobs:
       - security-it-linux
     runs-on: ubuntu-latest
     steps:
-      # 👇 generate an index.html that links every folder/file
-      - name: Generate directory listing
-        uses: jayanta525/github-pages-directory-listing@v4.0.0
-        with:
-          FOLDER: site
 
       # Download all the artifacts from the previous job
       - name: Download HTML Report Artifacts
@@ -112,6 +107,12 @@ jobs:
           mkdir -p site
           cp -r downloaded-artifacts/* site/
           echo "Collected all artifacts into 'site' directory."
+
+      # 👇 generate an index.html that links every folder/file
+      - name: Generate directory listing
+        uses: jayanta525/github-pages-directory-listing@v4.0.0
+        with:
+          FOLDER: site
 
       # Publish to gh-pages using the industry-standard action
       - name: Deploy to GitHub Pages
