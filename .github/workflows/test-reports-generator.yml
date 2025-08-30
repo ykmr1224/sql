@@ -214,19 +214,26 @@ jobs:
       # Collect all HTML reports from artifacts and workspace
       - name: Collect HTML Reports
         run: |
+          # Enable debug mode to see all commands
+          set -x
+          
           mkdir -p site
           
           # Debug information
           echo "🔍 Debug: Job dependency information"
           echo "This job runs after: generate-fake-reports"
           echo "Run ID: ${{ github.run_id }}"
+          echo "Current working directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
           
           # List what was downloaded
           echo "🔍 Checking downloaded artifacts..."
           if [ -d "downloaded-artifacts" ]; then
             echo "Downloaded artifacts directory exists"
             ls -la downloaded-artifacts/
-            find downloaded-artifacts -type f | head -20
+            echo "All files in downloaded-artifacts:"
+            find downloaded-artifacts -type f -exec ls -la {} \;
           else
             echo "No downloaded-artifacts directory found"
           fi
@@ -239,11 +246,22 @@ jobs:
               # Create directory structure and copy file
               relative_path="${file#downloaded-artifacts/}"
               target_dir="site/$(dirname "$relative_path")"
+              echo "Creating directory: $target_dir"
               mkdir -p "$target_dir"
+              echo "Copying $file to $target_dir/"
               cp "$file" "$target_dir/"
+              echo "Copy completed"
             done
           else
             echo "No downloaded-artifacts directory found - artifacts may not have been downloaded"
+          fi
+          
+          # Show what's in site directory after copying artifacts
+          echo "🔍 Contents of site directory after copying artifacts:"
+          if [ -d "site" ]; then
+            find site -type f -exec ls -la {} \;
+          else
+            echo "Site directory doesn't exist yet"
           fi
           
           # Find and copy all HTML files from build/reports directories (current workspace)
@@ -406,6 +424,25 @@ jobs:
               echo "No HTML reports found. Reports will appear after CI jobs complete." >> site/SUMMARY.md
           fi
 
+      # Show final site contents before deployment
+      - name: Debug - Show Final Site Contents
+        run: |
+          set -x
+          echo "🔍 Final contents of site directory before deployment:"
+          if [ -d "site" ]; then
+            echo "Site directory exists"
+            find site -type f -exec ls -la {} \;
+            echo ""
+            echo "Total files to deploy:"
+            find site -type f | wc -l
+            echo ""
+            echo "Directory structure:"
+            tree site || find site -type d | sort
+          else
+            echo "❌ Site directory does not exist!"
+            exit 1
+          fi
+
       # Publish to gh-pages using the industry-standard action
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -415,6 +452,15 @@ jobs:
           publish_dir: site
           destination_dir: revision-${{ github.sha }}
           keep_files: true
+
+      # Verify deployment
+      - name: Debug - Verify Deployment
+        run: |
+          set -x
+          echo "🔍 Deployment completed"
+          echo "Expected URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/"
+          echo "Files that should have been deployed:"
+          find site -type f | sort
 
       # Add a clickable link in the run summary
       - name: Summary
