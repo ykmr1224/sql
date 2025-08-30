@@ -53,9 +53,9 @@ jobs:
     - name: Generate HTML reports index
       run: |
         file=site/index.html
-        filename_pattern="${{ inputs.filename-pattern }}"
+        pattern="${{ inputs.filename-pattern }}"
         template="<li><a href=\"%s\">%s</a></li>"
-        links=$(cd site && find . -type f -name "$filename_pattern" | sort | awk -v tmpl="$template" '{ printf tmpl, $0, $0 }')
+        links=$(cd site && find . -type f -name "$pattern" | sort | awk -v tmpl="$template" '{ printf tmpl, $0, $0 }')
         
         cat > $file << EOF
         <!DOCTYPE html>
@@ -63,13 +63,13 @@ jobs:
         <head><title>HTML Reports Index</title></head>
         <body>
             <p>Generated on: $(date)</p>
-            <p>Searching for files matching: $filename_pattern</p>
+            <p>Searching for files matching: $pattern</p>
             <ul>$links</ul>
         </body>
         </html>
         EOF
         
-        echo "Generated index with pattern='$filename_pattern' at: $file"
+        echo "Generated index with pattern='$pattern' at: $file"
 
     # Publish to gh-pages using the industry-standard action
     - name: Deploy to GitHub Pages
