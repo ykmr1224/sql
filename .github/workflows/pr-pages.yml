@@ -1,4 +1,4 @@
-name: Upload Test Reports to Pages
+name: Publish HTML Reports
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -11,7 +11,7 @@ permissions:
   contents: write   # needed to push to gh-pages
 
 jobs:
-  collect-and-publish:
+  publish-reports:
     runs-on: ubuntu-latest
     environment:
       name: test-reports
@@ -19,96 +19,173 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Collect all available test reports
-      - name: Collect test reports
+      # Collect all HTML reports from any build/reports directories
+      - name: Collect HTML Reports
         run: |
           mkdir -p site
           
-          # List of modules to check (all directories that might have build/reports)
-          modules=(
-            "async-query" "async-query-core" "benchmarks" "common" "core" 
-            "datasources" "doctest" "integ-test" "language-grammar" "legacy" 
-            "opensearch" "plugin" "ppl" "prometheus" "protocol" "spark" "sql"
-          )
-          
-          # Copy all available reports
-          for module in "${modules[@]}"; do
-              if [ -d "$module/build/reports" ]; then
-                  echo "Copying reports from $module"
-                  mkdir -p "site/$module"
-                  cp -r "$module/build/reports"/* "site/$module/" 2>/dev/null || true
-              fi
+          # Find and copy all HTML files from build/reports directories
+          echo "🔍 Searching for HTML reports..."
+          find . -name "*.html" -path "*/build/reports/*" -type f | while read file; do
+            echo "Found: $file"
+            # Create directory structure and copy file
+            target_dir="site/$(dirname "${file#./}")"
+            mkdir -p "$target_dir"
+            cp "$file" "$target_dir/"
           done
           
-          # Copy root-level reports if they exist
-          if [ -d "build/reports" ]; then
-              echo "Copying root-level reports"
-              mkdir -p "site/root"
-              cp -r build/reports/* "site/root/" 2>/dev/null || true
+          # Also look for common report directories
+          for pattern in "*/build/test-results/*/*.html" "*/target/surefire-reports/*.html" "*/target/site/**/*.html" "**/coverage/**/*.html" "**/jacoco/**/*.html"; do
+            find . -path "$pattern" -type f 2>/dev/null | while read file; do
+              echo "Found: $file"
+              target_dir="site/$(dirname "${file#./}")"
+              mkdir -p "$target_dir"
+              cp "$file" "$target_dir/"
+            done
+          done
+          
+          # Generate a simple directory index
+          SHORT_COMMIT="${{ github.sha }}"
+          SHORT_COMMIT="${SHORT_COMMIT:0:8}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          
+          cat > site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>HTML Reports - Revision SHORT_COMMIT_PLACEHOLDER</title>
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; 
+                      margin: 40px; 
+                      background-color: #f6f8fa;
+                  }
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      background: white;
+                      padding: 30px;
+                      border-radius: 8px;
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                  }
+                  h1 { 
+                      color: #24292e; 
+                      border-bottom: 1px solid #e1e4e8;
+                      padding-bottom: 10px;
+                  }
+                  .summary { 
+                      background: linear-gradient(135deg, #f6f8fa 0%, #e1e4e8 100%); 
+                      padding: 20px; 
+                      border-radius: 6px; 
+                      margin-bottom: 30px; 
+                      border: 1px solid #e1e4e8;
+                  }
+                  .summary p {
+                      margin: 8px 0;
+                  }
+                  .reports-list {
+                      list-style: none;
+                      padding: 0;
+                  }
+                  .reports-list li {
+                      margin: 10px 0;
+                      padding: 12px;
+                      background: #f8f9fa;
+                      border: 1px solid #e1e4e8;
+                      border-radius: 6px;
+                  }
+                  .reports-list a {
+                      text-decoration: none;
+                      color: #0366d6;
+                      font-weight: 500;
+                  }
+                  .reports-list a:hover {
+                      text-decoration: underline;
+                  }
+                  .file-path {
+                      color: #586069;
+                      font-size: 0.9em;
+                      margin-left: 10px;
+                  }
+                  .no-reports {
+                      text-align: center;
+                      padding: 40px;
+                      color: #586069;
+                  }
+                  .timestamp { 
+                      color: #586069; 
+                      font-size: 0.9em; 
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>📊 HTML Reports - Revision SHORT_COMMIT_PLACEHOLDER</h1>
+                  <div class="summary">
+                      <p><strong>Repository:</strong> REPOSITORY_PLACEHOLDER</p>
+                      <p><strong>Branch:</strong> BRANCH_PLACEHOLDER</p>
+                      <p><strong>Commit:</strong> <code>COMMIT_PLACEHOLDER</code></p>
+                      <p class="timestamp"><strong>Generated:</strong> TIMESTAMP_PLACEHOLDER</p>
+                  </div>
+                  
+                  <div id="reports-container">
+                      REPORTS_LIST_PLACEHOLDER
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+          # Replace placeholders
+          sed -i "s/SHORT_COMMIT_PLACEHOLDER/${SHORT_COMMIT}/g" site/index.html
+          sed -i "s|REPOSITORY_PLACEHOLDER|${{ github.repository }}|g" site/index.html
+          sed -i "s/BRANCH_PLACEHOLDER/${BRANCH}/g" site/index.html
+          sed -i "s/COMMIT_PLACEHOLDER/${{ github.sha }}/g" site/index.html
+          sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -u)/g" site/index.html
+          
+          # Generate reports list
+          reports_html=""
+          if find site -name "*.html" ! -name "index.html" | head -1 | grep -q .; then
+              reports_html="<ul class=\"reports-list\">"
+              find site -name "*.html" ! -name "index.html" | sort | while read file; do
+                  relative_path="${file#site/}"
+                  display_name=$(basename "$file" .html)
+                  dir_name=$(dirname "$relative_path")
+                  reports_html="$reports_html<li><a href=\"$relative_path\">$display_name</a><span class=\"file-path\">$dir_name</span></li>"
+              done
+              reports_html="$reports_html</ul>"
+          else
+              reports_html="<div class=\"no-reports\"><h2>ℹ️ No HTML Reports Found</h2><p>No HTML reports were found in build directories. Reports will appear here after CI jobs complete.</p></div>"
           fi
           
-          # Generate modules list HTML for template
-          modules_html=""
-          for module in "${modules[@]}" "root"; do
-              if [ -d "site/$module" ] || [ "$module" = "doctest" ]; then
-                  modules_html+="<div class=\"module\">
-                      <h2>$module</h2>
-                      <div class=\"report-links\">
-                          <a href=\"$module/tests/test/index.html\">Unit Tests</a>
-                          <a href=\"$module/tests/integTest/index.html\">Integration Tests</a>
-                          <a href=\"$module/jacocoHtml/index.html\">Coverage Report</a>
-                          <a href=\"$module/spotbugs/main.html\">SpotBugs</a>
-                          <a href=\"$module/checkstyle/main.html\">Checkstyle</a>
-                      </div>
-                      <span class=\"no-reports\">No reports available</span>
-                  </div>"
-              fi
-          done
-          
-          # Create index.html from template
-          cp .github/templates/test-reports-index.html site/index.html
-          
-          # Get current branch and commit info
-          CURRENT_BRANCH="${{ github.head_ref || github.ref_name }}"
-          CURRENT_COMMIT="${{ github.sha }}"
-          SHORT_COMMIT="${CURRENT_COMMIT:0:8}"
-          
-          # Replace placeholders in the template
-          sed -i "s/{{PR_NUMBER}}/${SHORT_COMMIT}/g" site/index.html
-          sed -i "s|{{REPOSITORY}}|${{ github.repository }}|g" site/index.html
-          sed -i "s/{{BRANCH}}/${CURRENT_BRANCH}/g" site/index.html
-          sed -i "s/{{COMMIT}}/${CURRENT_COMMIT}/g" site/index.html
-          sed -i "s/{{TIMESTAMP}}/$(date -u)/g" site/index.html
-          
-          # Replace modules list (using a temporary file to handle multiline)
-          echo "$modules_html" > site/modules.tmp
-          # Use perl for multiline replacement
-          perl -i -pe 'BEGIN{undef $/;} s/\{\{MODULES_LIST\}\}/`cat site\/modules.tmp`/smge' site/index.html
-          rm site/modules.tmp
+          # Replace reports list placeholder
+          # Use a temporary file for multiline replacement
+          echo "$reports_html" > site/reports.tmp
+          perl -i -pe 'BEGIN{undef $/;} s/REPORTS_LIST_PLACEHOLDER/`cat site\/reports.tmp`/smge' site/index.html
+          rm site/reports.tmp
           
           # Create a summary of what was collected
-          echo "## Test Reports Summary" > site/SUMMARY.md
+          echo "## HTML Reports Summary" > site/SUMMARY.md
           echo "" >> site/SUMMARY.md
           echo "Generated for revision: ${SHORT_COMMIT}" >> site/SUMMARY.md
           echo "Repository: ${{ github.repository }}" >> site/SUMMARY.md
-          echo "Branch: ${CURRENT_BRANCH}" >> site/SUMMARY.md
-          echo "Commit: ${CURRENT_COMMIT}" >> site/SUMMARY.md
+          echo "Branch: ${BRANCH}" >> site/SUMMARY.md
+          echo "Commit: ${{ github.sha }}" >> site/SUMMARY.md
           echo "" >> site/SUMMARY.md
           
           # List what was found
-          if find site -name "*.html" -not -path "site/index.html" | grep -q .; then
-              echo "### Available Reports:" >> site/SUMMARY.md
-              for module in "${modules[@]}" "root"; do
-                  if [ -d "site/$module" ] && [ "$(ls -A "site/$module" 2>/dev/null)" ]; then
-                      echo "- **$module**: Available" >> site/SUMMARY.md
-                  fi
+          report_count=$(find site -name "*.html" ! -name "index.html" | wc -l)
+          if [ "$report_count" -gt 0 ]; then
+              echo "### Found $report_count HTML Reports:" >> site/SUMMARY.md
+              find site -name "*.html" ! -name "index.html" | sort | while read file; do
+                  echo "- ${file#site/}" >> site/SUMMARY.md
               done
           else
-              echo "No test reports found. Tests may not have been executed yet." >> site/SUMMARY.md
+              echo "No HTML reports found. Reports will appear after CI jobs complete." >> site/SUMMARY.md
           fi
 
-      # Publish to gh-pages
-      - name: Deploy to gh-pages
+      # Publish to gh-pages using the industry-standard action
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -125,12 +202,20 @@ jobs:
           URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/"
           
           {
-            echo "### 📊 Test Reports Published"
+            echo "### 📊 HTML Reports Published"
             echo ""
             echo "- **📋 Dashboard:** [$URL]($URL)"
             echo "- **🔍 Revision:** ${SHORT_COMMIT}"
             echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
             echo "- **📅 Generated:** $(date -u)"
             echo ""
-            echo "The dashboard uses JavaScript to automatically show/hide available reports."
+            echo "The dashboard automatically lists all HTML files found in build directories."
+            echo ""
+            echo "**Search Locations:**"
+            echo "- \`*/build/reports/**/*.html\`"
+            echo "- \`*/build/test-results/**/*.html\`"
+            echo "- \`*/target/surefire-reports/*.html\`"
+            echo "- \`*/target/site/**/*.html\`"
+            echo "- \`**/coverage/**/*.html\`"
+            echo "- \`**/jacoco/**/*.html\`"
           } >> "$GITHUB_STEP_SUMMARY"

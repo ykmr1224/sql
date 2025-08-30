@@ -1,0 +1,185 @@
+name: Generate Test Reports (Quick Test)
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    paths:
+      - '.github/workflows/test-reports-generator.yml'
+
+jobs:
+  generate-fake-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Fake HTML Reports
+        run: |
+          # Create various types of fake reports to test the collection
+          
+          # Gradle-style test reports
+          mkdir -p build/reports/tests/test
+          cat > build/reports/tests/test/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Test Results</title></head>
+          <body>
+            <h1>🧪 Unit Test Results</h1>
+            <p><strong>Tests run:</strong> 42</p>
+            <p><strong>Failures:</strong> 0</p>
+            <p><strong>Errors:</strong> 0</p>
+            <p><strong>Success rate:</strong> 100%</p>
+            <p><strong>Time:</strong> 1.234s</p>
+            <h2>Test Classes</h2>
+            <ul>
+              <li>✅ com.example.UserServiceTest</li>
+              <li>✅ com.example.DatabaseTest</li>
+              <li>✅ com.example.ApiControllerTest</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+          
+          # JaCoCo coverage report
+          mkdir -p build/reports/jacoco/test/html
+          cat > build/reports/jacoco/test/html/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>JaCoCo Coverage Report</title></head>
+          <body>
+            <h1>📊 Code Coverage Report</h1>
+            <table border="1">
+              <tr><th>Package</th><th>Class Coverage</th><th>Method Coverage</th><th>Line Coverage</th></tr>
+              <tr><td>com.example.service</td><td>85%</td><td>78%</td><td>82%</td></tr>
+              <tr><td>com.example.controller</td><td>92%</td><td>88%</td><td>90%</td></tr>
+              <tr><td>com.example.util</td><td>95%</td><td>93%</td><td>94%</td></tr>
+            </table>
+            <p><strong>Overall Coverage:</strong> 87.3%</p>
+          </body>
+          </html>
+          EOF
+          
+          # Maven Surefire reports
+          mkdir -p target/surefire-reports
+          cat > target/surefire-reports/TEST-com.example.UserServiceTest.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Surefire Test Report</title></head>
+          <body>
+            <h1>🔬 Surefire Test Report</h1>
+            <h2>com.example.UserServiceTest</h2>
+            <p><strong>Tests:</strong> 15</p>
+            <p><strong>Failures:</strong> 0</p>
+            <p><strong>Errors:</strong> 0</p>
+            <p><strong>Skipped:</strong> 1</p>
+            <p><strong>Time elapsed:</strong> 0.456 sec</p>
+            <h3>Test Methods</h3>
+            <ul>
+              <li>✅ testCreateUser()</li>
+              <li>✅ testUpdateUser()</li>
+              <li>✅ testDeleteUser()</li>
+              <li>⏭️ testLegacyFeature() - SKIPPED</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+          
+          # SpotBugs report
+          mkdir -p build/reports/spotbugs
+          cat > build/reports/spotbugs/main.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>SpotBugs Report</title></head>
+          <body>
+            <h1>🐛 SpotBugs Analysis Report</h1>
+            <p><strong>Classes analyzed:</strong> 156</p>
+            <p><strong>Bug instances:</strong> 3</p>
+            <p><strong>High priority:</strong> 0</p>
+            <p><strong>Medium priority:</strong> 2</p>
+            <p><strong>Low priority:</strong> 1</p>
+            <h2>Issues Found</h2>
+            <ul>
+              <li>⚠️ Possible null pointer dereference in UserService.java:42</li>
+              <li>⚠️ Dead store to local variable in DatabaseUtil.java:78</li>
+              <li>ℹ️ Unused field in ConfigManager.java:15</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+          
+          # Checkstyle report
+          mkdir -p build/reports/checkstyle
+          cat > build/reports/checkstyle/main.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Checkstyle Report</title></head>
+          <body>
+            <h1>📏 Checkstyle Report</h1>
+            <p><strong>Files checked:</strong> 89</p>
+            <p><strong>Total violations:</strong> 12</p>
+            <p><strong>Errors:</strong> 2</p>
+            <p><strong>Warnings:</strong> 10</p>
+            <h2>Violations by Category</h2>
+            <ul>
+              <li>Imports: 4 violations</li>
+              <li>Whitespace: 3 violations</li>
+              <li>Javadoc: 3 violations</li>
+              <li>Naming: 2 violations</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+          
+          # Integration test results
+          mkdir -p build/test-results/integTest
+          cat > build/test-results/integTest/results.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Integration Test Results</title></head>
+          <body>
+            <h1>🔗 Integration Test Results</h1>
+            <p><strong>Test suites:</strong> 8</p>
+            <p><strong>Tests run:</strong> 67</p>
+            <p><strong>Failures:</strong> 1</p>
+            <p><strong>Errors:</strong> 0</p>
+            <p><strong>Duration:</strong> 2m 34s</p>
+            <h2>Test Suites</h2>
+            <ul>
+              <li>✅ DatabaseIntegrationTest</li>
+              <li>✅ ApiIntegrationTest</li>
+              <li>✅ SecurityIntegrationTest</li>
+              <li>❌ PerformanceIntegrationTest (1 failure)</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+          
+          # Custom report in different location
+          mkdir -p custom/reports/analysis
+          cat > custom/reports/analysis/summary.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Custom Analysis Report</title></head>
+          <body>
+            <h1>🔍 Custom Analysis Report</h1>
+            <p>This is a custom report in a non-standard location to test the generic collection.</p>
+            <p><strong>Analysis completed:</strong> $(date)</p>
+            <p><strong>Files processed:</strong> 234</p>
+            <p><strong>Issues found:</strong> 7</p>
+          </body>
+          </html>
+          EOF
+          
+          echo "✅ Generated fake HTML reports in multiple locations:"
+          find . -name "*.html" -type f | sort
+
+      - name: List Generated Reports
+        run: |
+          echo "## 📊 Generated Test Reports" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The following HTML reports were generated for testing:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.html" -type f | sort | while read file; do
+            echo "- \`$file\`" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "These reports will be collected by the 'Publish HTML Reports' workflow." >> $GITHUB_STEP_SUMMARY
