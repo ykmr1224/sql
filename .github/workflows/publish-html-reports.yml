@@ -79,12 +79,9 @@ jobs:
 
     - name: Summary
       run: |
-        SHORT_COMMIT="${{ github.sha }}"
-        SHORT_COMMIT="${SHORT_COMMIT:0:8}"
         URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ inputs.destination-dir }}/"
         
         {
           echo "- **📋 Dashboard:** [$URL]($URL)"
-          echo "- **🔍 Revision:** ${SHORT_COMMIT}"
           echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
         } >> "$GITHUB_STEP_SUMMARY"
