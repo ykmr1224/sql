@@ -54,3 +54,12 @@ jobs:
         path: |
           core/build/reports/**
           opensearch/build/reports/**
+
+  publish-html-reports:
+    needs:
+      - build-linux
+    uses: ./.github/workflows/publish-html-reports.yml
+    with:
+      artifact-pattern: 'test-reports-*'
+      destination-dir: '${{ github.run_id }}'
+      keep-files: true

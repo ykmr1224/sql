@@ -203,3 +203,14 @@ jobs:
           plugin/build/reports/**
           doctest/build/testclusters/docTestCluster-0/logs/*
           integ-test/build/testclusters/*/logs/*
+
+  publish-html-reports:
+    needs:
+      - build-linux
+      - build-windows-macos
+      - bwc-tests
+    uses: ./.github/workflows/publish-html-reports.yml
+    with:
+      artifact-pattern: 'test-reports-*'
+      destination-dir: '${{ github.run_id }}'
+      keep-files: true
