@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NamedAggregator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.aggregation</a> &gt; <span class="el_source">NamedAggregator.java</span></div><h1>NamedAggregator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.aggregation;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+
+/**
+ * NamedAggregator expression that represents expression with name. Please see more details in
+ * associated unresolved expression operator&lt;br&gt;
+ * {@link org.opensearch.sql.ast.expression.Alias}.
+ */
+@EqualsAndHashCode(callSuper = false)
+public class NamedAggregator extends Aggregator&lt;AggregationState&gt; {
+
+  /** Aggregator name. */
+  private final String name;
+
+  /** Aggregator that being named. */
+  @Getter private final Aggregator&lt;AggregationState&gt; delegated;
+
+  /**
+   * NamedAggregator. The aggregator properties {@link #condition} and {@link #distinct} are
+   * inherited by named aggregator to avoid errors introduced by the property inconsistency.
+   *
+   * @param name name
+   * @param delegated delegated
+   */
+  public NamedAggregator(String name, Aggregator&lt;AggregationState&gt; delegated) {
+<span class="fc" id="L35">    super(delegated.getFunctionName(), delegated.getArguments(), delegated.returnType);</span>
+<span class="fc" id="L36">    this.name = name;</span>
+<span class="fc" id="L37">    this.delegated = delegated;</span>
+<span class="fc" id="L38">    this.condition = delegated.condition;</span>
+<span class="fc" id="L39">    this.distinct = delegated.distinct;</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  public AggregationState create() {
+<span class="fc" id="L44">    return delegated.create();</span>
+  }
+
+  @Override
+  protected AggregationState iterate(ExprValue value, AggregationState state) {
+<span class="fc" id="L49">    return delegated.iterate(value, state);</span>
+  }
+
+  /**
+   * Get expression name using name or its alias (if it's present).
+   *
+   * @return expression name
+   */
+  public String getName() {
+<span class="fc" id="L58">    return name;</span>
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L63">    return visitor.visitNamedAggregator(this, context);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L68">    return getName();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

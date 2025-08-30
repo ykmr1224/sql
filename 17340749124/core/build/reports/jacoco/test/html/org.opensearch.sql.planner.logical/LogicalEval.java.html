@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogicalEval.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.logical</a> &gt; <span class="el_source">LogicalEval.java</span></div><h1>LogicalEval.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.logical;
+
+import java.util.Collections;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
+
+/**
+ * Logical Evaluation represent the evaluation operation. The {@link LogicalEval#expressions} is a
+ * list assignment operation. e.g. velocity = distance/speed, then the Pair is (velocity,
+ * distance/speed).
+ */
+@ToString
+@EqualsAndHashCode(callSuper = true)
+public class LogicalEval extends LogicalPlan {
+
+  @Getter private final List&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressions;
+
+  /** Constructor of LogicalEval. */
+  public LogicalEval(LogicalPlan child, List&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressions) {
+<span class="fc" id="L30">    super(Collections.singletonList(child));</span>
+<span class="fc" id="L31">    this.expressions = expressions;</span>
+<span class="fc" id="L32">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(LogicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L36">    return visitor.visitEval(this, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

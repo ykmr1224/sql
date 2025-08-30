@@ -1,0 +1,2297 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateTimeFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.datetime</a> &gt; <span class="el_source">DateTimeFunctions.java</span></div><h1>DateTimeFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.datetime;
+
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.HOURS;
+import static java.time.temporal.ChronoUnit.MICROS;
+import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.time.temporal.ChronoUnit.MONTHS;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.time.temporal.ChronoUnit.WEEKS;
+import static java.time.temporal.ChronoUnit.YEARS;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
+import static org.opensearch.sql.utils.DateTimeFormatters.*;
+import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
+import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAmount;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionDSL;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableFunction;
+import org.opensearch.sql.expression.function.SerializableTriFunction;
+import org.opensearch.sql.utils.DateTimeFormatters;
+import org.opensearch.sql.utils.DateTimeUtils;
+
+/**
+ * The definition of date and time functions. 1) have the clear interface for function define. 2)
+ * the implementation should rely on ExprValue.
+ */
+@UtilityClass
+@SuppressWarnings(&quot;unchecked&quot;)
+public class DateTimeFunctions {
+  // The number of seconds per day
+  public static final long SECONDS_PER_DAY = 86400;
+
+  // The number of days from year zero to year 1970.
+<span class="fc" id="L98">  private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);</span>
+
+  // MySQL doesn't process any timestamp values which are greater than
+  // 32536771199.999999, or equivalent '3001-01-18 23:59:59.999999' UTC
+<span class="fc" id="L102">  private static final Double MYSQL_MAX_TIMESTAMP = 32536771200d;</span>
+
+  // Mode used for week/week_of_year function by default when no argument is provided
+<span class="fc" id="L105">  private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);</span>
+
+  // Map used to determine format output for the extract function
+  private static final Map&lt;String, String&gt; extract_formats =
+<span class="fc" id="L109">      ImmutableMap.&lt;String, String&gt;builder()</span>
+<span class="fc" id="L110">          .put(&quot;MICROSECOND&quot;, &quot;SSSSSS&quot;)</span>
+<span class="fc" id="L111">          .put(&quot;SECOND&quot;, &quot;ss&quot;)</span>
+<span class="fc" id="L112">          .put(&quot;MINUTE&quot;, &quot;mm&quot;)</span>
+<span class="fc" id="L113">          .put(&quot;HOUR&quot;, &quot;HH&quot;)</span>
+<span class="fc" id="L114">          .put(&quot;DAY&quot;, &quot;dd&quot;)</span>
+          // removing &quot;WEEK&quot; to standardize the extract
+          // .put(&quot;WEEK&quot;, &quot;w&quot;)
+<span class="fc" id="L117">          .put(&quot;MONTH&quot;, &quot;MM&quot;)</span>
+<span class="fc" id="L118">          .put(&quot;YEAR&quot;, &quot;yyyy&quot;)</span>
+<span class="fc" id="L119">          .put(&quot;SECOND_MICROSECOND&quot;, &quot;ssSSSSSS&quot;)</span>
+<span class="fc" id="L120">          .put(&quot;MINUTE_MICROSECOND&quot;, &quot;mmssSSSSSS&quot;)</span>
+<span class="fc" id="L121">          .put(&quot;MINUTE_SECOND&quot;, &quot;mmss&quot;)</span>
+<span class="fc" id="L122">          .put(&quot;HOUR_MICROSECOND&quot;, &quot;HHmmssSSSSSS&quot;)</span>
+<span class="fc" id="L123">          .put(&quot;HOUR_SECOND&quot;, &quot;HHmmss&quot;)</span>
+<span class="fc" id="L124">          .put(&quot;HOUR_MINUTE&quot;, &quot;HHmm&quot;)</span>
+<span class="fc" id="L125">          .put(&quot;DAY_MICROSECOND&quot;, &quot;ddHHmmssSSSSSS&quot;)</span>
+<span class="fc" id="L126">          .put(&quot;DAY_SECOND&quot;, &quot;ddHHmmss&quot;)</span>
+<span class="fc" id="L127">          .put(&quot;DAY_MINUTE&quot;, &quot;ddHHmm&quot;)</span>
+<span class="fc" id="L128">          .put(&quot;DAY_HOUR&quot;, &quot;ddHH&quot;)</span>
+<span class="fc" id="L129">          .put(&quot;YEAR_MONTH&quot;, &quot;yyyyMM&quot;)</span>
+<span class="fc" id="L130">          .put(&quot;QUARTER&quot;, &quot;Q&quot;)</span>
+<span class="fc" id="L131">          .put(&quot;DOY&quot;, &quot;D&quot;)</span>
+<span class="fc" id="L132">          .put(&quot;DOW&quot;, &quot;e&quot;)</span>
+<span class="fc" id="L133">          .build();</span>
+
+  // Map used to determine format output for the get_format function
+<span class="fc" id="L136">  private static final Table&lt;String, String, String&gt; formats =</span>
+<span class="fc" id="L137">      ImmutableTable.&lt;String, String, String&gt;builder()</span>
+<span class="fc" id="L138">          .put(&quot;date&quot;, &quot;usa&quot;, &quot;%m.%d.%Y&quot;)</span>
+<span class="fc" id="L139">          .put(&quot;date&quot;, &quot;jis&quot;, &quot;%Y-%m-%d&quot;)</span>
+<span class="fc" id="L140">          .put(&quot;date&quot;, &quot;iso&quot;, &quot;%Y-%m-%d&quot;)</span>
+<span class="fc" id="L141">          .put(&quot;date&quot;, &quot;eur&quot;, &quot;%d.%m.%Y&quot;)</span>
+<span class="fc" id="L142">          .put(&quot;date&quot;, &quot;internal&quot;, &quot;%Y%m%d&quot;)</span>
+<span class="fc" id="L143">          .put(&quot;time&quot;, &quot;usa&quot;, &quot;%h:%i:%s %p&quot;)</span>
+<span class="fc" id="L144">          .put(&quot;time&quot;, &quot;jis&quot;, &quot;%H:%i:%s&quot;)</span>
+<span class="fc" id="L145">          .put(&quot;time&quot;, &quot;iso&quot;, &quot;%H:%i:%s&quot;)</span>
+<span class="fc" id="L146">          .put(&quot;time&quot;, &quot;eur&quot;, &quot;%H.%i.%s&quot;)</span>
+<span class="fc" id="L147">          .put(&quot;time&quot;, &quot;internal&quot;, &quot;%H%i%s&quot;)</span>
+<span class="fc" id="L148">          .put(&quot;timestamp&quot;, &quot;usa&quot;, &quot;%Y-%m-%d %H.%i.%s&quot;)</span>
+<span class="fc" id="L149">          .put(&quot;timestamp&quot;, &quot;jis&quot;, &quot;%Y-%m-%d %H:%i:%s&quot;)</span>
+<span class="fc" id="L150">          .put(&quot;timestamp&quot;, &quot;iso&quot;, &quot;%Y-%m-%d %H:%i:%s&quot;)</span>
+<span class="fc" id="L151">          .put(&quot;timestamp&quot;, &quot;eur&quot;, &quot;%Y-%m-%d %H.%i.%s&quot;)</span>
+<span class="fc" id="L152">          .put(&quot;timestamp&quot;, &quot;internal&quot;, &quot;%Y%m%d%H%i%s&quot;)</span>
+<span class="fc" id="L153">          .build();</span>
+
+  /**
+   * Register Date and Time Functions.
+   *
+   * @param repository {@link BuiltinFunctionRepository}.
+   */
+  public void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L161">    repository.register(adddate());</span>
+<span class="fc" id="L162">    repository.register(addtime());</span>
+<span class="fc" id="L163">    repository.register(convert_tz());</span>
+<span class="fc" id="L164">    repository.register(curtime());</span>
+<span class="fc" id="L165">    repository.register(curdate());</span>
+<span class="fc" id="L166">    repository.register(current_date());</span>
+<span class="fc" id="L167">    repository.register(current_time());</span>
+<span class="fc" id="L168">    repository.register(current_timestamp());</span>
+<span class="fc" id="L169">    repository.register(date());</span>
+<span class="fc" id="L170">    repository.register(datediff());</span>
+<span class="fc" id="L171">    repository.register(datetime());</span>
+<span class="fc" id="L172">    repository.register(date_add());</span>
+<span class="fc" id="L173">    repository.register(date_format());</span>
+<span class="fc" id="L174">    repository.register(date_sub());</span>
+<span class="fc" id="L175">    repository.register(day());</span>
+<span class="fc" id="L176">    repository.register(dayName());</span>
+<span class="fc" id="L177">    repository.register(dayOfMonth(BuiltinFunctionName.DAYOFMONTH));</span>
+<span class="fc" id="L178">    repository.register(dayOfMonth(BuiltinFunctionName.DAY_OF_MONTH));</span>
+<span class="fc" id="L179">    repository.register(dayOfWeek(BuiltinFunctionName.DAYOFWEEK.getName()));</span>
+<span class="fc" id="L180">    repository.register(dayOfWeek(BuiltinFunctionName.DAY_OF_WEEK.getName()));</span>
+<span class="fc" id="L181">    repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));</span>
+<span class="fc" id="L182">    repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));</span>
+<span class="fc" id="L183">    repository.register(extract());</span>
+<span class="fc" id="L184">    repository.register(from_days());</span>
+<span class="fc" id="L185">    repository.register(from_unixtime());</span>
+<span class="fc" id="L186">    repository.register(get_format());</span>
+<span class="fc" id="L187">    repository.register(hour(BuiltinFunctionName.HOUR));</span>
+<span class="fc" id="L188">    repository.register(hour(BuiltinFunctionName.HOUR_OF_DAY));</span>
+<span class="fc" id="L189">    repository.register(last_day());</span>
+<span class="fc" id="L190">    repository.register(localtime());</span>
+<span class="fc" id="L191">    repository.register(localtimestamp());</span>
+<span class="fc" id="L192">    repository.register(makedate());</span>
+<span class="fc" id="L193">    repository.register(maketime());</span>
+<span class="fc" id="L194">    repository.register(microsecond());</span>
+<span class="fc" id="L195">    repository.register(minute(BuiltinFunctionName.MINUTE));</span>
+<span class="fc" id="L196">    repository.register(minute_of_day());</span>
+<span class="fc" id="L197">    repository.register(minute(BuiltinFunctionName.MINUTE_OF_HOUR));</span>
+<span class="fc" id="L198">    repository.register(month(BuiltinFunctionName.MONTH));</span>
+<span class="fc" id="L199">    repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));</span>
+<span class="fc" id="L200">    repository.register(monthName());</span>
+<span class="fc" id="L201">    repository.register(now());</span>
+<span class="fc" id="L202">    repository.register(period_add());</span>
+<span class="fc" id="L203">    repository.register(period_diff());</span>
+<span class="fc" id="L204">    repository.register(quarter());</span>
+<span class="fc" id="L205">    repository.register(sec_to_time());</span>
+<span class="fc" id="L206">    repository.register(second(BuiltinFunctionName.SECOND));</span>
+<span class="fc" id="L207">    repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));</span>
+<span class="fc" id="L208">    repository.register(subdate());</span>
+<span class="fc" id="L209">    repository.register(subtime());</span>
+<span class="fc" id="L210">    repository.register(str_to_date());</span>
+<span class="fc" id="L211">    repository.register(sysdate());</span>
+<span class="fc" id="L212">    repository.register(time());</span>
+<span class="fc" id="L213">    repository.register(time_format());</span>
+<span class="fc" id="L214">    repository.register(time_to_sec());</span>
+<span class="fc" id="L215">    repository.register(timediff());</span>
+<span class="fc" id="L216">    repository.register(timestamp());</span>
+<span class="fc" id="L217">    repository.register(timestampadd());</span>
+<span class="fc" id="L218">    repository.register(timestampdiff());</span>
+<span class="fc" id="L219">    repository.register(to_days());</span>
+<span class="fc" id="L220">    repository.register(to_seconds());</span>
+<span class="fc" id="L221">    repository.register(unix_timestamp());</span>
+<span class="fc" id="L222">    repository.register(utc_date());</span>
+<span class="fc" id="L223">    repository.register(utc_time());</span>
+<span class="fc" id="L224">    repository.register(utc_timestamp());</span>
+<span class="fc" id="L225">    repository.register(week(BuiltinFunctionName.WEEK));</span>
+<span class="fc" id="L226">    repository.register(week(BuiltinFunctionName.WEEKOFYEAR));</span>
+<span class="fc" id="L227">    repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));</span>
+<span class="fc" id="L228">    repository.register(weekday());</span>
+<span class="fc" id="L229">    repository.register(year());</span>
+<span class="fc" id="L230">    repository.register(yearweek());</span>
+<span class="fc" id="L231">  }</span>
+
+  /**
+   * NOW() returns a constant time that indicates the time at which the statement began to execute.
+   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
+   * `now(y) return different values.
+   */
+  private FunctionResolver now(FunctionName functionName) {
+<span class="fc" id="L239">    return define(</span>
+        functionName,
+<span class="fc" id="L241">        implWithProperties(</span>
+            functionProperties -&gt;
+<span class="fc" id="L243">                new ExprTimestampValue(formatNow(functionProperties.getQueryStartClock())),</span>
+            TIMESTAMP));
+  }
+
+  private FunctionResolver now() {
+<span class="fc" id="L248">    return now(BuiltinFunctionName.NOW.getName());</span>
+  }
+
+  private FunctionResolver current_timestamp() {
+<span class="fc" id="L252">    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());</span>
+  }
+
+  private FunctionResolver localtimestamp() {
+<span class="fc" id="L256">    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());</span>
+  }
+
+  private FunctionResolver localtime() {
+<span class="fc" id="L260">    return now(BuiltinFunctionName.LOCALTIME.getName());</span>
+  }
+
+  /** SYSDATE() returns the time at which it executes. */
+  private FunctionResolver sysdate() {
+<span class="fc" id="L265">    return define(</span>
+<span class="fc" id="L266">        BuiltinFunctionName.SYSDATE.getName(),</span>
+<span class="fc" id="L267">        implWithProperties(</span>
+            functionProperties -&gt;
+<span class="fc" id="L269">                new ExprTimestampValue(formatNow(functionProperties.getSystemClock())),</span>
+            TIMESTAMP),
+<span class="fc" id="L271">        FunctionDSL.implWithProperties(</span>
+            (functionProperties, v) -&gt;
+<span class="fc" id="L273">                new ExprTimestampValue(</span>
+<span class="fc" id="L274">                    formatNow(functionProperties.getSystemClock(), v.integerValue())),</span>
+            TIMESTAMP,
+            INTEGER));
+  }
+
+  /** Synonym for @see `now`. */
+  private FunctionResolver curtime(FunctionName functionName) {
+<span class="fc" id="L281">    return define(</span>
+        functionName,
+<span class="fc" id="L283">        implWithProperties(</span>
+            functionProperties -&gt;
+<span class="fc" id="L285">                new ExprTimeValue(formatNow(functionProperties.getQueryStartClock()).toLocalTime()),</span>
+            TIME));
+  }
+
+  private FunctionResolver curtime() {
+<span class="fc" id="L290">    return curtime(BuiltinFunctionName.CURTIME.getName());</span>
+  }
+
+  private FunctionResolver current_time() {
+<span class="fc" id="L294">    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());</span>
+  }
+
+  private FunctionResolver curdate(FunctionName functionName) {
+<span class="fc" id="L298">    return define(</span>
+        functionName,
+<span class="fc" id="L300">        implWithProperties(</span>
+            functionProperties -&gt;
+<span class="fc" id="L302">                new ExprDateValue(formatNow(functionProperties.getQueryStartClock()).toLocalDate()),</span>
+            DATE));
+  }
+
+  private FunctionResolver curdate() {
+<span class="fc" id="L307">    return curdate(BuiltinFunctionName.CURDATE.getName());</span>
+  }
+
+  private FunctionResolver current_date() {
+<span class="fc" id="L311">    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());</span>
+  }
+
+  /**
+   * A common signature for `date_add` and `date_sub`.&lt;br&gt;
+   * Specify a start date and add/subtract a temporal amount to/from the date.&lt;br&gt;
+   * The return type depends on the date type and the interval unit. Detailed supported signatures:
+   * &lt;br&gt;
+   * (DATE/TIMESTAMP/TIME, INTERVAL) -&gt; TIMESTAMP&lt;br&gt;
+   * MySQL has these signatures too&lt;br&gt;
+   * (DATE, INTERVAL) -&gt; DATE // when interval has no time part&lt;br&gt;
+   * (TIME, INTERVAL) -&gt; TIME // when interval has no date part&lt;br&gt;
+   * (STRING, INTERVAL) -&gt; STRING // when argument has date or timestamp string,&lt;br&gt;
+   * // result has date or timestamp depending on interval type&lt;br&gt;
+   */
+  private Stream&lt;SerializableFunction&lt;?, ?&gt;&gt; get_date_add_date_sub_signatures(
+      SerializableTriFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue&gt; function) {
+<span class="fc" id="L328">    return Stream.of(</span>
+<span class="fc" id="L329">        implWithProperties(nullMissingHandlingWithProperties(function), TIMESTAMP, DATE, INTERVAL),</span>
+<span class="fc" id="L330">        implWithProperties(</span>
+<span class="fc" id="L331">            nullMissingHandlingWithProperties(function), TIMESTAMP, TIMESTAMP, INTERVAL),</span>
+<span class="fc" id="L332">        implWithProperties(nullMissingHandlingWithProperties(function), TIMESTAMP, TIME, INTERVAL));</span>
+  }
+
+  /**
+   * A common signature for `adddate` and `subdate`.&lt;br&gt;
+   * Adds/subtracts an integer number of days to/from the first argument.&lt;br&gt;
+   * (DATE, LONG) -&gt; DATE&lt;br&gt;
+   * (TIME/TIMESTAMP, LONG) -&gt; TIMESTAMP
+   */
+  private Stream&lt;SerializableFunction&lt;?, ?&gt;&gt; get_adddate_subdate_signatures(
+      SerializableTriFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue&gt; function) {
+<span class="fc" id="L343">    return Stream.of(</span>
+<span class="fc" id="L344">        implWithProperties(nullMissingHandlingWithProperties(function), DATE, DATE, LONG),</span>
+<span class="fc" id="L345">        implWithProperties(nullMissingHandlingWithProperties(function), TIMESTAMP, TIMESTAMP, LONG),</span>
+<span class="fc" id="L346">        implWithProperties(nullMissingHandlingWithProperties(function), TIMESTAMP, TIME, LONG));</span>
+  }
+
+  private DefaultFunctionResolver adddate() {
+<span class="fc" id="L350">    return define(</span>
+<span class="fc" id="L351">        BuiltinFunctionName.ADDDATE.getName(),</span>
+        (SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;[])
+<span class="fc" id="L353">            (Stream.concat(</span>
+<span class="fc" id="L354">                    get_date_add_date_sub_signatures(DateTimeFunctions::exprAddDateInterval),</span>
+<span class="fc" id="L355">                    get_adddate_subdate_signatures(DateTimeFunctions::exprAddDateDays))</span>
+<span class="fc" id="L356">                .toArray(SerializableFunction&lt;?, ?&gt;[]::new)));</span>
+  }
+
+  /**
+   * Adds expr2 to expr1 and returns the result.&lt;br&gt;
+   * (TIME, TIME/DATE/TIMESTAMP) -&gt; TIME&lt;br&gt;
+   * (DATE/TIMESTAMP, TIME/DATE/TIMESTAMP) -&gt; TIMESTAMP&lt;br&gt;
+   * TODO: MySQL has these signatures too&lt;br&gt;
+   * (STRING, STRING/TIME) -&gt; STRING // second arg - string with time only&lt;br&gt;
+   * (x, STRING) -&gt; NULL // second arg - string with timestamp&lt;br&gt;
+   * (x, STRING/DATE) -&gt; x // second arg - string with date only
+   */
+  private DefaultFunctionResolver addtime() {
+<span class="fc" id="L369">    return define(</span>
+<span class="fc" id="L370">        BuiltinFunctionName.ADDTIME.getName(),</span>
+<span class="fc" id="L371">        implWithProperties(</span>
+<span class="fc" id="L372">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, TIME),</span>
+<span class="fc" id="L373">        implWithProperties(</span>
+<span class="fc" id="L374">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, DATE),</span>
+<span class="fc" id="L375">        implWithProperties(</span>
+<span class="fc" id="L376">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIME,
+            TIME,
+            TIMESTAMP),
+<span class="fc" id="L380">        implWithProperties(</span>
+<span class="fc" id="L381">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            DATE,
+            TIME),
+<span class="fc" id="L385">        implWithProperties(</span>
+<span class="fc" id="L386">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            DATE,
+            DATE),
+<span class="fc" id="L390">        implWithProperties(</span>
+<span class="fc" id="L391">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            DATE,
+            TIMESTAMP),
+<span class="fc" id="L395">        implWithProperties(</span>
+<span class="fc" id="L396">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            TIME),
+<span class="fc" id="L400">        implWithProperties(</span>
+<span class="fc" id="L401">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            DATE),
+<span class="fc" id="L405">        implWithProperties(</span>
+<span class="fc" id="L406">            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            TIMESTAMP));
+  }
+
+  /**
+   * Converts date/time from a specified timezone to another specified timezone.&lt;br&gt;
+   * The supported signatures:&lt;br&gt;
+   * (TIMESTAMP, STRING, STRING) -&gt; TIMESTAMP&lt;br&gt;
+   * (STRING, STRING, STRING) -&gt; TIMESTAMP
+   */
+  private DefaultFunctionResolver convert_tz() {
+<span class="fc" id="L419">    return define(</span>
+<span class="fc" id="L420">        BuiltinFunctionName.CONVERT_TZ.getName(),</span>
+<span class="fc" id="L421">        impl(</span>
+<span class="fc" id="L422">            nullMissingHandling(DateTimeFunctions::exprConvertTZ),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            STRING,
+            STRING),
+<span class="fc" id="L427">        impl(</span>
+<span class="fc" id="L428">            nullMissingHandling(DateTimeFunctions::exprConvertTZ),</span>
+            TIMESTAMP,
+            STRING,
+            STRING,
+            STRING));
+  }
+
+  /**
+   * Extracts the date part of a date and time value. Also to construct a date type. The supported
+   * signatures: STRING/DATE/TIMESTAMP -&gt; DATE
+   */
+  private DefaultFunctionResolver date() {
+<span class="fc" id="L440">    return define(</span>
+<span class="fc" id="L441">        BuiltinFunctionName.DATE.getName(),</span>
+<span class="fc" id="L442">        impl(nullMissingHandling(DateTimeFunctions::exprDate), DATE, STRING),</span>
+<span class="fc" id="L443">        impl(nullMissingHandling(DateTimeFunctions::exprDate), DATE, DATE),</span>
+<span class="fc" id="L444">        impl(nullMissingHandling(DateTimeFunctions::exprDate), DATE, TIMESTAMP));</span>
+  }
+
+  /**
+   * Calculates the difference of date part of given values.&lt;br&gt;
+   * (DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME) -&gt; LONG
+   */
+  private DefaultFunctionResolver datediff() {
+<span class="fc" id="L452">    return define(</span>
+<span class="fc" id="L453">        BuiltinFunctionName.DATEDIFF.getName(),</span>
+<span class="fc" id="L454">        implWithProperties(</span>
+<span class="fc" id="L455">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff), LONG, DATE, DATE),</span>
+<span class="fc" id="L456">        implWithProperties(</span>
+<span class="fc" id="L457">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff), LONG, DATE, TIME),</span>
+<span class="fc" id="L458">        implWithProperties(</span>
+<span class="fc" id="L459">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff), LONG, TIME, DATE),</span>
+<span class="fc" id="L460">        implWithProperties(</span>
+<span class="fc" id="L461">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff), LONG, TIME, TIME),</span>
+<span class="fc" id="L462">        implWithProperties(</span>
+<span class="fc" id="L463">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff),</span>
+            LONG,
+            TIMESTAMP,
+            DATE),
+<span class="fc" id="L467">        implWithProperties(</span>
+<span class="fc" id="L468">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff),</span>
+            LONG,
+            DATE,
+            TIMESTAMP),
+<span class="fc" id="L472">        implWithProperties(</span>
+<span class="fc" id="L473">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff),</span>
+            LONG,
+            TIMESTAMP,
+            TIMESTAMP),
+<span class="fc" id="L477">        implWithProperties(</span>
+<span class="fc" id="L478">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff),</span>
+            LONG,
+            TIMESTAMP,
+            TIME),
+<span class="fc" id="L482">        implWithProperties(</span>
+<span class="fc" id="L483">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateDiff),</span>
+            LONG,
+            TIME,
+            TIMESTAMP));
+  }
+
+  /**
+   * Specify a datetime with time zone field and a time zone to convert to.&lt;br&gt;
+   * Returns a local datetime.&lt;br&gt;
+   * (STRING, STRING) -&gt; TIMESTAMP&lt;br&gt;
+   * (STRING) -&gt; TIMESTAMP
+   */
+  private FunctionResolver datetime() {
+<span class="fc" id="L496">    return define(</span>
+<span class="fc" id="L497">        BuiltinFunctionName.DATETIME.getName(),</span>
+<span class="fc" id="L498">        implWithProperties(</span>
+<span class="fc" id="L499">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTime),</span>
+            TIMESTAMP,
+            STRING,
+            STRING),
+<span class="fc" id="L503">        implWithProperties(</span>
+<span class="fc" id="L504">            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTimeNoTimezone),</span>
+            TIMESTAMP,
+            STRING));
+  }
+
+  private DefaultFunctionResolver date_add() {
+<span class="fc" id="L510">    return define(</span>
+<span class="fc" id="L511">        BuiltinFunctionName.DATE_ADD.getName(),</span>
+        (SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;[])
+<span class="fc" id="L513">            get_date_add_date_sub_signatures(DateTimeFunctions::exprAddDateInterval)</span>
+<span class="fc" id="L514">                .toArray(SerializableFunction&lt;?, ?&gt;[]::new));</span>
+  }
+
+  private DefaultFunctionResolver date_sub() {
+<span class="fc" id="L518">    return define(</span>
+<span class="fc" id="L519">        BuiltinFunctionName.DATE_SUB.getName(),</span>
+        (SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;[])
+<span class="fc" id="L521">            get_date_add_date_sub_signatures(DateTimeFunctions::exprSubDateInterval)</span>
+<span class="fc" id="L522">                .toArray(SerializableFunction&lt;?, ?&gt;[]::new));</span>
+  }
+
+  /** DAY(STRING/DATE/TIMESTAMP). return the day of the month (1-31). */
+  private DefaultFunctionResolver day() {
+<span class="fc" id="L527">    return define(</span>
+<span class="fc" id="L528">        BuiltinFunctionName.DAY.getName(),</span>
+<span class="fc" id="L529">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, DATE),</span>
+<span class="fc" id="L530">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L531">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, STRING));</span>
+  }
+
+  /**
+   * DAYNAME(STRING/DATE/TIMESTAMP). return the name of the weekday for date, including &lt;br&gt;
+   * Monday, Tuesday, Wednesday, Thursday, Friday, Saturday and Sunday.
+   */
+  private DefaultFunctionResolver dayName() {
+<span class="fc" id="L539">    return define(</span>
+<span class="fc" id="L540">        BuiltinFunctionName.DAYNAME.getName(),</span>
+<span class="fc" id="L541">        impl(nullMissingHandling(DateTimeFunctions::exprDayName), STRING, DATE),</span>
+<span class="fc" id="L542">        impl(nullMissingHandling(DateTimeFunctions::exprDayName), STRING, TIMESTAMP),</span>
+<span class="fc" id="L543">        impl(nullMissingHandling(DateTimeFunctions::exprDayName), STRING, STRING));</span>
+  }
+
+  /** DAYOFMONTH(STRING/DATE/TIMESTAMP). return the day of the month (1-31). */
+  private DefaultFunctionResolver dayOfMonth(BuiltinFunctionName name) {
+<span class="fc" id="L548">    return define(</span>
+<span class="fc" id="L549">        name.getName(),</span>
+<span class="fc" id="L550">        implWithProperties(</span>
+<span class="fc" id="L551">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L553">                    DateTimeFunctions.dayOfMonthToday(functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L556">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, DATE),</span>
+<span class="fc" id="L557">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, STRING),</span>
+<span class="fc" id="L558">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfMonth), INTEGER, TIMESTAMP));</span>
+  }
+
+  /**
+   * DAYOFWEEK(STRING/DATE/TIME/TIMESTAMP). return the weekday index for date (1 = Sunday, 2 =
+   * Monday, ..., 7 = Saturday).
+   */
+  private DefaultFunctionResolver dayOfWeek(FunctionName name) {
+<span class="fc" id="L566">    return define(</span>
+        name,
+<span class="fc" id="L568">        implWithProperties(</span>
+<span class="fc" id="L569">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L571">                    DateTimeFunctions.dayOfWeekToday(functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L574">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfWeek), INTEGER, DATE),</span>
+<span class="fc" id="L575">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfWeek), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L576">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfWeek), INTEGER, STRING));</span>
+  }
+
+  /** DAYOFYEAR(STRING/DATE/TIMESTAMP). return the day of the year for date (1-366). */
+  private DefaultFunctionResolver dayOfYear(BuiltinFunctionName dayOfYear) {
+<span class="fc" id="L581">    return define(</span>
+<span class="fc" id="L582">        dayOfYear.getName(),</span>
+<span class="fc" id="L583">        implWithProperties(</span>
+<span class="fc" id="L584">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L586">                    DateTimeFunctions.dayOfYearToday(functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L589">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfYear), INTEGER, DATE),</span>
+<span class="fc" id="L590">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfYear), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L591">        impl(nullMissingHandling(DateTimeFunctions::exprDayOfYear), INTEGER, STRING));</span>
+  }
+
+  private DefaultFunctionResolver extract() {
+<span class="fc" id="L595">    return define(</span>
+<span class="fc" id="L596">        BuiltinFunctionName.EXTRACT.getName(),</span>
+<span class="fc" id="L597">        implWithProperties(</span>
+<span class="fc" id="L598">            nullMissingHandlingWithProperties(DateTimeFunctions::exprExtractForTime),</span>
+            LONG,
+            STRING,
+            TIME),
+<span class="fc" id="L602">        impl(nullMissingHandling(DateTimeFunctions::exprExtract), LONG, STRING, DATE),</span>
+<span class="fc" id="L603">        impl(nullMissingHandling(DateTimeFunctions::exprExtract), LONG, STRING, TIMESTAMP),</span>
+<span class="fc" id="L604">        impl(nullMissingHandling(DateTimeFunctions::exprExtract), LONG, STRING, STRING));</span>
+  }
+
+  /** FROM_DAYS(LONG). return the date value given the day number N. */
+  private DefaultFunctionResolver from_days() {
+<span class="fc" id="L609">    return define(</span>
+<span class="fc" id="L610">        BuiltinFunctionName.FROM_DAYS.getName(),</span>
+<span class="fc" id="L611">        impl(nullMissingHandling(DateTimeFunctions::exprFromDays), DATE, LONG));</span>
+  }
+
+  private FunctionResolver from_unixtime() {
+<span class="fc" id="L615">    return define(</span>
+<span class="fc" id="L616">        BuiltinFunctionName.FROM_UNIXTIME.getName(),</span>
+<span class="fc" id="L617">        impl(nullMissingHandling(DateTimeFunctions::exprFromUnixTime), TIMESTAMP, DOUBLE),</span>
+<span class="fc" id="L618">        impl(</span>
+<span class="fc" id="L619">            nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat),</span>
+            STRING,
+            DOUBLE,
+            STRING));
+  }
+
+  private DefaultFunctionResolver get_format() {
+<span class="fc" id="L626">    return define(</span>
+<span class="fc" id="L627">        BuiltinFunctionName.GET_FORMAT.getName(),</span>
+<span class="fc" id="L628">        impl(nullMissingHandling(DateTimeFunctions::exprGetFormat), STRING, STRING, STRING));</span>
+  }
+
+  /** HOUR(STRING/TIME/DATE/TIMESTAMP). return the hour value for time. */
+  private DefaultFunctionResolver hour(BuiltinFunctionName name) {
+<span class="fc" id="L633">    return define(</span>
+<span class="fc" id="L634">        name.getName(),</span>
+<span class="fc" id="L635">        impl(nullMissingHandling(DateTimeFunctions::exprHour), INTEGER, STRING),</span>
+<span class="fc" id="L636">        impl(nullMissingHandling(DateTimeFunctions::exprHour), INTEGER, TIME),</span>
+<span class="fc" id="L637">        impl(nullMissingHandling(DateTimeFunctions::exprHour), INTEGER, DATE),</span>
+<span class="fc" id="L638">        impl(nullMissingHandling(DateTimeFunctions::exprHour), INTEGER, TIMESTAMP));</span>
+  }
+
+  private DefaultFunctionResolver last_day() {
+<span class="fc" id="L642">    return define(</span>
+<span class="fc" id="L643">        BuiltinFunctionName.LAST_DAY.getName(),</span>
+<span class="fc" id="L644">        impl(nullMissingHandling(DateTimeFunctions::exprLastDay), DATE, STRING),</span>
+<span class="fc" id="L645">        implWithProperties(</span>
+<span class="fc" id="L646">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L648">                    DateTimeFunctions.exprLastDayToday(functionProperties.getQueryStartClock())),</span>
+            DATE,
+            TIME),
+<span class="fc" id="L651">        impl(nullMissingHandling(DateTimeFunctions::exprLastDay), DATE, DATE),</span>
+<span class="fc" id="L652">        impl(nullMissingHandling(DateTimeFunctions::exprLastDay), DATE, TIMESTAMP));</span>
+  }
+
+  private FunctionResolver makedate() {
+<span class="fc" id="L656">    return define(</span>
+<span class="fc" id="L657">        BuiltinFunctionName.MAKEDATE.getName(),</span>
+<span class="fc" id="L658">        impl(nullMissingHandling(DateTimeFunctions::exprMakeDate), DATE, DOUBLE, DOUBLE));</span>
+  }
+
+  private FunctionResolver maketime() {
+<span class="fc" id="L662">    return define(</span>
+<span class="fc" id="L663">        BuiltinFunctionName.MAKETIME.getName(),</span>
+<span class="fc" id="L664">        impl(nullMissingHandling(DateTimeFunctions::exprMakeTime), TIME, DOUBLE, DOUBLE, DOUBLE));</span>
+  }
+
+  /** MICROSECOND(STRING/TIME/TIMESTAMP). return the microsecond value for time. */
+  private DefaultFunctionResolver microsecond() {
+<span class="fc" id="L669">    return define(</span>
+<span class="fc" id="L670">        BuiltinFunctionName.MICROSECOND.getName(),</span>
+<span class="fc" id="L671">        impl(nullMissingHandling(DateTimeFunctions::exprMicrosecond), INTEGER, STRING),</span>
+<span class="fc" id="L672">        impl(nullMissingHandling(DateTimeFunctions::exprMicrosecond), INTEGER, TIME),</span>
+<span class="fc" id="L673">        impl(nullMissingHandling(DateTimeFunctions::exprMicrosecond), INTEGER, TIMESTAMP));</span>
+  }
+
+  /** MINUTE(STRING/TIME/TIMESTAMP). return the minute value for time. */
+  private DefaultFunctionResolver minute(BuiltinFunctionName name) {
+<span class="fc" id="L678">    return define(</span>
+<span class="fc" id="L679">        name.getName(),</span>
+<span class="fc" id="L680">        impl(nullMissingHandling(DateTimeFunctions::exprMinute), INTEGER, STRING),</span>
+<span class="fc" id="L681">        impl(nullMissingHandling(DateTimeFunctions::exprMinute), INTEGER, TIME),</span>
+<span class="fc" id="L682">        impl(nullMissingHandling(DateTimeFunctions::exprMinute), INTEGER, DATE),</span>
+<span class="fc" id="L683">        impl(nullMissingHandling(DateTimeFunctions::exprMinute), INTEGER, TIMESTAMP));</span>
+  }
+
+  /** MINUTE(STRING/TIME/TIMESTAMP). return the minute value for time. */
+  private DefaultFunctionResolver minute_of_day() {
+<span class="fc" id="L688">    return define(</span>
+<span class="fc" id="L689">        BuiltinFunctionName.MINUTE_OF_DAY.getName(),</span>
+<span class="fc" id="L690">        impl(nullMissingHandling(DateTimeFunctions::exprMinuteOfDay), INTEGER, STRING),</span>
+<span class="fc" id="L691">        impl(nullMissingHandling(DateTimeFunctions::exprMinuteOfDay), INTEGER, TIME),</span>
+<span class="fc" id="L692">        impl(nullMissingHandling(DateTimeFunctions::exprMinuteOfDay), INTEGER, DATE),</span>
+<span class="fc" id="L693">        impl(nullMissingHandling(DateTimeFunctions::exprMinuteOfDay), INTEGER, TIMESTAMP));</span>
+  }
+
+  /** MONTH(STRING/DATE/TIMESTAMP). return the month for date (1-12). */
+  private DefaultFunctionResolver month(BuiltinFunctionName month) {
+<span class="fc" id="L698">    return define(</span>
+<span class="fc" id="L699">        month.getName(),</span>
+<span class="fc" id="L700">        implWithProperties(</span>
+<span class="fc" id="L701">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L703">                    DateTimeFunctions.monthOfYearToday(functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L706">        impl(nullMissingHandling(DateTimeFunctions::exprMonth), INTEGER, DATE),</span>
+<span class="fc" id="L707">        impl(nullMissingHandling(DateTimeFunctions::exprMonth), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L708">        impl(nullMissingHandling(DateTimeFunctions::exprMonth), INTEGER, STRING));</span>
+  }
+
+  /** MONTHNAME(STRING/DATE/TIMESTAMP). return the full name of the month for date. */
+  private DefaultFunctionResolver monthName() {
+<span class="fc" id="L713">    return define(</span>
+<span class="fc" id="L714">        BuiltinFunctionName.MONTHNAME.getName(),</span>
+<span class="fc" id="L715">        impl(nullMissingHandling(DateTimeFunctions::exprMonthName), STRING, DATE),</span>
+<span class="fc" id="L716">        impl(nullMissingHandling(DateTimeFunctions::exprMonthName), STRING, TIMESTAMP),</span>
+<span class="fc" id="L717">        impl(nullMissingHandling(DateTimeFunctions::exprMonthName), STRING, STRING));</span>
+  }
+
+  /**
+   * Add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+   * (INTEGER, INTEGER) -&gt; INTEGER
+   */
+  private DefaultFunctionResolver period_add() {
+<span class="fc" id="L725">    return define(</span>
+<span class="fc" id="L726">        BuiltinFunctionName.PERIOD_ADD.getName(),</span>
+<span class="fc" id="L727">        impl(nullMissingHandling(DateTimeFunctions::exprPeriodAdd), INTEGER, INTEGER, INTEGER));</span>
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM
+   * or YYYYMM.&lt;br&gt;
+   * (INTEGER, INTEGER) -&gt; INTEGER
+   */
+  private DefaultFunctionResolver period_diff() {
+<span class="fc" id="L736">    return define(</span>
+<span class="fc" id="L737">        BuiltinFunctionName.PERIOD_DIFF.getName(),</span>
+<span class="fc" id="L738">        impl(nullMissingHandling(DateTimeFunctions::exprPeriodDiff), INTEGER, INTEGER, INTEGER));</span>
+  }
+
+  /** QUARTER(STRING/DATE/TIMESTAMP). return the month for date (1-4). */
+  private DefaultFunctionResolver quarter() {
+<span class="fc" id="L743">    return define(</span>
+<span class="fc" id="L744">        BuiltinFunctionName.QUARTER.getName(),</span>
+<span class="fc" id="L745">        impl(nullMissingHandling(DateTimeFunctions::exprQuarter), INTEGER, DATE),</span>
+<span class="fc" id="L746">        impl(nullMissingHandling(DateTimeFunctions::exprQuarter), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L747">        impl(nullMissingHandling(DateTimeFunctions::exprQuarter), INTEGER, STRING));</span>
+  }
+
+  private DefaultFunctionResolver sec_to_time() {
+<span class="fc" id="L751">    return define(</span>
+<span class="fc" id="L752">        BuiltinFunctionName.SEC_TO_TIME.getName(),</span>
+<span class="fc" id="L753">        impl((nullMissingHandling(DateTimeFunctions::exprSecToTime)), TIME, INTEGER),</span>
+<span class="fc" id="L754">        impl((nullMissingHandling(DateTimeFunctions::exprSecToTime)), TIME, LONG),</span>
+<span class="fc" id="L755">        impl((nullMissingHandling(DateTimeFunctions::exprSecToTimeWithNanos)), TIME, DOUBLE),</span>
+<span class="fc" id="L756">        impl((nullMissingHandling(DateTimeFunctions::exprSecToTimeWithNanos)), TIME, FLOAT));</span>
+  }
+
+  /** SECOND(STRING/TIME/TIMESTAMP). return the second value for time. */
+  private DefaultFunctionResolver second(BuiltinFunctionName name) {
+<span class="fc" id="L761">    return define(</span>
+<span class="fc" id="L762">        name.getName(),</span>
+<span class="fc" id="L763">        impl(nullMissingHandling(DateTimeFunctions::exprSecond), INTEGER, STRING),</span>
+<span class="fc" id="L764">        impl(nullMissingHandling(DateTimeFunctions::exprSecond), INTEGER, TIME),</span>
+<span class="fc" id="L765">        impl(nullMissingHandling(DateTimeFunctions::exprSecond), INTEGER, DATE),</span>
+<span class="fc" id="L766">        impl(nullMissingHandling(DateTimeFunctions::exprSecond), INTEGER, TIMESTAMP));</span>
+  }
+
+  private DefaultFunctionResolver subdate() {
+<span class="fc" id="L770">    return define(</span>
+<span class="fc" id="L771">        BuiltinFunctionName.SUBDATE.getName(),</span>
+        (SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;[])
+<span class="fc" id="L773">            (Stream.concat(</span>
+<span class="fc" id="L774">                    get_date_add_date_sub_signatures(DateTimeFunctions::exprSubDateInterval),</span>
+<span class="fc" id="L775">                    get_adddate_subdate_signatures(DateTimeFunctions::exprSubDateDays))</span>
+<span class="fc" id="L776">                .toArray(SerializableFunction&lt;?, ?&gt;[]::new)));</span>
+  }
+
+  /**
+   * Subtracts expr2 from expr1 and returns the result.&lt;br&gt;
+   * (TIME, TIME/DATE/TIMESTAMP) -&gt; TIME&lt;br&gt;
+   * (DATE/TIMESTAMP, TIME/DATE/TIMESTAMP) -&gt; TIMESTAMP&lt;br&gt;
+   * TODO: MySQL has these signatures too&lt;br&gt;
+   * (STRING, STRING/TIME) -&gt; STRING // second arg - string with time only&lt;br&gt;
+   * (x, STRING) -&gt; NULL // second arg - string with timestamp&lt;br&gt;
+   * (x, STRING/DATE) -&gt; x // second arg - string with date only
+   */
+  private DefaultFunctionResolver subtime() {
+<span class="fc" id="L789">    return define(</span>
+<span class="fc" id="L790">        BuiltinFunctionName.SUBTIME.getName(),</span>
+<span class="fc" id="L791">        implWithProperties(</span>
+<span class="fc" id="L792">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime), TIME, TIME, TIME),</span>
+<span class="fc" id="L793">        implWithProperties(</span>
+<span class="fc" id="L794">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime), TIME, TIME, DATE),</span>
+<span class="fc" id="L795">        implWithProperties(</span>
+<span class="fc" id="L796">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIME,
+            TIME,
+            TIMESTAMP),
+<span class="fc" id="L800">        implWithProperties(</span>
+<span class="fc" id="L801">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            TIME),
+<span class="fc" id="L805">        implWithProperties(</span>
+<span class="fc" id="L806">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            DATE),
+<span class="fc" id="L810">        implWithProperties(</span>
+<span class="fc" id="L811">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            DATE,
+            TIME),
+<span class="fc" id="L815">        implWithProperties(</span>
+<span class="fc" id="L816">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            DATE,
+            DATE),
+<span class="fc" id="L820">        implWithProperties(</span>
+<span class="fc" id="L821">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            DATE,
+            TIMESTAMP),
+<span class="fc" id="L825">        implWithProperties(</span>
+<span class="fc" id="L826">            nullMissingHandlingWithProperties(DateTimeFunctions::exprSubTime),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            TIMESTAMP));
+  }
+
+  /**
+   * Extracts a date, time, or timestamp from the given string. It accomplishes this using another
+   * string which specifies the input format.
+   */
+  private DefaultFunctionResolver str_to_date() {
+<span class="fc" id="L837">    return define(</span>
+<span class="fc" id="L838">        BuiltinFunctionName.STR_TO_DATE.getName(),</span>
+<span class="fc" id="L839">        implWithProperties(</span>
+<span class="fc" id="L840">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg, format) -&gt;
+<span class="fc" id="L842">                    DateTimeFunctions.exprStrToDate(functionProperties, arg, format)),</span>
+            TIMESTAMP,
+            STRING,
+            STRING));
+  }
+
+  /**
+   * Extracts the time part of a date and time value. Also to construct a time type. The supported
+   * signatures: STRING/DATE/TIME/TIMESTAMP -&gt; TIME
+   */
+  private DefaultFunctionResolver time() {
+<span class="fc" id="L853">    return define(</span>
+<span class="fc" id="L854">        BuiltinFunctionName.TIME.getName(),</span>
+<span class="fc" id="L855">        impl(nullMissingHandling(DateTimeFunctions::exprTime), TIME, STRING),</span>
+<span class="fc" id="L856">        impl(nullMissingHandling(DateTimeFunctions::exprTime), TIME, DATE),</span>
+<span class="fc" id="L857">        impl(nullMissingHandling(DateTimeFunctions::exprTime), TIME, TIME),</span>
+<span class="fc" id="L858">        impl(nullMissingHandling(DateTimeFunctions::exprTime), TIME, TIMESTAMP));</span>
+  }
+
+  /**
+   * Returns different between two times as a time.&lt;br&gt;
+   * (TIME, TIME) -&gt; TIME&lt;br&gt;
+   * MySQL has these signatures too&lt;br&gt;
+   * (DATE, DATE) -&gt; TIME // result is &gt; 24 hours&lt;br&gt;
+   * (TIMESTAMP, TIMESTAMP) -&gt; TIME // result is &gt; 24 hours&lt;br&gt;
+   * (x, x) -&gt; NULL // when args have different types&lt;br&gt;
+   * (STRING, STRING) -&gt; TIME // argument strings contain same types only&lt;br&gt;
+   * (STRING, STRING) -&gt; NULL // argument strings are different types
+   */
+  private DefaultFunctionResolver timediff() {
+<span class="fc" id="L872">    return define(</span>
+<span class="fc" id="L873">        BuiltinFunctionName.TIMEDIFF.getName(),</span>
+<span class="fc" id="L874">        impl(nullMissingHandling(DateTimeFunctions::exprTimeDiff), TIME, TIME, TIME));</span>
+  }
+
+  /** TIME_TO_SEC(STRING/TIME/TIMESTAMP). return the time argument, converted to seconds. */
+  private DefaultFunctionResolver time_to_sec() {
+<span class="fc" id="L879">    return define(</span>
+<span class="fc" id="L880">        BuiltinFunctionName.TIME_TO_SEC.getName(),</span>
+<span class="fc" id="L881">        impl(nullMissingHandling(DateTimeFunctions::exprTimeToSec), LONG, STRING),</span>
+<span class="fc" id="L882">        impl(nullMissingHandling(DateTimeFunctions::exprTimeToSec), LONG, TIME),</span>
+<span class="fc" id="L883">        impl(nullMissingHandling(DateTimeFunctions::exprTimeToSec), LONG, TIMESTAMP));</span>
+  }
+
+  /**
+   * Extracts the timestamp of a date and time value.&lt;br&gt;
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'&lt;br&gt;
+   * STRING/DATE/TIME/TIMESTAMP -&gt; TIMESTAMP&lt;br&gt;
+   * STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP -&gt; TIMESTAMP&lt;br&gt;
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * &lt;br&gt;
+   * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
+   */
+  private DefaultFunctionResolver timestamp() {
+<span class="fc" id="L896">    return define(</span>
+<span class="fc" id="L897">        BuiltinFunctionName.TIMESTAMP.getName(),</span>
+<span class="fc" id="L898">        impl(nullMissingHandling(v -&gt; v), TIMESTAMP, TIMESTAMP),</span>
+        // We can use FunctionProperties.None, because it is not used. It is required to convert
+        // TIME to other datetime types, but arguments there are already converted.
+<span class="fc" id="L901">        impl(</span>
+<span class="fc" id="L902">            nullMissingHandling((v1, v2) -&gt; exprAddTime(FunctionProperties.None, v1, v2)),</span>
+            TIMESTAMP,
+            TIMESTAMP,
+            TIMESTAMP));
+  }
+
+  /**
+   * Adds an interval of time to the provided DATE/TIME/TIMESTAMP/STRING argument. The interval of
+   * time added is determined by the given first and second arguments. The first argument is an
+   * interval type, and must be one of the tokens below... [MICROSECOND, SECOND, MINUTE, HOUR, DAY,
+   * WEEK, MONTH, QUARTER, YEAR] The second argument is the amount of the interval type to be added.
+   * The third argument is the DATE/TIME/TIMESTAMP/STRING to add to.
+   *
+   * @return The TIMESTAMP representing the summed DATE/TIME/TIMESTAMP and interval.
+   */
+  private DefaultFunctionResolver timestampadd() {
+<span class="fc" id="L918">    return define(</span>
+<span class="fc" id="L919">        BuiltinFunctionName.TIMESTAMPADD.getName(),</span>
+<span class="fc" id="L920">        impl(</span>
+<span class="fc" id="L921">            nullMissingHandling(DateTimeFunctions::exprTimestampAdd),</span>
+            TIMESTAMP,
+            STRING,
+            INTEGER,
+            TIMESTAMP),
+<span class="fc" id="L926">        implWithProperties(</span>
+<span class="fc" id="L927">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, part, amount, time) -&gt;
+<span class="fc" id="L929">                    exprTimestampAddForTimeType(</span>
+<span class="fc" id="L930">                        functionProperties.getQueryStartClock(), part, amount, time)),</span>
+            TIMESTAMP,
+            STRING,
+            INTEGER,
+            TIME));
+  }
+
+  /**
+   * Finds the difference between provided DATE/TIME/TIMESTAMP/STRING arguments. The first argument
+   * is an interval type, and must be one of the tokens below... [MICROSECOND, SECOND, MINUTE, HOUR,
+   * DAY, WEEK, MONTH, QUARTER, YEAR] The second argument the DATE/TIME/TIMESTAMP/STRING
+   * representing the start time. The third argument is the DATE/TIME/TIMESTAMP/STRING representing
+   * the end time.
+   *
+   * @return A LONG representing the difference between arguments, using the given interval type.
+   */
+  private DefaultFunctionResolver timestampdiff() {
+<span class="fc" id="L947">    return define(</span>
+<span class="fc" id="L948">        BuiltinFunctionName.TIMESTAMPDIFF.getName(),</span>
+<span class="fc" id="L949">        impl(</span>
+<span class="fc" id="L950">            nullMissingHandling(DateTimeFunctions::exprTimestampDiff),</span>
+            TIMESTAMP,
+            STRING,
+            TIMESTAMP,
+            TIMESTAMP),
+<span class="fc" id="L955">        implWithProperties(</span>
+<span class="fc" id="L956">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, part, startTime, endTime) -&gt;
+<span class="fc" id="L958">                    exprTimestampDiffForTimeType(functionProperties, part, startTime, endTime)),</span>
+            TIMESTAMP,
+            STRING,
+            TIME,
+            TIME));
+  }
+
+  /** TO_DAYS(STRING/DATE/TIMESTAMP). return the day number of the given date. */
+  private DefaultFunctionResolver to_days() {
+<span class="fc" id="L967">    return define(</span>
+<span class="fc" id="L968">        BuiltinFunctionName.TO_DAYS.getName(),</span>
+<span class="fc" id="L969">        impl(nullMissingHandling(DateTimeFunctions::exprToDays), LONG, STRING),</span>
+<span class="fc" id="L970">        impl(nullMissingHandling(DateTimeFunctions::exprToDays), LONG, TIMESTAMP),</span>
+<span class="fc" id="L971">        impl(nullMissingHandling(DateTimeFunctions::exprToDays), LONG, DATE));</span>
+  }
+
+  /**
+   * TO_SECONDS(TIMESTAMP/LONG). return the seconds number of the given date. Arguments of type
+   * STRING/TIMESTAMP/LONG are also accepted. STRING/TIMESTAMP/LONG arguments are automatically cast
+   * to TIMESTAMP.
+   */
+  private DefaultFunctionResolver to_seconds() {
+<span class="fc" id="L980">    return define(</span>
+<span class="fc" id="L981">        BuiltinFunctionName.TO_SECONDS.getName(),</span>
+<span class="fc" id="L982">        impl(nullMissingHandling(DateTimeFunctions::exprToSeconds), LONG, TIMESTAMP),</span>
+<span class="fc" id="L983">        impl(nullMissingHandling(DateTimeFunctions::exprToSecondsForIntType), LONG, LONG));</span>
+  }
+
+  private FunctionResolver unix_timestamp() {
+<span class="fc" id="L987">    return define(</span>
+<span class="fc" id="L988">        BuiltinFunctionName.UNIX_TIMESTAMP.getName(),</span>
+<span class="fc" id="L989">        implWithProperties(</span>
+            functionProperties -&gt;
+<span class="fc" id="L991">                DateTimeFunctions.unixTimeStamp(functionProperties.getQueryStartClock()),</span>
+            LONG),
+<span class="fc" id="L993">        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),</span>
+<span class="fc" id="L994">        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),</span>
+<span class="fc" id="L995">        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));</span>
+  }
+
+  /** UTC_DATE(). return the current UTC Date in format yyyy-MM-dd */
+  private DefaultFunctionResolver utc_date() {
+<span class="fc" id="L1000">    return define(</span>
+<span class="fc" id="L1001">        BuiltinFunctionName.UTC_DATE.getName(),</span>
+<span class="fc" id="L1002">        implWithProperties(functionProperties -&gt; exprUtcDate(functionProperties), DATE));</span>
+  }
+
+  /** UTC_TIME(). return the current UTC Time in format HH:mm:ss */
+  private DefaultFunctionResolver utc_time() {
+<span class="fc" id="L1007">    return define(</span>
+<span class="fc" id="L1008">        BuiltinFunctionName.UTC_TIME.getName(),</span>
+<span class="fc" id="L1009">        implWithProperties(functionProperties -&gt; exprUtcTime(functionProperties), TIME));</span>
+  }
+
+  /** UTC_TIMESTAMP(). return the current UTC TimeStamp in format yyyy-MM-dd HH:mm:ss */
+  private DefaultFunctionResolver utc_timestamp() {
+<span class="fc" id="L1014">    return define(</span>
+<span class="fc" id="L1015">        BuiltinFunctionName.UTC_TIMESTAMP.getName(),</span>
+<span class="fc" id="L1016">        implWithProperties(functionProperties -&gt; exprUtcTimestamp(functionProperties), TIMESTAMP));</span>
+  }
+
+  /** WEEK(DATE[,mode]). return the week number for date. */
+  private DefaultFunctionResolver week(BuiltinFunctionName week) {
+<span class="fc" id="L1021">    return define(</span>
+<span class="fc" id="L1022">        week.getName(),</span>
+<span class="fc" id="L1023">        implWithProperties(</span>
+<span class="fc" id="L1024">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L1026">                    DateTimeFunctions.weekOfYearToday(</span>
+<span class="fc" id="L1027">                        DEFAULT_WEEK_OF_YEAR_MODE, functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L1030">        impl(nullMissingHandling(DateTimeFunctions::exprWeekWithoutMode), INTEGER, DATE),</span>
+<span class="fc" id="L1031">        impl(nullMissingHandling(DateTimeFunctions::exprWeekWithoutMode), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L1032">        impl(nullMissingHandling(DateTimeFunctions::exprWeekWithoutMode), INTEGER, STRING),</span>
+<span class="fc" id="L1033">        implWithProperties(</span>
+<span class="fc" id="L1034">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, time, modeArg) -&gt;
+<span class="fc" id="L1036">                    DateTimeFunctions.weekOfYearToday(</span>
+<span class="fc" id="L1037">                        modeArg, functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME,
+            INTEGER),
+<span class="fc" id="L1041">        impl(nullMissingHandling(DateTimeFunctions::exprWeek), INTEGER, DATE, INTEGER),</span>
+<span class="fc" id="L1042">        impl(nullMissingHandling(DateTimeFunctions::exprWeek), INTEGER, TIMESTAMP, INTEGER),</span>
+<span class="fc" id="L1043">        impl(nullMissingHandling(DateTimeFunctions::exprWeek), INTEGER, STRING, INTEGER));</span>
+  }
+
+  private DefaultFunctionResolver weekday() {
+<span class="fc" id="L1047">    return define(</span>
+<span class="fc" id="L1048">        BuiltinFunctionName.WEEKDAY.getName(),</span>
+<span class="fc" id="L1049">        implWithProperties(</span>
+<span class="fc" id="L1050">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L1052">                    new ExprIntegerValue(</span>
+<span class="fc" id="L1053">                        formatNow(functionProperties.getQueryStartClock()).getDayOfWeek().getValue()</span>
+                            - 1)),
+            INTEGER,
+            TIME),
+<span class="fc" id="L1057">        impl(nullMissingHandling(DateTimeFunctions::exprWeekday), INTEGER, DATE),</span>
+<span class="fc" id="L1058">        impl(nullMissingHandling(DateTimeFunctions::exprWeekday), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L1059">        impl(nullMissingHandling(DateTimeFunctions::exprWeekday), INTEGER, STRING));</span>
+  }
+
+  /** YEAR(STRING/DATE/TIMESTAMP). return the year for date (1000-9999). */
+  private DefaultFunctionResolver year() {
+<span class="fc" id="L1064">    return define(</span>
+<span class="fc" id="L1065">        BuiltinFunctionName.YEAR.getName(),</span>
+<span class="fc" id="L1066">        impl(nullMissingHandling(DateTimeFunctions::exprYear), INTEGER, DATE),</span>
+<span class="fc" id="L1067">        impl(nullMissingHandling(DateTimeFunctions::exprYear), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L1068">        impl(nullMissingHandling(DateTimeFunctions::exprYear), INTEGER, STRING));</span>
+  }
+
+  /** YEARWEEK(DATE[,mode]). return the week number for date. */
+  private DefaultFunctionResolver yearweek() {
+<span class="fc" id="L1073">    return define(</span>
+<span class="fc" id="L1074">        BuiltinFunctionName.YEARWEEK.getName(),</span>
+<span class="fc" id="L1075">        implWithProperties(</span>
+<span class="fc" id="L1076">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, arg) -&gt;
+<span class="fc" id="L1078">                    yearweekToday(</span>
+<span class="fc" id="L1079">                        DEFAULT_WEEK_OF_YEAR_MODE, functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME),
+<span class="fc" id="L1082">        impl(nullMissingHandling(DateTimeFunctions::exprYearweekWithoutMode), INTEGER, DATE),</span>
+<span class="fc" id="L1083">        impl(nullMissingHandling(DateTimeFunctions::exprYearweekWithoutMode), INTEGER, TIMESTAMP),</span>
+<span class="fc" id="L1084">        impl(nullMissingHandling(DateTimeFunctions::exprYearweekWithoutMode), INTEGER, STRING),</span>
+<span class="fc" id="L1085">        implWithProperties(</span>
+<span class="fc" id="L1086">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, time, modeArg) -&gt;
+<span class="fc" id="L1088">                    yearweekToday(modeArg, functionProperties.getQueryStartClock())),</span>
+            INTEGER,
+            TIME,
+            INTEGER),
+<span class="fc" id="L1092">        impl(nullMissingHandling(DateTimeFunctions::exprYearweek), INTEGER, DATE, INTEGER),</span>
+<span class="fc" id="L1093">        impl(nullMissingHandling(DateTimeFunctions::exprYearweek), INTEGER, TIMESTAMP, INTEGER),</span>
+<span class="fc" id="L1094">        impl(nullMissingHandling(DateTimeFunctions::exprYearweek), INTEGER, STRING, INTEGER));</span>
+  }
+
+  /**
+   * Formats date according to format specifier. First argument is date, second is format.&lt;br&gt;
+   * Detailed supported signatures:&lt;br&gt;
+   * (STRING, STRING) -&gt; STRING&lt;br&gt;
+   * (DATE, STRING) -&gt; STRING&lt;br&gt;
+   * (TIME, STRING) -&gt; STRING&lt;br&gt;
+   * (TIMESTAMP, STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver date_format() {
+<span class="fc" id="L1106">    return define(</span>
+<span class="fc" id="L1107">        BuiltinFunctionName.DATE_FORMAT.getName(),</span>
+<span class="fc" id="L1108">        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate), STRING, STRING, STRING),</span>
+<span class="fc" id="L1109">        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate), STRING, DATE, STRING),</span>
+<span class="fc" id="L1110">        implWithProperties(</span>
+<span class="fc" id="L1111">            nullMissingHandlingWithProperties(</span>
+                (functionProperties, time, formatString) -&gt;
+<span class="fc" id="L1113">                    DateTimeFormatterUtil.getFormattedDateOfToday(</span>
+<span class="fc" id="L1114">                        formatString, time, functionProperties.getQueryStartClock())),</span>
+            STRING,
+            TIME,
+            STRING),
+<span class="fc" id="L1118">        impl(</span>
+<span class="fc" id="L1119">            nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),</span>
+            STRING,
+            TIMESTAMP,
+            STRING));
+  }
+
+  private ExprValue dayOfMonthToday(Clock clock) {
+<span class="fc" id="L1126">    return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfMonth());</span>
+  }
+
+  public static ExprValue dayOfYearToday(Clock clock) {
+<span class="fc" id="L1130">    return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfYear());</span>
+  }
+
+  private ExprValue weekOfYearToday(ExprValue mode, Clock clock) {
+<span class="fc" id="L1134">    return new ExprIntegerValue(</span>
+<span class="fc" id="L1135">        CalendarLookup.getWeekNumber(mode.integerValue(), LocalDateTime.now(clock).toLocalDate()));</span>
+  }
+
+  /**
+   * Day of Week implementation for ExprValue when passing in an arguemt of type TIME.
+   *
+   * @param clock Current clock taken from function properties
+   * @return ExprValue.
+   */
+  public static ExprValue dayOfWeekToday(Clock clock) {
+<span class="fc" id="L1145">    return new ExprIntegerValue((formatNow(clock).getDayOfWeek().getValue() % 7) + 1);</span>
+  }
+
+  /**
+   * DATE_ADD function implementation for ExprValue.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param datetime ExprValue of Date/Time/Timestamp type.
+   * @param interval ExprValue of Interval type, the temporal amount to add.
+   * @return Timestamp resulted from `interval` added to `timestamp`.
+   */
+  private ExprValue exprAddDateInterval(
+      FunctionProperties functionProperties, ExprValue datetime, ExprValue interval) {
+<span class="fc" id="L1158">    return exprDateApplyInterval(functionProperties, datetime, interval.intervalValue(), true);</span>
+  }
+
+  /**
+   * Adds or subtracts `interval` to/from `timestamp`.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param datetime A Date/Time/Timestamp value to change.
+   * @param interval An Interval to isAdd or subtract.
+   * @param isAdd A flag: true to isAdd, false to subtract.
+   * @return Timestamp calculated.
+   */
+  public static ExprValue exprDateApplyInterval(
+      FunctionProperties functionProperties,
+      ExprValue datetime,
+      TemporalAmount interval,
+      Boolean isAdd) {
+<span class="fc" id="L1175">    var dt =</span>
+<span class="fc" id="L1176">        extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="fc bfc" id="L1177" title="All 2 branches covered.">    return new ExprTimestampValue(isAdd ? dt.plus(interval) : dt.minus(interval));</span>
+  }
+
+  /**
+   * Formats date according to format specifier. First argument is time, second is format.&lt;br&gt;
+   * Detailed supported signatures:&lt;br&gt;
+   * (STRING, STRING) -&gt; STRING&lt;br&gt;
+   * (DATE, STRING) -&gt; STRING&lt;br&gt;
+   * (TIME, STRING) -&gt; STRING&lt;br&gt;
+   * (TIMESTAMP, STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver time_format() {
+<span class="fc" id="L1189">    return define(</span>
+<span class="fc" id="L1190">        BuiltinFunctionName.TIME_FORMAT.getName(),</span>
+<span class="fc" id="L1191">        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime), STRING, STRING, STRING),</span>
+<span class="fc" id="L1192">        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime), STRING, DATE, STRING),</span>
+<span class="fc" id="L1193">        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime), STRING, TIME, STRING),</span>
+<span class="fc" id="L1194">        impl(</span>
+<span class="fc" id="L1195">            nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),</span>
+            STRING,
+            TIMESTAMP,
+            STRING));
+  }
+
+  /**
+   * ADDDATE function implementation for ExprValue.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param datetime ExprValue of Time/Date/Timestamp type.
+   * @param days ExprValue of Long type, representing the number of days to add.
+   * @return Date/Timestamp resulted from days added to `timestamp`.
+   */
+  private ExprValue exprAddDateDays(
+      FunctionProperties functionProperties, ExprValue datetime, ExprValue days) {
+<span class="fc" id="L1211">    return exprDateApplyDays(functionProperties, datetime, days.longValue(), true);</span>
+  }
+
+  /**
+   * Adds or subtracts `days` to/from `timestamp`.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param datetime A Date/Time/Timestamp value to change.
+   * @param days A days amount to add or subtract.
+   * @param isAdd A flag: true to add, false to subtract.
+   * @return Timestamp calculated.
+   */
+  public static ExprValue exprDateApplyDays(
+      FunctionProperties functionProperties, ExprValue datetime, Long days, Boolean isAdd) {
+<span class="fc bfc" id="L1225" title="All 2 branches covered.">    if (datetime.type() == DATE) {</span>
+<span class="fc" id="L1226">      return new ExprDateValue(</span>
+<span class="fc bfc" id="L1227" title="All 2 branches covered.">          isAdd ? datetime.dateValue().plusDays(days) : datetime.dateValue().minusDays(days));</span>
+    }
+<span class="fc" id="L1229">    var dt =</span>
+<span class="fc" id="L1230">        extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="fc bfc" id="L1231" title="All 2 branches covered.">    return new ExprTimestampValue(isAdd ? dt.plusDays(days) : dt.minusDays(days));</span>
+  }
+
+  /**
+   * Adds or subtracts time to/from date and returns the result.
+   *
+   * @param functionProperties A FunctionProperties object.
+   * @param temporal A Date/Time/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Timestamp object to add/subtract time from.
+   * @param isAdd A flag: true to add, false to subtract.
+   * @return A value calculated.
+   */
+  public static ExprValue exprApplyTime(
+      FunctionProperties functionProperties,
+      ExprValue temporal,
+      ExprValue temporalDelta,
+      Boolean isAdd) {
+<span class="fc" id="L1248">    var interval = Duration.between(LocalTime.MIN, temporalDelta.timeValue());</span>
+    var result =
+<span class="fc bfc" id="L1250" title="All 2 branches covered.">        isAdd</span>
+<span class="fc" id="L1251">            ? extractTimestamp(temporal, functionProperties).plus(interval)</span>
+<span class="fc" id="L1252">            : extractTimestamp(temporal, functionProperties).minus(interval);</span>
+<span class="fc bfc" id="L1253" title="All 2 branches covered.">    return temporal.type() == TIME</span>
+<span class="fc" id="L1254">        ? new ExprTimeValue(result.atZone(ZoneOffset.UTC).toLocalTime())</span>
+<span class="fc" id="L1255">        : new ExprTimestampValue(result);</span>
+  }
+
+  /**
+   * Adds time to date and returns the result.
+   *
+   * @param functionProperties A FunctionProperties object.
+   * @param temporal A Date/Time/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Timestamp object to add time from.
+   * @return A value calculated.
+   */
+  public static ExprValue exprAddTime(
+      FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
+<span class="fc" id="L1268">    return exprApplyTime(functionProperties, temporal, temporalDelta, true);</span>
+  }
+
+  /**
+   * CONVERT_TZ function implementation for ExprValue. Returns null for time zones outside of +13:00
+   * and -12:00.
+   *
+   * @param startingDateTime ExprValue of Timestamp that is being converted from
+   * @param fromTz ExprValue of time zone, representing the time to convert from.
+   * @param toTz ExprValue of time zone, representing the time to convert to.
+   * @return Timestamp that has been converted to the to_tz timezone.
+   */
+  public static ExprValue exprConvertTZ(
+      ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+<span class="fc bfc" id="L1282" title="All 2 branches covered.">    if (startingDateTime.type() == ExprCoreType.STRING) {</span>
+      try {
+        // CONVERT_TZ only expects a timestamp in the format &quot;yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]&quot;.
+<span class="fc" id="L1285">        startingDateTime =</span>
+            new ExprTimestampValue(
+<span class="nc" id="L1287">                LocalDateTime.parse(</span>
+<span class="fc" id="L1288">                    startingDateTime.stringValue(),</span>
+                    DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS));
+<span class="fc" id="L1290">      } catch (DateTimeParseException e) {</span>
+<span class="fc" id="L1291">        return ExprNullValue.of();</span>
+<span class="nc" id="L1292">      }</span>
+    }
+    try {
+<span class="fc" id="L1295">      ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());</span>
+<span class="fc" id="L1296">      ZoneId convertedToTz = ZoneId.of(toTz.stringValue());</span>
+
+      // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by
+      // MySQL standard.
+<span class="fc bfc" id="L1300" title="All 2 branches covered.">      if (!DateTimeUtils.isValidMySqlTimeZoneId(convertedFromTz)</span>
+<span class="fc bfc" id="L1301" title="All 2 branches covered.">          || !DateTimeUtils.isValidMySqlTimeZoneId(convertedToTz)) {</span>
+<span class="fc" id="L1302">        return ExprNullValue.of();</span>
+      }
+<span class="fc" id="L1304">      ZonedDateTime zonedDateTime =</span>
+<span class="fc" id="L1305">          (startingDateTime.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime())</span>
+<span class="fc" id="L1306">              .atZone(convertedFromTz);</span>
+<span class="fc" id="L1307">      return new ExprTimestampValue(</span>
+<span class="fc" id="L1308">          zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());</span>
+
+      // Catches exception for invalid timezones.
+      // ex. &quot;+0:00&quot; is an invalid timezone and would result in this exception being thrown.
+<span class="fc" id="L1312">    } catch (ExpressionEvaluationException | DateTimeException e) {</span>
+<span class="fc" id="L1313">      return ExprNullValue.of();</span>
+    }
+  }
+
+  /**
+   * Date implementation for ExprValue.
+   *
+   * @param exprValue ExprValue of Date type or String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprDate(ExprValue exprValue) {
+<span class="fc bfc" id="L1324" title="All 2 branches covered.">    if (exprValue instanceof ExprStringValue) {</span>
+<span class="fc" id="L1325">      return new ExprDateValue(exprValue.stringValue());</span>
+    } else {
+<span class="fc" id="L1327">      return new ExprDateValue(exprValue.dateValue());</span>
+    }
+  }
+
+  /**
+   * Calculate the value in days from one date to the other. Only the date parts of the values are
+   * used in the calculation.
+   *
+   * @param first The first value.
+   * @param second The second value.
+   * @return The diff.
+   */
+  public static ExprValue exprDateDiff(
+      FunctionProperties functionProperties, ExprValue first, ExprValue second) {
+    // java inverses the value, so we have to swap 1 and 2
+<span class="fc" id="L1342">    return new ExprLongValue(</span>
+<span class="fc" id="L1343">        DAYS.between(</span>
+<span class="fc" id="L1344">            extractDate(second, functionProperties), extractDate(first, functionProperties)));</span>
+  }
+
+  /**
+   * Timestamp implementation for ExprValue.
+   *
+   * @param timestamp ExprValue of String type.
+   * @param timeZone ExprValue of String type (or null).
+   * @return ExprValue of date type.
+   */
+  public static ExprValue exprDateTime(
+      FunctionProperties properties, ExprValue timestamp, ExprValue timeZone) {
+    // Get default time zone from function properties instead of ZoneId.systemDefault()
+<span class="fc" id="L1357">    String defaultTimeZone = properties.getCurrentZoneId().toString();</span>
+
+    try {
+<span class="fc" id="L1360">      LocalDateTime ldtFormatted =</span>
+<span class="fc" id="L1361">          LocalDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);</span>
+<span class="fc bfc" id="L1362" title="All 2 branches covered.">      if (timeZone.isNull()) {</span>
+<span class="fc" id="L1363">        return new ExprTimestampValue(ldtFormatted);</span>
+      }
+
+      // Used if timestamp field is invalid format.
+<span class="fc" id="L1367">    } catch (DateTimeParseException e) {</span>
+<span class="fc" id="L1368">      return ExprNullValue.of();</span>
+<span class="fc" id="L1369">    }</span>
+
+    ExprValue convertTZResult;
+    ExprTimestampValue tz;
+    String toTz;
+
+    try {
+<span class="fc" id="L1376">      ZonedDateTime zdtWithZoneOffset =</span>
+<span class="fc" id="L1377">          ZonedDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);</span>
+<span class="fc" id="L1378">      ZoneId fromTZ = zdtWithZoneOffset.getZone();</span>
+
+<span class="fc" id="L1380">      tz = new ExprTimestampValue(zdtWithZoneOffset.toLocalDateTime());</span>
+<span class="fc" id="L1381">      toTz = String.valueOf(fromTZ);</span>
+<span class="fc" id="L1382">    } catch (DateTimeParseException e) {</span>
+<span class="fc" id="L1383">      tz = new ExprTimestampValue(timestamp.stringValue());</span>
+<span class="fc" id="L1384">      toTz = defaultTimeZone;</span>
+<span class="fc" id="L1385">    }</span>
+<span class="fc" id="L1386">    convertTZResult = exprConvertTZ(tz, new ExprStringValue(toTz), timeZone);</span>
+
+<span class="fc" id="L1388">    return convertTZResult;</span>
+  }
+
+  /**
+   * DateTime implementation for ExprValue without a timezone to convert to.
+   *
+   * @param dateTime ExprValue of String type.
+   * @return ExprValue of date type.
+   */
+  public static ExprValue exprDateTimeNoTimezone(
+      FunctionProperties properties, ExprValue dateTime) {
+<span class="fc" id="L1399">    return exprDateTime(properties, dateTime, ExprNullValue.of());</span>
+  }
+
+  /**
+   * Name of the Weekday implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprDayName(ExprValue date) {
+<span class="fc" id="L1409">    return new ExprStringValue(</span>
+<span class="fc" id="L1410">        date.dateValue().getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault()));</span>
+  }
+
+  /**
+   * Day of Month implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String/Time/Timestamp type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprDayOfMonth(ExprValue date) {
+<span class="fc" id="L1420">    return new ExprIntegerValue(date.dateValue().getDayOfMonth());</span>
+  }
+
+  /**
+   * Day of Week implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String/Timstamp type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprDayOfWeek(ExprValue date) {
+<span class="fc" id="L1430">    return new ExprIntegerValue((date.dateValue().getDayOfWeek().getValue() % 7) + 1);</span>
+  }
+
+  /**
+   * Day of Year implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprDayOfYear(ExprValue date) {
+<span class="fc" id="L1440">    return new ExprIntegerValue(date.dateValue().getDayOfYear());</span>
+  }
+
+  /**
+   * Obtains a formatted long value for a specified part and timestamp for the 'extract' function.
+   *
+   * @param part is an ExprValue which comes from a defined list of accepted values.
+   * @param timestamp the date to be formatted as an ExprValue.
+   * @return is a LONG formatted according to the input arguments.
+   */
+  public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
+<span class="fc" id="L1451">    String partName = part.stringValue().toUpperCase(Locale.ROOT);</span>
+<span class="fc" id="L1452">    LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+
+    // Override &quot;Week&quot; to use the IsoFields week-of-week-based-year format
+<span class="fc bfc" id="L1455" title="All 2 branches covered.">    if (partName.equals(&quot;WEEK&quot;)) {</span>
+<span class="fc" id="L1456">      return new ExprLongValue(arg.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));</span>
+    }
+
+<span class="fc" id="L1459">    String text =</span>
+<span class="fc" id="L1460">        arg.format(DateTimeFormatter.ofPattern(extract_formats.get(partName), Locale.ENGLISH));</span>
+
+<span class="fc" id="L1462">    return new ExprLongValue(Long.parseLong(text));</span>
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param timestamp The Date/Timestamp to be formatted.
+   * @return A LONG
+   */
+  private ExprValue exprExtract(ExprValue part, ExprValue timestamp) {
+<span class="fc" id="L1473">    return formatExtractFunction(part, timestamp);</span>
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param time The time to be formatted.
+   * @return A LONG
+   */
+  public static ExprValue exprExtractForTime(
+      FunctionProperties functionProperties, ExprValue part, ExprValue time) {
+<span class="fc" id="L1485">    return formatExtractFunction(</span>
+<span class="fc" id="L1486">        part, new ExprTimestampValue(extractTimestamp(time, functionProperties)));</span>
+  }
+
+  /**
+   * From_days implementation for ExprValue.
+   *
+   * @param exprValue Day number N.
+   * @return ExprValue.
+   */
+  public static ExprValue exprFromDays(ExprValue exprValue) {
+<span class="fc" id="L1496">    return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));</span>
+  }
+
+  public static ExprValue exprFromUnixTime(ExprValue time) {
+<span class="fc bfc" id="L1500" title="All 2 branches covered.">    if (0 &gt; time.doubleValue()) {</span>
+<span class="fc" id="L1501">      return ExprNullValue.of();</span>
+    }
+    // According to MySQL documentation:
+    //     effective maximum is 32536771199.999999, which returns '3001-01-18 23:59:59.999999' UTC.
+    //     Regardless of platform or version, a greater value for first argument than the effective
+    //     maximum returns 0.
+<span class="fc bfc" id="L1507" title="All 2 branches covered.">    if (MYSQL_MAX_TIMESTAMP &lt;= time.doubleValue()) {</span>
+<span class="fc" id="L1508">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1510">    return new ExprTimestampValue(exprFromUnixTimeImpl(time));</span>
+  }
+
+  private LocalDateTime exprFromUnixTimeImpl(ExprValue time) {
+<span class="fc" id="L1514">    return LocalDateTime.ofInstant(</span>
+<span class="fc" id="L1515">            Instant.ofEpochSecond((long) Math.floor(time.doubleValue())), ZoneOffset.UTC)</span>
+<span class="fc" id="L1516">        .withNano((int) ((time.doubleValue() % 1) * 1E9));</span>
+  }
+
+  public static ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
+<span class="fc" id="L1520">    var value = exprFromUnixTime(time);</span>
+<span class="fc bfc" id="L1521" title="All 2 branches covered.">    if (value.equals(ExprNullValue.of())) {</span>
+<span class="fc" id="L1522">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1524">    return DateTimeFormatterUtil.getFormattedDate(value, format);</span>
+  }
+
+  /**
+   * get_format implementation for ExprValue.
+   *
+   * @param type ExprValue of the type.
+   * @param format ExprValue of Time/String type
+   * @return ExprValue..
+   */
+  public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+<span class="fc bfc" id="L1535" title="All 2 branches covered.">    if (formats.contains(</span>
+<span class="fc" id="L1536">        type.stringValue().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L1537">        format.stringValue().toLowerCase(Locale.ROOT))) {</span>
+<span class="fc" id="L1538">      return new ExprStringValue(</span>
+<span class="fc" id="L1539">          formats.get(</span>
+<span class="fc" id="L1540">              type.stringValue().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L1541">              format.stringValue().toLowerCase(Locale.ROOT)));</span>
+    }
+
+<span class="fc" id="L1544">    return ExprNullValue.of();</span>
+  }
+
+  /**
+   * Hour implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprHour(ExprValue time) {
+<span class="fc" id="L1554">    return new ExprIntegerValue(HOURS.between(LocalTime.MIN, time.timeValue()));</span>
+  }
+
+  /**
+   * Helper function to retrieve the last day of a month based on a LocalDate argument.
+   *
+   * @param today a LocalDate.
+   * @return a LocalDate associated with the last day of the month for the given input.
+   */
+  private LocalDate getLastDay(LocalDate today) {
+<span class="fc" id="L1564">    return LocalDate.of(</span>
+<span class="fc" id="L1565">        today.getYear(), today.getMonth(), today.getMonth().length(today.isLeapYear()));</span>
+  }
+
+  /**
+   * Returns a DATE for the last day of the month of a given argument.
+   *
+   * @param timestamp A DATE/TIMESTAMP/STRING ExprValue.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  public static ExprValue exprLastDay(ExprValue timestamp) {
+<span class="fc" id="L1575">    return new ExprDateValue(getLastDay(timestamp.dateValue()));</span>
+  }
+
+  /**
+   * Returns a DATE for the last day of the current month.
+   *
+   * @param clock The clock for the query start time from functionProperties.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  public static ExprValue exprLastDayToday(Clock clock) {
+<span class="fc" id="L1585">    return new ExprDateValue(getLastDay(formatNow(clock).toLocalDate()));</span>
+  }
+
+  /**
+   * Following MySQL, function receives arguments of type double and rounds them before use.&lt;br&gt;
+   * Furthermore:&lt;br&gt;
+   *
+   * &lt;ul&gt;
+   *   &lt;li&gt;zero year interpreted as 2000
+   *   &lt;li&gt;negative year is not accepted
+   *   &lt;li&gt;@dayOfYear should be greater than 1
+   *   &lt;li&gt;if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
+   * &lt;/ul&gt;
+   *
+   * @param yearExpr year
+   * @param dayOfYearExp day of the @year, starting from 1
+   * @return Date - ExprDateValue object with LocalDate
+   */
+  public static ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
+<span class="fc" id="L1604">    var year = Math.round(yearExpr.doubleValue());</span>
+<span class="fc" id="L1605">    var dayOfYear = Math.round(dayOfYearExp.doubleValue());</span>
+    // We need to do this to comply with MySQL
+<span class="fc bfc" id="L1607" title="All 4 branches covered.">    if (0 &gt;= dayOfYear || 0 &gt; year) {</span>
+<span class="fc" id="L1608">      return ExprNullValue.of();</span>
+    }
+<span class="fc bfc" id="L1610" title="All 2 branches covered.">    if (0 == year) {</span>
+<span class="fc" id="L1611">      year = 2000;</span>
+    }
+<span class="fc" id="L1613">    return new ExprDateValue(LocalDate.ofYearDay((int) year, 1).plusDays(dayOfYear - 1));</span>
+  }
+
+  /**
+   * Following MySQL, function receives arguments of type double. @hour and @minute are rounded,
+   * while @second used as is, including fraction part.
+   *
+   * @param hourExpr hour
+   * @param minuteExpr minute
+   * @param secondExpr second
+   * @return Time - ExprTimeValue object with LocalTime
+   */
+  public static ExprValue exprMakeTime(
+      ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+<span class="fc" id="L1627">    var hour = Math.round(hourExpr.doubleValue());</span>
+<span class="fc" id="L1628">    var minute = Math.round(minuteExpr.doubleValue());</span>
+<span class="fc" id="L1629">    var second = secondExpr.doubleValue();</span>
+<span class="fc bfc" id="L1630" title="All 6 branches covered.">    if (0 &gt; hour || 0 &gt; minute || 0 &gt; second) {</span>
+<span class="fc" id="L1631">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1633">    return new ExprTimeValue(</span>
+<span class="fc" id="L1634">        LocalTime.parse(</span>
+<span class="fc" id="L1635">            String.format(Locale.US, &quot;%02d:%02d:%012.9f&quot;, hour, minute, second),</span>
+            DateTimeFormatter.ISO_TIME));
+  }
+
+  /**
+   * Microsecond implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprMicrosecond(ExprValue time) {
+<span class="fc" id="L1646">    return new ExprIntegerValue(</span>
+<span class="fc" id="L1647">        TimeUnit.MICROSECONDS.convert(time.timeValue().getNano(), TimeUnit.NANOSECONDS));</span>
+  }
+
+  /**
+   * Minute implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprMinute(ExprValue time) {
+<span class="fc" id="L1657">    return new ExprIntegerValue((MINUTES.between(LocalTime.MIN, time.timeValue()) % 60));</span>
+  }
+
+  /**
+   * Minute_of_day implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprMinuteOfDay(ExprValue time) {
+<span class="fc" id="L1667">    return new ExprIntegerValue(MINUTES.between(LocalTime.MIN, time.timeValue()));</span>
+  }
+
+  /**
+   * Month for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprMonth(ExprValue date) {
+<span class="fc" id="L1677">    return new ExprIntegerValue(date.dateValue().getMonthValue());</span>
+  }
+
+  /**
+   * Name of the Month implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprMonthName(ExprValue date) {
+<span class="fc" id="L1687">    return new ExprStringValue(</span>
+<span class="fc" id="L1688">        date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));</span>
+  }
+
+  private LocalDate parseDatePeriod(Integer period) {
+<span class="fc" id="L1692">    var input = period.toString();</span>
+    // MySQL undocumented: if year is not specified or has 1 digit - 2000/200x is assumed
+<span class="fc bfc" id="L1694" title="All 2 branches covered.">    if (input.length() &lt;= 5) {</span>
+<span class="fc" id="L1695">      input = String.format(&quot;200%05d&quot;, period);</span>
+    }
+    try {
+<span class="fc" id="L1698">      return LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);</span>
+<span class="fc" id="L1699">    } catch (DateTimeParseException ignored) {</span>
+      // nothing to do, try another format
+    }
+    try {
+<span class="fc" id="L1703">      return LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);</span>
+<span class="fc" id="L1704">    } catch (DateTimeParseException ignored) {</span>
+<span class="fc" id="L1705">      return null;</span>
+    }
+  }
+
+  /**
+   * Adds N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+   *
+   * @param period Period in the format YYMM or YYYYMM.
+   * @param months Amount of months to add.
+   * @return ExprIntegerValue.
+   */
+  public static ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+    // We should add a day to make string parsable and remove it afterwards
+<span class="fc" id="L1718">    var input = period.integerValue() * 100 + 1; // adds 01 to end of the string</span>
+<span class="fc" id="L1719">    var parsedDate = parseDatePeriod(input);</span>
+<span class="fc bfc" id="L1720" title="All 2 branches covered.">    if (parsedDate == null) {</span>
+<span class="fc" id="L1721">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1723">    var res = DATE_FORMATTER_LONG_YEAR.format(parsedDate.plusMonths(months.integerValue()));</span>
+<span class="fc" id="L1724">    return new ExprIntegerValue(</span>
+<span class="fc" id="L1725">        Integer.parseInt(</span>
+<span class="fc" id="L1726">            res.substring(0, res.length() - 2))); // Remove the day part, .eg. 20070101 -&gt; 200701</span>
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM
+   * or YYYYMM.
+   *
+   * @param period1 Period in the format YYMM or YYYYMM.
+   * @param period2 Period in the format YYMM or YYYYMM.
+   * @return ExprIntegerValue.
+   */
+  public static ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+<span class="fc" id="L1738">    var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);</span>
+<span class="fc" id="L1739">    var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);</span>
+<span class="fc bfc" id="L1740" title="All 4 branches covered.">    if (parsedDate1 == null || parsedDate2 == null) {</span>
+<span class="fc" id="L1741">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1743">    return new ExprIntegerValue(MONTHS.between(parsedDate2, parsedDate1));</span>
+  }
+
+  /**
+   * Quarter for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprQuarter(ExprValue date) {
+<span class="fc" id="L1753">    int month = date.dateValue().getMonthValue();</span>
+<span class="fc bfc" id="L1754" title="All 2 branches covered.">    return new ExprIntegerValue((month / 3) + ((month % 3) == 0 ? 0 : 1));</span>
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for an INTEGER or LONG arguments.
+   *
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  public static ExprValue exprSecToTime(ExprValue totalSeconds) {
+<span class="fc" id="L1764">    return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));</span>
+  }
+
+  /**
+   * Helper function which obtains the decimal portion of the seconds value passed in. Uses
+   * BigDecimal to prevent issues with math on floating point numbers. Return is formatted to be
+   * used with Duration.ofSeconds();
+   *
+   * @param seconds and ExprDoubleValue or ExprFloatValue for the seconds
+   * @return A LONG representing the nanoseconds portion
+   */
+  private long formatNanos(ExprValue seconds) {
+    // Convert ExprValue to BigDecimal
+<span class="fc" id="L1777">    BigDecimal formattedNanos = BigDecimal.valueOf(seconds.doubleValue());</span>
+    // Extract only the nanosecond part
+<span class="fc" id="L1779">    formattedNanos = formattedNanos.subtract(BigDecimal.valueOf(formattedNanos.intValue()));</span>
+
+<span class="fc" id="L1781">    return formattedNanos.scaleByPowerOfTen(9).longValue();</span>
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for FLOAT or DOUBLE arguments.
+   *
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  public static ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+<span class="fc" id="L1791">    long nanos = formatNanos(totalSeconds);</span>
+
+<span class="fc" id="L1793">    return new ExprTimeValue(</span>
+<span class="fc" id="L1794">        LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue(), nanos)));</span>
+  }
+
+  /**
+   * Second implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprSecond(ExprValue time) {
+<span class="fc" id="L1804">    return new ExprIntegerValue((SECONDS.between(LocalTime.MIN, time.timeValue()) % 60));</span>
+  }
+
+  /**
+   * SUBDATE function implementation for ExprValue.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param date ExprValue of Time/Date/Timestamp type.
+   * @param days ExprValue of Long type, representing the number of days to subtract.
+   * @return Date/Timestamp resulted from days subtracted to date.
+   */
+  private ExprValue exprSubDateDays(
+      FunctionProperties functionProperties, ExprValue date, ExprValue days) {
+<span class="fc" id="L1817">    return exprDateApplyDays(functionProperties, date, days.longValue(), false);</span>
+  }
+
+  /**
+   * DATE_SUB function implementation for ExprValue.
+   *
+   * @param functionProperties An FunctionProperties object.
+   * @param datetime ExprValue of Time/Date/Timestamp type.
+   * @param expr ExprValue of Interval type, the temporal amount to subtract.
+   * @return Timestamp resulted from expr subtracted to `timestamp`.
+   */
+  private ExprValue exprSubDateInterval(
+      FunctionProperties functionProperties, ExprValue datetime, ExprValue expr) {
+<span class="fc" id="L1830">    return exprDateApplyInterval(functionProperties, datetime, expr.intervalValue(), false);</span>
+  }
+
+  /**
+   * Subtracts expr2 from expr1 and returns the result.
+   *
+   * @param temporal A Date/Time/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Timestamp to subtract time from.
+   * @return A value calculated.
+   */
+  public static ExprValue exprSubTime(
+      FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
+<span class="fc" id="L1842">    return exprApplyTime(functionProperties, temporal, temporalDelta, false);</span>
+  }
+
+  public static ExprValue exprStrToDate(
+      FunctionProperties fp, ExprValue dateTimeExpr, ExprValue formatStringExp) {
+<span class="fc" id="L1847">    return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);</span>
+  }
+
+  /**
+   * Time implementation for ExprValue.
+   *
+   * @param exprValue ExprValue of Time type or String.
+   * @return ExprValue.
+   */
+  public static ExprValue exprTime(ExprValue exprValue) {
+<span class="fc bfc" id="L1857" title="All 2 branches covered.">    if (exprValue instanceof ExprStringValue) {</span>
+<span class="fc" id="L1858">      return new ExprTimeValue(exprValue.stringValue());</span>
+    } else {
+<span class="fc" id="L1860">      return new ExprTimeValue(exprValue.timeValue());</span>
+    }
+  }
+
+  /**
+   * Calculate the time difference between two times.
+   *
+   * @param first The first value.
+   * @param second The second value.
+   * @return The diff.
+   */
+  public static ExprValue exprTimeDiff(ExprValue first, ExprValue second) {
+    // java inverses the value, so we have to swap 1 and 2
+<span class="fc" id="L1873">    return new ExprTimeValue(</span>
+<span class="fc" id="L1874">        LocalTime.MIN.plus(Duration.between(second.timeValue(), first.timeValue())));</span>
+  }
+
+  /**
+   * Time To Sec implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprTimeToSec(ExprValue time) {
+<span class="fc" id="L1884">    return new ExprLongValue(time.timeValue().toSecondOfDay());</span>
+  }
+
+  public static ExprValue exprTimestampAdd(
+      ExprValue partExpr, ExprValue amountExpr, ExprValue datetimeExpr) {
+<span class="fc" id="L1889">    String part = partExpr.stringValue();</span>
+<span class="fc" id="L1890">    int amount = amountExpr.integerValue();</span>
+<span class="fc" id="L1891">    LocalDateTime timestamp =</span>
+<span class="fc" id="L1892">        datetimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+    ChronoUnit temporalUnit;
+
+<span class="fc bfc" id="L1895" title="All 10 branches covered.">    switch (part) {</span>
+      case &quot;MICROSECOND&quot;:
+<span class="fc" id="L1897">        temporalUnit = MICROS;</span>
+<span class="fc" id="L1898">        break;</span>
+      case &quot;SECOND&quot;:
+<span class="fc" id="L1900">        temporalUnit = SECONDS;</span>
+<span class="fc" id="L1901">        break;</span>
+      case &quot;MINUTE&quot;:
+<span class="fc" id="L1903">        temporalUnit = MINUTES;</span>
+<span class="fc" id="L1904">        break;</span>
+      case &quot;HOUR&quot;:
+<span class="fc" id="L1906">        temporalUnit = HOURS;</span>
+<span class="fc" id="L1907">        break;</span>
+      case &quot;DAY&quot;:
+<span class="fc" id="L1909">        temporalUnit = DAYS;</span>
+<span class="fc" id="L1910">        break;</span>
+      case &quot;WEEK&quot;:
+<span class="fc" id="L1912">        temporalUnit = WEEKS;</span>
+<span class="fc" id="L1913">        break;</span>
+      case &quot;MONTH&quot;:
+<span class="fc" id="L1915">        temporalUnit = MONTHS;</span>
+<span class="fc" id="L1916">        break;</span>
+      case &quot;QUARTER&quot;:
+<span class="fc" id="L1918">        temporalUnit = MONTHS;</span>
+<span class="fc" id="L1919">        amount *= 3;</span>
+<span class="fc" id="L1920">        break;</span>
+      case &quot;YEAR&quot;:
+<span class="fc" id="L1922">        temporalUnit = YEARS;</span>
+<span class="fc" id="L1923">        break;</span>
+      default:
+<span class="fc" id="L1925">        return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1927">    return new ExprTimestampValue(timestamp.plus(amount, temporalUnit));</span>
+  }
+
+  public static ExprValue exprTimestampAddForTimeType(
+      Clock clock, ExprValue partExpr, ExprValue amountExpr, ExprValue timeExpr) {
+<span class="fc" id="L1932">    LocalDateTime datetime = LocalDateTime.of(formatNow(clock).toLocalDate(), timeExpr.timeValue());</span>
+<span class="fc" id="L1933">    return exprTimestampAdd(partExpr, amountExpr, new ExprTimestampValue(datetime));</span>
+  }
+
+  private ExprValue getTimeDifference(String part, LocalDateTime startTime, LocalDateTime endTime) {
+    long returnVal;
+<span class="fc bfc" id="L1938" title="All 10 branches covered.">    switch (part) {</span>
+      case &quot;MICROSECOND&quot;:
+<span class="fc" id="L1940">        returnVal = MICROS.between(startTime, endTime);</span>
+<span class="fc" id="L1941">        break;</span>
+      case &quot;SECOND&quot;:
+<span class="fc" id="L1943">        returnVal = SECONDS.between(startTime, endTime);</span>
+<span class="fc" id="L1944">        break;</span>
+      case &quot;MINUTE&quot;:
+<span class="fc" id="L1946">        returnVal = MINUTES.between(startTime, endTime);</span>
+<span class="fc" id="L1947">        break;</span>
+      case &quot;HOUR&quot;:
+<span class="fc" id="L1949">        returnVal = HOURS.between(startTime, endTime);</span>
+<span class="fc" id="L1950">        break;</span>
+      case &quot;DAY&quot;:
+<span class="fc" id="L1952">        returnVal = DAYS.between(startTime, endTime);</span>
+<span class="fc" id="L1953">        break;</span>
+      case &quot;WEEK&quot;:
+<span class="fc" id="L1955">        returnVal = WEEKS.between(startTime, endTime);</span>
+<span class="fc" id="L1956">        break;</span>
+      case &quot;MONTH&quot;:
+<span class="fc" id="L1958">        returnVal = MONTHS.between(startTime, endTime);</span>
+<span class="fc" id="L1959">        break;</span>
+      case &quot;QUARTER&quot;:
+<span class="fc" id="L1961">        returnVal = MONTHS.between(startTime, endTime) / 3;</span>
+<span class="fc" id="L1962">        break;</span>
+      case &quot;YEAR&quot;:
+<span class="fc" id="L1964">        returnVal = YEARS.between(startTime, endTime);</span>
+<span class="fc" id="L1965">        break;</span>
+      default:
+<span class="fc" id="L1967">        return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L1969">    return new ExprLongValue(returnVal);</span>
+  }
+
+  public static ExprValue exprTimestampDiff(
+      ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
+<span class="fc" id="L1974">    return getTimeDifference(</span>
+<span class="fc" id="L1975">        partExpr.stringValue(),</span>
+<span class="fc" id="L1976">        startTimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime(),</span>
+<span class="fc" id="L1977">        endTimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());</span>
+  }
+
+  public static ExprValue exprTimestampDiffForTimeType(
+      FunctionProperties fp, ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
+<span class="fc" id="L1982">    return getTimeDifference(</span>
+<span class="fc" id="L1983">        partExpr.stringValue(),</span>
+<span class="fc" id="L1984">        extractTimestamp(startTimeExpr, fp).atZone(ZoneOffset.UTC).toLocalDateTime(),</span>
+<span class="fc" id="L1985">        extractTimestamp(endTimeExpr, fp).atZone(ZoneOffset.UTC).toLocalDateTime());</span>
+  }
+
+  /**
+   * UTC_DATE implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
+<span class="fc" id="L1995">    return new ExprDateValue(exprUtcTimestamp(functionProperties).dateValue());</span>
+  }
+
+  /**
+   * UTC_TIME implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
+<span class="fc" id="L2005">    return new ExprTimeValue(exprUtcTimestamp(functionProperties).timeValue());</span>
+  }
+
+  /**
+   * UTC_TIMESTAMP implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
+<span class="fc" id="L2015">    var dt = formatNow(functionProperties.getQueryStartClock());</span>
+<span class="fc" id="L2016">    return new ExprTimestampValue(dt);</span>
+  }
+
+  /**
+   * To_days implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprToDays(ExprValue date) {
+<span class="fc" id="L2026">    return new ExprLongValue(date.dateValue().toEpochDay() + DAYS_0000_TO_1970);</span>
+  }
+
+  /**
+   * To_seconds implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Timestamp/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprToSeconds(ExprValue date) {
+<span class="fc" id="L2036">    return new ExprLongValue(</span>
+<span class="fc" id="L2037">        date.timestampValue().atOffset(ZoneOffset.UTC).toEpochSecond()</span>
+<span class="fc" id="L2038">            + DAYS_0000_TO_1970 * SECONDS_PER_DAY);</span>
+  }
+
+  /**
+   * Helper function to determine the correct formatter for date arguments passed in as integers.
+   *
+   * @param dateAsInt is an integer formatted as one of YYYYMMDD, YYMMDD, YMMDD, MMDD, MDD
+   * @return is a DateTimeFormatter that can parse the input.
+   */
+  private DateTimeFormatter getFormatter(int dateAsInt) {
+<span class="fc" id="L2048">    int length = String.format(&quot;%d&quot;, dateAsInt).length();</span>
+
+<span class="fc bfc" id="L2050" title="All 2 branches covered.">    if (length &gt; 8) {</span>
+<span class="fc" id="L2051">      throw new DateTimeException(&quot;Integer argument was out of range&quot;);</span>
+    }
+
+    // Check below from YYYYMMDD - MMDD which format should be used
+<span class="fc bfc" id="L2055" title="All 6 branches covered.">    switch (length) {</span>
+        // Check if dateAsInt is at least 8 digits long
+      case FULL_DATE_LENGTH:
+<span class="fc" id="L2058">        return DATE_FORMATTER_LONG_YEAR;</span>
+
+        // Check if dateAsInt is at least 6 digits long
+      case SHORT_DATE_LENGTH:
+<span class="fc" id="L2062">        return DATE_FORMATTER_SHORT_YEAR;</span>
+
+        // Check if dateAsInt is at least 5 digits long
+      case SINGLE_DIGIT_YEAR_DATE_LENGTH:
+<span class="fc" id="L2066">        return DATE_FORMATTER_SINGLE_DIGIT_YEAR;</span>
+
+        // Check if dateAsInt is at least 4 digits long
+      case NO_YEAR_DATE_LENGTH:
+<span class="fc" id="L2070">        return DATE_FORMATTER_NO_YEAR;</span>
+
+        // Check if dateAsInt is at least 3 digits long
+      case SINGLE_DIGIT_MONTH_DATE_LENGTH:
+<span class="fc" id="L2074">        return DATE_FORMATTER_SINGLE_DIGIT_MONTH;</span>
+
+      default:
+        break;
+    }
+
+<span class="fc" id="L2080">    throw new DateTimeException(&quot;No Matching Format&quot;);</span>
+  }
+
+  /**
+   * To_seconds implementation with an integer argument for ExprValue.
+   *
+   * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
+   * @return ExprValue.
+   */
+  public static ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+    try {
+      // Attempt to parse integer argument as date
+<span class="fc" id="L2092">      LocalDate date =</span>
+<span class="fc" id="L2093">          LocalDate.parse(</span>
+<span class="fc" id="L2094">              String.valueOf(dateExpr.integerValue()), getFormatter(dateExpr.integerValue()));</span>
+
+<span class="fc" id="L2096">      return new ExprLongValue(</span>
+<span class="fc" id="L2097">          date.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + DAYS_0000_TO_1970 * SECONDS_PER_DAY);</span>
+
+<span class="fc" id="L2099">    } catch (DateTimeException ignored) {</span>
+      // Return null if parsing error
+<span class="fc" id="L2101">      return ExprNullValue.of();</span>
+    }
+  }
+
+  /**
+   * Week for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Timestamp/String type.
+   * @param mode ExprValue of Integer type.
+   */
+  public static ExprValue exprWeek(ExprValue date, ExprValue mode) {
+<span class="fc" id="L2112">    return new ExprIntegerValue(</span>
+<span class="fc" id="L2113">        CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));</span>
+  }
+
+  /**
+   * Weekday implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String/Timstamp type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprWeekday(ExprValue date) {
+<span class="fc" id="L2123">    return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);</span>
+  }
+
+  public static ExprValue unixTimeStamp(Clock clock) {
+<span class="fc" id="L2127">    return new ExprLongValue(Instant.now(clock).getEpochSecond());</span>
+  }
+
+  public static ExprValue unixTimeStampOf(ExprValue value) {
+<span class="fc" id="L2131">    var res = unixTimeStampOfImpl(value);</span>
+<span class="fc bfc" id="L2132" title="All 2 branches covered.">    if (res == null) {</span>
+<span class="fc" id="L2133">      return ExprNullValue.of();</span>
+    }
+<span class="fc bfc" id="L2135" title="All 2 branches covered.">    if (res &lt; 0) {</span>
+      // According to MySQL returns 0 if year &lt; 1970, don't return negative values as java does.
+<span class="fc" id="L2137">      return new ExprDoubleValue(0);</span>
+    }
+<span class="fc bfc" id="L2139" title="All 2 branches covered.">    if (res &gt;= MYSQL_MAX_TIMESTAMP) {</span>
+      // Return 0 also for dates &gt; '3001-01-19 03:14:07.999999' UTC (32536771199.999999 sec)
+<span class="fc" id="L2141">      return new ExprDoubleValue(0);</span>
+    }
+<span class="fc" id="L2143">    return new ExprDoubleValue(res);</span>
+  }
+
+  public static Double transferUnixTimeStampFromDoubleInput(Double value) {
+<span class="fc" id="L2147">    var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);</span>
+<span class="fc" id="L2148">    format.applyPattern(&quot;0.#&quot;);</span>
+<span class="fc" id="L2149">    format.setMinimumFractionDigits(0);</span>
+<span class="fc" id="L2150">    format.setMaximumFractionDigits(6);</span>
+<span class="fc" id="L2151">    String input = format.format(value);</span>
+<span class="fc" id="L2152">    double fraction = 0;</span>
+<span class="fc bfc" id="L2153" title="All 2 branches covered.">    if (input.contains(&quot;.&quot;)) {</span>
+      // Keeping fraction second part and adding it to the result, don't parse it
+      // Because `toEpochSecond` returns only `long`
+      // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
+<span class="fc" id="L2157">      fraction = value - Math.round(Math.ceil(value));</span>
+<span class="fc" id="L2158">      input = input.substring(0, input.indexOf('.'));</span>
+    }
+    try {
+<span class="fc" id="L2161">      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);</span>
+<span class="fc" id="L2162">      return res.toEpochSecond(ZoneOffset.UTC) + fraction;</span>
+<span class="fc" id="L2163">    } catch (DateTimeParseException ignored) {</span>
+      // nothing to do, try another format
+    }
+    try {
+<span class="fc" id="L2167">      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);</span>
+<span class="fc" id="L2168">      return res.toEpochSecond(ZoneOffset.UTC) + fraction;</span>
+<span class="fc" id="L2169">    } catch (DateTimeParseException ignored) {</span>
+      // nothing to do, try another format
+    }
+    try {
+<span class="fc" id="L2173">      var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);</span>
+<span class="fc" id="L2174">      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;</span>
+<span class="fc" id="L2175">    } catch (DateTimeParseException ignored) {</span>
+      // nothing to do, try another format
+    }
+    try {
+<span class="fc" id="L2179">      var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);</span>
+<span class="fc" id="L2180">      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;</span>
+<span class="fc" id="L2181">    } catch (DateTimeParseException ignored) {</span>
+<span class="fc" id="L2182">      return null;</span>
+    }
+  }
+
+  private Double unixTimeStampOfImpl(ExprValue value) {
+    // Also, according to MySQL documentation:
+    //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
+<span class="fc bfc" id="L2189" title="All 3 branches covered.">    switch ((ExprCoreType) value.type()) {</span>
+      case DATE:
+<span class="fc" id="L2191">        return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;</span>
+      case TIMESTAMP:
+<span class="fc" id="L2193">        return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;</span>
+      default:
+        //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
+        //     If the argument includes a time part, it may optionally include a fractional
+        //     seconds part.
+<span class="fc" id="L2198">        return transferUnixTimeStampFromDoubleInput(value.doubleValue());</span>
+    }
+  }
+
+  /**
+   * Week for date implementation for ExprValue. When mode is not specified default value mode 0 is
+   * used for default_week_format.
+   *
+   * @param date ExprValue of Date/Timestamp/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprWeekWithoutMode(ExprValue date) {
+<span class="fc" id="L2210">    return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);</span>
+  }
+
+  /**
+   * Year for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/String type.
+   * @return ExprValue.
+   */
+  public static ExprValue exprYear(ExprValue date) {
+<span class="fc" id="L2220">    return new ExprIntegerValue(date.dateValue().getYear());</span>
+  }
+
+  /**
+   * Helper function to extract the yearweek output from a given date.
+   *
+   * @param date is a LocalDate input argument.
+   * @param mode is an integer containing the mode used to parse the LocalDate.
+   * @return is a long containing the formatted output for the yearweek function.
+   */
+  private ExprIntegerValue extractYearweek(LocalDate date, int mode) {
+    // Needed to align with MySQL. Due to how modes for this function work.
+    // See description of modes here ...
+    // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_week
+<span class="fc bfc" id="L2234" title="All 4 branches covered.">    int modeJava = CalendarLookup.getWeekNumber(mode, date) != 0 ? mode : mode &lt;= 4 ? 2 : 7;</span>
+
+<span class="fc" id="L2236">    int formatted =</span>
+<span class="fc" id="L2237">        CalendarLookup.getYearNumber(modeJava, date) * 100</span>
+<span class="fc" id="L2238">            + CalendarLookup.getWeekNumber(modeJava, date);</span>
+
+<span class="fc" id="L2240">    return new ExprIntegerValue(formatted);</span>
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Time/Timestamp/String type.
+   * @param mode ExprValue of Integer type.
+   */
+  public static ExprValue exprYearweek(ExprValue date, ExprValue mode) {
+<span class="fc" id="L2250">    return extractYearweek(date.dateValue(), mode.integerValue());</span>
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue. When mode is not specified default value mode 0
+   * is used.
+   *
+   * @param date ExprValue of Date/Time/Timestamp/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprYearweekWithoutMode(ExprValue date) {
+<span class="fc" id="L2261">    return exprYearweek(date, new ExprIntegerValue(0));</span>
+  }
+
+  public static ExprValue yearweekToday(ExprValue mode, Clock clock) {
+<span class="fc" id="L2265">    return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());</span>
+  }
+
+  public static ExprValue monthOfYearToday(Clock clock) {
+<span class="fc" id="L2269">    return new ExprIntegerValue(LocalDateTime.now(clock).getMonthValue());</span>
+  }
+
+  public static LocalDateTime formatNow(Clock clock) {
+<span class="fc" id="L2273">    return formatNow(clock, 0);</span>
+  }
+
+  /**
+   * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
+   *
+   * @param fsp argument is given to specify a fractional seconds precision from 0 to 6, the return
+   *     value includes a fractional seconds part of that many digits.
+   * @return LocalDateTime object.
+   */
+  public static LocalDateTime formatNow(Clock clock, Integer fsp) {
+<span class="fc" id="L2284">    var res = LocalDateTime.now(clock);</span>
+<span class="fc" id="L2285">    var defaultPrecision = 9; // There are 10^9 nanoseconds in one second</span>
+<span class="fc bfc" id="L2286" title="All 4 branches covered.">    if (fsp &lt; 0 || fsp &gt; 6) { // Check that the argument is in the allowed range [0, 6]</span>
+<span class="fc" id="L2287">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L2288">          String.format(&quot;Invalid `fsp` value: %d, allowed 0 to 6&quot;, fsp));</span>
+    }
+<span class="fc" id="L2290">    var nano =</span>
+<span class="fc" id="L2291">        new BigDecimal(res.getNano())</span>
+<span class="fc" id="L2292">            .setScale(fsp - defaultPrecision, RoundingMode.DOWN)</span>
+<span class="fc" id="L2293">            .intValue();</span>
+<span class="fc" id="L2294">    return res.withNano(nano);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

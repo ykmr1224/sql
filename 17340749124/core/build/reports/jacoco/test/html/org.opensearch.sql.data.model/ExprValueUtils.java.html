@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprValueUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprValueUtils.java</span></div><h1>ExprValueUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
+
+import inet.ipaddr.IPAddress;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+/** The definition of {@link ExprValue} factory. */
+@UtilityClass
+public class ExprValueUtils {
+<span class="fc" id="L34">  public static final ExprValue LITERAL_TRUE = ExprBooleanValue.of(true);</span>
+<span class="fc" id="L35">  public static final ExprValue LITERAL_FALSE = ExprBooleanValue.of(false);</span>
+<span class="fc" id="L36">  public static final ExprValue LITERAL_NULL = ExprNullValue.of();</span>
+<span class="fc" id="L37">  public static final ExprValue LITERAL_MISSING = ExprMissingValue.of();</span>
+
+  public static ExprValue booleanValue(Boolean value) {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    return value ? LITERAL_TRUE : LITERAL_FALSE;</span>
+  }
+
+  public static ExprValue byteValue(Byte value) {
+<span class="fc" id="L44">    return new ExprByteValue(value);</span>
+  }
+
+  public static ExprValue shortValue(Short value) {
+<span class="fc" id="L48">    return new ExprShortValue(value);</span>
+  }
+
+  public static ExprValue integerValue(Integer value) {
+<span class="fc" id="L52">    return new ExprIntegerValue(value);</span>
+  }
+
+  public static ExprValue doubleValue(Double value) {
+<span class="fc" id="L56">    return new ExprDoubleValue(value);</span>
+  }
+
+  public static ExprValue floatValue(Float value) {
+<span class="fc" id="L60">    return new ExprFloatValue(value);</span>
+  }
+
+  public static ExprValue longValue(Long value) {
+<span class="fc" id="L64">    return new ExprLongValue(value);</span>
+  }
+
+  public static ExprValue stringValue(String value) {
+<span class="fc" id="L68">    return new ExprStringValue(value);</span>
+  }
+
+  public static ExprValue intervalValue(TemporalAmount value) {
+<span class="fc" id="L72">    return new ExprIntervalValue(value);</span>
+  }
+
+  public static ExprValue dateValue(LocalDate value) {
+<span class="fc" id="L76">    return new ExprDateValue(value);</span>
+  }
+
+  public static ExprValue timeValue(LocalTime value) {
+<span class="fc" id="L80">    return new ExprTimeValue(value);</span>
+  }
+
+  public static ExprValue timestampValue(Instant value) {
+<span class="fc" id="L84">    return new ExprTimestampValue(value);</span>
+  }
+
+  public static ExprValue ipValue(String value) {
+<span class="fc" id="L88">    return new ExprIpValue(value);</span>
+  }
+
+  /** {@link ExprTupleValue} constructor. */
+  public static ExprValue tupleValue(Map&lt;String, Object&gt; map) {
+<span class="fc" id="L93">    LinkedHashMap&lt;String, ExprValue&gt; valueMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L94">    map.forEach(</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        (k, v) -&gt; valueMap.put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));</span>
+<span class="fc" id="L96">    return new ExprTupleValue(valueMap);</span>
+  }
+
+  /** {@link ExprCollectionValue} constructor. */
+  public static ExprValue collectionValue(List&lt;Object&gt; list) {
+<span class="fc" id="L101">    List&lt;ExprValue&gt; valueList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L102">    list.forEach(o -&gt; valueList.add(fromObjectValue(o)));</span>
+<span class="fc" id="L103">    return new ExprCollectionValue(valueList);</span>
+  }
+
+  public static ExprValue missingValue() {
+<span class="fc" id="L107">    return ExprMissingValue.of();</span>
+  }
+
+  public static ExprValue nullValue() {
+<span class="fc" id="L111">    return ExprNullValue.of();</span>
+  }
+
+  /** Construct ExprValue from Object. */
+  public static ExprValue fromObjectValue(Object o) {
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (null == o) {</span>
+<span class="fc" id="L117">      return LITERAL_NULL;</span>
+    }
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (o instanceof Map) {</span>
+<span class="fc" id="L120">      return tupleValue((Map) o);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    } else if (o instanceof List) {</span>
+<span class="fc" id="L122">      return collectionValue(((List) o));</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    } else if (o instanceof Byte) {</span>
+<span class="fc" id="L124">      return byteValue((Byte) o);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    } else if (o instanceof Short) {</span>
+<span class="fc" id="L126">      return shortValue((Short) o);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    } else if (o instanceof Integer) {</span>
+<span class="fc" id="L128">      return integerValue((Integer) o);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    } else if (o instanceof Long) {</span>
+<span class="fc" id="L130">      return longValue(((Long) o));</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    } else if (o instanceof Boolean) {</span>
+<span class="fc" id="L132">      return booleanValue((Boolean) o);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    } else if (o instanceof Double d) {</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">      if (Double.isNaN(d)) {</span>
+<span class="nc" id="L135">        return LITERAL_NULL;</span>
+      }
+<span class="fc" id="L137">      return doubleValue(d);</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    } else if (o instanceof BigDecimal d) {</span>
+      // TODO fallback decimal to double in v2
+      // until https://github.com/opensearch-project/sql/issues/3619 fixed.
+<span class="nc" id="L141">      return new ExprDoubleValue(d);</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    } else if (o instanceof String) {</span>
+<span class="fc" id="L143">      return stringValue((String) o);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    } else if (o instanceof Float f) {</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">      if (Float.isNaN(f)) {</span>
+<span class="nc" id="L146">        return LITERAL_NULL;</span>
+      }
+<span class="fc" id="L148">      return floatValue(f);</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">    } else if (o instanceof Date) {</span>
+<span class="nc" id="L150">      return dateValue(((Date) o).toLocalDate());</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    } else if (o instanceof LocalDate) {</span>
+<span class="fc" id="L152">      return dateValue((LocalDate) o);</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    } else if (o instanceof Time) {</span>
+<span class="nc" id="L154">      return timeValue(((Time) o).toLocalTime());</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    } else if (o instanceof LocalTime) {</span>
+<span class="fc" id="L156">      return timeValue((LocalTime) o);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    } else if (o instanceof Instant) {</span>
+<span class="fc" id="L158">      return timestampValue((Instant) o);</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">    } else if (o instanceof Timestamp) {</span>
+<span class="nc" id="L160">      return timestampValue(((Timestamp) o).toInstant());</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    } else if (o instanceof LocalDateTime) {</span>
+<span class="fc" id="L162">      return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    } else if (o instanceof TemporalAmount) {</span>
+<span class="fc" id="L164">      return intervalValue((TemporalAmount) o);</span>
+    } else {
+<span class="fc" id="L166">      throw new ExpressionEvaluationException(&quot;unsupported object &quot; + o.getClass());</span>
+    }
+  }
+
+  /** Construct ExprValue from Object with ExprCoreType. */
+  public static ExprValue fromObjectValue(Object o, ExprType type) {
+<span class="fc bfc" id="L172" title="All 4 branches covered.">    switch (type) {</span>
+      case TIMESTAMP:
+<span class="fc" id="L174">        return new ExprTimestampValue((String) o);</span>
+      case DATE:
+<span class="fc" id="L176">        return new ExprDateValue((String) o);</span>
+      case TIME:
+<span class="fc" id="L178">        return new ExprTimeValue((String) o);</span>
+      default:
+<span class="fc" id="L180">        return fromObjectValue(o);</span>
+    }
+  }
+
+  public static Byte getByteValue(ExprValue exprValue) {
+<span class="fc" id="L185">    return exprValue.byteValue();</span>
+  }
+
+  public static Short getShortValue(ExprValue exprValue) {
+<span class="fc" id="L189">    return exprValue.shortValue();</span>
+  }
+
+  public static Integer getIntegerValue(ExprValue exprValue) {
+<span class="fc" id="L193">    return exprValue.integerValue();</span>
+  }
+
+  public static Double getDoubleValue(ExprValue exprValue) {
+<span class="fc" id="L197">    return exprValue.doubleValue();</span>
+  }
+
+  public static Long getLongValue(ExprValue exprValue) {
+<span class="fc" id="L201">    return exprValue.longValue();</span>
+  }
+
+  public static Float getFloatValue(ExprValue exprValue) {
+<span class="fc" id="L205">    return exprValue.floatValue();</span>
+  }
+
+  public static String getStringValue(ExprValue exprValue) {
+<span class="fc" id="L209">    return exprValue.stringValue();</span>
+  }
+
+  public static List&lt;ExprValue&gt; getCollectionValue(ExprValue exprValue) {
+<span class="fc" id="L213">    return exprValue.collectionValue();</span>
+  }
+
+  public static Map&lt;String, ExprValue&gt; getTupleValue(ExprValue exprValue) {
+<span class="fc" id="L217">    return exprValue.tupleValue();</span>
+  }
+
+  public static IPAddress getIpValue(ExprValue exprValue) {
+<span class="fc" id="L221">    return exprValue.ipValue();</span>
+  }
+
+  public static Boolean getBooleanValue(ExprValue exprValue) {
+<span class="fc" id="L225">    return exprValue.booleanValue();</span>
+  }
+
+  public static ExprValue resolveRefPaths(ExprValue value, List&lt;String&gt; paths) {
+<span class="fc" id="L229">    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));</span>
+    // For array types only first index currently supported.
+<span class="fc bfc" id="L231" title="All 2 branches covered.">    if (value.type().equals(ExprCoreType.ARRAY)) {</span>
+<span class="fc" id="L232">      wholePathValue = value.collectionValue().getFirst().keyValue(paths.getFirst());</span>
+    }
+
+<span class="fc bfc" id="L235" title="All 4 branches covered.">    if (!wholePathValue.isMissing() || paths.size() == 1) {</span>
+<span class="fc" id="L236">      return wholePathValue;</span>
+    } else {
+<span class="fc" id="L238">      return resolveRefPaths(value.keyValue(paths.getFirst()), paths.subList(1, paths.size()));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

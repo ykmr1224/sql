@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RankingWindowFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.window.ranking</a> &gt; <span class="el_source">RankingWindowFunction.java</span></div><h1>RankingWindowFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.window.ranking;
+
+import static java.util.Collections.emptyList;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.expression.window.WindowFunctionExpression;
+import org.opensearch.sql.expression.window.frame.CurrentRowWindowFrame;
+import org.opensearch.sql.expression.window.frame.WindowFrame;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/**
+ * Ranking window function base class that captures same info across different ranking functions,
+ * such as same return type (integer), same argument list (no arg).
+ */
+public abstract class RankingWindowFunction extends FunctionExpression
+    implements WindowFunctionExpression {
+
+  /** Current rank number assigned. */
+  protected int rank;
+
+  public RankingWindowFunction(FunctionName functionName) {
+<span class="fc" id="L38">    super(functionName, emptyList());</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L43">    return ExprCoreType.INTEGER;</span>
+  }
+
+  @Override
+  public WindowFrame createWindowFrame(WindowDefinition definition) {
+<span class="fc" id="L48">    return new CurrentRowWindowFrame(definition);</span>
+  }
+
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L53">    return new ExprIntegerValue(rank((CurrentRowWindowFrame) valueEnv));</span>
+  }
+
+  /**
+   * Rank logic that sub-class needs to implement.
+   *
+   * @param frame window frame
+   * @return rank number
+   */
+  protected abstract int rank(CurrentRowWindowFrame frame);
+
+  /**
+   * Check sort field to see if current value is different from previous.
+   *
+   * @param frame window frame
+   * @return true if different, false if same or no sort list defined
+   */
+  protected boolean isSortFieldValueDifferent(CurrentRowWindowFrame frame) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (isSortItemsNotDefined(frame)) {</span>
+<span class="fc" id="L72">      return false;</span>
+    }
+
+<span class="fc" id="L75">    List&lt;Expression&gt; sortItems =</span>
+<span class="fc" id="L76">        frame.getWindowDefinition().getSortList().stream()</span>
+<span class="fc" id="L77">            .map(Pair::getRight)</span>
+<span class="fc" id="L78">            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L80">    List&lt;ExprValue&gt; previous = resolve(frame, sortItems, frame.previous());</span>
+<span class="fc" id="L81">    List&lt;ExprValue&gt; current = resolve(frame, sortItems, frame.current());</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    return !current.equals(previous);</span>
+  }
+
+  private boolean isSortItemsNotDefined(CurrentRowWindowFrame frame) {
+<span class="fc" id="L86">    return frame.getWindowDefinition().getSortList().isEmpty();</span>
+  }
+
+  private List&lt;ExprValue&gt; resolve(WindowFrame frame, List&lt;Expression&gt; expressions, ExprValue row) {
+<span class="fc" id="L90">    BindingTuple valueEnv = row.bindingTuples();</span>
+<span class="fc" id="L91">    return expressions.stream().map(expr -&gt; expr.valueOf(valueEnv)).collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L96">    return getFunctionName() + &quot;()&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

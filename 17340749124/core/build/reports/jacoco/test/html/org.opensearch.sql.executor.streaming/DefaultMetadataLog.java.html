@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultMetadataLog.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor.streaming</a> &gt; <span class="el_source">DefaultMetadataLog.java</span></div><h1>DefaultMetadataLog.java</h1><pre class="source lang-java linenums">/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+package org.opensearch.sql.executor.streaming;
+
+import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import org.apache.commons.lang3.tuple.Pair;
+
+/**
+ * In memory implementation of {@link MetadataLog}. Todo. Current implementation does not guarantee
+ * thread safe. We will re-evaluate it when adding pipeline execution.
+ *
+ * @param &lt;T&gt; type of metadata type.
+ */
+<span class="fc" id="L25">public class DefaultMetadataLog&lt;T&gt; implements MetadataLog&lt;T&gt; {</span>
+
+  private static final long MIN_ACCEPTABLE_ID = 0L;
+
+<span class="fc" id="L29">  private final SortedMap&lt;Long, T&gt; metadataMap = new TreeMap&lt;&gt;();</span>
+
+  @Override
+  public boolean add(Long batchId, T metadata) {
+<span class="fc bfc" id="L33" title="All 2 branches covered.">    Preconditions.checkArgument(batchId &gt;= MIN_ACCEPTABLE_ID, &quot;batch id must large or equal 0&quot;);</span>
+
+<span class="fc bfc" id="L35" title="All 2 branches covered.">    if (metadataMap.containsKey(batchId)) {</span>
+<span class="fc" id="L36">      return false;</span>
+    }
+<span class="fc" id="L38">    metadataMap.put(batchId, metadata);</span>
+<span class="fc" id="L39">    return true;</span>
+  }
+
+  @Override
+  public Optional&lt;T&gt; get(Long batchId) {
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (!metadataMap.containsKey(batchId)) {</span>
+<span class="fc" id="L45">      return Optional.empty();</span>
+    } else {
+<span class="fc" id="L47">      return Optional.of(metadataMap.get(batchId));</span>
+    }
+  }
+
+  @Override
+  public List&lt;T&gt; get(Optional&lt;Long&gt; startBatchId, Optional&lt;Long&gt; endBatchId) {
+<span class="fc bfc" id="L53" title="All 4 branches covered.">    if (startBatchId.isEmpty() &amp;&amp; endBatchId.isEmpty()) {</span>
+<span class="fc" id="L54">      return new ArrayList&lt;&gt;(metadataMap.values());</span>
+    } else {
+<span class="fc" id="L56">      Long s = startBatchId.orElse(MIN_ACCEPTABLE_ID);</span>
+<span class="fc" id="L57">      Long e = endBatchId.map(i -&gt; i + 1).orElse(Long.MAX_VALUE);</span>
+<span class="fc" id="L58">      return new ArrayList&lt;&gt;(metadataMap.subMap(s, e).values());</span>
+    }
+  }
+
+  @Override
+  public Optional&lt;Pair&lt;Long, T&gt;&gt; getLatest() {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (metadataMap.isEmpty()) {</span>
+<span class="fc" id="L65">      return Optional.empty();</span>
+    } else {
+<span class="fc" id="L67">      Long latestId = metadataMap.lastKey();</span>
+<span class="fc" id="L68">      return Optional.of(Pair.of(latestId, metadataMap.get(latestId)));</span>
+    }
+  }
+
+  @Override
+  public void purge(Long batchId) {
+<span class="fc" id="L74">    metadataMap.headMap(batchId).clear();</span>
+<span class="fc" id="L75">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

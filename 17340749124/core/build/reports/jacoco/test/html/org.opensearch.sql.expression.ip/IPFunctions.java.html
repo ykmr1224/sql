@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IPFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.ip</a> &gt; <span class="el_source">IPFunctions.java</span></div><h1>IPFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.ip;
+
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.OpenSearchFunctions.OpenSearchExecutableFunction.openSearchImpl;
+
+import inet.ipaddr.IPAddress;
+import java.util.Arrays;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.utils.IPUtils;
+
+/** Utility class that defines and registers IP functions. */
+@UtilityClass
+public class IPFunctions {
+
+  public void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L32">    repository.register(cidrmatch());</span>
+<span class="fc" id="L33">    repository.register(geoIp());</span>
+<span class="fc" id="L34">  }</span>
+
+  private DefaultFunctionResolver cidrmatch() {
+<span class="fc" id="L37">    return define(</span>
+<span class="fc" id="L38">        BuiltinFunctionName.CIDRMATCH.getName(),</span>
+<span class="fc" id="L39">        impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, IP, STRING));</span>
+  }
+
+  /**
+   * Returns whether the given IP address is within the specified inclusive CIDR IP address range.
+   * Supports both IPv4 and IPv6 addresses.
+   *
+   * @param addressExprValue IP address (e.g. &quot;198.51.100.14&quot; or &quot;2001:0db8::ff00:42:8329&quot;).
+   * @param rangeExprValue IP address range string in CIDR notation (e.g. &quot;198.51.100.0/24&quot; or
+   *     &quot;2001:0db8::/32&quot;)
+   * @return true if the address is in the range; otherwise false.
+   * @throws SemanticCheckException if the address or range is not valid, or if they do not use the
+   *     same version (IPv4 or IPv6).
+   */
+  public static ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
+
+<span class="fc" id="L55">    IPAddress address = addressExprValue.ipValue();</span>
+<span class="fc" id="L56">    IPAddress range = IPUtils.toRange(rangeExprValue.stringValue());</span>
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    return (IPUtils.compare(address, range.getLower()) &lt; 0)</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            || (IPUtils.compare(address, range.getUpper()) &gt; 0)</span>
+<span class="fc" id="L60">        ? ExprValueUtils.LITERAL_FALSE</span>
+<span class="fc" id="L61">        : ExprValueUtils.LITERAL_TRUE;</span>
+  }
+
+  /**
+   * To register all method signatures related to geoip( ) expression under eval.
+   *
+   * @return Resolver for geoip( ) expression.
+   */
+  private DefaultFunctionResolver geoIp() {
+<span class="fc" id="L70">    return define(</span>
+<span class="fc" id="L71">        BuiltinFunctionName.GEOIP.getName(),</span>
+<span class="fc" id="L72">        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),</span>
+<span class="fc" id="L73">        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

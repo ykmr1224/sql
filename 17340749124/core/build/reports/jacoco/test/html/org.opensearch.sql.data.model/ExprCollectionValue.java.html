@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprCollectionValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprCollectionValue.java</span></div><h1>ExprCollectionValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import com.google.common.base.Objects;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+
+/** Expression Collection Value. */
+@RequiredArgsConstructor
+public class ExprCollectionValue extends AbstractExprValue {
+  private final List&lt;ExprValue&gt; valueList;
+
+  @Override
+  public Object value() {
+<span class="fc" id="L24">    List&lt;Object&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">    for (ExprValue exprValue : valueList) {</span>
+<span class="fc" id="L26">      results.add(exprValue.value());</span>
+<span class="fc" id="L27">    }</span>
+<span class="fc" id="L28">    return results;</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L33">    return ExprCoreType.ARRAY;</span>
+  }
+
+  @Override
+  public List&lt;ExprValue&gt; collectionValue() {
+<span class="fc" id="L38">    return valueList;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L43">    return valueList.stream().map(Object::toString).collect(Collectors.joining(&quot;, &quot;, &quot;[&quot;, &quot;]&quot;));</span>
+  }
+
+  @Override
+  public boolean equal(ExprValue o) {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (!(o instanceof ExprCollectionValue)) {</span>
+<span class="fc" id="L49">      return false;</span>
+    } else {
+<span class="fc" id="L51">      ExprCollectionValue other = (ExprCollectionValue) o;</span>
+<span class="fc" id="L52">      Iterator&lt;ExprValue&gt; thisIterator = this.valueList.iterator();</span>
+<span class="fc" id="L53">      Iterator&lt;ExprValue&gt; otherIterator = other.valueList.iterator();</span>
+
+<span class="fc bfc" id="L55" title="All 4 branches covered.">      while (thisIterator.hasNext() &amp;&amp; otherIterator.hasNext()) {</span>
+<span class="fc" id="L56">        ExprValue thisEntry = thisIterator.next();</span>
+<span class="fc" id="L57">        ExprValue otherEntry = otherIterator.next();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (!thisEntry.equals(otherEntry)) {</span>
+<span class="fc" id="L59">          return false;</span>
+        }
+<span class="fc" id="L61">      }</span>
+<span class="fc bfc" id="L62" title="All 4 branches covered.">      return !(thisIterator.hasNext() || otherIterator.hasNext());</span>
+    }
+  }
+
+  /** Only compare the size of the list. */
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L69">    return Integer.compare(valueList.size(), other.collectionValue().size());</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L74">    return Objects.hashCode(valueList);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

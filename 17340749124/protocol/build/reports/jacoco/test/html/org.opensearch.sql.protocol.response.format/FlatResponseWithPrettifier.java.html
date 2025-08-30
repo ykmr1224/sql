@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FlatResponseWithPrettifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">FlatResponseWithPrettifier.java</span></div><h1>FlatResponseWithPrettifier.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+public class FlatResponseWithPrettifier extends FlatResponseBase {
+  private int[] maxWidths;
+
+  FlatResponseWithPrettifier(QueryResult response, String inlineSeparator) {
+<span class="fc" id="L17">    super(response, inlineSeparator);</span>
+<span class="fc" id="L18">    calculateMaxWidths();</span>
+<span class="fc" id="L19">  }</span>
+
+  private void calculateMaxWidths() {
+<span class="fc" id="L22">    int columns = getHeaders().size();</span>
+<span class="fc" id="L23">    maxWidths = new int[columns];</span>
+
+<span class="fc bfc" id="L25" title="All 2 branches covered.">    for (int i = 0; i &lt; columns; i++) {</span>
+<span class="fc" id="L26">      int maxWidth = getHeaders().get(i).length();</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">      for (List&lt;String&gt; row : getData()) {</span>
+<span class="fc" id="L28">        maxWidth = Math.max(maxWidth, row.get(i).length());</span>
+<span class="fc" id="L29">      }</span>
+<span class="fc" id="L30">      maxWidths[i] = maxWidth;</span>
+    }
+<span class="fc" id="L32">  }</span>
+
+  @Override
+  protected List&lt;String&gt; getDataLines() {
+<span class="fc" id="L36">    return getData().stream().map(this::prettyFormatLine).collect(Collectors.toList());</span>
+  }
+
+  @Override
+  protected String getHeaderLine() {
+<span class="fc" id="L41">    return prettyFormatLine(getHeaders());</span>
+  }
+
+  private String prettyFormatLine(List&lt;String&gt; line) {
+<span class="fc" id="L45">    return IntStream.range(0, line.size())</span>
+<span class="fc" id="L46">        .mapToObj(i -&gt; padRight(line.get(i), maxWidths[i]))</span>
+<span class="fc" id="L47">        .collect(Collectors.joining(separator));</span>
+  }
+
+  private String padRight(String s, int n) {
+<span class="fc" id="L51">    return String.format(&quot;%-&quot; + n + &quot;s&quot;, s);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

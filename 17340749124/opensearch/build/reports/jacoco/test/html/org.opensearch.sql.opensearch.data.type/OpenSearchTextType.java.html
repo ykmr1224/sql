@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchTextType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.type</a> &gt; <span class="el_source">OpenSearchTextType.java</span></div><h1>OpenSearchTextType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.type;
+
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import java.util.Map;
+import lombok.EqualsAndHashCode;
+import org.opensearch.sql.data.type.ExprType;
+
+/**
+ * The type of a text value. See &lt;a
+ * href=&quot;https://opensearch.org/docs/latest/opensearch/supported-field-types/text/&quot;&gt;doc&lt;/a&gt;
+ */
+public class OpenSearchTextType extends OpenSearchDataType {
+
+<span class="fc" id="L23">  private static final OpenSearchTextType instance = new OpenSearchTextType();</span>
+
+  // text could have fields
+  // a read-only collection
+<span class="fc" id="L27">  @EqualsAndHashCode.Exclude Map&lt;String, OpenSearchDataType&gt; fields = ImmutableMap.of();</span>
+
+  private OpenSearchTextType() {
+<span class="fc" id="L30">    super(MappingType.Text);</span>
+<span class="fc" id="L31">    exprCoreType = UNKNOWN;</span>
+<span class="fc" id="L32">  }</span>
+
+  /**
+   * Constructs a Text Type using the passed in fields argument.
+   *
+   * @param fields The fields to be used to construct the text type.
+   * @return A new OpenSeachTextTypeObject
+   */
+  public static OpenSearchTextType of(Map&lt;String, OpenSearchDataType&gt; fields) {
+<span class="fc" id="L41">    var res = new OpenSearchTextType();</span>
+<span class="fc" id="L42">    res.fields = fields;</span>
+<span class="fc" id="L43">    return res;</span>
+  }
+
+  public static OpenSearchTextType of() {
+<span class="fc" id="L47">    return OpenSearchTextType.instance;</span>
+  }
+
+  @Override
+  public List&lt;ExprType&gt; getParent() {
+<span class="fc" id="L52">    return List.of(STRING);</span>
+  }
+
+  @Override
+  public boolean shouldCast(ExprType other) {
+<span class="fc" id="L57">    return false;</span>
+  }
+
+  public Map&lt;String, OpenSearchDataType&gt; getFields() {
+<span class="fc" id="L61">    return fields;</span>
+  }
+
+  @Override
+  protected OpenSearchDataType cloneEmpty() {
+<span class="fc" id="L66">    return OpenSearchTextType.of(Map.copyOf(this.fields));</span>
+  }
+
+  /**
+   * Text field doesn't have doc value (exception thrown even when you call &quot;get&quot;)&lt;br&gt;
+   * Limitation: assume inner field name is always &quot;keyword&quot;.
+   *
+   * @deprecated Use {@code toKeywordSubField(fieldName, fieldType)}
+   */
+  @Deprecated
+  public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    if (fieldType instanceof OpenSearchTextType</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        &amp;&amp; ((OpenSearchTextType) fieldType).getFields().size() &gt; 0) {</span>
+<span class="fc" id="L79">      return fieldName + &quot;.keyword&quot;;</span>
+    }
+<span class="fc" id="L81">    return fieldName;</span>
+  }
+
+  /**
+   * Get the keyword subfield of the text field. Alternative of {@code
+   * convertTextToKeyword(fieldName, fieldType)} in v3.
+   *
+   * @return the text type keyword subfield if exists, or null. If the type of filed is not text,
+   *     return field name.
+   */
+  public static String toKeywordSubField(String fieldName, ExprType exprType) {
+<span class="pc bpc" id="L92" title="1 of 4 branches missed.">    if (exprType != null &amp;&amp; exprType.getOriginalExprType() instanceof OpenSearchTextType textType) {</span>
+      // For OpenSearch Alias type which maps to the field of text type,
+      // we have to use its original path
+<span class="fc" id="L95">      String path = exprType.getOriginalPath().orElse(fieldName);</span>
+      // Find the first subfield with type keyword, return null if non-exist.
+<span class="fc" id="L97">      return textType.getFields().entrySet().stream()</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">          .filter(e -&gt; e.getValue().getMappingType() == OpenSearchDataType.MappingType.Keyword)</span>
+<span class="fc" id="L99">          .findFirst()</span>
+<span class="fc" id="L100">          .map(e -&gt; path + &quot;.&quot; + e.getKey())</span>
+<span class="fc" id="L101">          .orElse(null);</span>
+    } else {
+<span class="fc" id="L103">      return fieldName;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

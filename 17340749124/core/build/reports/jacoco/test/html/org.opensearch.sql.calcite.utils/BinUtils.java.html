@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">BinUtils.java</span></div><h1>BinUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.calcite.utils.binning.BinHandlerFactory;
+
+/**
+ * Simplified facade for bin command operations in Calcite. Delegates to specialized handlers for
+ * different bin types.
+ */
+<span class="nc" id="L20">public class BinUtils {</span>
+
+  /** Extracts the field name from a Bin node. */
+  public static String extractFieldName(Bin node) {
+<span class="nc bnc" id="L24" title="All 2 branches missed.">    if (node.getField() instanceof Field field) {</span>
+<span class="nc" id="L25">      return field.getField().toString();</span>
+    }
+<span class="nc" id="L27">    throw new IllegalArgumentException(&quot;Bin field must be a Field expression&quot;);</span>
+  }
+
+  /** Creates the appropriate bin expression that transforms field values to range strings. */
+  public static RexNode createBinExpression(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
+
+<span class="nc" id="L34">    BinHandler handler = BinHandlerFactory.getHandler(node);</span>
+<span class="nc" id="L35">    return handler.createExpression(node, fieldExpr, context, rexVisitor);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

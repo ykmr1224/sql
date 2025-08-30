@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpressionFilterScriptLeafFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter</a> &gt; <span class="el_source">ExpressionFilterScriptLeafFactory.java</span></div><h1>ExpressionFilterScriptLeafFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter;
+
+import java.util.Map;
+import org.apache.lucene.index.LeafReaderContext;
+import org.opensearch.script.FilterScript;
+import org.opensearch.search.lookup.SearchLookup;
+import org.opensearch.sql.expression.Expression;
+
+/** Expression script leaf factory that produces script executor for each leaf. */
+class ExpressionFilterScriptLeafFactory implements FilterScript.LeafFactory {
+
+  /** Expression to execute. */
+  private final Expression expression;
+
+  /** Parameters for the expression. */
+  private final Map&lt;String, Object&gt; params;
+
+  /** Document lookup that returns doc values. */
+  private final SearchLookup lookup;
+
+  public ExpressionFilterScriptLeafFactory(
+<span class="fc" id="L27">      Expression expression, Map&lt;String, Object&gt; params, SearchLookup lookup) {</span>
+<span class="fc" id="L28">    this.expression = expression;</span>
+<span class="fc" id="L29">    this.params = params;</span>
+<span class="fc" id="L30">    this.lookup = lookup;</span>
+<span class="fc" id="L31">  }</span>
+
+  @Override
+  public FilterScript newInstance(LeafReaderContext ctx) {
+<span class="fc" id="L35">    return new ExpressionFilterScript(expression, lookup, ctx, params);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

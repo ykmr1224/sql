@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegexExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.parse</a> &gt; <span class="el_source">RegexExpression.java</span></div><h1>RegexExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.parse;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.Expression;
+
+/** RegexExpression with regex and named capture group. */
+@EqualsAndHashCode(callSuper = true)
+@ToString
+public class RegexExpression extends ParseExpression {
+<span class="fc" id="L26">  private static final Logger log = LogManager.getLogger(RegexExpression.class);</span>
+<span class="fc" id="L27">  private static final Pattern GROUP_PATTERN = Pattern.compile(&quot;\\(\\?&lt;([a-zA-Z][a-zA-Z0-9]*)&gt;&quot;);</span>
+  @Getter @EqualsAndHashCode.Exclude private final Pattern regexPattern;
+
+  /**
+   * RegexExpression.
+   *
+   * @param sourceField source text field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
+   */
+  public RegexExpression(Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L38">    super(&quot;regex&quot;, sourceField, pattern, identifier);</span>
+<span class="fc" id="L39">    this.regexPattern = Pattern.compile(pattern.valueOf().stringValue());</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+<span class="fc" id="L44">    String rawString = value.stringValue();</span>
+<span class="fc" id="L45">    Matcher matcher = regexPattern.matcher(rawString);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (matcher.matches()) {</span>
+<span class="fc" id="L47">      return new ExprStringValue(matcher.group(identifierStr));</span>
+    }
+<span class="fc" id="L49">    log.debug(&quot;failed to extract pattern {} from input ***&quot;, regexPattern.pattern());</span>
+<span class="fc" id="L50">    return new ExprStringValue(&quot;&quot;);</span>
+  }
+
+  /**
+   * Get list of derived fields based on parse pattern.
+   *
+   * @param pattern pattern used for parsing
+   * @return list of names of the derived fields
+   */
+  public static List&lt;String&gt; getNamedGroupCandidates(String pattern) {
+<span class="fc" id="L60">    ImmutableList.Builder&lt;String&gt; namedGroups = ImmutableList.builder();</span>
+<span class="fc" id="L61">    Matcher m = GROUP_PATTERN.matcher(pattern);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    while (m.find()) {</span>
+<span class="fc" id="L63">      namedGroups.add(m.group(1));</span>
+    }
+<span class="fc" id="L65">    return namedGroups.build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

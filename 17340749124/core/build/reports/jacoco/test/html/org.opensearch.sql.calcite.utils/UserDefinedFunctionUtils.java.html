@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserDefinedFunctionUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">UserDefinedFunctionUtils.java</span></div><h1>UserDefinedFunctionUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
+
+import com.google.common.collect.ImmutableSet;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+<span class="nc" id="L52">public class UserDefinedFunctionUtils {</span>
+<span class="fc" id="L53">  public static final RelDataType NULLABLE_DATE_UDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);</span>
+<span class="fc" id="L54">  public static final RelDataType NULLABLE_TIME_UDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);</span>
+<span class="fc" id="L55">  public static final RelDataType NULLABLE_TIMESTAMP_UDT =</span>
+<span class="fc" id="L56">      TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);</span>
+<span class="fc" id="L57">  public static final RelDataType NULLABLE_STRING =</span>
+<span class="fc" id="L58">      TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);</span>
+<span class="fc" id="L59">  public static final RelDataType NULLABLE_IP_UDT = TYPE_FACTORY.createUDT(EXPR_IP, true);</span>
+
+<span class="fc" id="L61">  public static RelDataType nullablePatternAggList =</span>
+<span class="fc" id="L62">      createArrayType(</span>
+          TYPE_FACTORY,
+<span class="fc" id="L64">          TYPE_FACTORY.createMapType(</span>
+<span class="fc" id="L65">              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),</span>
+<span class="fc" id="L66">              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),</span>
+          true);
+<span class="fc" id="L68">  public static RelDataType patternStruct =</span>
+<span class="fc" id="L69">      createMapType(</span>
+          TYPE_FACTORY,
+<span class="fc" id="L71">          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),</span>
+<span class="fc" id="L72">          TYPE_FACTORY.createSqlType(SqlTypeName.ANY),</span>
+          false);
+<span class="fc" id="L74">  public static RelDataType tokensMap =</span>
+<span class="fc" id="L75">      TYPE_FACTORY.createMapType(</span>
+<span class="fc" id="L76">          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),</span>
+<span class="fc" id="L77">          createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));</span>
+<span class="fc" id="L78">  public static Set&lt;String&gt; SINGLE_FIELD_RELEVANCE_FUNCTION_SET =</span>
+<span class="fc" id="L79">      ImmutableSet.of(&quot;match&quot;, &quot;match_phrase&quot;, &quot;match_bool_prefix&quot;, &quot;match_phrase_prefix&quot;);</span>
+<span class="fc" id="L80">  public static Set&lt;String&gt; MULTI_FIELDS_RELEVANCE_FUNCTION_SET =</span>
+<span class="fc" id="L81">      ImmutableSet.of(&quot;simple_query_string&quot;, &quot;query_string&quot;, &quot;multi_match&quot;);</span>
+<span class="fc" id="L82">  public static String IP_FUNCTION_NAME = &quot;IP&quot;;</span>
+
+  /**
+   * Creates a SqlUserDefinedAggFunction that wraps a Java class implementing an aggregate function.
+   *
+   * @param udafClass The Java class that implements the UserDefinedAggFunction interface
+   * @param functionName The name of the function to be used in SQL statements
+   * @param returnType A SqlReturnTypeInference that determines the return type of the function
+   * @return A SqlUserDefinedAggFunction that can be used in SQL queries
+   */
+  public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
+      Class&lt;? extends UserDefinedAggFunction&lt;?&gt;&gt; udafClass,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
+<span class="fc" id="L97">    return new SqlUserDefinedAggFunction(</span>
+        new SqlIdentifier(functionName, SqlParserPos.ZERO),
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        null,
+        operandMetadata,
+<span class="fc" id="L103">        Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),</span>
+        false,
+        false,
+        Optionality.FORBIDDEN);
+  }
+
+  /**
+   * Creates an aggregate call using the provided SqlAggFunction and arguments.
+   *
+   * @param aggFunction The aggregate function to call
+   * @param fields The primary fields to aggregate
+   * @param argList Additional arguments for the aggregate function
+   * @param relBuilder The RelBuilder instance used for building relational expressions
+   * @return An AggCall object representing the aggregate function call
+   */
+  public static RelBuilder.AggCall makeAggregateCall(
+      SqlAggFunction aggFunction,
+      List&lt;RexNode&gt; fields,
+      List&lt;RexNode&gt; argList,
+      RelBuilder relBuilder) {
+<span class="nc" id="L123">    List&lt;RexNode&gt; addArgList = new ArrayList&lt;&gt;(fields);</span>
+<span class="nc" id="L124">    addArgList.addAll(argList);</span>
+<span class="nc" id="L125">    return relBuilder.aggregateCall(aggFunction, addArgList);</span>
+  }
+
+  public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (type instanceof AbstractExprRelDataType&lt;?&gt; exprType) {</span>
+<span class="nc bnc" id="L130" title="All 6 branches missed.">      return switch (exprType.getUdt()) {</span>
+<span class="nc" id="L131">        case EXPR_DATE -&gt; SqlTypeName.DATE;</span>
+<span class="nc" id="L132">        case EXPR_TIME -&gt; SqlTypeName.TIME;</span>
+<span class="nc" id="L133">        case EXPR_TIMESTAMP -&gt; SqlTypeName.TIMESTAMP;</span>
+          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+          // corresponding SqlTypeName in Calcite.
+<span class="nc" id="L136">        case EXPR_IP -&gt; SqlTypeName.OTHER;</span>
+<span class="nc" id="L137">        case EXPR_BINARY -&gt; SqlTypeName.VARBINARY;</span>
+<span class="nc" id="L138">        default -&gt; type.getSqlTypeName();</span>
+      };
+    }
+<span class="nc" id="L141">    return type.getSqlTypeName();</span>
+  }
+
+  public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
+<span class="nc" id="L145">    long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);</span>
+<span class="nc" id="L146">    Instant instant =</span>
+<span class="nc" id="L147">        Instant.ofEpochSecond(</span>
+            currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
+<span class="nc" id="L149">    ZoneId zoneId = ZoneOffset.UTC;</span>
+<span class="nc" id="L150">    return new FunctionProperties(instant, zoneId, QueryType.PPL);</span>
+  }
+
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @param rexCall the RexCall object containing the operands
+   * @return the converted operands
+   */
+  public static List&lt;Expression&gt; convertToExprValues(List&lt;Expression&gt; operands, RexCall rexCall) {
+<span class="nc" id="L163">    List&lt;RelDataType&gt; types = rexCall.getOperands().stream().map(RexNode::getType).toList();</span>
+<span class="nc" id="L164">    return convertToExprValues(operands, types);</span>
+  }
+
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @return the converted operands
+   */
+  public static List&lt;Expression&gt; convertToExprValues(
+      List&lt;Expression&gt; operands, List&lt;RelDataType&gt; types) {
+<span class="nc" id="L177">    List&lt;ExprType&gt; exprTypes =</span>
+<span class="nc" id="L178">        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();</span>
+<span class="nc" id="L179">    List&lt;Expression&gt; exprValues = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">    for (int i = 0; i &lt; operands.size(); i++) {</span>
+<span class="nc" id="L181">      Expression operand = Expressions.convert_(operands.get(i), Object.class);</span>
+<span class="nc" id="L182">      exprValues.add(</span>
+          i,
+<span class="nc" id="L184">          Expressions.call(</span>
+              ExprValueUtils.class,
+              &quot;fromObjectValue&quot;,
+              operand,
+<span class="nc" id="L188">              Expressions.constant(exprTypes.get(i))));</span>
+    }
+<span class="nc" id="L190">    return exprValues;</span>
+  }
+
+  /**
+   * Adapt a static expr method to a UserDefinedFunctionBuilder. It first converts the operands to
+   * ExprValue, then calls the method, and finally converts the result to values recognizable by
+   * Calcite by calling exprValue.valueForCalcite.
+   *
+   * @param type the class containing the static method
+   * @param methodName the name of the method
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptExprMethodToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      @Nullable UDFOperandMetadata operandMetadata) {
+<span class="fc" id="L211">    NotNullImplementor implementor =</span>
+        (translator, call, translatedOperands) -&gt; {
+<span class="nc" id="L213">          List&lt;Expression&gt; operands =</span>
+<span class="nc" id="L214">              convertToExprValues(</span>
+<span class="nc" id="L215">                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());</span>
+<span class="nc" id="L216">          Expression exprResult = Expressions.call(type, methodName, operands);</span>
+<span class="nc" id="L217">          return Expressions.call(exprResult, &quot;valueForCalcite&quot;);</span>
+        };
+<span class="fc" id="L219">    return new ImplementorUDF(implementor, nullPolicy) {</span>
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L222">        return returnTypeInference;</span>
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L227">        return operandMetadata;</span>
+      }
+    };
+  }
+
+  /**
+   * Adapts a method from the v2 implementation whose parameters include a {@link
+   * FunctionProperties} at the beginning to a Calcite-compatible UserDefinedFunctionBuilder.
+   */
+  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+<span class="fc" id="L242">    NotNullImplementor implementor =</span>
+        (translator, call, translatedOperands) -&gt; {
+<span class="nc" id="L244">          List&lt;Expression&gt; operands =</span>
+<span class="nc" id="L245">              convertToExprValues(</span>
+<span class="nc" id="L246">                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());</span>
+<span class="nc" id="L247">          List&lt;Expression&gt; operandsWithProperties = prependFunctionProperties(operands, translator);</span>
+<span class="nc" id="L248">          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);</span>
+<span class="nc" id="L249">          return Expressions.call(exprResult, &quot;valueForCalcite&quot;);</span>
+        };
+<span class="fc" id="L251">    return new ImplementorUDF(implementor, nullPolicy) {</span>
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L254">        return returnTypeInference;</span>
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L259">        return operandMetadata;</span>
+      }
+    };
+  }
+
+  /**
+   * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
+   * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
+   * double, and then calling the corresponding method in {@link Math}.
+   *
+   * &lt;p&gt;It assumes the math method has the signature: {@code double method(double)}. This utility is
+   * specifically designed for single-operand Math methods.
+   *
+   * @param methodName the name of the static method in {@link Math} to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the math method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+<span class="fc" id="L284">    NotNullImplementor implementor =</span>
+        (translator, call, translatedOperands) -&gt; {
+<span class="nc" id="L286">          Expression operand = translatedOperands.get(0);</span>
+<span class="nc" id="L287">          operand = Expressions.box(operand);</span>
+<span class="nc" id="L288">          operand = Expressions.call(operand, &quot;doubleValue&quot;);</span>
+<span class="nc" id="L289">          return Expressions.call(Math.class, methodName, operand);</span>
+        };
+
+<span class="fc" id="L292">    return new ImplementorUDF(implementor, nullPolicy) {</span>
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L295">        return returnTypeInference;</span>
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L300">        return operandMetadata;</span>
+      }
+    };
+  }
+
+  public static List&lt;Expression&gt; prependFunctionProperties(
+      List&lt;Expression&gt; operands, RexToLixTranslator translator) {
+<span class="nc" id="L307">    List&lt;Expression&gt; operandsWithProperties = new ArrayList&lt;&gt;(operands);</span>
+<span class="nc" id="L308">    Expression properties =</span>
+<span class="nc" id="L309">        Expressions.call(</span>
+<span class="nc" id="L310">            UserDefinedFunctionUtils.class, &quot;restoreFunctionProperties&quot;, translator.getRoot());</span>
+<span class="nc" id="L311">    operandsWithProperties.addFirst(properties);</span>
+<span class="nc" id="L312">    return Collections.unmodifiableList(operandsWithProperties);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

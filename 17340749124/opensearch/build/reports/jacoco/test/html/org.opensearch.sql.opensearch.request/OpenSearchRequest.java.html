@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">OpenSearchRequest.java</span></div><h1>OpenSearchRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request;
+
+import java.io.IOException;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import lombok.EqualsAndHashCode;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.Writeable;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+
+/** OpenSearch search request. */
+public interface OpenSearchRequest extends Writeable {
+
+  /** Default query timeout in minutes. */
+<span class="fc" id="L26">  TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);</span>
+
+  /**
+   * Apply the search action or scroll action on request based on context.
+   *
+   * @param searchAction search action.
+   * @param scrollAction scroll search action.
+   * @return OpenSearchResponse.
+   */
+  OpenSearchResponse search(
+      Function&lt;SearchRequest, SearchResponse&gt; searchAction,
+      Function&lt;SearchScrollRequest, SearchResponse&gt; scrollAction);
+
+  /**
+   * Apply the cleanAction on request.
+   *
+   * @param cleanAction clean action.
+   */
+  void clean(Consumer&lt;String&gt; cleanAction);
+
+  /**
+   * Get the OpenSearchExprValueFactory.
+   *
+   * @return OpenSearchExprValueFactory.
+   */
+  OpenSearchExprValueFactory getExprValueFactory();
+
+  /**
+   * Check if there is more data to get from OpenSearch.
+   *
+   * @return True if calling {@ref OpenSearchClient.search} with this request will return non-empty
+   *     response.
+   */
+  boolean hasAnotherBatch();
+
+  /** OpenSearch Index Name. Indices are separated by &quot;,&quot;. */
+  @EqualsAndHashCode
+  class IndexName implements Writeable {
+    private static final String COMMA = &quot;,&quot;;
+
+    private final String[] indexNames;
+
+<span class="fc" id="L68">    public IndexName(StreamInput si) throws IOException {</span>
+<span class="fc" id="L69">      indexNames = si.readStringArray();</span>
+<span class="fc" id="L70">    }</span>
+
+<span class="fc" id="L72">    public IndexName(String indexName) {</span>
+<span class="fc" id="L73">      this.indexNames = indexName.split(COMMA);</span>
+<span class="fc" id="L74">    }</span>
+
+    public String[] getIndexNames() {
+<span class="fc" id="L77">      return indexNames;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L82">      return String.join(COMMA, indexNames);</span>
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+<span class="fc" id="L87">      out.writeStringArray(indexNames);</span>
+<span class="fc" id="L88">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

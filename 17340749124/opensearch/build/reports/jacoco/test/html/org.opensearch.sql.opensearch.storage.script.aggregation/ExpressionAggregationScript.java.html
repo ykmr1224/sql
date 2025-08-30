@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpressionAggregationScript.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation</a> &gt; <span class="el_source">ExpressionAggregationScript.java</span></div><h1>ExpressionAggregationScript.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation;
+
+import static java.time.temporal.ChronoUnit.MILLIS;
+
+import java.time.LocalTime;
+import java.util.Map;
+import lombok.EqualsAndHashCode;
+import org.apache.lucene.index.LeafReaderContext;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.search.lookup.SearchLookup;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
+
+/** Aggregation expression script that executed on each document. */
+@EqualsAndHashCode(callSuper = false)
+public class ExpressionAggregationScript extends AggregationScript {
+
+  /** Expression Script. */
+  private final ExpressionScript expressionScript;
+
+  /** Constructor of ExpressionAggregationScript. */
+  public ExpressionAggregationScript(
+      Expression expression,
+      SearchLookup lookup,
+      LeafReaderContext context,
+      Map&lt;String, Object&gt; params) {
+<span class="fc" id="L37">    super(params, lookup, context);</span>
+<span class="fc" id="L38">    this.expressionScript = new ExpressionScript(expression);</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public Object execute() {
+<span class="fc" id="L43">    var expr = expressionScript.execute(this::getDoc, this::evaluateExpression);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (expr.type() instanceof OpenSearchDataType) {</span>
+<span class="fc" id="L45">      return expr.value();</span>
+    }
+<span class="fc bfc" id="L47" title="All 3 branches covered.">    switch ((ExprCoreType) expr.type()) {</span>
+      case TIME:
+        // Can't get timestamp from `ExprTimeValue`
+<span class="fc" id="L50">        return MILLIS.between(LocalTime.MIN, expr.timeValue());</span>
+      case DATE:
+      case TIMESTAMP:
+<span class="fc" id="L53">        return expr.timestampValue().toEpochMilli();</span>
+      default:
+<span class="fc" id="L55">        return expr.value();</span>
+    }
+  }
+
+  private ExprValue evaluateExpression(
+      Expression expression, Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L61">    ExprValue result = expression.valueOf(valueEnv);</span>
+
+    // The missing value is treated as null value in doc_value, so we can't distinguish with them.
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (result.isNull()) {</span>
+<span class="fc" id="L65">      return ExprNullValue.of();</span>
+    }
+<span class="fc" id="L67">    return result;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

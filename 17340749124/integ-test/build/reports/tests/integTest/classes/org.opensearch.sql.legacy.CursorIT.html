@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.legacy.CursorIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.legacy.CursorIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.legacy.html">org.opensearch.sql.legacy</a> &gt; CursorIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">21</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">3</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.339s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox skipped" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Ignored tests</a>
+</li>
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Ignored tests</h2>
+<div class="test">
+<a name="defaultBehaviorWhenCursorSettingIsDisabled"></a>
+<h3 class="skipped">defaultBehaviorWhenCursorSettingIsDisabled</h3>
+</div>
+<div class="test">
+<a name="testCursorWithPreparedStatement"></a>
+<h3 class="skipped">testCursorWithPreparedStatement</h3>
+</div>
+<div class="test">
+<a name="testDefaultFetchSizeFromClusterSettings"></a>
+<h3 class="skipped">testDefaultFetchSizeFromClusterSettings</h3>
+</div>
+</div>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="skipped">defaultBehaviorWhenCursorSettingIsDisabled</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">invalidCursorIdNotDecodable</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">invalidNegativeFetchSize</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">invalidNonNumericFetchSize</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">noCursorWhenResultsLessThanFetchSize</td>
+<td class="success">0.016s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">noPaginationWhenFetchSizeZero</td>
+<td class="success">0.027s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">noPaginationWithNonJDBCFormat</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">respectLimitPassedInSelectClause</td>
+<td class="success">0.030s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCursorCloseAPI</td>
+<td class="success">0.217s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCursorSettings</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testCursorWithPreparedStatement</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">testDefaultFetchSizeFromClusterSettings</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testExceptionOnCursorExplain</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMalformedCursorGracefullyHandled</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testRegressionOnDateFormatChange</td>
+<td class="success">0.273s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validNumberOfPages</td>
+<td class="success">0.177s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validTotalResultWithAndWithoutPagination</td>
+<td class="success">0.085s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validTotalResultWithAndWithoutPaginationNested</td>
+<td class="success">0.089s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validTotalResultWithAndWithoutPaginationOrderBy</td>
+<td class="success">0.219s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validTotalResultWithAndWithoutPaginationWhereAndOrderBy</td>
+<td class="success">0.046s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">validTotalResultWithAndWithoutPaginationWhereClause</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T00:39:12,266][INFO ][o.o.s.l.CursorIT         ] [testCursorCloseAPI] before test
+[2025-08-30T00:39:12,269][INFO ][o.o.s.l.CursorIT         ] [testCursorCloseAPI] initializing REST clients against [http://[::1]:41179, http://127.0.0.1:44991]
+[2025-08-30T00:39:12,482][INFO ][o.o.s.l.CursorIT         ] [testCursorCloseAPI] after test
+[2025-08-30T00:39:12,484][INFO ][o.o.s.l.CursorIT         ] [noPaginationWhenFetchSizeZero] before test
+[2025-08-30T00:39:12,508][INFO ][o.o.s.l.CursorIT         ] [noPaginationWhenFetchSizeZero] after test
+[2025-08-30T00:39:12,511][INFO ][o.o.s.l.CursorIT         ] [testCursorSettings] before test
+[2025-08-30T00:39:12,549][INFO ][o.o.s.l.CursorIT         ] [testCursorSettings] after test
+[2025-08-30T00:39:12,551][INFO ][o.o.s.l.CursorIT         ] [testRegressionOnDateFormatChange] before test
+[2025-08-30T00:39:12,823][INFO ][o.o.s.l.CursorIT         ] [testRegressionOnDateFormatChange] after test
+[2025-08-30T00:39:12,825][INFO ][o.o.s.l.CursorIT         ] [invalidNonNumericFetchSize] before test
+[2025-08-30T00:39:12,831][INFO ][o.o.s.l.CursorIT         ] [invalidNonNumericFetchSize] after test
+[2025-08-30T00:39:12,833][INFO ][o.o.s.l.CursorIT         ] [validNumberOfPages] before test
+{&quot;schema&quot;:[{&quot;name&quot;:&quot;firstname&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;name&quot;:&quot;state&quot;,&quot;type&quot;:&quot;text&quot;}],&quot;cursor&quot;:&quot;n:1f8b08000000000000ffd5554b6c1b45181e3f92b4b4a2a979083505d4250202eefa9184364e40cacb8953c749e357e25059e3ddb1bdeebe323b8e378e920308e809909010370e70402ab921c40121c411090e3d2071e0c4a1e280b8228410ff8ce3ac21a1a0deb0e4d99df967beef9befff67f6e39f519f43d1a8456bb26513d321982a75d9d9d2655bc7a649a86cd7771c4dc1babc4aad0651d88a4d286616bd9b9cfaeccaa54fe6cf22e4da80f1a253c72a5165c532e49a65d574c25f0dcb8487aec3423965184d862b3a496b0e1bce12aa615d6b13356951031dfefcc8b7894e119d18c4640e430f6da61b781b47404c2db252e102265dbb49bb019907e4c3c0dbdfaebf3fe88ce87e2e898381accb276c8db836258ea381b60c36883a7fd4fff5f5d0bb7f1cbc37ed478134ea03791834847a246419d5ccda641a9d5641640d33a232f45c1a48221e490448221e49c4c38785411328b7d03e3ae5dadcb7d8bd05ae912aa1c4548807727bee97974303af7de7474180c38c510107826dccea2078b023b8c9343dc2bd06d6018a5bab103d9c19643b3661e8999384ab98e1088f0bdd397801c7193a5dd5a8c3b878107d4178cf09e4694af18e332c1e9cecfb0fa7bef8e656ff1d91491fe68481e3193bf4f1e04ee1ee4f8fef2e7433e6e3d3cf890658122758d3d3e542652e54869a34b36230475cc6251fbcfac13bc11f6373a0228dfaab1ad15530e65c8f31cbd89e74ef8b630ec638c757cae75ffb7feb1b17c57296e76cd6a224279c7dfedf9ded4e86ec9c31b06d831f9db58b27adede97a30c7350d2f7b4800fc804d6121651a71b8a98fb8f63e4523276cd9db67afb4eea90c417a287ad04bdfbcd9347a83501f03f9ccb5cc4a310304c9fbf7b4577f2f01573fc45090e7172a63eabf5f3600f88f778d1f4ec24db2f3b7337e789b40dd6c63bdd9714e8212e6cf3ebed07b0329e7bda3300bdc40557cf3f6a789a18fce07902f85020cd74469075a41ce09460163cba2aac07d749fb71718eacfe6d6529905d17d02265deb4ce2dda7dcbf9c3e3e34608bc71906d737834b48f40685ae50f718c54423220ff3e6226f9e148062f0694f14ef3ecb9b11f70891a297ee9d46073e02b8466447c1664f2653a64adc2c8ca57693bfff70ebb190f840b481e52df8bff14a6057aa52cb9012d1b0e4404aa444fc6a58629a41ac26931252cc90c252d9b19a5481d8aea4998ade5489232536a52313608a5029dd084bc43d9a70630fc62d0a309bbb5259b5140e002e120ac0d851a4bdbd300434f5f8380075f655c655c6c737e357c2526cf42aa7b03526a4c03aa9f5c2d6d8f5ebf3f5cae88c5e3133fac6fa5203cfc6da4ad1adaa0b85b69a9cb02bc69a4e9213f58d78665b2d8e4793fa4cbb102f8d29c678b3b060c52b8b054d89ba5bb998bda22c2ad34953374b8dd428d137e2f9462956882f8d95f26e2e6b4ce44a10effe56cbb562767466aed2cecc649313d98db83ea646d7e6492e995f8e16b8ae627e31b35e32eb3b15633c8f1b25472d2eb5730bf66af1e6784b6d4d4fc35efdc12f7dfff76df8bd13d12958df25af362f43a996a1865959e3d558c68a62354de6f741b10fa10064155e2ebaee9f4dd7313cff080000&quot;,&quot;total&quot;:28,&quot;datarows&quot;:[[&quot;Amber&quot;,&quot;IL&quot;],[&quot;Hattie&quot;,&quot;TN&quot;],[&quot;Nanette&quot;,&quot;VA&quot;],[&quot;Dale&quot;,&quot;MD&quot;],[&quot;Elinor&quot;,&quot;WA&quot;],[&quot;Virginia&quot;,&quot;PA&quot;],[&quot;Dillard&quot;,&quot;IN&quot;],[&quot;Mcgee&quot;,&quot;OK&quot;],[&quot;Aurelia&quot;,&quot;DE&quot;],[&quot;Fulton&quot;,&quot;RI&quot;],[&quot;Burton&quot;,&quot;MO&quot;],[&quot;Josie&quot;,&quot;UT&quot;],[&quot;Hughes&quot;,&quot;KS&quot;],[&quot;Hall&quot;,&quot;CA&quot;],[&quot;Deidre&quot;,&quot;GA&quot;],[&quot;Sandoval&quot;,&quot;NH&quot;],[&quot;Concetta&quot;,&quot;NC&quot;],[&quot;Hewitt&quot;,&quot;ME&quot;],[&quot;Brittany&quot;,&quot;AZ&quot;],[&quot;Ratliff&quot;,&quot;ND&quot;],[&quot;Dena&quot;,&quot;NJ&quot;],[&quot;Randi&quot;,&quot;SC&quot;],[&quot;Josephine&quot;,&quot;AL&quot;],[&quot;Laverne&quot;,&quot;DC&quot;],[&quot;Acevedo&quot;,&quot;CT&quot;],[&quot;Effie&quot;,&quot;MD&quot;],[&quot;Deena&quot;,&quot;SC&quot;],[&quot;Daniel&quot;,&quot;MO&quot;]],&quot;size&quot;:28,&quot;status&quot;:200}
+[2025-08-30T00:39:13,008][INFO ][o.o.s.l.CursorIT         ] [validNumberOfPages] after test
+[2025-08-30T00:39:13,010][INFO ][o.o.s.l.CursorIT         ] [invalidCursorIdNotDecodable] before test
+[2025-08-30T00:39:13,013][INFO ][o.o.s.l.CursorIT         ] [invalidCursorIdNotDecodable] after test
+[2025-08-30T00:39:13,015][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationNested] before test
+[2025-08-30T00:39:13,102][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationNested] after test
+[2025-08-30T00:39:13,104][INFO ][o.o.s.l.CursorIT         ] [noPaginationWithNonJDBCFormat] before test
+[2025-08-30T00:39:13,141][INFO ][o.o.s.l.CursorIT         ] [noPaginationWithNonJDBCFormat] after test
+[2025-08-30T00:39:13,144][INFO ][o.o.s.l.CursorIT         ] [testExceptionOnCursorExplain] before test
+[2025-08-30T00:39:13,148][INFO ][o.o.s.l.CursorIT         ] [testExceptionOnCursorExplain] after test
+[2025-08-30T00:39:13,149][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationWhereAndOrderBy] before test
+[2025-08-30T00:39:13,193][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationWhereAndOrderBy] after test
+[2025-08-30T00:39:13,196][INFO ][o.o.s.l.CursorIT         ] [testMalformedCursorGracefullyHandled] before test
+[2025-08-30T00:39:13,199][INFO ][o.o.s.l.CursorIT         ] [testMalformedCursorGracefullyHandled] after test
+[2025-08-30T00:39:13,201][INFO ][o.o.s.l.CursorIT         ] [respectLimitPassedInSelectClause] before test
+[2025-08-30T00:39:13,230][INFO ][o.o.s.l.CursorIT         ] [respectLimitPassedInSelectClause] after test
+[2025-08-30T00:39:13,232][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPagination] before test
+[2025-08-30T00:39:13,315][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPagination] after test
+[2025-08-30T00:39:13,317][INFO ][o.o.s.l.CursorIT         ] [noCursorWhenResultsLessThanFetchSize] before test
+[2025-08-30T00:39:13,331][INFO ][o.o.s.l.CursorIT         ] [noCursorWhenResultsLessThanFetchSize] after test
+[2025-08-30T00:39:13,333][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationOrderBy] before test
+[2025-08-30T00:39:13,550][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationOrderBy] after test
+[2025-08-30T00:39:13,552][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationWhereClause] before test
+[2025-08-30T00:39:13,598][INFO ][o.o.s.l.CursorIT         ] [validTotalResultWithAndWithoutPaginationWhereClause] after test
+[2025-08-30T00:39:13,600][INFO ][o.o.s.l.CursorIT         ] [invalidNegativeFetchSize] before test
+[2025-08-30T00:39:13,604][INFO ][o.o.s.l.CursorIT         ] [invalidNegativeFetchSize] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 7:40:34 AM</p>
+</div>
+</div>
+</body>
+</html>

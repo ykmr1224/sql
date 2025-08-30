@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">JsonUtils.java</span></div><h1>JsonUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+
+@UtilityClass
+public class JsonUtils {
+  /**
+   * Checks if given JSON string can be parsed as valid JSON.
+   *
+   * @param jsonExprValue JSON string (e.g. &quot;{\&quot;hello\&quot;: \&quot;world\&quot;}&quot;).
+   * @return true if the string can be parsed as valid JSON, else false (including null or missing).
+   */
+  public static ExprValue isValidJson(ExprValue jsonExprValue) {
+<span class="nc" id="L40">    ObjectMapper objectMapper = new ObjectMapper();</span>
+
+<span class="nc bnc" id="L42" title="All 4 branches missed.">    if (jsonExprValue.isNull() || jsonExprValue.isMissing()) {</span>
+<span class="nc" id="L43">      return ExprValueUtils.LITERAL_FALSE;</span>
+    }
+
+    try {
+<span class="nc" id="L47">      objectMapper.readTree(jsonExprValue.stringValue());</span>
+<span class="nc" id="L48">      return LITERAL_TRUE;</span>
+<span class="nc" id="L49">    } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L50">      return LITERAL_FALSE;</span>
+    }
+  }
+
+  /**
+   * Converts a JSON encoded string to a {@link ExprValue}. Expression type will be UNDEFINED.
+   *
+   * @param json JSON string (e.g. &quot;{\&quot;hello\&quot;: \&quot;world\&quot;}&quot;).
+   * @return ExprValue returns an expression that best represents the provided JSON-encoded string.
+   *     &lt;ol&gt;
+   *       &lt;li&gt;{@link ExprTupleValue} if the JSON is an object
+   *       &lt;li&gt;{@link ExprCollectionValue} if the JSON is an array
+   *       &lt;li&gt;{@link ExprDoubleValue} if the JSON is a floating-point number scalar
+   *       &lt;li&gt;{@link ExprIntegerValue} if the JSON is an integral number scalar
+   *       &lt;li&gt;{@link ExprStringValue} if the JSON is a string scalar
+   *       &lt;li&gt;{@link ExprBooleanValue} if the JSON is a boolean scalar
+   *       &lt;li&gt;{@link ExprNullValue} if the JSON is null, empty, or invalid
+   *     &lt;/ol&gt;
+   */
+  public static ExprValue castJson(ExprValue json) {
+<span class="fc" id="L70">    ObjectMapper objectMapper = new ObjectMapper();</span>
+    JsonNode jsonNode;
+    try {
+<span class="fc" id="L73">      jsonNode = objectMapper.readTree(json.stringValue());</span>
+<span class="fc" id="L74">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L75">      final String errorFormat = &quot;JSON string '%s' is not valid. Error details: %s&quot;;</span>
+<span class="fc" id="L76">      throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);</span>
+<span class="fc" id="L77">    }</span>
+
+<span class="fc" id="L79">    return processJsonNode(jsonNode);</span>
+  }
+
+  private static ExprValue processJsonNode(JsonNode jsonNode) {
+<span class="fc bfc" id="L83" title="All 6 branches covered.">    switch (jsonNode.getNodeType()) {</span>
+      case ARRAY:
+<span class="fc" id="L85">        List&lt;ExprValue&gt; elements = new LinkedList&lt;&gt;();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        for (var iter = jsonNode.iterator(); iter.hasNext(); ) {</span>
+<span class="fc" id="L87">          jsonNode = iter.next();</span>
+<span class="fc" id="L88">          elements.add(processJsonNode(jsonNode));</span>
+        }
+<span class="fc" id="L90">        return new ExprCollectionValue(elements);</span>
+      case OBJECT:
+<span class="fc" id="L92">        Map&lt;String, ExprValue&gt; values = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        for (var iter = jsonNode.fields(); iter.hasNext(); ) {</span>
+<span class="fc" id="L94">          Map.Entry&lt;String, JsonNode&gt; entry = iter.next();</span>
+<span class="fc" id="L95">          values.put(entry.getKey(), processJsonNode(entry.getValue()));</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        return ExprTupleValue.fromExprValueMap(values);</span>
+      case STRING:
+<span class="fc" id="L99">        return new ExprStringValue(jsonNode.asText());</span>
+      case NUMBER:
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (jsonNode.isFloatingPointNumber()) {</span>
+<span class="fc" id="L102">          return new ExprDoubleValue(jsonNode.asDouble());</span>
+        }
+<span class="fc" id="L104">        return new ExprIntegerValue(jsonNode.asLong());</span>
+      case BOOLEAN:
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        return jsonNode.asBoolean() ? LITERAL_TRUE : LITERAL_FALSE;</span>
+      default:
+        // in all other cases, return null
+<span class="fc" id="L109">        return LITERAL_NULL;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQLQueryRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.domain</a> &gt; <span class="el_source">SQLQueryRequest.java</span></div><h1>SQLQueryRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.domain;
+
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.Accessors;
+import org.json.JSONObject;
+import org.opensearch.sql.protocol.response.format.Format;
+
+/** SQL query request. */
+@ToString
+@EqualsAndHashCode
+@RequiredArgsConstructor
+public class SQLQueryRequest {
+  private static final String QUERY_FIELD_CURSOR = &quot;cursor&quot;;
+<span class="fc" id="L29">  private static final Set&lt;String&gt; SUPPORTED_FIELDS =</span>
+<span class="fc" id="L30">      Set.of(&quot;query&quot;, &quot;fetch_size&quot;, &quot;parameters&quot;, QUERY_FIELD_CURSOR);</span>
+  private static final String QUERY_PARAMS_FORMAT = &quot;format&quot;;
+  private static final String QUERY_PARAMS_SANITIZE = &quot;sanitize&quot;;
+  private static final String QUERY_PARAMS_PRETTY = &quot;pretty&quot;;
+
+  /** JSON payload in REST request. */
+  private final JSONObject jsonContent;
+
+  /** SQL query. */
+  @Getter private final String query;
+
+  /** Request path. */
+  private final String path;
+
+  /** Request format. */
+  @Getter private final String format;
+
+  /** Request params. */
+<span class="fc" id="L48">  private Map&lt;String, String&gt; params = Collections.emptyMap();</span>
+
+<span class="fc" id="L50">  @Getter</span>
+  @Accessors(fluent = true)
+  private boolean sanitize = true;
+
+<span class="fc" id="L54">  @Getter</span>
+  @Accessors(fluent = true)
+  private boolean pretty = false;
+
+  private String cursor;
+
+  /** Constructor of SQLQueryRequest that passes request params. */
+  public SQLQueryRequest(
+      JSONObject jsonContent,
+      String query,
+      String path,
+      Map&lt;String, String&gt; params,
+<span class="fc" id="L66">      String cursor) {</span>
+<span class="fc" id="L67">    this.jsonContent = jsonContent;</span>
+<span class="fc" id="L68">    this.query = query;</span>
+<span class="fc" id="L69">    this.path = path;</span>
+<span class="fc" id="L70">    this.params = params;</span>
+<span class="fc" id="L71">    this.format = getFormat(params);</span>
+<span class="fc" id="L72">    this.sanitize = shouldSanitize(params);</span>
+<span class="fc" id="L73">    this.pretty = shouldPretty(params);</span>
+<span class="fc" id="L74">    this.cursor = cursor;</span>
+<span class="fc" id="L75">  }</span>
+
+  /**
+   *
+   *
+   * &lt;pre&gt;
+   * Pre-check if the request can be supported by meeting ALL the following criteria:
+   *  1.Only supported fields present in request body, ex. &quot;filter&quot; and &quot;cursor&quot; are not supported
+   *  2.Response format is default or can be supported.
+   * &lt;/pre&gt;
+   *
+   * @return true if supported.
+   */
+  public boolean isSupported() {
+<span class="fc" id="L89">    boolean hasCursor = isCursor();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    boolean hasQuery = query != null;</span>
+<span class="fc bfc" id="L91" title="All 4 branches covered.">    boolean hasContent = jsonContent != null &amp;&amp; !jsonContent.isEmpty();</span>
+
+<span class="fc" id="L93">    Predicate&lt;String&gt; supportedParams = Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;</span>
+<span class="fc" id="L94">    boolean hasUnsupportedParams =</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        (!params.isEmpty())</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            &amp;&amp; params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();</span>
+
+<span class="fc bfc" id="L98" title="All 8 branches covered.">    boolean validCursor = hasCursor &amp;&amp; !hasQuery &amp;&amp; !hasUnsupportedParams &amp;&amp; !hasContent;</span>
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    boolean validQuery = !hasCursor &amp;&amp; hasQuery;</span>
+
+<span class="fc bfc" id="L101" title="All 4 branches covered.">    return (validCursor || validQuery) // It's a valid cursor or a valid query</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        &amp;&amp; isOnlySupportedFieldInPayload() // and request must contain supported fields only</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        &amp;&amp; (isExplainRequest()</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">            ? isSupportedExplainFormat()</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">            : isSupportedFormat()); // and request must be a supported format</span>
+  }
+
+  private boolean isCursor() {
+<span class="fc bfc" id="L109" title="All 4 branches covered.">    return cursor != null &amp;&amp; !cursor.isEmpty();</span>
+  }
+
+  /**
+   * Check if request is to explain rather than execute the query.
+   *
+   * @return true if it is an explain request
+   */
+  public boolean isExplainRequest() {
+<span class="fc" id="L118">    return path.endsWith(&quot;/_explain&quot;);</span>
+  }
+
+  public boolean isCursorCloseRequest() {
+<span class="fc" id="L122">    return path.endsWith(&quot;/close&quot;);</span>
+  }
+
+  /** Decide on the formatter by the requested format. */
+  public Format format() {
+<span class="fc" id="L127">    Optional&lt;Format&gt; optionalFormat = Format.of(format);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (optionalFormat.isPresent()) {</span>
+<span class="fc" id="L129">      return optionalFormat.get();</span>
+    } else {
+<span class="fc" id="L131">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L132">          String.format(Locale.ROOT, &quot;response in %s format is not supported.&quot;, format));</span>
+    }
+  }
+
+  private boolean isOnlySupportedFieldInPayload() {
+<span class="fc bfc" id="L137" title="All 4 branches covered.">    return jsonContent == null || SUPPORTED_FIELDS.containsAll(jsonContent.keySet());</span>
+  }
+
+  public Optional&lt;String&gt; getCursor() {
+<span class="fc" id="L141">    return Optional.ofNullable(cursor);</span>
+  }
+
+  public int getFetchSize() {
+<span class="fc" id="L145">    return jsonContent.optInt(&quot;fetch_size&quot;);</span>
+  }
+
+  private boolean isSupportedFormat() {
+<span class="fc" id="L149">    return Stream.of(&quot;csv&quot;, &quot;jdbc&quot;, &quot;raw&quot;).anyMatch(format::equalsIgnoreCase);</span>
+  }
+
+  private boolean isSupportedExplainFormat() {
+<span class="fc" id="L153">    return Stream.of(&quot;simple&quot;, &quot;standard&quot;, &quot;extended&quot;, &quot;cost&quot;).anyMatch(format::equalsIgnoreCase);</span>
+  }
+
+  private String getFormat(Map&lt;String, String&gt; params) {
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    return params.getOrDefault(QUERY_PARAMS_FORMAT, isExplainRequest() ? &quot;standard&quot; : &quot;jdbc&quot;);</span>
+  }
+
+  private boolean shouldSanitize(Map&lt;String, String&gt; params) {
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (params.containsKey(QUERY_PARAMS_SANITIZE)) {</span>
+<span class="fc" id="L162">      return Boolean.parseBoolean(params.get(QUERY_PARAMS_SANITIZE));</span>
+    }
+<span class="fc" id="L164">    return true;</span>
+  }
+
+  private boolean shouldPretty(Map&lt;String, String&gt; params) {
+<span class="fc bfc" id="L168" title="All 2 branches covered.">    if (params.containsKey(QUERY_PARAMS_PRETTY)) {</span>
+<span class="fc" id="L169">      return Boolean.parseBoolean(params.get(QUERY_PARAMS_PRETTY));</span>
+    }
+<span class="fc" id="L171">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

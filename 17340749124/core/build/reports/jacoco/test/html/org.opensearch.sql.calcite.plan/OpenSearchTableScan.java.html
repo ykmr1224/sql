@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchTableScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.plan</a> &gt; <span class="el_source">OpenSearchTableScan.java</span></div><h1>OpenSearchTableScan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.plan;
+
+import com.google.common.collect.ImmutableList;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.CoreRules;
+
+/** Relational expression representing a scan of an OpenSearch type. */
+public abstract class OpenSearchTableScan extends TableScan implements EnumerableRel {
+  /**
+   * Creates an OpenSearchTableScan.
+   *
+   * @param cluster Cluster
+   * @param table Table
+   */
+  protected OpenSearchTableScan(RelOptCluster cluster, RelOptTable table) {
+<span class="nc" id="L27">    super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);</span>
+<span class="nc" id="L28">  }</span>
+
+  @Override
+  public void register(RelOptPlanner planner) {
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {</span>
+<span class="nc" id="L33">      planner.addRule(rule);</span>
+<span class="nc" id="L34">    }</span>
+
+    // remove this rule otherwise opensearch can't correctly interpret approx_count_distinct()
+    // it is converted to cardinality aggregation in OpenSearch
+<span class="nc" id="L38">    planner.removeRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES);</span>
+<span class="nc" id="L39">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

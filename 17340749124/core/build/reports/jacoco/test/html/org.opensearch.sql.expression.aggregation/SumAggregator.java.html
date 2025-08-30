@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SumAggregator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.aggregation</a> &gt; <span class="el_source">SumAggregator.java</span></div><h1>SumAggregator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.aggregation;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.floatValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getDoubleValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getFloatValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getIntegerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getLongValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
+import static org.opensearch.sql.utils.ExpressionUtils.format;
+
+import java.util.List;
+import java.util.Locale;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.aggregation.SumAggregator.SumState;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/**
+ * The sum aggregator aggregate the value evaluated by the expression. If the expression evaluated
+ * result is NULL or MISSING, then the result is NULL.
+ */
+public class SumAggregator extends Aggregator&lt;SumState&gt; {
+
+  public SumAggregator(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L36">    super(BuiltinFunctionName.SUM.getName(), arguments, returnType);</span>
+<span class="fc" id="L37">  }</span>
+
+  @Override
+  public SumState create() {
+<span class="fc" id="L41">    return new SumState(returnType);</span>
+  }
+
+  @Override
+  protected SumState iterate(ExprValue value, SumState state) {
+<span class="fc" id="L46">    state.isEmptyCollection = false;</span>
+<span class="fc" id="L47">    state.add(value);</span>
+<span class="fc" id="L48">    return state;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L53">    return String.format(Locale.ROOT, &quot;sum(%s)&quot;, format(getArguments()));</span>
+  }
+
+  /** Sum State. */
+  protected static class SumState implements AggregationState {
+
+    private final ExprCoreType type;
+    private ExprValue sumResult;
+    private boolean isEmptyCollection;
+
+<span class="fc" id="L63">    SumState(ExprCoreType type) {</span>
+<span class="fc" id="L64">      this.type = type;</span>
+<span class="fc" id="L65">      sumResult = ExprValueUtils.integerValue(0);</span>
+<span class="fc" id="L66">      isEmptyCollection = true;</span>
+<span class="fc" id="L67">    }</span>
+
+    /** Add value to current sumResult. */
+    public void add(ExprValue value) {
+<span class="fc bfc" id="L71" title="All 5 branches covered.">      switch (type) {</span>
+        case INTEGER:
+<span class="fc" id="L73">          sumResult = integerValue(getIntegerValue(sumResult) + getIntegerValue(value));</span>
+<span class="fc" id="L74">          break;</span>
+        case LONG:
+<span class="fc" id="L76">          sumResult = longValue(getLongValue(sumResult) + getLongValue(value));</span>
+<span class="fc" id="L77">          break;</span>
+        case FLOAT:
+<span class="fc" id="L79">          sumResult = floatValue(getFloatValue(sumResult) + getFloatValue(value));</span>
+<span class="fc" id="L80">          break;</span>
+        case DOUBLE:
+<span class="fc" id="L82">          sumResult = doubleValue(getDoubleValue(sumResult) + getDoubleValue(value));</span>
+<span class="fc" id="L83">          break;</span>
+        default:
+<span class="fc" id="L85">          throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L86">              String.format(&quot;unexpected type [%s] in sum aggregation&quot;, type));</span>
+      }
+<span class="fc" id="L88">    }</span>
+
+    @Override
+    public ExprValue result() {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">      return isEmptyCollection ? ExprNullValue.of() : sumResult;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

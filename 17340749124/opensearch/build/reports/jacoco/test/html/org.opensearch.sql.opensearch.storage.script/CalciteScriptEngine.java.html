@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteScriptEngine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script</a> &gt; <span class="el_source">CalciteScriptEngine.java</span></div><h1>CalciteScriptEngine.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This file contains code from the Apache Calcite project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opensearch.sql.opensearch.storage.script;
+
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.lang.reflect.Type;
+import java.time.chrono.ChronoZonedDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.LabelTarget;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.MethodDeclaration;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutable;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Util;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.script.FilterScript;
+import org.opensearch.script.ScriptContext;
+import org.opensearch.script.ScriptEngine;
+import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+
+/**
+ * Custom expression script engine that supports using core engine expression code in DSL as a new
+ * script language just like built-in Painless language.
+ */
+@RequiredArgsConstructor
+public class CalciteScriptEngine implements ScriptEngine {
+
+  private final RelJsonSerializer relJsonSerializer;
+
+<span class="nc" id="L99">  public CalciteScriptEngine(RelOptCluster relOptCluster) {</span>
+<span class="nc" id="L100">    this.relJsonSerializer = new RelJsonSerializer(relOptCluster);</span>
+<span class="nc" id="L101">  }</span>
+
+  /** Expression script language name. */
+  public static final String EXPRESSION_LANG_NAME = &quot;opensearch_calcite_expression&quot;;
+
+  /** All supported script contexts and function to create factory from expression. */
+  private static final Map&lt;
+          ScriptContext&lt;?&gt;, BiFunction&lt;Function1&lt;DataContext, Object[]&gt;, RelDataType, Object&gt;&gt;
+<span class="nc" id="L109">      CONTEXTS =</span>
+          new ImmutableMap.Builder&lt;
+                  ScriptContext&lt;?&gt;,
+                  BiFunction&lt;Function1&lt;DataContext, Object[]&gt;, RelDataType, Object&gt;&gt;()
+<span class="nc" id="L113">              .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)</span>
+<span class="nc" id="L114">              .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)</span>
+<span class="nc" id="L115">              .build();</span>
+
+  @Override
+  public String getType() {
+<span class="nc" id="L119">    return EXPRESSION_LANG_NAME;</span>
+  }
+
+  @Override
+  public &lt;T&gt; T compile(
+      String scriptName, String scriptCode, ScriptContext&lt;T&gt; context, Map&lt;String, String&gt; options) {
+<span class="nc" id="L125">    Map&lt;String, Object&gt; objectMap = relJsonSerializer.deserialize(scriptCode);</span>
+<span class="nc" id="L126">    RexNode rexNode = (RexNode) objectMap.get(RelJsonSerializer.EXPR);</span>
+<span class="nc" id="L127">    RelDataType rowType = (RelDataType) objectMap.get(RelJsonSerializer.ROW_TYPE);</span>
+<span class="nc" id="L128">    Map&lt;String, ExprType&gt; fieldTypes =</span>
+<span class="nc" id="L129">        (Map&lt;String, ExprType&gt;) objectMap.get(RelJsonSerializer.FIELD_TYPES);</span>
+
+<span class="nc" id="L131">    JavaTypeFactoryImpl typeFactory =</span>
+<span class="nc" id="L132">        new JavaTypeFactoryImpl(relJsonSerializer.getCluster().getTypeFactory().getTypeSystem());</span>
+<span class="nc" id="L133">    RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, fieldTypes);</span>
+<span class="nc" id="L134">    String code =</span>
+<span class="nc" id="L135">        CalciteScriptEngine.translate(</span>
+<span class="nc" id="L136">            relJsonSerializer.getCluster().getRexBuilder(), List.of(rexNode), getter, rowType);</span>
+
+<span class="nc" id="L138">    Function1&lt;DataContext, Object[]&gt; function =</span>
+<span class="nc" id="L139">        new RexExecutable(code, &quot;generated Rex code&quot;).getFunction();</span>
+
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    if (CONTEXTS.containsKey(context)) {</span>
+<span class="nc" id="L142">      return context.factoryClazz.cast(CONTEXTS.get(context).apply(function, rexNode.getType()));</span>
+    }
+<span class="nc" id="L144">    throw new IllegalStateException(</span>
+<span class="nc" id="L145">        String.format(</span>
+            &quot;Script context is currently not supported: &quot;
+                + &quot;all supported contexts [%s], given context [%s] &quot;,
+            CONTEXTS, context));
+  }
+
+  @Override
+  public Set&lt;ScriptContext&lt;?&gt;&gt; getSupportedContexts() {
+<span class="nc" id="L153">    return CONTEXTS.keySet();</span>
+  }
+
+  public static final class UnsupportedScriptException extends RuntimeException {
+
+    public UnsupportedScriptException(String message) {
+<span class="nc" id="L159">      super(message);</span>
+<span class="nc" id="L160">    }</span>
+
+    public UnsupportedScriptException(Throwable cause) {
+<span class="nc" id="L163">      super(cause);</span>
+<span class="nc" id="L164">    }</span>
+  }
+
+  /**
+   * Implementation of {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter}
+   * that reads the values of input fields by calling &lt;code&gt;
+   * {@link org.apache.calcite.DataContext#get}(&quot;inputRecord&quot;)&lt;/code&gt;.
+   */
+  public static class ScriptInputGetter implements InputGetter {
+    private final RelDataTypeFactory typeFactory;
+    private final RelDataType rowType;
+    private final Map&lt;String, ExprType&gt; fieldTypes;
+
+    public ScriptInputGetter(
+<span class="nc" id="L178">        RelDataTypeFactory typeFactory, RelDataType rowType, Map&lt;String, ExprType&gt; fieldTypes) {</span>
+<span class="nc" id="L179">      this.typeFactory = typeFactory;</span>
+<span class="nc" id="L180">      this.rowType = rowType;</span>
+<span class="nc" id="L181">      this.fieldTypes = fieldTypes;</span>
+<span class="nc" id="L182">    }</span>
+
+    @Override
+    public org.apache.calcite.linq4j.tree.Expression field(
+        BlockBuilder list, int index, @Nullable Type storageType) {
+<span class="nc" id="L187">      String fieldName = rowType.getFieldList().get(index).getName();</span>
+<span class="nc" id="L188">      ExprType exprType = fieldTypes.get(fieldName);</span>
+<span class="nc" id="L189">      String referenceField = OpenSearchTextType.toKeywordSubField(fieldName, exprType);</span>
+      MethodCallExpression fieldValueExpr =
+          // Have to invoke `getFromSource` if the field is the text without keyword or struct
+<span class="nc bnc" id="L192" title="All 4 branches missed.">          (referenceField == null || exprType == ExprCoreType.STRUCT)</span>
+<span class="nc" id="L193">              ? Expressions.call(</span>
+<span class="nc" id="L194">                  EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),</span>
+<span class="nc" id="L195">                  Types.lookupMethod(ScriptDataContext.class, &quot;getFromSource&quot;, String.class),</span>
+<span class="nc" id="L196">                  Expressions.constant(fieldName))</span>
+<span class="nc" id="L197">              : Expressions.call(</span>
+                  DataContext.ROOT,
+                  BuiltInMethod.DATA_CONTEXT_GET.method,
+<span class="nc" id="L200">                  Expressions.constant(referenceField));</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">      if (storageType == null) {</span>
+<span class="nc" id="L202">        final RelDataType fieldType = rowType.getFieldList().get(index).getType();</span>
+<span class="nc" id="L203">        storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);</span>
+      }
+<span class="nc" id="L205">      return EnumUtils.convert(tryConvertDocValue(fieldValueExpr, exprType), storageType);</span>
+    }
+
+    /**
+     * DocValue only support long and double for integer and float, cast to the related type first
+     */
+    private Expression tryConvertDocValue(Expression docValueExpr, ExprType exprType) {
+<span class="nc bnc" id="L212" title="All 3 branches missed.">      return switch (exprType) {</span>
+<span class="nc" id="L213">        case INTEGER, SHORT, BYTE -&gt; EnumUtils.convert(docValueExpr, Long.class);</span>
+<span class="nc" id="L214">        case FLOAT -&gt; EnumUtils.convert(docValueExpr, Double.class);</span>
+<span class="nc" id="L215">        default -&gt; docValueExpr;</span>
+      };
+    }
+  }
+
+  public static class ScriptDataContext implements DataContext {
+
+    private final Map&lt;String, ScriptDocValues&lt;?&gt;&gt; docProvider;
+    private final SourceLookup sourceLookup;
+    private final Map&lt;String, Object&gt; params;
+
+    public ScriptDataContext(
+        Map&lt;String, ScriptDocValues&lt;?&gt;&gt; docProvider,
+        SourceLookup sourceLookup,
+<span class="nc" id="L229">        Map&lt;String, Object&gt; params) {</span>
+<span class="nc" id="L230">      this.docProvider = docProvider;</span>
+<span class="nc" id="L231">      this.sourceLookup = sourceLookup;</span>
+<span class="nc" id="L232">      this.params = params;</span>
+<span class="nc" id="L233">    }</span>
+
+    @Override
+    public @Nullable SchemaPlus getRootSchema() {
+<span class="nc" id="L237">      return null;</span>
+    }
+
+    @Override
+    public JavaTypeFactory getTypeFactory() {
+<span class="nc" id="L242">      return null;</span>
+    }
+
+    @Override
+    public QueryProvider getQueryProvider() {
+<span class="nc" id="L247">      return null;</span>
+    }
+
+    @Override
+    public Object get(String name) {
+      // UTC_TIMESTAMP is a special variable used for some time related functions.
+<span class="nc bnc" id="L253" title="All 2 branches missed.">      if (Variable.UTC_TIMESTAMP.camelName.equals(name))</span>
+<span class="nc" id="L254">        return params.get(Variable.UTC_TIMESTAMP.camelName);</span>
+
+<span class="nc" id="L256">      ScriptDocValues&lt;?&gt; docValue = this.docProvider.get(name);</span>
+<span class="nc bnc" id="L257" title="All 4 branches missed.">      if (docValue == null || docValue.isEmpty()) {</span>
+<span class="nc" id="L258">        return null; // No way to differentiate null and missing from doc value</span>
+      }
+
+<span class="nc" id="L261">      Object value = docValue.get(0);</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">      if (value instanceof ChronoZonedDateTime) {</span>
+        // We store timestamp as string in the current implementation with Calcite.
+        // And the string should have the format defined in ExprTimestampValue
+        // TODO: should we change to store timestamp as Instant in the future.
+<span class="nc" id="L266">        return new ExprTimestampValue(((ChronoZonedDateTime&lt;?&gt;) value).toInstant()).value();</span>
+      }
+<span class="nc" id="L268">      return value;</span>
+    }
+
+    public Object getFromSource(String name) {
+<span class="nc" id="L272">      return this.sourceLookup.get(name);</span>
+    }
+  }
+
+  /**
+   * This function is copied from Calcite RexExecutorImpl It's used to compile RexNode expression to
+   * java code string.
+   */
+  public static String translate(
+      RexBuilder rexBuilder,
+      List&lt;RexNode&gt; constExps,
+      RexToLixTranslator.InputGetter getter,
+      RelDataType rowType) {
+<span class="nc" id="L285">    RexProgramBuilder programBuilder = new RexProgramBuilder(rowType, rexBuilder);</span>
+<span class="nc" id="L286">    java.util.Iterator var5 = constExps.iterator();</span>
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    while (var5.hasNext()) {</span>
+<span class="nc" id="L289">      RexNode node = (RexNode) var5.next();</span>
+<span class="nc" id="L290">      programBuilder.addProject(node, &quot;c&quot; + programBuilder.getProjectList().size());</span>
+<span class="nc" id="L291">    }</span>
+
+<span class="nc" id="L293">    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();</span>
+    JavaTypeFactory javaTypeFactory =
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        typeFactory instanceof JavaTypeFactory</span>
+<span class="nc" id="L296">            ? (JavaTypeFactory) typeFactory</span>
+<span class="nc" id="L297">            : new JavaTypeFactoryImpl(typeFactory.getTypeSystem());</span>
+<span class="nc" id="L298">    BlockBuilder blockBuilder = new BlockBuilder();</span>
+<span class="nc" id="L299">    ParameterExpression root0_ = Expressions.parameter(Object.class, &quot;root0&quot;);</span>
+<span class="nc" id="L300">    ParameterExpression root_ = DataContext.ROOT;</span>
+<span class="nc" id="L301">    blockBuilder.add(</span>
+<span class="nc" id="L302">        Expressions.declare(16, root_, Expressions.convert_(root0_, DataContext.class)));</span>
+<span class="nc" id="L303">    SqlConformance conformance = SqlConformanceEnum.DEFAULT;</span>
+<span class="nc" id="L304">    RexProgram program = programBuilder.getProgram();</span>
+<span class="nc" id="L305">    List&lt;org.apache.calcite.linq4j.tree.Expression&gt; expressions =</span>
+<span class="nc" id="L306">        RexToLixTranslator.translateProjects(</span>
+            program,
+            (JavaTypeFactory) javaTypeFactory,
+            conformance,
+            blockBuilder,
+            (BlockBuilder) null,
+            (PhysType) null,
+            root_,
+            getter,
+            (Function1) null);
+<span class="nc" id="L316">    blockBuilder.add(</span>
+<span class="nc" id="L317">        Expressions.return_(</span>
+<span class="nc" id="L318">            (LabelTarget) null, Expressions.newArrayInit(Object[].class, expressions)));</span>
+<span class="nc" id="L319">    MethodDeclaration methodDecl =</span>
+<span class="nc" id="L320">        Expressions.methodDecl(</span>
+            1,
+            Object[].class,
+<span class="nc" id="L323">            BuiltInMethod.FUNCTION1_APPLY.method.getName(),</span>
+<span class="nc" id="L324">            ImmutableList.of(root0_),</span>
+<span class="nc" id="L325">            blockBuilder.toBlock());</span>
+<span class="nc" id="L326">    String code = Expressions.toString(methodDecl);</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">    if ((Boolean) CalciteSystemProperty.DEBUG.value()) {</span>
+<span class="nc" id="L328">      Util.debugCode(System.out, code);</span>
+    }
+
+<span class="nc" id="L331">    return code;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

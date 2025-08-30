@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimeUnitRegistry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.time</a> &gt; <span class="el_source">TimeUnitRegistry.java</span></div><h1>TimeUnitRegistry.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.time;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/** Registry for time unit configurations and mappings. */
+<span class="nc" id="L12">public class TimeUnitRegistry {</span>
+
+<span class="nc" id="L14">  private static final Map&lt;String, TimeUnitConfig&gt; UNIT_MAPPING = new HashMap&lt;&gt;();</span>
+
+  static {
+    // Microseconds
+<span class="nc" id="L18">    UNIT_MAPPING.put(&quot;us&quot;, TimeUnitConfig.MICROSECONDS);</span>
+
+    // Milliseconds
+<span class="nc" id="L21">    UNIT_MAPPING.put(&quot;ms&quot;, TimeUnitConfig.MILLISECONDS);</span>
+
+    // Centiseconds
+<span class="nc" id="L24">    UNIT_MAPPING.put(&quot;cs&quot;, TimeUnitConfig.CENTISECONDS);</span>
+
+    // Deciseconds
+<span class="nc" id="L27">    UNIT_MAPPING.put(&quot;ds&quot;, TimeUnitConfig.DECISECONDS);</span>
+
+    // Seconds
+<span class="nc" id="L30">    UNIT_MAPPING.put(&quot;s&quot;, TimeUnitConfig.SECONDS);</span>
+<span class="nc" id="L31">    UNIT_MAPPING.put(&quot;sec&quot;, TimeUnitConfig.SECONDS);</span>
+<span class="nc" id="L32">    UNIT_MAPPING.put(&quot;second&quot;, TimeUnitConfig.SECONDS);</span>
+<span class="nc" id="L33">    UNIT_MAPPING.put(&quot;seconds&quot;, TimeUnitConfig.SECONDS);</span>
+
+    // Minutes
+<span class="nc" id="L36">    UNIT_MAPPING.put(&quot;m&quot;, TimeUnitConfig.MINUTES);</span>
+<span class="nc" id="L37">    UNIT_MAPPING.put(&quot;min&quot;, TimeUnitConfig.MINUTES);</span>
+<span class="nc" id="L38">    UNIT_MAPPING.put(&quot;minute&quot;, TimeUnitConfig.MINUTES);</span>
+<span class="nc" id="L39">    UNIT_MAPPING.put(&quot;minutes&quot;, TimeUnitConfig.MINUTES);</span>
+
+    // Hours
+<span class="nc" id="L42">    UNIT_MAPPING.put(&quot;h&quot;, TimeUnitConfig.HOURS);</span>
+<span class="nc" id="L43">    UNIT_MAPPING.put(&quot;hr&quot;, TimeUnitConfig.HOURS);</span>
+<span class="nc" id="L44">    UNIT_MAPPING.put(&quot;hour&quot;, TimeUnitConfig.HOURS);</span>
+<span class="nc" id="L45">    UNIT_MAPPING.put(&quot;hours&quot;, TimeUnitConfig.HOURS);</span>
+
+    // Days
+<span class="nc" id="L48">    UNIT_MAPPING.put(&quot;d&quot;, TimeUnitConfig.DAYS);</span>
+<span class="nc" id="L49">    UNIT_MAPPING.put(&quot;day&quot;, TimeUnitConfig.DAYS);</span>
+<span class="nc" id="L50">    UNIT_MAPPING.put(&quot;days&quot;, TimeUnitConfig.DAYS);</span>
+
+    // Months (case-sensitive M)
+<span class="nc" id="L53">    UNIT_MAPPING.put(&quot;M&quot;, TimeUnitConfig.MONTHS);</span>
+<span class="nc" id="L54">    UNIT_MAPPING.put(&quot;mon&quot;, TimeUnitConfig.MONTHS);</span>
+<span class="nc" id="L55">    UNIT_MAPPING.put(&quot;month&quot;, TimeUnitConfig.MONTHS);</span>
+<span class="nc" id="L56">    UNIT_MAPPING.put(&quot;months&quot;, TimeUnitConfig.MONTHS);</span>
+<span class="nc" id="L57">  }</span>
+
+  /**
+   * Gets the time unit configuration for the given unit string.
+   *
+   * @param unit The unit string (e.g., &quot;h&quot;, &quot;hours&quot;, &quot;M&quot;)
+   * @return The time unit configuration, or null if not found
+   */
+  public static TimeUnitConfig getConfig(String unit) {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (unit.equals(&quot;M&quot;)) {</span>
+      // M is case-sensitive for months
+<span class="nc" id="L68">      return UNIT_MAPPING.get(unit);</span>
+    } else {
+      // For all other units, use lowercase lookup
+<span class="nc" id="L71">      return UNIT_MAPPING.get(unit.toLowerCase());</span>
+    }
+  }
+
+  /**
+   * Validates sub-second span constraints. When span is expressed using a sub-second unit, the span
+   * value needs to be &lt; 1 second, and 1 second must be evenly divisible by the span value.
+   */
+  public static void validateSubSecondSpan(TimeUnitConfig config, int intervalValue) {
+<span class="nc bnc" id="L80" title="All 2 branches missed.">    if (!isSubSecondUnit(config)) {</span>
+<span class="nc" id="L81">      return;</span>
+    }
+
+    // Convert interval to microseconds for comparison
+<span class="nc" id="L85">    long intervalMicros =</span>
+<span class="nc bnc" id="L86" title="All 5 branches missed.">        switch (config) {</span>
+<span class="nc" id="L87">          case MICROSECONDS -&gt; intervalValue;</span>
+<span class="nc" id="L88">          case MILLISECONDS -&gt; intervalValue * 1000L;</span>
+<span class="nc" id="L89">          case CENTISECONDS -&gt; intervalValue * 10000L;</span>
+<span class="nc" id="L90">          case DECISECONDS -&gt; intervalValue * 100000L;</span>
+<span class="nc" id="L91">          default -&gt; 0L;</span>
+        };
+
+<span class="nc" id="L94">    long oneSecondMicros = 1000000L;</span>
+
+    // Constraint 1: span value must be &lt; 1 second
+<span class="nc bnc" id="L97" title="All 2 branches missed.">    if (intervalMicros &gt;= oneSecondMicros) {</span>
+<span class="nc" id="L98">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L99">          String.format(</span>
+<span class="nc" id="L100">              &quot;Sub-second span %d%s must be less than 1 second&quot;, intervalValue, config.getUnit()));</span>
+    }
+
+    // Constraint 2: 1 second must be evenly divisible by the span value
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (oneSecondMicros % intervalMicros != 0) {</span>
+<span class="nc" id="L105">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L106">          String.format(</span>
+<span class="nc" id="L107">              &quot;1 second must be evenly divisible by span %d%s&quot;, intervalValue, config.getUnit()));</span>
+    }
+<span class="nc" id="L109">  }</span>
+
+  private static boolean isSubSecondUnit(TimeUnitConfig config) {
+<span class="nc bnc" id="L112" title="All 8 branches missed.">    return config == TimeUnitConfig.MICROSECONDS</span>
+        || config == TimeUnitConfig.MILLISECONDS
+        || config == TimeUnitConfig.CENTISECONDS
+        || config == TimeUnitConfig.DECISECONDS;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

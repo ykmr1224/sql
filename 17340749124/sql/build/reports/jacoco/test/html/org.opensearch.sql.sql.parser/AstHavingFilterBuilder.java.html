@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AstHavingFilterBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser</a> &gt; <span class="el_source">AstHavingFilterBuilder.java</span></div><h1>AstHavingFilterBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser;
+
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
+
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.sql.parser.context.QuerySpecification;
+
+/**
+ * AST Having filter builder that builds HAVING clause condition expressions and replace alias by
+ * original expression in SELECT clause. The reason for this is it's hard to replace afterwards
+ * since UnresolvedExpression is immutable.
+ */
+@RequiredArgsConstructor
+public class AstHavingFilterBuilder extends AstExpressionBuilder {
+
+  private final QuerySpecification querySpec;
+
+  @Override
+  public UnresolvedExpression visitQualifiedName(QualifiedNameContext ctx) {
+<span class="fc" id="L26">    return replaceAlias(super.visitQualifiedName(ctx));</span>
+  }
+
+  private UnresolvedExpression replaceAlias(UnresolvedExpression expr) {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">    if (querySpec.isSelectAlias(expr)) {</span>
+<span class="fc" id="L31">      return querySpec.getSelectItemByAlias(expr);</span>
+    }
+<span class="fc" id="L33">    return expr;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

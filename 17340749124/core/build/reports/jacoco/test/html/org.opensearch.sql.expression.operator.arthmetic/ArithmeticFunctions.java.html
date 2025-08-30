@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ArithmeticFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.operator.arthmetic</a> &gt; <span class="el_source">ArithmeticFunctions.java</span></div><h1>ArithmeticFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.operator.arthmetic;
+
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprByteValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionName;
+
+/**
+ * The definition of arithmetic function&lt;br&gt;
+ * add, Accepts two numbers and produces a number.&lt;br&gt;
+ * subtract, Accepts two numbers and produces a number.&lt;br&gt;
+ * multiply, Accepts two numbers and produces a number.&lt;br&gt;
+ * divide, Accepts two numbers and produces a number.&lt;br&gt;
+ * module, Accepts two numbers and produces a number.
+ */
+@UtilityClass
+public class ArithmeticFunctions {
+  /**
+   * Register Arithmetic Function.
+   *
+   * @param repository {@link BuiltinFunctionRepository}.
+   */
+  public static void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L47">    repository.register(add());</span>
+<span class="fc" id="L48">    repository.register(addFunction());</span>
+<span class="fc" id="L49">    repository.register(divide());</span>
+<span class="fc" id="L50">    repository.register(divideFunction());</span>
+<span class="fc" id="L51">    repository.register(mod());</span>
+<span class="fc" id="L52">    repository.register(modulus());</span>
+<span class="fc" id="L53">    repository.register(modulusFunction());</span>
+<span class="fc" id="L54">    repository.register(multiply());</span>
+<span class="fc" id="L55">    repository.register(multiplyFunction());</span>
+<span class="fc" id="L56">    repository.register(subtract());</span>
+<span class="fc" id="L57">    repository.register(subtractFunction());</span>
+<span class="fc" id="L58">  }</span>
+
+  /**
+   * Definition of add(x, y) function.&lt;br&gt;
+   * Returns the number x plus number y&lt;br&gt;
+   * The supported signature of add function is&lt;br&gt;
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver addBase(FunctionName functionName) {
+<span class="fc" id="L68">    return define(</span>
+        functionName,
+<span class="fc" id="L70">        impl(</span>
+<span class="fc" id="L71">            nullMissingHandling((v1, v2) -&gt; new ExprByteValue(v1.byteValue() + v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L75">        impl(</span>
+<span class="fc" id="L76">            nullMissingHandling((v1, v2) -&gt; new ExprShortValue(v1.shortValue() + v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L80">        impl(</span>
+<span class="fc" id="L81">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc" id="L83">                    new ExprIntegerValue(Math.addExact(v1.integerValue(), v2.integerValue()))),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L87">        impl(</span>
+<span class="fc" id="L88">            nullMissingHandling(</span>
+<span class="fc" id="L89">                (v1, v2) -&gt; new ExprLongValue(Math.addExact(v1.longValue(), v2.longValue()))),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L93">        impl(</span>
+<span class="fc" id="L94">            nullMissingHandling((v1, v2) -&gt; new ExprFloatValue(v1.floatValue() + v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L98">        impl(</span>
+<span class="fc" id="L99">            nullMissingHandling(</span>
+<span class="fc" id="L100">                (v1, v2) -&gt; new ExprDoubleValue(v1.doubleValue() + v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  private static DefaultFunctionResolver add() {
+<span class="fc" id="L107">    return addBase(BuiltinFunctionName.ADD.getName());</span>
+  }
+
+  private static DefaultFunctionResolver addFunction() {
+<span class="fc" id="L111">    return addBase(BuiltinFunctionName.ADDFUNCTION.getName());</span>
+  }
+
+  /**
+   * Definition of divide(x, y) function.&lt;br&gt;
+   * Returns the number x divided by number y&lt;br&gt;
+   * The supported signature of divide function is&lt;br&gt;
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver divideBase(FunctionName functionName) {
+<span class="fc" id="L122">    return define(</span>
+        functionName,
+<span class="fc" id="L124">        impl(</span>
+<span class="fc" id="L125">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L127" title="All 2 branches covered.">                    v2.byteValue() == 0</span>
+<span class="fc" id="L128">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L129">                        : new ExprByteValue(v1.byteValue() / v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L133">        impl(</span>
+<span class="fc" id="L134">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L136" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L137">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L138">                        : new ExprShortValue(v1.shortValue() / v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L142">        impl(</span>
+<span class="fc" id="L143">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                    v2.integerValue() == 0</span>
+<span class="fc" id="L146">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L147">                        : new ExprIntegerValue(v1.integerValue() / v2.integerValue())),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L151">        impl(</span>
+<span class="fc" id="L152">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L154" title="All 2 branches covered.">                    v2.longValue() == 0</span>
+<span class="fc" id="L155">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L156">                        : new ExprLongValue(v1.longValue() / v2.longValue())),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L160">        impl(</span>
+<span class="fc" id="L161">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L163" title="All 2 branches covered.">                    v2.floatValue() == 0</span>
+<span class="fc" id="L164">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L165">                        : new ExprFloatValue(v1.floatValue() / v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L169">        impl(</span>
+<span class="fc" id="L170">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                    v2.doubleValue() == 0</span>
+<span class="fc" id="L173">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L174">                        : new ExprDoubleValue(v1.doubleValue() / v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  private static DefaultFunctionResolver divide() {
+<span class="fc" id="L181">    return divideBase(BuiltinFunctionName.DIVIDE.getName());</span>
+  }
+
+  private static DefaultFunctionResolver divideFunction() {
+<span class="fc" id="L185">    return divideBase(BuiltinFunctionName.DIVIDEFUNCTION.getName());</span>
+  }
+
+  /**
+   * Definition of modulus(x, y) function.&lt;br&gt;
+   * Returns the number x modulo by number y&lt;br&gt;
+   * The supported signature of modulo function is&lt;br&gt;
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver modulusBase(FunctionName functionName) {
+<span class="fc" id="L196">    return define(</span>
+        functionName,
+<span class="fc" id="L198">        impl(</span>
+<span class="fc" id="L199">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L201" title="All 2 branches covered.">                    v2.byteValue() == 0</span>
+<span class="fc" id="L202">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L203">                        : new ExprByteValue(v1.byteValue() % v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L207">        impl(</span>
+<span class="fc" id="L208">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L210" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L211">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L212">                        : new ExprShortValue(v1.shortValue() % v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L216">        impl(</span>
+<span class="fc" id="L217">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L219" title="All 2 branches covered.">                    v2.integerValue() == 0</span>
+<span class="fc" id="L220">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L221">                        : new ExprIntegerValue(v1.integerValue() % v2.integerValue())),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L225">        impl(</span>
+<span class="fc" id="L226">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L228" title="All 2 branches covered.">                    v2.longValue() == 0</span>
+<span class="fc" id="L229">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L230">                        : new ExprLongValue(v1.longValue() % v2.longValue())),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L234">        impl(</span>
+<span class="fc" id="L235">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L237" title="All 2 branches covered.">                    v2.floatValue() == 0</span>
+<span class="fc" id="L238">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L239">                        : new ExprFloatValue(v1.floatValue() % v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L243">        impl(</span>
+<span class="fc" id="L244">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L246" title="All 2 branches covered.">                    v2.doubleValue() == 0</span>
+<span class="fc" id="L247">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L248">                        : new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  private static DefaultFunctionResolver mod() {
+<span class="fc" id="L255">    return modulusBase(BuiltinFunctionName.MOD.getName());</span>
+  }
+
+  private static DefaultFunctionResolver modulus() {
+<span class="fc" id="L259">    return modulusBase(BuiltinFunctionName.MODULUS.getName());</span>
+  }
+
+  private static DefaultFunctionResolver modulusFunction() {
+<span class="fc" id="L263">    return modulusBase(BuiltinFunctionName.MODULUSFUNCTION.getName());</span>
+  }
+
+  /**
+   * Definition of multiply(x, y) function.&lt;br&gt;
+   * Returns the number x multiplied by number y&lt;br&gt;
+   * The supported signature of multiply function is&lt;br&gt;
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * &lt;/&gt; -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver multiplyBase(FunctionName functionName) {
+<span class="fc" id="L274">    return define(</span>
+        functionName,
+<span class="fc" id="L276">        impl(</span>
+<span class="fc" id="L277">            nullMissingHandling((v1, v2) -&gt; new ExprByteValue(v1.byteValue() * v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L281">        impl(</span>
+<span class="fc" id="L282">            nullMissingHandling((v1, v2) -&gt; new ExprShortValue(v1.shortValue() * v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L286">        impl(</span>
+<span class="fc" id="L287">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc" id="L289">                    new ExprIntegerValue(Math.multiplyExact(v1.integerValue(), v2.integerValue()))),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L293">        impl(</span>
+<span class="fc" id="L294">            nullMissingHandling(</span>
+<span class="fc" id="L295">                (v1, v2) -&gt; new ExprLongValue(Math.multiplyExact(v1.longValue(), v2.longValue()))),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L299">        impl(</span>
+<span class="fc" id="L300">            nullMissingHandling((v1, v2) -&gt; new ExprFloatValue(v1.floatValue() * v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L304">        impl(</span>
+<span class="fc" id="L305">            nullMissingHandling(</span>
+<span class="fc" id="L306">                (v1, v2) -&gt; new ExprDoubleValue(v1.doubleValue() * v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  private static DefaultFunctionResolver multiply() {
+<span class="fc" id="L313">    return multiplyBase(BuiltinFunctionName.MULTIPLY.getName());</span>
+  }
+
+  private static DefaultFunctionResolver multiplyFunction() {
+<span class="fc" id="L317">    return multiplyBase(BuiltinFunctionName.MULTIPLYFUNCTION.getName());</span>
+  }
+
+  /**
+   * Definition of subtract(x, y) function.&lt;br&gt;
+   * Returns the number x minus number y&lt;br&gt;
+   * The supported signature of subtract function is&lt;br&gt;
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver subtractBase(FunctionName functionName) {
+<span class="fc" id="L328">    return define(</span>
+        functionName,
+<span class="fc" id="L330">        impl(</span>
+<span class="fc" id="L331">            nullMissingHandling((v1, v2) -&gt; new ExprByteValue(v1.byteValue() - v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L335">        impl(</span>
+<span class="fc" id="L336">            nullMissingHandling((v1, v2) -&gt; new ExprShortValue(v1.shortValue() - v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L340">        impl(</span>
+<span class="fc" id="L341">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc" id="L343">                    new ExprIntegerValue(Math.subtractExact(v1.integerValue(), v2.integerValue()))),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L347">        impl(</span>
+<span class="fc" id="L348">            nullMissingHandling(</span>
+<span class="fc" id="L349">                (v1, v2) -&gt; new ExprLongValue(Math.subtractExact(v1.longValue(), v2.longValue()))),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L353">        impl(</span>
+<span class="fc" id="L354">            nullMissingHandling((v1, v2) -&gt; new ExprFloatValue(v1.floatValue() - v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L358">        impl(</span>
+<span class="fc" id="L359">            nullMissingHandling(</span>
+<span class="fc" id="L360">                (v1, v2) -&gt; new ExprDoubleValue(v1.doubleValue() - v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  private static DefaultFunctionResolver subtract() {
+<span class="fc" id="L367">    return subtractBase(BuiltinFunctionName.SUBTRACT.getName());</span>
+  }
+
+  private static DefaultFunctionResolver subtractFunction() {
+<span class="fc" id="L371">    return subtractBase(BuiltinFunctionName.SUBTRACTFUNCTION.getName());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

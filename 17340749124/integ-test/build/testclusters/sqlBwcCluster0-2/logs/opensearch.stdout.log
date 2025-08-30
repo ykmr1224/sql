@@ -1,0 +1,331 @@
+[2025-08-30T07:05:52.815845106Z] [BUILD] Configuring custom cluster specific distro directory: /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE
+[2025-08-30T07:05:53.676320255Z] [BUILD] Copying additional config files from distro [/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/config/opensearch.yml, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/config/log4j2.properties, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/config/fips_java.security, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/config/jvm.options.d, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/config/jvm.options]
+[2025-08-30T07:05:53.813964917Z] [BUILD] installing 2 plugins in a single transaction
+[2025-08-30T07:05:59.592554623Z] [BUILD] installed plugins
+[2025-08-30T07:05:59.592671762Z] [BUILD] Creating opensearch keystore with password set to []
+[2025-08-30T07:06:02.345859088Z] [BUILD] Starting OpenSearch process
+[2025-08-30T07:06:10,686][WARN ][stderr                   ] [sqlBwcCluster0-2] Aug 30, 2025 7:06:10 AM org.opensearch.javaagent.bootstrap.AgentPolicy setPolicy
+[2025-08-30T07:06:10,689][WARN ][stderr                   ] [sqlBwcCluster0-2] INFO: Policy attached successfully: org.opensearch.bootstrap.OpenSearchPolicy@176996c3
+[2025-08-30T07:06:10,717][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] version[3.1.0], pid[3756], build[tar/8ff7c6ee924a49f0f59f80a6e1c73073c8904214/2025-06-21T08:05:43.345081313Z], OS[Linux/6.11.0-1018-azure/amd64], JVM[Eclipse Adoptium/OpenJDK 64-Bit Server VM/21.0.7/21.0.7+6-LTS]
+[2025-08-30T07:06:10,718][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] JVM home [/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE/jdk], using bundled JDK/JRE [true]
+[2025-08-30T07:06:10,718][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] JVM arguments [-Xshare:auto, -Dopensearch.networkaddress.cache.ttl=60, -Dopensearch.networkaddress.cache.negative.ttl=10, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -XX:-OmitStackTraceInFastThrow, -XX:+ShowCodeDetailsInExceptionMessages, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dio.netty.allocator.numDirectArenas=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Djava.locale.providers=SPI,CLDR, -Xms1g, -Xmx1g, -XX:+UseG1GC, -XX:G1ReservePercent=25, -XX:InitiatingHeapOccupancyPercent=30, -Djava.io.tmpdir=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/tmp, -XX:+HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath=logs, -XX:ErrorFile=logs/hs_err_pid%p.log, -Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m, --add-modules=jdk.incubator.vector, -javaagent:agent/opensearch-agent.jar, --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED, -Xms512m, -Xmx512m, -ea, -esa, -XX:MaxDirectMemorySize=268435456, -Dopensearch.path.home=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.1.0-ARCHIVE, -Dopensearch.path.conf=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/config, -Dopensearch.distribution.type=tar, -Dopensearch.bundled_jdk=true]
+[2025-08-30T07:06:10,977][WARN ][stderr                   ] [sqlBwcCluster0-2] Aug 30, 2025 7:06:10 AM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+[2025-08-30T07:06:10,978][WARN ][stderr                   ] [sqlBwcCluster0-2] INFO: Java vector incubator API enabled; uses preferredBitSize=256; FMA enabled
+[2025-08-30T07:06:11,842][INFO ][o.o.i.r.ReindexModulePlugin] [sqlBwcCluster0-2] ReindexPlugin reloadSPI called
+[2025-08-30T07:06:11,843][INFO ][o.o.i.r.ReindexModulePlugin] [sqlBwcCluster0-2] Unable to find any implementation for RemoteReindexExtension
+[2025-08-30T07:06:11,857][INFO ][o.o.j.JobSchedulerPlugin ] [sqlBwcCluster0-2] Loaded scheduler extension: async-query-scheduler, index: .async-query-scheduler
+[2025-08-30T07:06:11,862][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [aggs-matrix-stats]
+[2025-08-30T07:06:11,862][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [analysis-common]
+[2025-08-30T07:06:11,863][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [cache-common]
+[2025-08-30T07:06:11,863][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [geo]
+[2025-08-30T07:06:11,863][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-common]
+[2025-08-30T07:06:11,863][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-geoip]
+[2025-08-30T07:06:11,864][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-user-agent]
+[2025-08-30T07:06:11,864][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-expression]
+[2025-08-30T07:06:11,864][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-mustache]
+[2025-08-30T07:06:11,864][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-painless]
+[2025-08-30T07:06:11,865][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [mapper-extras]
+[2025-08-30T07:06:11,865][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [opensearch-dashboards]
+[2025-08-30T07:06:11,865][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [parent-join]
+[2025-08-30T07:06:11,865][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [percolator]
+[2025-08-30T07:06:11,866][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [rank-eval]
+[2025-08-30T07:06:11,866][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [reindex]
+[2025-08-30T07:06:11,866][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [repository-url]
+[2025-08-30T07:06:11,866][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [rule-framework]
+[2025-08-30T07:06:11,867][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [search-pipeline-common]
+[2025-08-30T07:06:11,867][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [systemd]
+[2025-08-30T07:06:11,867][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [transport-netty4]
+[2025-08-30T07:06:11,867][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded plugin [opensearch-job-scheduler]
+[2025-08-30T07:06:11,868][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded plugin [opensearch-sql]
+[2025-08-30T07:06:11,910][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: A restricted method in java.lang.foreign.Linker has been called
+[2025-08-30T07:06:11,911][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+[2025-08-30T07:06:11,911][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+[2025-08-30T07:06:12,032][INFO ][o.o.e.NodeEnvironment    ] [sqlBwcCluster0-2] using [1] data paths, mounts [[/__w (/dev/root)]], net usable_space [8.1gb], net total_space [71.6gb], types [ext4]
+[2025-08-30T07:06:12,033][INFO ][o.o.e.NodeEnvironment    ] [sqlBwcCluster0-2] heap size [512mb], compressed ordinary object pointers [true]
+[2025-08-30T07:06:12,076][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] node name [sqlBwcCluster0-2], node ID [53eOc4VcQr-aSPYpoFMlEQ], cluster name [sqlBwcCluster0], roles [ingest, remote_cluster_client, data, cluster_manager]
+[2025-08-30T07:06:12,116][INFO ][o.o.e.ExtensionsManager  ] [sqlBwcCluster0-2] ExtensionsManager initialized
+[2025-08-30T07:06:14,071][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[2025-08-30T07:06:14,072][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[2025-08-30T07:06:14,072][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[2025-08-30T07:06:16,162][WARN ][o.o.s.p.SQLPlugin        ] [sqlBwcCluster0-2] Master key is a required config for using create and update datasource APIs. Please set plugins.query.datasources.encryption.masterkey config in opensearch.yml in all the cluster nodes. More details can be found here: https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/admin/datasources.rst#master-key-config-for-encrypting-credential-information
+[2025-08-30T07:06:16,391][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: ARRAY. Will skip its type checking
+[2025-08-30T07:06:16,392][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: FORALL. Will skip its type checking
+[2025-08-30T07:06:16,392][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: EXISTS. Will skip its type checking
+[2025-08-30T07:06:16,393][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: FILTER. Will skip its type checking
+[2025-08-30T07:06:16,393][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: TRANSFORM. Will skip its type checking
+[2025-08-30T07:06:16,393][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: REDUCE. Will skip its type checking
+[2025-08-30T07:06:16,394][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T07:06:16,394][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T07:06:16,394][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T07:06:16,394][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T07:06:16,395][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T07:06:16,395][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T07:06:16,395][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T07:06:16,742][INFO ][o.o.t.NettyAllocator     ] [sqlBwcCluster0-2] creating NettyAllocator with the following configs: [name=unpooled, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_unpooled_allocator=null, g1gc_enabled=true, g1gc_region_size=1mb, heap_size=512mb}]
+[2025-08-30T07:06:16,862][INFO ][o.o.d.DiscoveryModule    ] [sqlBwcCluster0-2] using discovery type [zen] and seed hosts providers [settings, file]
+[2025-08-30T07:06:17,117][WARN ][o.o.g.DanglingIndicesState] [sqlBwcCluster0-2] gateway.auto_import_dangling_indices is disabled, dangling indices will not be automatically detected or imported and must be managed manually
+[2025-08-30T07:06:17,362][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] initialized
+[2025-08-30T07:06:17,362][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] starting ...
+[2025-08-30T07:06:17,478][INFO ][o.o.t.TransportService   ] [sqlBwcCluster0-2] publish_address {127.0.0.1:35631}, bound_addresses {[::1]:34483}, {127.0.0.1:35631}
+[2025-08-30T07:06:17,480][INFO ][o.o.t.TransportService   ] [sqlBwcCluster0-2] Remote clusters initialized successfully.
+[2025-08-30T07:06:17,627][WARN ][o.o.d.FileBasedSeedHostsProvider] [sqlBwcCluster0-2] expected, but did not find, a dynamic hosts list at [/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/config/unicast_hosts.txt]
+[2025-08-30T07:06:17,641][INFO ][o.o.h.AbstractHttpServerTransport] [sqlBwcCluster0-2] publish_address {127.0.0.1:45629}, bound_addresses {[::1]:39981}, {127.0.0.1:45629}
+[2025-08-30T07:06:17,643][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] started
+[2025-08-30T07:06:18,229][INFO ][o.o.c.c.Coordinator      ] [sqlBwcCluster0-2] setting initial configuration to VotingConfiguration{53eOc4VcQr-aSPYpoFMlEQ,qg9le9WxTi6Lb48ltWHjHA,{bootstrap-placeholder}-sqlBwcCluster0-1}
+[2025-08-30T07:06:18,641][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [], current [{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, added {{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true},{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}}, term: 1, version: 2, reason: ApplyCommitRequest{term=1, version=2, sourceNode={sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}}
+[2025-08-30T07:06:18,655][INFO ][o.o.d.PeerFinder         ] [sqlBwcCluster0-2] setting findPeersInterval to [1s] as node commission status = [true] for local node [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T07:06:23,030][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] PluginService:onIndexModule index:[opensearch-sql_test_index_account/QnhKMRR7QIyN8SdiFnPNrA]
+[2025-08-30T07:06:24,124][INFO ][o.o.i.r.RecoverySourceHandler] [sqlBwcCluster0-2] [opensearch-sql_test_index_account][0][recover to sqlBwcCluster0-0] finalizing recovery took [61.9ms]
+[2025-08-30T07:06:28,361][INFO ][o.o.c.c.Coordinator      ] [sqlBwcCluster0-2] cluster-manager node [{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}] failed, restarting discovery
+org.opensearch.transport.NodeDisconnectedException: [sqlBwcCluster0-0][127.0.0.1:41673][disconnected] disconnected
+[2025-08-30T07:06:28,382][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}], current []}, term: 1, version: 9, reason: becoming candidate: onLeaderFailure
+[2025-08-30T07:06:28,393][WARN ][o.o.c.NodeConnectionsService] [sqlBwcCluster0-2] failed to connect to {sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} (tried [1] times)
+org.opensearch.transport.ConnectTransportException: [sqlBwcCluster0-0][127.0.0.1:41673] connect_exception
+	at org.opensearch.transport.TcpTransport$ChannelsConnectedListener.onFailure(TcpTransport.java:1078) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.core.action.ActionListener.lambda$toBiConsumer$2(ActionListener.java:217) ~[opensearch-core-3.1.0.jar:3.1.0]
+	at org.opensearch.common.concurrent.CompletableContext.lambda$addListener$0(CompletableContext.java:57) ~[opensearch-common-3.1.0.jar:3.1.0]
+	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:863) ~[?:?]
+	at java.base/java.util.concurrent.CompletableFuture.uniWhenCompleteStage(CompletableFuture.java:887) ~[?:?]
+	at java.base/java.util.concurrent.CompletableFuture.whenComplete(CompletableFuture.java:2357) ~[?:?]
+	at org.opensearch.common.concurrent.CompletableContext.addListener(CompletableContext.java:60) ~[opensearch-common-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.netty4.Netty4TcpChannel.addConnectListener(Netty4TcpChannel.java:136) ~[?:?]
+	at org.opensearch.transport.TcpTransport.initiateConnection(TcpTransport.java:399) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.TcpTransport.openConnection(TcpTransport.java:359) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.ClusterConnectionManager.internalOpenConnection(ClusterConnectionManager.java:304) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.ClusterConnectionManager.connectToNode(ClusterConnectionManager.java:173) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.TransportService.connectToNode(TransportService.java:502) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.TransportService.connectToNode(TransportService.java:482) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.NodeConnectionsService$ConnectionTarget$1.doRun(NodeConnectionsService.java:359) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.AbstractRunnable.run(AbstractRunnable.java:52) ~[opensearch-3.1.0.jar:3.1.0]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596) ~[?:?]
+	at org.opensearch.cluster.NodeConnectionsService.connectToNodes(NodeConnectionsService.java:164) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterApplierService.connectToNodesAndWait(ClusterApplierService.java:603) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterApplierService.applyChanges(ClusterApplierService.java:566) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterApplierService.runTask(ClusterApplierService.java:500) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterApplierService$UpdateTask.run(ClusterApplierService.java:204) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.ThreadContext$ContextPreservingRunnable.run(ThreadContext.java:916) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.PrioritizedOpenSearchThreadPoolExecutor$TieBreakingPrioritizedRunnable.runAndClean(PrioritizedOpenSearchThreadPoolExecutor.java:299) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.PrioritizedOpenSearchThreadPoolExecutor$TieBreakingPrioritizedRunnable.run(PrioritizedOpenSearchThreadPoolExecutor.java:262) ~[opensearch-3.1.0.jar:3.1.0]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: 127.0.0.1/127.0.0.1:41673
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[?:?]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682) ~[?:?]
+	at java.base/sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:973) ~[?:?]
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:336) ~[?:?]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:339) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:784) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysPlain(NioEventLoop.java:697) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:660) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[?:?]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998) ~[?:?]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[?:?]
+	... 1 more
+[2025-08-30T07:06:28,535][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [], current [{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, term: 2, version: 10, reason: ApplyCommitRequest{term=2, version=10, sourceNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}}
+[2025-08-30T07:06:28,595][INFO ][o.o.d.PeerFinder         ] [sqlBwcCluster0-2] setting findPeersInterval to [1s] as node commission status = [true] for local node [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T07:06:28,660][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] removed {{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{wxkSefowTZqObQi3oyWlIw}{127.0.0.1}{127.0.0.1:41673}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}}, term: 2, version: 11, reason: ApplyCommitRequest{term=2, version=11, sourceNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}}
+[2025-08-30T07:06:43,196][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] added {{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{qj5JWGxARZ2MOMvS-CursQ}{127.0.0.1}{127.0.0.1:38303}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}}, term: 2, version: 12, reason: ApplyCommitRequest{term=2, version=12, sourceNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}}
+[2025-08-30T07:06:44,712][INFO ][o.o.i.r.RecoverySourceHandler] [sqlBwcCluster0-2] [opensearch-sql_test_index_account][0][recover to sqlBwcCluster0-0] finalizing recovery took [35.1ms]
+[2025-08-30T07:06:47,745][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [21f0e3b4-4630-4bc7-a718-f94857657ed6] Incoming request /_plugins/_sql
+[2025-08-30T07:06:47,970][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( * ) FILTER ( WHERE identifier > number ) FROM table )
+[2025-08-30T07:06:48,152][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [21f0e3b4-4630-4bc7-a718-f94857657ed6] Request is handled by new SQL query engine
+[2025-08-30T07:06:48,241][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [2c059636-00d9-42fd-8d2f-c60db7881c1a] Incoming request /_plugins/_sql
+[2025-08-30T07:06:48,247][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( DISTINCT identifier ) FROM table )
+[2025-08-30T07:06:48,372][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [2c059636-00d9-42fd-8d2f-c60db7881c1a] Request is handled by new SQL query engine
+[2025-08-30T07:06:50,774][INFO ][o.o.c.c.Coordinator      ] [sqlBwcCluster0-2] cluster-manager node [{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}] failed, restarting discovery
+org.opensearch.transport.NodeDisconnectedException: [sqlBwcCluster0-1][127.0.0.1:33817][disconnected] disconnected
+[2025-08-30T07:06:50,775][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}], current []}, term: 2, version: 14, reason: becoming candidate: onLeaderFailure
+[2025-08-30T07:06:50,784][WARN ][o.o.c.NodeConnectionsService] [sqlBwcCluster0-2] failed to connect to {sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} (tried [1] times)
+org.opensearch.transport.ConnectTransportException: [sqlBwcCluster0-1][127.0.0.1:33817] connect_exception
+	at org.opensearch.transport.TcpTransport$ChannelsConnectedListener.onFailure(TcpTransport.java:1078) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.core.action.ActionListener.lambda$toBiConsumer$2(ActionListener.java:217) ~[opensearch-core-3.1.0.jar:3.1.0]
+	at org.opensearch.common.concurrent.CompletableContext.lambda$addListener$0(CompletableContext.java:57) ~[opensearch-common-3.1.0.jar:3.1.0]
+	at java.base/java.util.concurrent.CompletableFuture.uniWhenComplete(CompletableFuture.java:863) ~[?:?]
+	at java.base/java.util.concurrent.CompletableFuture$UniWhenComplete.tryFire(CompletableFuture.java:841) ~[?:?]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510) ~[?:?]
+	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194) ~[?:?]
+	at org.opensearch.common.concurrent.CompletableContext.completeExceptionally(CompletableContext.java:72) ~[opensearch-common-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.netty4.Netty4TcpChannel.lambda$addListener$0(Netty4TcpChannel.java:83) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642) ~[?:?]
+	at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131) ~[?:?]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.fulfillConnectPromise(AbstractNioChannel.java:326) ~[?:?]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:342) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:784) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysPlain(NioEventLoop.java:697) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:660) ~[?:?]
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[?:?]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998) ~[?:?]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[?:?]
+	at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: 127.0.0.1/127.0.0.1:33817
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[?:?]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682) ~[?:?]
+	at java.base/sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:973) ~[?:?]
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:336) ~[?:?]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:339) ~[?:?]
+	... 7 more
+[2025-08-30T07:06:50,891][INFO ][o.o.c.s.ClusterManagerService] [sqlBwcCluster0-2] Tasks batched with key: org.opensearch.cluster.coordination.JoinHelper, count:4 and sample tasks: elected-as-cluster-manager ([2] nodes joined)[{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} elect leader, {sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{qj5JWGxARZ2MOMvS-CursQ}{127.0.0.1}{127.0.0.1:38303}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true} elect leader, _BECOME_CLUSTER_MANAGER_TASK_, _FINISH_ELECTION_], term: 3, version: 15, delta: cluster-manager node changed {previous [], current [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}
+[2025-08-30T07:06:50,909][INFO ][o.o.c.c.FollowersChecker ] [sqlBwcCluster0-2] FollowerChecker{discoveryNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}, failureCountSinceLastSuccess=1, [cluster.fault_detection.follower_check.retry_count]=3} disconnected
+org.opensearch.transport.NodeNotConnectedException: [sqlBwcCluster0-1][127.0.0.1:33817] Node not connected
+	at org.opensearch.transport.ClusterConnectionManager.getConnection(ClusterConnectionManager.java:223) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.TransportService.getConnection(TransportService.java:898) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.transport.TransportService.sendRequest(TransportService.java:857) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.coordination.FollowersChecker$FollowerChecker.handleWakeUp(FollowersChecker.java:370) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.coordination.FollowersChecker$FollowerChecker.start(FollowersChecker.java:358) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.coordination.FollowersChecker.lambda$setCurrentNodes$2(FollowersChecker.java:200) ~[opensearch-3.1.0.jar:3.1.0]
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197) ~[?:?]
+	at java.base/java.util.Collections$UnmodifiableMap$UnmodifiableEntrySet.lambda$entryConsumer$0(Collections.java:1778) ~[?:?]
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133) ~[?:?]
+	at java.base/java.util.Collections$UnmodifiableMap$UnmodifiableEntrySet$1.forEachRemaining(Collections.java:1871) ~[?:?]
+	at java.base/java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1939) ~[?:?]
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509) ~[?:?]
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499) ~[?:?]
+	at java.base/java.util.stream.StreamSpliterators$WrappingSpliterator.forEachRemaining(StreamSpliterators.java:310) ~[?:?]
+	at java.base/java.util.stream.Streams$ConcatSpliterator.forEachRemaining(Streams.java:734) ~[?:?]
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762) ~[?:?]
+	at org.opensearch.cluster.coordination.FollowersChecker.setCurrentNodes(FollowersChecker.java:193) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.coordination.Coordinator.publish(Coordinator.java:1419) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterManagerService.publish(ClusterManagerService.java:361) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterManagerService.runTasks(ClusterManagerService.java:343) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.ClusterManagerService$Batcher.run(ClusterManagerService.java:214) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.TaskBatcher.runIfNotProcessed(TaskBatcher.java:206) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.cluster.service.TaskBatcher$BatchedTask.run(TaskBatcher.java:264) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.ThreadContext$ContextPreservingRunnable.run(ThreadContext.java:916) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.PrioritizedOpenSearchThreadPoolExecutor$TieBreakingPrioritizedRunnable.runAndClean(PrioritizedOpenSearchThreadPoolExecutor.java:299) ~[opensearch-3.1.0.jar:3.1.0]
+	at org.opensearch.common.util.concurrent.PrioritizedOpenSearchThreadPoolExecutor$TieBreakingPrioritizedRunnable.run(PrioritizedOpenSearchThreadPoolExecutor.java:262) ~[opensearch-3.1.0.jar:3.1.0]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
+[2025-08-30T07:06:50,913][INFO ][o.o.c.c.FollowersChecker ] [sqlBwcCluster0-2] FollowerChecker{discoveryNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}, failureCountSinceLastSuccess=1, [cluster.fault_detection.follower_check.retry_count]=3} marking node as faulty
+[2025-08-30T07:06:50,982][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [], current [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, term: 3, version: 15, reason: Publication{term=3, version=15}
+[2025-08-30T07:06:51,005][INFO ][o.o.d.PeerFinder         ] [sqlBwcCluster0-2] setting findPeersInterval to [1s] as node commission status = [true] for local node [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{WSF99lRvSDaiKMU70zYYvg}{127.0.0.1}{127.0.0.1:35631}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T07:06:51,028][INFO ][o.o.c.s.ClusterManagerService] [sqlBwcCluster0-2] Tasks batched with key: org.opensearch.cluster.coordination.NodeRemovalClusterStateTaskExecutor@77d57801, count:1 and sample tasks: node-left[{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} reason: disconnected], term: 3, version: 16, delta: removed {{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}}
+[2025-08-30T07:06:51,046][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] removed {{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{0InP67JmRXCpazeZzw72kg}{127.0.0.1}{127.0.0.1:33817}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}}, term: 3, version: 16, reason: Publication{term=3, version=16}
+[2025-08-30T07:07:05,732][INFO ][o.o.c.s.ClusterManagerService] [sqlBwcCluster0-2] Tasks batched with key: org.opensearch.cluster.coordination.JoinHelper, count:1 and sample tasks: node-join[{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true} join existing leader], term: 3, version: 17, delta: added {{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}}
+[2025-08-30T07:07:05,793][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] added {{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}}, term: 3, version: 17, reason: Publication{term=3, version=17}
+[2025-08-30T07:07:09,601][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [d34b02eb-d462-4d8e-872c-83519adf7885] Incoming request /_plugins/_sql
+[2025-08-30T07:07:09,605][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( * ) FILTER ( WHERE identifier > number ) FROM table )
+[2025-08-30T07:07:09,612][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [d34b02eb-d462-4d8e-872c-83519adf7885] Request is handled by new SQL query engine
+[2025-08-30T07:07:09,639][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [8150c1cb-1496-43e9-ae5f-0305af52d6ab] Incoming request /_plugins/_sql
+[2025-08-30T07:07:09,640][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( DISTINCT identifier ) FROM table )
+[2025-08-30T07:07:09,652][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [8150c1cb-1496-43e9-ae5f-0305af52d6ab] Request is handled by new SQL query engine
+[2025-08-30T07:07:10.749644514Z] [BUILD] Stopping node
+[2025-08-30T07:07:10.801295057Z] [BUILD] Switch version from 3.1.0 to 3.2.0-SNAPSHOT
+[2025-08-30T07:07:10.801923091Z] [BUILD] Configuring custom cluster specific distro directory: /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE
+[2025-08-30T07:07:11.312759166Z] [BUILD] Copying additional config files from distro [/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE/config/opensearch.yml, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE/config/log4j2.properties, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE/config/fips_java.security, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE/config/jvm.options.d, /__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE/config/jvm.options]
+[2025-08-30T07:07:11.313955462Z] [BUILD] installing 2 plugins in a single transaction
+[2025-08-30T07:07:13.684711757Z] [BUILD] installed plugins
+[2025-08-30T07:07:13.684806584Z] [BUILD] Creating opensearch keystore with password set to []
+[2025-08-30T07:07:14.595630758Z] [BUILD] Starting OpenSearch process
+[2025-08-30T07:07:18,622][WARN ][stderr                   ] [sqlBwcCluster0-2] Aug 30, 2025 7:07:18 AM org.opensearch.javaagent.bootstrap.AgentPolicy setPolicy
+[2025-08-30T07:07:18,625][WARN ][stderr                   ] [sqlBwcCluster0-2] INFO: Policy attached successfully: org.opensearch.bootstrap.OpenSearchPolicy@4adc663e
+[2025-08-30T07:07:18,639][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] version[3.2.0-SNAPSHOT], pid[5063], build[tar/6adc0bf476e1624190564d7fbe4aba00ccf49ad8/2025-08-14T03:26:35.788749688Z], OS[Linux/6.11.0-1018-azure/amd64], JVM[Eclipse Adoptium/OpenJDK 64-Bit Server VM/21.0.8/21.0.8+9-LTS]
+[2025-08-30T07:07:18,640][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] JVM home [/__t/Java_Temurin-Hotspot_jdk/21.0.8-9.0.LTS/x64], using bundled JDK/JRE [false]
+[2025-08-30T07:07:18,640][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] JVM arguments [-Xshare:auto, -Dopensearch.networkaddress.cache.ttl=60, -Dopensearch.networkaddress.cache.negative.ttl=10, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -XX:-OmitStackTraceInFastThrow, -XX:+ShowCodeDetailsInExceptionMessages, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dio.netty.allocator.numDirectArenas=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Djava.locale.providers=SPI,CLDR, -Xms1g, -Xmx1g, -XX:+UseG1GC, -XX:G1ReservePercent=25, -XX:InitiatingHeapOccupancyPercent=30, -Djava.io.tmpdir=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/tmp, -XX:+HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath=logs, -XX:ErrorFile=logs/hs_err_pid%p.log, -Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m, --add-modules=jdk.incubator.vector, -javaagent:agent/opensearch-agent.jar, --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED, -Xms512m, -Xmx512m, -ea, -esa, -XX:MaxDirectMemorySize=268435456, -Dopensearch.path.home=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/distro/3.2.0-ARCHIVE, -Dopensearch.path.conf=/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/config, -Dopensearch.distribution.type=tar, -Dopensearch.bundled_jdk=true]
+[2025-08-30T07:07:18,640][WARN ][o.o.n.Node               ] [sqlBwcCluster0-2] version [3.2.0-SNAPSHOT] is a pre-release version of OpenSearch and is not suitable for production
+[2025-08-30T07:07:18,793][WARN ][stderr                   ] [sqlBwcCluster0-2] Aug 30, 2025 7:07:18 AM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+[2025-08-30T07:07:18,794][WARN ][stderr                   ] [sqlBwcCluster0-2] INFO: Java vector incubator API enabled; uses preferredBitSize=256; FMA enabled
+[2025-08-30T07:07:19,323][INFO ][o.o.i.r.ReindexModulePlugin] [sqlBwcCluster0-2] ReindexPlugin reloadSPI called
+[2025-08-30T07:07:19,324][INFO ][o.o.i.r.ReindexModulePlugin] [sqlBwcCluster0-2] Unable to find any implementation for RemoteReindexExtension
+[2025-08-30T07:07:19,331][INFO ][o.o.j.JobSchedulerPlugin ] [sqlBwcCluster0-2] Loaded scheduler extension: async-query-scheduler, index: .async-query-scheduler
+[2025-08-30T07:07:19,334][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [aggs-matrix-stats]
+[2025-08-30T07:07:19,334][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [analysis-common]
+[2025-08-30T07:07:19,334][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [cache-common]
+[2025-08-30T07:07:19,335][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [geo]
+[2025-08-30T07:07:19,335][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-common]
+[2025-08-30T07:07:19,335][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-geoip]
+[2025-08-30T07:07:19,335][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [ingest-user-agent]
+[2025-08-30T07:07:19,336][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-expression]
+[2025-08-30T07:07:19,336][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-mustache]
+[2025-08-30T07:07:19,336][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [lang-painless]
+[2025-08-30T07:07:19,336][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [mapper-extras]
+[2025-08-30T07:07:19,337][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [opensearch-dashboards]
+[2025-08-30T07:07:19,337][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [parent-join]
+[2025-08-30T07:07:19,337][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [percolator]
+[2025-08-30T07:07:19,337][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [rank-eval]
+[2025-08-30T07:07:19,337][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [reindex]
+[2025-08-30T07:07:19,338][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [repository-url]
+[2025-08-30T07:07:19,338][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [rule-framework]
+[2025-08-30T07:07:19,338][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [search-pipeline-common]
+[2025-08-30T07:07:19,338][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [systemd]
+[2025-08-30T07:07:19,339][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [test-delayed-aggs]
+[2025-08-30T07:07:19,339][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [transport-grpc]
+[2025-08-30T07:07:19,339][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded module [transport-netty4]
+[2025-08-30T07:07:19,339][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded plugin [opensearch-job-scheduler]
+[2025-08-30T07:07:19,340][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] loaded plugin [opensearch-sql]
+[2025-08-30T07:07:19,373][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: A restricted method in java.lang.foreign.Linker has been called
+[2025-08-30T07:07:19,373][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+[2025-08-30T07:07:19,373][WARN ][stderr                   ] [sqlBwcCluster0-2] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+[2025-08-30T07:07:19,463][INFO ][o.o.e.NodeEnvironment    ] [sqlBwcCluster0-2] using [1] data paths, mounts [[/__w (/dev/root)]], net usable_space [6.6gb], net total_space [71.6gb], types [ext4]
+[2025-08-30T07:07:19,463][INFO ][o.o.e.NodeEnvironment    ] [sqlBwcCluster0-2] heap size [512mb], compressed ordinary object pointers [true]
+[2025-08-30T07:07:19,559][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] node name [sqlBwcCluster0-2], node ID [53eOc4VcQr-aSPYpoFMlEQ], cluster name [sqlBwcCluster0], roles [ingest, remote_cluster_client, data, cluster_manager]
+[2025-08-30T07:07:19,591][INFO ][o.o.e.ExtensionsManager  ] [sqlBwcCluster0-2] ExtensionsManager initialized
+[2025-08-30T07:07:21,083][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[2025-08-30T07:07:21,084][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[2025-08-30T07:07:21,084][WARN ][stderr                   ] [sqlBwcCluster0-2] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[2025-08-30T07:07:23,109][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [sqlBwcCluster0-2] Registered 4 built-in query converters
+[2025-08-30T07:07:23,110][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [sqlBwcCluster0-2] Loaded 0 external query converters (0 failed)
+[2025-08-30T07:07:23,183][WARN ][o.o.s.p.SQLPlugin        ] [sqlBwcCluster0-2] Master key is a required config for using create and update datasource APIs. Please set plugins.query.datasources.encryption.masterkey config in opensearch.yml in all the cluster nodes. More details can be found here: https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/admin/datasources.rst#master-key-config-for-encrypting-credential-information
+[2025-08-30T07:07:23,414][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: COALESCE. Will skip its type checking
+[2025-08-30T07:07:23,415][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: array. Will skip its type checking
+[2025-08-30T07:07:23,416][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: forall. Will skip its type checking
+[2025-08-30T07:07:23,416][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: exists. Will skip its type checking
+[2025-08-30T07:07:23,416][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: filter. Will skip its type checking
+[2025-08-30T07:07:23,416][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: transform. Will skip its type checking
+[2025-08-30T07:07:23,416][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: reduce. Will skip its type checking
+[2025-08-30T07:07:23,417][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T07:07:23,417][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T07:07:23,417][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T07:07:23,417][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T07:07:23,417][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T07:07:23,418][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T07:07:23,418][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T07:07:23,422][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: INTERNAL_PATTERN. Will skip its type checking
+[2025-08-30T07:07:23,423][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: COUNT. Will skip its type checking
+[2025-08-30T07:07:23,423][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: EARLIEST. Will skip its type checking
+[2025-08-30T07:07:23,424][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: LATEST. Will skip its type checking
+[2025-08-30T07:07:23,424][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:23,426][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:23,482][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:23,483][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:23,483][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:23,483][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:23,484][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:23,484][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:23,796][INFO ][o.o.t.NettyAllocator     ] [sqlBwcCluster0-2] creating NettyAllocator with the following configs: [name=unpooled, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_unpooled_allocator=null, g1gc_enabled=true, g1gc_region_size=1mb, heap_size=512mb}]
+[2025-08-30T07:07:23,868][INFO ][o.o.d.DiscoveryModule    ] [sqlBwcCluster0-2] using discovery type [zen] and seed hosts providers [settings, file]
+[2025-08-30T07:07:24,146][WARN ][o.o.g.DanglingIndicesState] [sqlBwcCluster0-2] gateway.auto_import_dangling_indices is disabled, dangling indices will not be automatically detected or imported and must be managed manually
+[2025-08-30T07:07:24,167][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:24,167][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T07:07:24,168][INFO ][o.o.s.e.f.PPLFuncImpTable] [sqlBwcCluster0-2] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T07:07:24,408][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] initialized
+[2025-08-30T07:07:24,409][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] starting ...
+[2025-08-30T07:07:24,523][INFO ][o.o.t.TransportService   ] [sqlBwcCluster0-2] publish_address {127.0.0.1:44085}, bound_addresses {[::1]:37637}, {127.0.0.1:44085}
+[2025-08-30T07:07:24,524][INFO ][o.o.t.TransportService   ] [sqlBwcCluster0-2] Remote clusters initialized successfully.
+[2025-08-30T07:07:24,730][INFO ][o.o.c.c.Coordinator      ] [sqlBwcCluster0-2] cluster UUID [M7GO06crQxy42AR2XX-s0A]
+[2025-08-30T07:07:24,738][WARN ][o.o.d.FileBasedSeedHostsProvider] [sqlBwcCluster0-2] expected, but did not find, a dynamic hosts list at [/__w/sql/sql/integ-test/build/testclusters/sqlBwcCluster0-2/config/unicast_hosts.txt]
+[2025-08-30T07:07:24,756][INFO ][o.o.h.AbstractHttpServerTransport] [sqlBwcCluster0-2] publish_address {127.0.0.1:42717}, bound_addresses {[::1]:35395}, {127.0.0.1:42717}
+[2025-08-30T07:07:24,758][INFO ][o.o.n.Node               ] [sqlBwcCluster0-2] started
+[2025-08-30T07:07:25,951][INFO ][o.o.c.s.ClusterApplierService] [sqlBwcCluster0-2] cluster-manager node changed {previous [], current [{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}]}, added {{sqlBwcCluster0-0}{qg9le9WxTi6Lb48ltWHjHA}{qj5JWGxARZ2MOMvS-CursQ}{127.0.0.1}{127.0.0.1:38303}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true},{sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}}, term: 4, version: 20, reason: ApplyCommitRequest{term=4, version=20, sourceNode={sqlBwcCluster0-1}{OP96HTQwT9W9JCo3NMF-lQ}{h-xb0y5gTXKtc9NZxCWRLQ}{127.0.0.1}{127.0.0.1:40523}{dimr}}
+[2025-08-30T07:07:25,968][INFO ][o.o.d.PeerFinder         ] [sqlBwcCluster0-2] setting findPeersInterval to [1s] as node commission status = [true] for local node [{sqlBwcCluster0-2}{53eOc4VcQr-aSPYpoFMlEQ}{ehbzsRkITAKJXo3Z6rnu_A}{127.0.0.1}{127.0.0.1:44085}{dimr}{upgraded=true, testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T07:07:26,048][INFO ][o.o.p.PluginsService     ] [sqlBwcCluster0-2] PluginService:onIndexModule index:[opensearch-sql_test_index_account/QnhKMRR7QIyN8SdiFnPNrA]
+[2025-08-30T07:07:30,971][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [9e78a54e-eb2a-498a-9d4f-dfd6651315fd] Incoming request /_plugins/_sql
+[2025-08-30T07:07:31,226][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( * ) FILTER ( WHERE identifier > number ) FROM table )
+[2025-08-30T07:07:31,433][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [9e78a54e-eb2a-498a-9d4f-dfd6651315fd] Request is handled by new SQL query engine
+[2025-08-30T07:07:31,499][INFO ][o.o.s.l.p.RestSqlAction  ] [sqlBwcCluster0-2] [b9efc8a1-478b-4955-a1e2-6a0b6ba921e6] Incoming request /_plugins/_sql
+[2025-08-30T07:07:31,504][INFO ][o.o.s.s.a.SQLSyntaxParser] [sqlBwcCluster0-2] New Engine Request Query: ( SELECT COUNT ( DISTINCT identifier ) FROM table )
+[2025-08-30T07:07:31,527][INFO ][o.o.s.l.p.RestSQLQueryAction] [sqlBwcCluster0-2] [b9efc8a1-478b-4955-a1e2-6a0b6ba921e6] Request is handled by new SQL query engine
+[2025-08-30T07:07:31.895351149Z] [BUILD] Stopping node

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchEvalOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchEvalOperator.java</span></div><h1>OpenSearchEvalOperator.java</h1><pre class="source lang-java linenums">/*
+ *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import static org.opensearch.sql.expression.env.Environment.extendEnv;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.Getter;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.transport.client.node.NodeClient;
+
+/**
+ * OpenSearch version of eval operator, which contains nodeClient, in order to perform OpenSearch
+ * specific operations during the eval process.
+ */
+public class OpenSearchEvalOperator extends EvalOperator {
+
+  @Getter private final NodeClient nodeClient;
+
+  public OpenSearchEvalOperator(
+      PhysicalPlan input,
+      List&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressionList,
+      NodeClient nodeClient) {
+<span class="fc" id="L38">    super(input, expressionList);</span>
+<span class="fc" id="L39">    this.nodeClient = nodeClient;</span>
+<span class="fc" id="L40">  }</span>
+
+  /**
+   * Evaluate the expression in the {@link EvalOperator} with {@link Environment}.
+   *
+   * @param env {@link Environment}
+   * @return The mapping of reference and {@link ExprValue} for each expression.
+   */
+  @Override
+  protected Map&lt;String, ExprValue&gt; eval(Environment&lt;Expression, ExprValue&gt; env) {
+<span class="fc" id="L50">    Map&lt;String, ExprValue&gt; evalResultMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    for (Pair&lt;ReferenceExpression, Expression&gt; pair : this.getExpressionList()) {</span>
+      ExprValue value;
+<span class="fc bfc" id="L53" title="All 2 branches covered.">      if (pair.getValue()</span>
+<span class="fc" id="L54">          instanceof OpenSearchFunctions.OpenSearchExecutableFunction openSearchExpr) {</span>
+<span class="fc" id="L55">        value = OpenSearchEvalProcessor.process(openSearchExpr, env, nodeClient);</span>
+      } else {
+<span class="fc" id="L57">        value = pair.getValue().valueOf(env);</span>
+      }
+<span class="fc" id="L59">      ReferenceExpression var = pair.getKey();</span>
+<span class="fc" id="L60">      env = extendEnv(env, var, value);</span>
+<span class="fc" id="L61">      evalResultMap.put(var.toString(), value);</span>
+<span class="fc" id="L62">    }</span>
+<span class="fc" id="L63">    return evalResultMap;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

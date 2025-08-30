@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SerializablePlan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner</a> &gt; <span class="el_source">SerializablePlan.java</span></div><h1>SerializablePlan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner;
+
+import java.io.Externalizable;
+
+/**
+ * All subtypes of PhysicalPlan which needs to be serialized (in cursor, for pagination feature)
+ * should follow one of the following options.
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Both:
+ *       &lt;ul&gt;
+ *         &lt;li&gt;Override both methods from {@link Externalizable}.
+ *         &lt;li&gt;Define a public no-arg constructor.
+ *       &lt;/ul&gt;
+ *   &lt;li&gt;Overwrite {@link #getPlanForSerialization} to return another instance of {@link
+ *       SerializablePlan}.
+ * &lt;/ul&gt;
+ */
+public interface SerializablePlan extends Externalizable {
+
+  /**
+   * Override to return child or delegated plan, so parent plan should skip this one for
+   * serialization, but it should try to serialize grandchild plan. Imagine plan structure like this
+   *
+   * &lt;pre&gt;
+   *    A         -&gt; this
+   *    `- B      -&gt; child
+   *      `- C    -&gt; this
+   * &lt;/pre&gt;
+   *
+   * In that case only plans A and C should be attempted to serialize. It is needed to skip a
+   * `ResourceMonitorPlan` instance only, actually.
+   *
+   * &lt;pre&gt;{@code
+   * * A.writeObject(B.getPlanForSerialization());
+   *
+   * }&lt;/pre&gt;
+   *
+   * @return Next plan for serialization.
+   */
+  default SerializablePlan getPlanForSerialization() {
+<span class="fc" id="L47">    return this;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

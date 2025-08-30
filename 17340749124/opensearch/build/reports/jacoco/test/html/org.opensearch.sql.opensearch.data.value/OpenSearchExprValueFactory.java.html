@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchExprValueFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.value</a> &gt; <span class="el_source">OpenSearchExprValueFactory.java</span></div><h1>OpenSearchExprValueFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.value;
+
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import lombok.Getter;
+import lombok.Setter;
+import org.opensearch.OpenSearchParseException;
+import org.opensearch.common.time.DateFormatter;
+import org.opensearch.common.time.DateFormatters;
+import org.opensearch.common.time.FormatNames;
+import org.opensearch.index.mapper.DateFieldMapper;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprByteValue;
+import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.data.utils.Content;
+import org.opensearch.sql.opensearch.data.utils.ObjectContent;
+import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+
+/** Construct ExprValue from OpenSearch response. */
+public class OpenSearchExprValueFactory {
+  /** The Mapping of Field and ExprType. */
+  private final Map&lt;String, OpenSearchDataType&gt; typeMapping;
+
+  /** Whether to support nested value types (such as arrays) */
+  private final boolean fieldTypeTolerance;
+
+  /**
+   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
+   * AggregationQueryBuilder#buildTypeMapping}.
+   *
+   * @param typeMapping A data type mapping produced by aggregation.
+   */
+  public void extendTypeMapping(Map&lt;String, OpenSearchDataType&gt; typeMapping) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    for (var field : typeMapping.keySet()) {</span>
+      // Prevent overwriting, because aggregation engine may be not aware
+      // of all niceties of all types.
+<span class="fc" id="L91">      this.typeMapping.putIfAbsent(field, typeMapping.get(field));</span>
+<span class="fc" id="L92">    }</span>
+<span class="fc" id="L93">  }</span>
+
+  @Getter @Setter private OpenSearchAggregationResponseParser parser;
+
+  private static final String TOP_PATH = &quot;&quot;;
+
+<span class="fc" id="L99">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
+
+<span class="fc" id="L101">  private static final Map&lt;ExprType, BiFunction&lt;Content, ExprType, ExprValue&gt;&gt; typeActionMap =</span>
+      new ImmutableMap.Builder&lt;ExprType, BiFunction&lt;Content, ExprType, ExprValue&gt;&gt;()
+<span class="fc" id="L103">          .put(</span>
+<span class="fc" id="L104">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),</span>
+<span class="fc" id="L105">              (c, dt) -&gt; new ExprIntegerValue(c.intValue()))</span>
+<span class="fc" id="L106">          .put(</span>
+<span class="fc" id="L107">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Long),</span>
+<span class="fc" id="L108">              (c, dt) -&gt; new ExprLongValue(c.longValue()))</span>
+<span class="fc" id="L109">          .put(</span>
+<span class="fc" id="L110">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Short),</span>
+<span class="fc" id="L111">              (c, dt) -&gt; new ExprShortValue(c.shortValue()))</span>
+<span class="fc" id="L112">          .put(</span>
+<span class="fc" id="L113">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Byte),</span>
+<span class="fc" id="L114">              (c, dt) -&gt; new ExprByteValue(c.byteValue()))</span>
+<span class="fc" id="L115">          .put(</span>
+<span class="fc" id="L116">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Float),</span>
+<span class="fc" id="L117">              (c, dt) -&gt; new ExprFloatValue(c.floatValue()))</span>
+<span class="fc" id="L118">          .put(</span>
+<span class="fc" id="L119">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),</span>
+<span class="fc" id="L120">              (c, dt) -&gt; new ExprDoubleValue(c.doubleValue()))</span>
+<span class="fc" id="L121">          .put(OpenSearchTextType.of(), (c, dt) -&gt; new OpenSearchExprTextValue(c.stringValue()))</span>
+<span class="fc" id="L122">          .put(</span>
+<span class="fc" id="L123">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),</span>
+<span class="fc" id="L124">              (c, dt) -&gt; new ExprStringValue(c.stringValue()))</span>
+<span class="fc" id="L125">          .put(</span>
+<span class="fc" id="L126">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),</span>
+<span class="fc" id="L127">              (c, dt) -&gt; ExprBooleanValue.of(c.booleanValue()))</span>
+          // Handles the creation of DATE, TIME &amp; DATETIME
+<span class="fc" id="L129">          .put(OpenSearchDateType.of(TIME), OpenSearchExprValueFactory::createOpenSearchDateType)</span>
+<span class="fc" id="L130">          .put(OpenSearchDateType.of(DATE), OpenSearchExprValueFactory::createOpenSearchDateType)</span>
+<span class="fc" id="L131">          .put(</span>
+<span class="fc" id="L132">              OpenSearchDateType.of(TIMESTAMP),</span>
+              OpenSearchExprValueFactory::createOpenSearchDateType)
+<span class="fc" id="L134">          .put(</span>
+<span class="fc" id="L135">              OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),</span>
+<span class="fc" id="L136">              (c, dt) -&gt; new ExprIpValue(c.stringValue()))</span>
+<span class="fc" id="L137">          .put(</span>
+<span class="fc" id="L138">              OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),</span>
+<span class="fc" id="L139">              (c, dt) -&gt; new OpenSearchExprBinaryValue(c.stringValue()))</span>
+<span class="fc" id="L140">          .build();</span>
+
+  /** Constructor of OpenSearchExprValueFactory. */
+  public OpenSearchExprValueFactory(
+<span class="fc" id="L144">      Map&lt;String, OpenSearchDataType&gt; typeMapping, boolean fieldTypeTolerance) {</span>
+<span class="fc" id="L145">    this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);</span>
+<span class="fc" id="L146">    this.fieldTypeTolerance = fieldTypeTolerance;</span>
+<span class="fc" id="L147">  }</span>
+
+  /**
+   *
+   *
+   * &lt;pre&gt;
+   * The struct construction has the following assumption:
+   *  1. The field has OpenSearch Object data type.
+   *     See &lt;a href=&quot;https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html&quot;&gt;
+   *       docs&lt;/a&gt;
+   *  2. The deeper field is flattened in the typeMapping. e.g.
+   *     { &quot;employ&quot;,       &quot;STRUCT&quot;  }
+   *     { &quot;employ.id&quot;,    &quot;INTEGER&quot; }
+   *     { &quot;employ.state&quot;, &quot;STRING&quot;  }
+   *  &lt;/pre&gt;
+   */
+  public ExprValue construct(String jsonString, boolean supportArrays) {
+    try {
+<span class="fc" id="L165">      return parse(</span>
+<span class="fc" id="L166">          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),</span>
+          TOP_PATH,
+<span class="fc bfc" id="L168" title="All 4 branches covered.">          Optional.of(STRUCT),</span>
+          fieldTypeTolerance || supportArrays);
+<span class="fc" id="L170">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L171">      throw new IllegalStateException(String.format(&quot;invalid json: %s.&quot;, jsonString), e);</span>
+    }
+  }
+
+  /**
+   * Construct ExprValue from field and its value object. Throw exception if trying to construct
+   * from field of unsupported type.&lt;br&gt;
+   * Todo, add IP, GeoPoint support after we have function implementation around it.
+   *
+   * @param field field name
+   * @param value value object
+   * @return ExprValue
+   */
+  public ExprValue construct(String field, Object value, boolean supportArrays) {
+<span class="fc" id="L185">    return parse(new ObjectContent(value), field, type(field), supportArrays);</span>
+  }
+
+  private ExprValue parse(
+      Content content, String field, Optional&lt;ExprType&gt; fieldType, boolean supportArrays) {
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (content.isNull()) {</span>
+<span class="fc" id="L191">      return ExprNullValue.of();</span>
+    }
+
+    // Field type may be not defined in mapping if users have disabled dynamic mapping.
+    // Then try to parse content directly based on the value itself
+<span class="fc bfc" id="L196" title="All 2 branches covered.">    if (fieldType.isEmpty()) {</span>
+<span class="fc" id="L197">      return parseContent(content);</span>
+    }
+
+<span class="fc" id="L200">    final ExprType type = fieldType.get();</span>
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {</span>
+<span class="fc" id="L203">      return parseGeoPoint(content, supportArrays);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        || content.isArray()) {</span>
+<span class="fc" id="L206">      return parseArray(content, field, type, supportArrays);</span>
+<span class="fc bfc" id="L207" title="All 4 branches covered.">    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))</span>
+        || type == STRUCT) {
+<span class="fc" id="L209">      return parseStruct(content, field, supportArrays);</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">    } else if (typeActionMap.containsKey(type)) {</span>
+<span class="fc" id="L211">      return typeActionMap.get(type).apply(content, type);</span>
+    } else {
+<span class="fc" id="L213">      throw new IllegalStateException(</span>
+<span class="fc" id="L214">          String.format(</span>
+<span class="fc" id="L215">              &quot;Unsupported type: %s for value: %s.&quot;, type.typeName(), content.objectValue()));</span>
+    }
+  }
+
+  private ExprValue parseContent(Content content) {
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">    if (content.isNumber()) {</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">      if (content.isInt()) {</span>
+<span class="fc" id="L222">        return new ExprIntegerValue(content.intValue());</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">      } else if (content.isShort()) {</span>
+<span class="nc" id="L224">        return new ExprShortValue(content.shortValue());</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">      } else if (content.isByte()) {</span>
+<span class="nc" id="L226">        return new ExprByteValue(content.byteValue());</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">      } else if (content.isLong()) {</span>
+<span class="nc" id="L228">        return new ExprLongValue(content.longValue());</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">      } else if (content.isFloat()) {</span>
+<span class="nc" id="L230">        return new ExprFloatValue(content.floatValue());</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">      } else if (content.isDouble()) {</span>
+<span class="nc" id="L232">        return new ExprDoubleValue(content.doubleValue());</span>
+      } else {
+        // Default case for number, treat as double
+<span class="nc" id="L235">        return new ExprDoubleValue(content.doubleValue());</span>
+      }
+<span class="nc bnc" id="L237" title="All 2 branches missed.">    } else if (content.isString()) {</span>
+<span class="nc" id="L238">      return new ExprStringValue(content.stringValue());</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">    } else if (content.isBoolean()) {</span>
+<span class="nc" id="L240">      return ExprBooleanValue.of(content.booleanValue());</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">    } else if (content.isNull()) {</span>
+<span class="nc" id="L242">      return ExprNullValue.of();</span>
+    }
+    // Default case, treat as a string value
+<span class="nc" id="L245">    return new ExprStringValue(content.objectValue().toString());</span>
+  }
+
+  /**
+   * In OpenSearch, it is possible field doesn't have type definition in mapping. but has empty
+   * value. For example, {&quot;empty_field&quot;: []}.
+   */
+  private Optional&lt;ExprType&gt; type(String field) {
+<span class="fc" id="L253">    return Optional.ofNullable(typeMapping.get(field));</span>
+  }
+
+  /**
+   * Parse value with the first matching formatter into {@link ExprValue} with corresponding {@link
+   * ExprCoreType}.
+   *
+   * @param value - time as string
+   * @param dataType - field data type
+   * @return Parsed value
+   */
+  private static ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
+<span class="fc" id="L265">    List&lt;DateFormatter&gt; formatters = dataType.getAllNamedFormatters();</span>
+<span class="fc" id="L266">    formatters.addAll(dataType.getAllCustomFormatters());</span>
+<span class="fc" id="L267">    ExprCoreType returnFormat = dataType.getExprCoreType();</span>
+
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    for (DateFormatter formatter : formatters) {</span>
+      try {
+<span class="fc" id="L271">        TemporalAccessor accessor = formatter.parse(value);</span>
+<span class="fc" id="L272">        ZonedDateTime zonedDateTime = DateFormatters.from(accessor);</span>
+<span class="fc bfc" id="L273" title="All 3 branches covered.">        switch (returnFormat) {</span>
+          case TIME:
+<span class="fc" id="L275">            return new ExprTimeValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalTime());</span>
+          case DATE:
+<span class="fc" id="L277">            return new ExprDateValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalDate());</span>
+          default:
+<span class="fc" id="L279">            return new ExprTimestampValue(</span>
+<span class="fc" id="L280">                zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());</span>
+        }
+<span class="fc" id="L282">      } catch (IllegalArgumentException ignored) {</span>
+        // nothing to do, try another format
+      }
+<span class="fc" id="L285">    }</span>
+
+    // if no formatters are available, try the default formatter
+    try {
+<span class="fc bfc" id="L289" title="All 3 branches covered.">      switch (returnFormat) {</span>
+        case TIME:
+<span class="fc" id="L291">          return new ExprTimeValue(</span>
+<span class="fc" id="L292">              DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());</span>
+        case DATE:
+<span class="fc" id="L294">          return new ExprDateValue(</span>
+<span class="fc" id="L295">              DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());</span>
+        default:
+<span class="fc" id="L297">          return new ExprTimestampValue(</span>
+<span class="fc" id="L298">              DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))</span>
+<span class="fc" id="L299">                  .toInstant());</span>
+      }
+<span class="fc" id="L301">    } catch (DateTimeParseException | IllegalArgumentException ignored) {</span>
+      // ignored
+    }
+
+<span class="fc" id="L305">    throw new IllegalArgumentException(</span>
+<span class="fc" id="L306">        String.format(&quot;Construct %s from \&quot;%s\&quot; failed, unsupported format.&quot;, returnFormat, value));</span>
+  }
+
+  private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
+<span class="fc" id="L310">    OpenSearchDateType dt = (OpenSearchDateType) type;</span>
+<span class="fc" id="L311">    ExprCoreType returnFormat = dt.getExprCoreType();</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">    if (value.isNumber()) { // isNumber</span>
+<span class="fc" id="L313">      var numFormatters = dt.getNumericNamedFormatters();</span>
+<span class="fc bfc" id="L314" title="All 4 branches covered.">      if (numFormatters.size() &gt; 0 || !dt.hasFormats()) {</span>
+<span class="fc" id="L315">        long epochMillis = 0;</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">        if (numFormatters.contains(</span>
+<span class="fc" id="L317">            DateFormatter.forPattern(FormatNames.EPOCH_SECOND.getSnakeCaseName()))) {</span>
+          // no CamelCase for `EPOCH_*` formats
+<span class="fc" id="L319">          epochMillis = value.longValue() * 1000;</span>
+        } else /* EPOCH_MILLIS */ {
+<span class="fc" id="L321">          epochMillis = value.longValue();</span>
+        }
+<span class="fc" id="L323">        Instant instant = Instant.ofEpochMilli(epochMillis);</span>
+<span class="fc bfc" id="L324" title="All 3 branches covered.">        switch (returnFormat) {</span>
+          case TIME:
+<span class="fc" id="L326">            return new ExprTimeValue(LocalTime.from(instant.atZone(ZoneOffset.UTC)));</span>
+          case DATE:
+<span class="fc" id="L328">            return new ExprDateValue(LocalDate.ofInstant(instant, ZoneOffset.UTC));</span>
+          default:
+<span class="fc" id="L330">            return new ExprTimestampValue(instant);</span>
+        }
+      } else {
+        // custom format
+<span class="fc" id="L334">        return parseDateTimeString(value.objectValue().toString(), dt);</span>
+      }
+    }
+<span class="fc bfc" id="L337" title="All 2 branches covered.">    if (value.isString()) {</span>
+<span class="fc" id="L338">      return parseDateTimeString(value.stringValue(), dt);</span>
+    }
+
+<span class="fc" id="L341">    return new ExprTimestampValue((Instant) value.objectValue());</span>
+  }
+
+  /**
+   * Parse struct content.
+   *
+   * @param content Content to parse.
+   * @param prefix Prefix for Level of object depth to parse.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Value parsed from content.
+   */
+  private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
+<span class="fc" id="L353">    ExprTupleValue result = ExprTupleValue.empty();</span>
+<span class="fc" id="L354">    content</span>
+<span class="fc" id="L355">        .map()</span>
+<span class="fc" id="L356">        .forEachRemaining(</span>
+            entry -&gt;
+<span class="fc" id="L358">                populateValueRecursive(</span>
+                    result,
+<span class="fc" id="L360">                    new JsonPath(entry.getKey()),</span>
+<span class="fc" id="L361">                    parse(</span>
+<span class="fc" id="L362">                        entry.getValue(),</span>
+<span class="fc" id="L363">                        makeField(prefix, entry.getKey()),</span>
+<span class="fc" id="L364">                        type(makeField(prefix, entry.getKey())),</span>
+                        supportArrays)));
+<span class="fc" id="L366">    return result;</span>
+  }
+
+  /**
+   * Populate the current ExprTupleValue recursively.
+   *
+   * &lt;p&gt;If JsonPath is not a root path(i.e. has dot in its raw path), it needs update to its
+   * children recursively until the leaf node.
+   *
+   * &lt;p&gt;If there is existing vale for the JsonPath, we need to merge the new value to the old.
+   */
+  static void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+<span class="fc bfc" id="L378" title="All 2 branches covered.">    if (path.getPaths().size() == 1) {</span>
+      // Update the current ExprValue by using mergeTo if exists
+<span class="fc" id="L380">      result</span>
+<span class="fc" id="L381">          .tupleValue()</span>
+<span class="fc" id="L382">          .computeIfPresent(path.getRootPath(), (key, oldValue) -&gt; value.mergeTo(oldValue));</span>
+<span class="fc" id="L383">      result.tupleValue().putIfAbsent(path.getRootPath(), value);</span>
+    } else {
+<span class="fc" id="L385">      result.tupleValue().putIfAbsent(path.getRootPath(), ExprTupleValue.empty());</span>
+<span class="fc" id="L386">      populateValueRecursive(</span>
+<span class="fc" id="L387">          (ExprTupleValue) result.tupleValue().get(path.getRootPath()), path.getChildPath(), value);</span>
+    }
+<span class="fc" id="L389">  }</span>
+
+  @Getter
+  static class JsonPath {
+    private final List&lt;String&gt; paths;
+
+<span class="fc" id="L395">    public JsonPath(String rawPath) {</span>
+<span class="fc" id="L396">      this.paths = List.of(rawPath.split(&quot;\\.&quot;));</span>
+<span class="fc" id="L397">    }</span>
+
+<span class="fc" id="L399">    public JsonPath(List&lt;String&gt; paths) {</span>
+<span class="fc" id="L400">      this.paths = paths;</span>
+<span class="fc" id="L401">    }</span>
+
+    public String getRootPath() {
+<span class="fc" id="L404">      return paths.getFirst();</span>
+    }
+
+    public JsonPath getChildPath() {
+<span class="fc" id="L408">      return new JsonPath(paths.subList(1, paths.size()));</span>
+    }
+  }
+
+  /**
+   * Parse array content. Can also parse nested which isn't necessarily an array.
+   *
+   * @param content Content to parse.
+   * @param prefix Prefix for Level of object depth to parse.
+   * @param type Type of content parsing.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Value parsed from content.
+   */
+  private ExprValue parseArray(
+      Content content, String prefix, ExprType type, boolean supportArrays) {
+<span class="fc" id="L423">    List&lt;ExprValue&gt; result = new ArrayList&lt;&gt;();</span>
+
+    // ARRAY is mapped to nested but can take the json structure of an Object.
+<span class="fc bfc" id="L426" title="All 2 branches covered.">    if (content.objectValue() instanceof ObjectNode) {</span>
+<span class="fc" id="L427">      result.add(parseStruct(content, prefix, supportArrays));</span>
+      // non-object type arrays are only supported when parsing inner_hits of OS response.
+<span class="fc bfc" id="L429" title="All 2 branches covered.">    } else if (!(type instanceof OpenSearchDataType</span>
+<span class="fc bfc" id="L430" title="All 4 branches covered.">            &amp;&amp; ((OpenSearchDataType) type).getExprType().equals(ARRAY))</span>
+        &amp;&amp; !supportArrays) {
+<span class="fc" id="L432">      return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);</span>
+    } else {
+<span class="fc" id="L434">      content</span>
+<span class="fc" id="L435">          .array()</span>
+<span class="fc" id="L436">          .forEachRemaining(</span>
+              v -&gt; {
+<span class="fc" id="L438">                result.add(parseInnerArrayValue(v, prefix, type, supportArrays));</span>
+<span class="fc" id="L439">              });</span>
+    }
+<span class="fc" id="L441">    return new ExprCollectionValue(result);</span>
+  }
+
+  /**
+   * Parse geo point content.
+   *
+   * @param content Content to parse.
+   * @param supportArrays Parsing the whole array or not
+   * @return Geo point value parsed from content.
+   */
+  private ExprValue parseGeoPoint(Content content, boolean supportArrays) {
+    // there is only one point in doc.
+<span class="fc bfc" id="L453" title="All 2 branches covered.">    if (content.isArray() == false) {</span>
+<span class="fc" id="L454">      final var pair = content.geoValue();</span>
+<span class="fc" id="L455">      return new OpenSearchExprGeoPointValue(pair.getLeft(), pair.getRight());</span>
+    }
+
+<span class="fc" id="L458">    var elements = content.array();</span>
+<span class="fc" id="L459">    var first = elements.next();</span>
+    // an array in the [longitude, latitude] format.
+<span class="fc bfc" id="L461" title="All 2 branches covered.">    if (first.isNumber()) {</span>
+<span class="fc" id="L462">      double lon = first.doubleValue();</span>
+<span class="fc" id="L463">      var second = elements.next();</span>
+<span class="fc bfc" id="L464" title="All 2 branches covered.">      if (second.isNumber() == false) {</span>
+<span class="fc" id="L465">        throw new OpenSearchParseException(&quot;lat must be a number, got &quot; + second.objectValue());</span>
+      }
+<span class="fc" id="L467">      return new OpenSearchExprGeoPointValue(second.doubleValue(), lon);</span>
+    }
+
+    // there are multi points in doc
+<span class="fc" id="L471">    var pair = first.geoValue();</span>
+<span class="fc" id="L472">    var firstPoint = new OpenSearchExprGeoPointValue(pair.getLeft(), pair.getRight());</span>
+<span class="fc bfc" id="L473" title="All 2 branches covered.">    if (supportArrays) {</span>
+<span class="fc" id="L474">      List&lt;ExprValue&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L475">      result.add(firstPoint);</span>
+<span class="fc" id="L476">      elements.forEachRemaining(</span>
+          e -&gt; {
+<span class="fc" id="L478">            var p = e.geoValue();</span>
+<span class="fc" id="L479">            result.add(new OpenSearchExprGeoPointValue(p.getLeft(), p.getRight()));</span>
+<span class="fc" id="L480">          });</span>
+<span class="fc" id="L481">      return new ExprCollectionValue(result);</span>
+    } else {
+<span class="fc" id="L483">      return firstPoint;</span>
+    }
+  }
+
+  /**
+   * Parse inner array value. Can be object type and recurse continues.
+   *
+   * @param content Array index being parsed.
+   * @param prefix Prefix for value.
+   * @param type Type of inner array value.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Inner array value.
+   */
+  private ExprValue parseInnerArrayValue(
+      Content content, String prefix, ExprType type, boolean supportArrays) {
+<span class="fc bfc" id="L498" title="All 4 branches covered.">    if (type instanceof OpenSearchBinaryType || type instanceof OpenSearchDateType) {</span>
+<span class="fc" id="L499">      return parse(content, prefix, Optional.of(type), supportArrays);</span>
+<span class="fc bfc" id="L500" title="All 4 branches covered.">    } else if (content.isString() &amp;&amp; type.equals(OpenSearchDataType.of(IP))) {</span>
+<span class="fc" id="L501">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(IP)), supportArrays);</span>
+<span class="fc bfc" id="L502" title="All 2 branches covered.">    } else if (content.isString()) {</span>
+<span class="fc" id="L503">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);</span>
+<span class="fc bfc" id="L504" title="All 2 branches covered.">    } else if (content.isLong()) {</span>
+<span class="fc" id="L505">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(LONG)), supportArrays);</span>
+<span class="fc bfc" id="L506" title="All 2 branches covered.">    } else if (content.isFloat()) {</span>
+<span class="fc" id="L507">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(FLOAT)), supportArrays);</span>
+<span class="fc bfc" id="L508" title="All 2 branches covered.">    } else if (content.isDouble()) {</span>
+<span class="fc" id="L509">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(DOUBLE)), supportArrays);</span>
+<span class="fc bfc" id="L510" title="All 2 branches covered.">    } else if (content.isNumber()) {</span>
+<span class="fc" id="L511">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(INTEGER)), supportArrays);</span>
+<span class="fc bfc" id="L512" title="All 2 branches covered.">    } else if (content.isBoolean()) {</span>
+<span class="fc" id="L513">      return parse(content, prefix, Optional.of(OpenSearchDataType.of(BOOLEAN)), supportArrays);</span>
+    } else {
+<span class="fc" id="L515">      return parse(content, prefix, Optional.of(STRUCT), supportArrays);</span>
+    }
+  }
+
+  /**
+   * Make complete path string for field.
+   *
+   * @param path Path of field.
+   * @param field Field to append to path.
+   * @return Field appended to path level.
+   */
+  private String makeField(String path, String field) {
+<span class="fc bfc" id="L527" title="All 2 branches covered.">    return path.equalsIgnoreCase(TOP_PATH) ? field : String.join(&quot;.&quot;, path, field);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

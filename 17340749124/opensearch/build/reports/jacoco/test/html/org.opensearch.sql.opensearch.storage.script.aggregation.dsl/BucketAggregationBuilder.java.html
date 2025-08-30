@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BucketAggregationBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation.dsl</a> &gt; <span class="el_source">BucketAggregationBuilder.java</span></div><h1>BucketAggregationBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
+
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.apache.commons.lang3.tuple.Triple;
+import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.support.ValueType;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+
+/** Bucket Aggregation Builder. */
+public class BucketAggregationBuilder {
+
+  private final AggregationBuilderHelper helper;
+
+<span class="fc" id="L34">  public BucketAggregationBuilder(ExpressionSerializer serializer) {</span>
+<span class="fc" id="L35">    this.helper = new AggregationBuilderHelper(serializer);</span>
+<span class="fc" id="L36">  }</span>
+
+  /** Build the list of CompositeValuesSourceBuilder. */
+  public List&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; build(
+      List&lt;Triple&lt;NamedExpression, SortOrder, MissingOrder&gt;&gt; groupList) {
+<span class="fc" id="L41">    ImmutableList.Builder&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; resultBuilder =</span>
+        new ImmutableList.Builder&lt;&gt;();
+<span class="fc bfc" id="L43" title="All 2 branches covered.">    for (Triple&lt;NamedExpression, SortOrder, MissingOrder&gt; groupPair : groupList) {</span>
+<span class="fc" id="L44">      resultBuilder.add(</span>
+<span class="fc" id="L45">          buildCompositeValuesSourceBuilder(</span>
+<span class="fc" id="L46">              groupPair.getLeft(), groupPair.getMiddle(), groupPair.getRight()));</span>
+<span class="fc" id="L47">    }</span>
+<span class="fc" id="L48">    return resultBuilder.build();</span>
+  }
+
+  // todo, Expression should implement buildCompositeValuesSourceBuilder() interface.
+  private CompositeValuesSourceBuilder&lt;?&gt; buildCompositeValuesSourceBuilder(
+      NamedExpression expr, SortOrder sortOrder, MissingOrder missingOrder) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (expr.getDelegated() instanceof SpanExpression) {</span>
+<span class="fc" id="L55">      SpanExpression spanExpr = (SpanExpression) expr.getDelegated();</span>
+<span class="fc" id="L56">      return buildHistogram(</span>
+<span class="fc" id="L57">          expr.getName(),</span>
+<span class="fc" id="L58">          spanExpr.getField().toString(),</span>
+<span class="fc" id="L59">          spanExpr.getValue().valueOf().doubleValue(),</span>
+<span class="fc" id="L60">          spanExpr.getUnit(),</span>
+          missingOrder);
+    } else {
+<span class="fc" id="L63">      CompositeValuesSourceBuilder&lt;?&gt; sourceBuilder =</span>
+<span class="fc" id="L64">          new TermsValuesSourceBuilder(expr.getName())</span>
+<span class="fc" id="L65">              .missingBucket(true)</span>
+<span class="fc" id="L66">              .missingOrder(missingOrder)</span>
+<span class="fc" id="L67">              .order(sortOrder);</span>
+      // Time types values are converted to LONG in ExpressionAggregationScript::execute
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if ((expr.getDelegated().type() instanceof OpenSearchDateType</span>
+<span class="fc" id="L70">              &amp;&amp; List.of(TIMESTAMP, TIME, DATE)</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                  .contains(((OpenSearchDateType) expr.getDelegated().type()).getExprCoreType()))</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">          || List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {</span>
+<span class="fc" id="L73">        sourceBuilder.userValuetypeHint(ValueType.LONG);</span>
+      }
+<span class="fc" id="L75">      return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);</span>
+    }
+  }
+
+  public static CompositeValuesSourceBuilder&lt;?&gt; buildHistogram(
+      String name, String field, Double value, SpanUnit unit, MissingOrder missingOrder) {
+<span class="fc bfc" id="L81" title="All 3 branches covered.">    switch (unit) {</span>
+      case NONE:
+<span class="fc" id="L83">        return new HistogramValuesSourceBuilder(name)</span>
+<span class="fc" id="L84">            .field(field)</span>
+<span class="fc" id="L85">            .interval(value)</span>
+<span class="fc" id="L86">            .missingBucket(true)</span>
+<span class="fc" id="L87">            .missingOrder(missingOrder);</span>
+      case UNKNOWN:
+<span class="fc" id="L89">        throw new IllegalStateException(&quot;Invalid span unit&quot;);</span>
+      default:
+<span class="fc" id="L91">        return buildDateHistogram(name, field, value.intValue(), unit, missingOrder);</span>
+    }
+  }
+
+  public static CompositeValuesSourceBuilder&lt;?&gt; buildDateHistogram(
+      String name, String field, Integer value, SpanUnit unit, MissingOrder missingOrder) {
+<span class="fc" id="L97">    String spanValue = value + unit.getName();</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    switch (unit) {</span>
+      case MILLISECOND:
+      case MS:
+      case SECOND:
+      case S:
+      case MINUTE:
+      case m:
+      case HOUR:
+      case H:
+      case DAY:
+      case D:
+<span class="fc" id="L109">        return new DateHistogramValuesSourceBuilder(name)</span>
+<span class="fc" id="L110">            .field(field)</span>
+<span class="fc" id="L111">            .missingBucket(true)</span>
+<span class="fc" id="L112">            .missingOrder(missingOrder)</span>
+<span class="fc" id="L113">            .fixedInterval(new DateHistogramInterval(spanValue));</span>
+      default:
+<span class="fc" id="L115">        return new DateHistogramValuesSourceBuilder(name)</span>
+<span class="fc" id="L116">            .field(field)</span>
+<span class="fc" id="L117">            .missingBucket(true)</span>
+<span class="fc" id="L118">            .missingOrder(missingOrder)</span>
+<span class="fc" id="L119">            .calendarInterval(new DateHistogramInterval(spanValue));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

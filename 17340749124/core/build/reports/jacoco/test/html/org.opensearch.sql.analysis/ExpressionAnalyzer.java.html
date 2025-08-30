@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpressionAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">ExpressionAnalyzer.java</span></div><h1>ExpressionAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import static org.opensearch.sql.ast.dsl.AstDSL.and;
+import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import org.opensearch.sql.analysis.symbol.Namespace;
+import org.opensearch.sql.analysis.symbol.Symbol;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.ScoreFunction;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedAttribute;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.AggregationState;
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.conditional.cases.CaseClause;
+import org.opensearch.sql.expression.conditional.cases.WhenClause;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
+
+/**
+ * Analyze the {@link UnresolvedExpression} in the {@link AnalysisContext} to construct the {@link
+ * Expression}.
+ */
+public class ExpressionAnalyzer extends AbstractNodeVisitor&lt;Expression, AnalysisContext&gt; {
+  @Getter private final BuiltinFunctionRepository repository;
+
+  @Override
+  public Expression visitCast(Cast node, AnalysisContext context) {
+<span class="fc" id="L88">    final Expression expression = node.getExpression().accept(this, context);</span>
+<span class="fc" id="L89">    return (Expression)</span>
+<span class="fc" id="L90">        repository.compile(</span>
+<span class="fc" id="L91">            context.getFunctionProperties(),</span>
+<span class="fc" id="L92">            node.convertFunctionName(),</span>
+<span class="fc" id="L93">            Collections.singletonList(expression));</span>
+  }
+
+<span class="fc" id="L96">  public ExpressionAnalyzer(BuiltinFunctionRepository repository) {</span>
+<span class="fc" id="L97">    this.repository = repository;</span>
+<span class="fc" id="L98">  }</span>
+
+  public Expression analyze(UnresolvedExpression unresolved, AnalysisContext context) {
+<span class="fc" id="L101">    return unresolved.accept(this, context);</span>
+  }
+
+  @Override
+  public Expression visitUnresolvedAttribute(UnresolvedAttribute node, AnalysisContext context) {
+<span class="fc" id="L106">    return visitIdentifier(node.getAttr(), context);</span>
+  }
+
+  @Override
+  public Expression visitEqualTo(EqualTo node, AnalysisContext context) {
+<span class="fc" id="L111">    Expression left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L112">    Expression right = node.getRight().accept(this, context);</span>
+
+<span class="fc" id="L114">    return DSL.equal(left, right);</span>
+  }
+
+  @Override
+  public Expression visitLiteral(Literal node, AnalysisContext context) {
+<span class="fc" id="L119">    return DSL.literal(</span>
+<span class="fc" id="L120">        ExprValueUtils.fromObjectValue(node.getValue(), node.getType().getCoreType()));</span>
+  }
+
+  @Override
+  public Expression visitInterval(Interval node, AnalysisContext context) {
+<span class="fc" id="L125">    Expression value = node.getValue().accept(this, context);</span>
+<span class="fc" id="L126">    Expression unit = DSL.literal(node.getUnit().name());</span>
+<span class="fc" id="L127">    return DSL.interval(value, unit);</span>
+  }
+
+  @Override
+  public Expression visitAnd(And node, AnalysisContext context) {
+<span class="fc" id="L132">    Expression left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L133">    Expression right = node.getRight().accept(this, context);</span>
+
+<span class="fc" id="L135">    return DSL.and(left, right);</span>
+  }
+
+  @Override
+  public Expression visitOr(Or node, AnalysisContext context) {
+<span class="fc" id="L140">    Expression left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L141">    Expression right = node.getRight().accept(this, context);</span>
+
+<span class="fc" id="L143">    return DSL.or(left, right);</span>
+  }
+
+  @Override
+  public Expression visitXor(Xor node, AnalysisContext context) {
+<span class="fc" id="L148">    Expression left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L149">    Expression right = node.getRight().accept(this, context);</span>
+
+<span class="fc" id="L151">    return DSL.xor(left, right);</span>
+  }
+
+  @Override
+  public Expression visitNot(Not node, AnalysisContext context) {
+<span class="fc" id="L156">    return DSL.not(node.getExpression().accept(this, context));</span>
+  }
+
+  @Override
+  public Expression visitAggregateFunction(AggregateFunction node, AnalysisContext context) {
+<span class="fc" id="L161">    Optional&lt;BuiltinFunctionName&gt; builtinFunctionName =</span>
+<span class="fc" id="L162">        BuiltinFunctionName.ofAggregation(node.getFuncName());</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (builtinFunctionName.isPresent()) {</span>
+<span class="fc" id="L164">      ImmutableList.Builder&lt;Expression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L165">      builder.add(node.getField().accept(this, context));</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">      for (UnresolvedExpression arg : node.getArgList()) {</span>
+<span class="fc" id="L167">        builder.add(arg.accept(this, context));</span>
+<span class="fc" id="L168">      }</span>
+<span class="fc" id="L169">      Aggregator aggregator =</span>
+          (Aggregator)
+<span class="fc" id="L171">              repository.compile(</span>
+<span class="fc" id="L172">                  context.getFunctionProperties(),</span>
+<span class="fc" id="L173">                  builtinFunctionName.get().getName(),</span>
+<span class="fc" id="L174">                  builder.build());</span>
+<span class="fc" id="L175">      aggregator.distinct(node.getDistinct());</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">      if (node.condition() != null) {</span>
+<span class="fc" id="L177">        aggregator.condition(analyze(node.condition(), context));</span>
+      }
+<span class="fc" id="L179">      return aggregator;</span>
+    } else {
+<span class="fc" id="L181">      throw new SemanticCheckException(&quot;Unsupported aggregation function &quot; + node.getFuncName());</span>
+    }
+  }
+
+  @Override
+  public Expression visitRelevanceFieldList(RelevanceFieldList node, AnalysisContext context) {
+<span class="fc" id="L187">    return new LiteralExpression(</span>
+<span class="fc" id="L188">        ExprValueUtils.tupleValue(ImmutableMap.copyOf(node.getFieldList())));</span>
+  }
+
+  @Override
+  public Expression visitFunction(Function node, AnalysisContext context) {
+<span class="fc" id="L193">    FunctionName functionName = FunctionName.of(node.getFuncName());</span>
+<span class="fc" id="L194">    List&lt;Expression&gt; arguments =</span>
+<span class="fc" id="L195">        node.getFuncArgs().stream()</span>
+<span class="fc" id="L196">            .map(</span>
+                unresolvedExpression -&gt; {
+<span class="fc" id="L198">                  var ret = analyze(unresolvedExpression, context);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">                  if (ret == null) {</span>
+<span class="fc" id="L200">                    throw new UnsupportedOperationException(</span>
+<span class="fc" id="L201">                        String.format(&quot;Invalid use of expression %s&quot;, unresolvedExpression));</span>
+                  } else {
+<span class="fc" id="L203">                    return ret;</span>
+                  }
+                })
+<span class="fc" id="L206">            .collect(Collectors.toList());</span>
+<span class="fc" id="L207">    return (Expression)</span>
+<span class="fc" id="L208">        repository.compile(context.getFunctionProperties(), functionName, arguments);</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public Expression visitWindowFunction(WindowFunction node, AnalysisContext context) {
+<span class="fc" id="L214">    Expression expr = node.getFunction().accept(this, context);</span>
+    // Wrap regular aggregator by aggregate window function to adapt window operator use
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (expr instanceof Aggregator) {</span>
+<span class="fc" id="L217">      return new AggregateWindowFunction((Aggregator&lt;AggregationState&gt;) expr);</span>
+    }
+<span class="fc" id="L219">    return expr;</span>
+  }
+
+  @Override
+  public Expression visitHighlightFunction(HighlightFunction node, AnalysisContext context) {
+<span class="fc" id="L224">    Expression expr = node.getHighlightField().accept(this, context);</span>
+<span class="fc" id="L225">    return new HighlightExpression(expr);</span>
+  }
+
+  /**
+   * visitScoreFunction removes the score function from the AST and replaces it with the child
+   * relevance function node. If the optional boost variable is provided, the boost argument of the
+   * relevance function is combined.
+   *
+   * @param node score function node
+   * @param context analysis context for the query
+   * @return resolved relevance function
+   */
+  public Expression visitScoreFunction(ScoreFunction node, AnalysisContext context) {
+<span class="fc" id="L238">    Literal boostArg = node.getRelevanceFieldWeight();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">    if (!boostArg.getType().equals(DataType.DOUBLE)) {</span>
+<span class="fc" id="L240">      throw new SemanticCheckException(</span>
+<span class="fc" id="L241">          String.format(</span>
+              &quot;Expected boost type '%s' but got '%s'&quot;,
+<span class="fc" id="L243">              DataType.DOUBLE.name(), boostArg.getType().name()));</span>
+    }
+<span class="fc" id="L245">    Double thisBoostValue = ((Double) boostArg.getValue());</span>
+
+    // update the existing unresolved expression to add a boost argument if it doesn't exist
+    // OR multiply the existing boost argument
+<span class="fc" id="L249">    Function relevanceQueryUnresolvedExpr = (Function) node.getRelevanceQuery();</span>
+<span class="fc" id="L250">    List&lt;UnresolvedExpression&gt; relevanceFuncArgs = relevanceQueryUnresolvedExpr.getFuncArgs();</span>
+
+<span class="fc" id="L252">    boolean doesFunctionContainBoostArgument = false;</span>
+<span class="fc" id="L253">    List&lt;UnresolvedExpression&gt; updatedFuncArgs = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">    for (UnresolvedExpression expr : relevanceFuncArgs) {</span>
+<span class="fc" id="L255">      String argumentName = ((UnresolvedArgument) expr).getArgName();</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">      if (argumentName.equalsIgnoreCase(&quot;boost&quot;)) {</span>
+<span class="fc" id="L257">        doesFunctionContainBoostArgument = true;</span>
+<span class="fc" id="L258">        Literal boostArgLiteral = (Literal) ((UnresolvedArgument) expr).getValue();</span>
+<span class="fc" id="L259">        Double boostValue =</span>
+<span class="fc" id="L260">            Double.parseDouble((String) boostArgLiteral.getValue()) * thisBoostValue;</span>
+<span class="fc" id="L261">        UnresolvedArgument newBoostArg =</span>
+            new UnresolvedArgument(
+<span class="fc" id="L263">                argumentName, new Literal(boostValue.toString(), DataType.STRING));</span>
+<span class="fc" id="L264">        updatedFuncArgs.add(newBoostArg);</span>
+<span class="fc" id="L265">      } else {</span>
+<span class="fc" id="L266">        updatedFuncArgs.add(expr);</span>
+      }
+<span class="fc" id="L268">    }</span>
+
+    // since nothing was found, add an argument
+<span class="fc bfc" id="L271" title="All 2 branches covered.">    if (!doesFunctionContainBoostArgument) {</span>
+<span class="fc" id="L272">      UnresolvedArgument newBoostArg =</span>
+          new UnresolvedArgument(
+<span class="fc" id="L274">              &quot;boost&quot;, new Literal(Double.toString(thisBoostValue), DataType.STRING));</span>
+<span class="fc" id="L275">      updatedFuncArgs.add(newBoostArg);</span>
+    }
+
+    // create a new function expression with boost argument and resolve it
+<span class="fc" id="L279">    Function updatedRelevanceQueryUnresolvedExpr =</span>
+<span class="fc" id="L280">        new Function(relevanceQueryUnresolvedExpr.getFuncName(), updatedFuncArgs);</span>
+<span class="fc" id="L281">    OpenSearchFunctions.OpenSearchFunction relevanceQueryExpr =</span>
+        (OpenSearchFunctions.OpenSearchFunction)
+<span class="fc" id="L283">            updatedRelevanceQueryUnresolvedExpr.accept(this, context);</span>
+<span class="fc" id="L284">    relevanceQueryExpr.setScoreTracked(true);</span>
+<span class="fc" id="L285">    return relevanceQueryExpr;</span>
+  }
+
+  @Override
+  public Expression visitIn(In node, AnalysisContext context) {
+<span class="fc" id="L290">    return visitIn(node.getField(), node.getValueList(), context);</span>
+  }
+
+  private Expression visitIn(
+      UnresolvedExpression field, List&lt;UnresolvedExpression&gt; valueList, AnalysisContext context) {
+<span class="fc bfc" id="L295" title="All 2 branches covered.">    if (valueList.isEmpty()) {</span>
+<span class="fc" id="L296">      throw new SemanticCheckException(&quot;Values in In clause should not be empty&quot;);</span>
+    }
+
+<span class="fc" id="L299">    Expression[] expressions = new Expression[valueList.size()];</span>
+
+<span class="fc bfc" id="L301" title="All 2 branches covered.">    for (int i = 0; i &lt; expressions.length; i++) {</span>
+<span class="fc" id="L302">      expressions[i] = visitCompare(new Compare(&quot;=&quot;, field, valueList.get(i)), context);</span>
+    }
+
+<span class="fc" id="L305">    return buildOrTree(expressions, 0, expressions.length);</span>
+  }
+
+  /**
+   * `DSL.or` can only take two arguments. To represent large lists without massive recursion, we
+   * want to represent the expression as a balanced tree. This builds that tree from a node list.
+   *
+   * @param children The list of expressions to merge.
+   * @param start The starting position (inclusive) for the current combination step.
+   * @param end The ending position (exclusive) for the current combination step. If &lt;= start,
+   *     children[start] is returned.
+   * @return The final `DSL.or` expression.
+   */
+  private Expression buildOrTree(Expression[] children, int start, int end) {
+<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (end - start &lt;= 1) {</span>
+<span class="fc" id="L320">      return children[start];</span>
+    }
+<span class="fc bfc" id="L322" title="All 2 branches covered.">    if (end - start == 2) {</span>
+<span class="fc" id="L323">      return DSL.or(children[start], children[end - 1]);</span>
+    }
+<span class="fc" id="L325">    int split = start + (end - start) / 2;</span>
+<span class="fc" id="L326">    return DSL.or(buildOrTree(children, start, split), buildOrTree(children, split, end));</span>
+  }
+
+  @Override
+  public Expression visitCompare(Compare node, AnalysisContext context) {
+<span class="fc" id="L331">    FunctionName functionName = FunctionName.of(node.getOperator());</span>
+<span class="fc" id="L332">    Expression left = analyze(node.getLeft(), context);</span>
+<span class="fc" id="L333">    Expression right = analyze(node.getRight(), context);</span>
+<span class="fc" id="L334">    return (Expression)</span>
+<span class="fc" id="L335">        repository.compile(</span>
+<span class="fc" id="L336">            context.getFunctionProperties(), functionName, Arrays.asList(left, right));</span>
+  }
+
+  @Override
+  public Expression visitBetween(Between node, AnalysisContext context) {
+<span class="fc" id="L341">    return and(</span>
+<span class="fc" id="L342">            compare(&quot;&gt;=&quot;, node.getValue(), node.getLowerBound()),</span>
+<span class="fc" id="L343">            compare(&quot;&lt;=&quot;, node.getValue(), node.getUpperBound()))</span>
+<span class="fc" id="L344">        .accept(this, context);</span>
+  }
+
+  @Override
+  public Expression visitCase(Case node, AnalysisContext context) {
+<span class="fc" id="L349">    List&lt;WhenClause&gt; whens = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    for (When when : node.getWhenClauses()) {</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">      if (node.getCaseValue() == null) {</span>
+<span class="fc" id="L352">        whens.add((WhenClause) analyze(when, context));</span>
+      } else {
+        // Merge case value and condition (compare value) into a single equal condition
+<span class="fc" id="L355">        whens.add(</span>
+            (WhenClause)
+<span class="fc" id="L357">                analyze(</span>
+                    new When(
+<span class="fc" id="L359">                        new Function(&quot;=&quot;, Arrays.asList(node.getCaseValue(), when.getCondition())),</span>
+<span class="fc" id="L360">                        when.getResult()),</span>
+                    context));
+      }
+<span class="fc" id="L363">    }</span>
+
+<span class="fc" id="L365">    Expression defaultResult =</span>
+<span class="fc" id="L366">        node.getElseClause().map(elseClause -&gt; analyze(elseClause, context)).orElse(null);</span>
+<span class="fc" id="L367">    CaseClause caseClause = new CaseClause(whens, defaultResult);</span>
+
+    // To make this simple, require all result type same regardless of implicit convert
+    // Make CaseClause return list so it can be used in error message in determined order
+<span class="fc" id="L371">    List&lt;ExprType&gt; resultTypes = caseClause.allResultTypes();</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">    if (ImmutableSet.copyOf(resultTypes).size() &gt; 1) {</span>
+<span class="fc" id="L373">      throw new SemanticCheckException(</span>
+          &quot;All result types of CASE clause must be the same, but found &quot; + resultTypes);
+    }
+<span class="fc" id="L376">    return caseClause;</span>
+  }
+
+  @Override
+  public Expression visitWhen(When node, AnalysisContext context) {
+<span class="fc" id="L381">    return new WhenClause(</span>
+<span class="fc" id="L382">        analyze(node.getCondition(), context), analyze(node.getResult(), context));</span>
+  }
+
+  @Override
+  public Expression visitField(Field node, AnalysisContext context) {
+<span class="fc" id="L387">    return visitQualifiedName((QualifiedName) node.getField(), context);</span>
+  }
+
+  @Override
+  public Expression visitAllFields(AllFields node, AnalysisContext context) {
+    // Convert to string literal for argument in COUNT(*), because there is no difference between
+    // COUNT(*) and COUNT(literal). For SELECT *, its select expression analyzer will expand * to
+    // the right field name list by itself.
+<span class="fc" id="L395">    return DSL.literal(&quot;*&quot;);</span>
+  }
+
+  @Override
+  public Expression visitQualifiedName(QualifiedName node, AnalysisContext context) {
+<span class="fc" id="L400">    QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);</span>
+
+    // check for reserved words in the identifier
+<span class="fc bfc" id="L403" title="All 2 branches covered.">    for (String part : node.getParts()) {</span>
+<span class="fc" id="L404">      for (TypeEnvironment typeEnv = context.peek();</span>
+<span class="fc bfc" id="L405" title="All 2 branches covered.">          typeEnv != null;</span>
+<span class="fc" id="L406">          typeEnv = typeEnv.getParent()) {</span>
+<span class="fc" id="L407">        Optional&lt;ExprType&gt; exprType =</span>
+<span class="fc" id="L408">            Optional.ofNullable(typeEnv.lookupAllFields(Namespace.HIDDEN_FIELD_NAME).get(part));</span>
+<span class="fc bfc" id="L409" title="All 2 branches covered.">        if (exprType.isPresent()) {</span>
+<span class="fc" id="L410">          return visitMetadata(</span>
+<span class="fc" id="L411">              qualifierAnalyzer.unqualified(node), (ExprCoreType) exprType.get(), context);</span>
+        }
+      }
+<span class="fc" id="L414">    }</span>
+<span class="fc" id="L415">    return visitIdentifier(qualifierAnalyzer.unqualified(node), context);</span>
+  }
+
+  @Override
+  public Expression visitSpan(Span node, AnalysisContext context) {
+<span class="fc" id="L420">    return new SpanExpression(</span>
+<span class="fc" id="L421">        node.getField().accept(this, context),</span>
+<span class="fc" id="L422">        node.getValue().accept(this, context),</span>
+<span class="fc" id="L423">        node.getUnit());</span>
+  }
+
+  @Override
+  public Expression visitUnresolvedArgument(UnresolvedArgument node, AnalysisContext context) {
+<span class="fc" id="L428">    return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));</span>
+  }
+
+  @Override
+  public Expression visitArgument(Argument node, AnalysisContext context) {
+<span class="fc" id="L433">    return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));</span>
+  }
+
+  @Override
+  public Expression visitScalarSubquery(ScalarSubquery node, AnalysisContext context) {
+<span class="nc" id="L438">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L439">        &quot;Subsearch is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public Expression visitExistsSubquery(ExistsSubquery node, AnalysisContext context) {
+<span class="nc" id="L444">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L445">        &quot;Subsearch is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
+<span class="nc" id="L450">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L451">        &quot;Subsearch is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  /**
+   * If QualifiedName is actually a reserved metadata field, return the expr type associated with
+   * the metadata field.
+   *
+   * @param ident metadata field name
+   * @param context analysis context
+   * @return DSL reference
+   */
+  private Expression visitMetadata(
+      String ident, ExprCoreType exprCoreType, AnalysisContext context) {
+<span class="fc" id="L464">    return DSL.ref(ident, exprCoreType);</span>
+  }
+
+  private Expression visitIdentifier(String ident, AnalysisContext context) {
+    // ParseExpression will always override ReferenceExpression when ident conflicts
+<span class="fc bfc" id="L469" title="All 2 branches covered.">    for (NamedExpression expr : context.getNamedParseExpressions()) {</span>
+<span class="fc bfc" id="L470" title="All 4 branches covered.">      if (expr.getNameOrAlias().equals(ident) &amp;&amp; expr.getDelegated() instanceof ParseExpression) {</span>
+<span class="fc" id="L471">        return expr.getDelegated();</span>
+      }
+<span class="fc" id="L473">    }</span>
+
+<span class="fc" id="L475">    TypeEnvironment typeEnv = context.peek();</span>
+<span class="fc" id="L476">    ReferenceExpression ref =</span>
+<span class="fc" id="L477">        DSL.ref(ident, typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));</span>
+
+<span class="fc" id="L479">    return ref;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

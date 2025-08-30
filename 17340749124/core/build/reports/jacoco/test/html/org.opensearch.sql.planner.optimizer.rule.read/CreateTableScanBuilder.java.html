@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateTableScanBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.optimizer.rule.read</a> &gt; <span class="el_source">CreateTableScanBuilder.java</span></div><h1>CreateTableScanBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.optimizer.rule.read;
+
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.table;
+
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Captures;
+import com.facebook.presto.matching.Pattern;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.optimizer.Rule;
+import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+
+/**
+ * Rule that replace logical relation operator to {@link TableScanBuilder} for later push down
+ * optimization. All push down optimization rules that depends on table scan builder needs to run
+ * after this.
+ */
+public class CreateTableScanBuilder implements Rule&lt;LogicalRelation&gt; {
+
+  /** Capture the table inside matched logical relation operator. */
+  private final Capture&lt;Table&gt; capture;
+
+  /** Pattern that matches logical relation operator. */
+  @Accessors(fluent = true)
+  @Getter
+  private final Pattern&lt;LogicalRelation&gt; pattern;
+
+  /** Construct create table scan builder rule. */
+<span class="fc" id="L37">  public CreateTableScanBuilder() {</span>
+<span class="fc" id="L38">    this.capture = Capture.newCapture();</span>
+<span class="fc" id="L39">    this.pattern = Pattern.typeOf(LogicalRelation.class).with(table().capturedAs(capture));</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  public LogicalPlan apply(LogicalRelation plan, Captures captures) {
+<span class="fc" id="L44">    TableScanBuilder scanBuilder = captures.get(capture).createScanBuilder();</span>
+    // TODO: Remove this after Prometheus refactored to new table scan builder too
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    return (scanBuilder == null) ? plan : scanBuilder;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

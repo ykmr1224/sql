@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GCedMemoryUsage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.monitor</a> &gt; <span class="el_source">GCedMemoryUsage.java</span></div><h1>GCedMemoryUsage.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.monitor;
+
+import com.sun.management.GarbageCollectionNotificationInfo;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
+import javax.management.openmbean.CompositeData;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+/** Get memory usage from GC notification listener, which is used in Calcite engine. */
+public class GCedMemoryUsage implements MemoryUsage {
+<span class="nc" id="L24">  private static final Logger LOG = LogManager.getLogger();</span>
+<span class="nc" id="L25">  private static final List&lt;String&gt; OLD_GEN_GC_ACTION_KEYWORDS =</span>
+<span class="nc" id="L26">      List.of(&quot;major&quot;, &quot;concurrent&quot;, &quot;old&quot;, &quot;full&quot;, &quot;marksweep&quot;);</span>
+<span class="nc" id="L27">  private static boolean initialized = false;</span>
+
+<span class="nc" id="L29">  private GCedMemoryUsage() {</span>
+<span class="nc" id="L30">    registerGCListener();</span>
+<span class="nc" id="L31">  }</span>
+
+  // Lazy initialize the instance to avoid register GCListener in v2.
+  private static class Holder {
+<span class="nc" id="L35">    static final MemoryUsage INSTANCE = new GCedMemoryUsage();</span>
+  }
+
+  /**
+   * Get the singleton instance of GCedMemoryUsage.
+   *
+   * @return GCedMemoryUsage instance
+   */
+  public static MemoryUsage getInstance() {
+<span class="nc" id="L44">    return Holder.INSTANCE;</span>
+  }
+
+<span class="nc" id="L47">  private final AtomicLong usage = new AtomicLong(-1);</span>
+
+  @Override
+  public long usage() {
+<span class="nc" id="L51">    return usage.get();</span>
+  }
+
+  @Override
+  public void setUsage(long value) {
+<span class="nc" id="L56">    usage.set(value);</span>
+<span class="nc" id="L57">  }</span>
+
+  public static boolean initialized() {
+<span class="nc" id="L60">    return initialized;</span>
+  }
+
+  private void registerGCListener() {
+<span class="nc" id="L64">    List&lt;GarbageCollectorMXBean&gt; gcBeans = ManagementFactory.getGarbageCollectorMXBeans();</span>
+<span class="nc" id="L65">    if (gcBeans.stream()</span>
+<span class="nc" id="L66">        .filter(b -&gt; b instanceof NotificationEmitter)</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        .noneMatch(b -&gt; containConcurrentGcBean(b.getName()))) {</span>
+      // Concurrent Garbage Collector MXBean only existed since Java 21.
+      // fallback to RuntimeMemoryUsage
+<span class="nc" id="L70">      LOG.info(&quot;No Concurrent Garbage Collector MXBean, fallback to RuntimeMemoryUsage&quot;);</span>
+<span class="nc" id="L71">      throw new OpenSearchMemoryHealthy.MemoryUsageException();</span>
+    }
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    for (GarbageCollectorMXBean gcBean : gcBeans) {</span>
+<span class="nc bnc" id="L74" title="All 4 branches missed.">      if (gcBean instanceof NotificationEmitter &amp;&amp; isOldGenGc(gcBean.getName())) {</span>
+<span class="nc" id="L75">        LOG.info(&quot;{} listener registered for memory usage monitor.&quot;, gcBean.getName());</span>
+<span class="nc" id="L76">        initialized = true;</span>
+<span class="nc" id="L77">        NotificationEmitter emitter = (NotificationEmitter) gcBean;</span>
+<span class="nc" id="L78">        emitter.addNotificationListener(</span>
+            new OldGenGCListener(),
+            notification -&gt; {
+<span class="nc" id="L81">              if (!notification</span>
+<span class="nc" id="L82">                  .getType()</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">                  .equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {</span>
+<span class="nc" id="L84">                return false;</span>
+              }
+<span class="nc" id="L86">              CompositeData cd = (CompositeData) notification.getUserData();</span>
+<span class="nc" id="L87">              GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);</span>
+<span class="nc" id="L88">              return isOldGenGc(info.getGcAction());</span>
+            },
+            null);
+      }
+<span class="nc" id="L92">    }</span>
+<span class="nc" id="L93">  }</span>
+
+  private boolean containConcurrentGcBean(String beanName) {
+<span class="nc" id="L96">    return beanName.toLowerCase(Locale.ROOT).contains(&quot;concurrent&quot;);</span>
+  }
+
+  private boolean isOldGenGc(String gcKeyword) {
+<span class="nc" id="L100">    String keyword = gcKeyword.toLowerCase(Locale.ROOT);</span>
+<span class="nc" id="L101">    return OLD_GEN_GC_ACTION_KEYWORDS.stream().anyMatch(keyword::contains);</span>
+  }
+
+  private static class OldGenGCListener implements NotificationListener {
+    @Override
+    public void handleNotification(Notification notification, Object handback) {
+<span class="nc" id="L107">      CompositeData cd = (CompositeData) notification.getUserData();</span>
+<span class="nc" id="L108">      GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);</span>
+<span class="nc" id="L109">      Map&lt;String, java.lang.management.MemoryUsage&gt; memoryUsageAfterGc =</span>
+<span class="nc" id="L110">          info.getGcInfo().getMemoryUsageAfterGc();</span>
+      // Skip Metaspace and CodeHeap spaces which the GC scope is out of stack GC.
+<span class="nc" id="L112">      long totalStackUsed =</span>
+<span class="nc" id="L113">          memoryUsageAfterGc.entrySet().stream()</span>
+<span class="nc" id="L114">              .filter(</span>
+                  entry -&gt;
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                      !entry.getKey().equals(&quot;Metaspace&quot;)</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                          &amp;&amp; !entry.getKey().equals(&quot;Compressed Class Space&quot;)</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">                          &amp;&amp; !entry.getKey().startsWith(&quot;CodeHeap&quot;))</span>
+<span class="nc" id="L119">              .mapToLong(entry -&gt; entry.getValue().getUsed())</span>
+<span class="nc" id="L120">              .sum();</span>
+<span class="nc" id="L121">      getInstance().setUsage(totalStackUsed);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L123">        LOG.debug(&quot;Old Gen GC detected, memory usage after GC is {} bytes.&quot;, totalStackUsed);</span>
+      }
+<span class="nc" id="L125">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

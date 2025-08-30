@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NullableSqlAvgAggFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.udf.udaf</a> &gt; <span class="el_source">NullableSqlAvgAggFunction.java</span></div><h1>NullableSqlAvgAggFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This file contains code from the Apache Calcite project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opensearch.sql.calcite.udf.udaf;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlAvgAggFunction;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.Optionality;
+
+public class NullableSqlAvgAggFunction extends SqlAggFunction {
+
+  // ~ Constructors -----------------------------------------------------------
+
+  /** Creates a NullableSqlAvgAggFunction. */
+  public NullableSqlAvgAggFunction(SqlKind kind) {
+<span class="fc" id="L47">    this(kind.name(), kind);</span>
+<span class="fc" id="L48">  }</span>
+
+  NullableSqlAvgAggFunction(String name, SqlKind kind) {
+<span class="fc" id="L51">    super(</span>
+        name,
+        null,
+        kind,
+<span class="fc" id="L55">        ReturnTypes.AVG_AGG_FUNCTION.andThen(SqlTypeTransforms.FORCE_NULLABLE), // modified here</span>
+        null,
+        OperandTypes.NUMERIC,
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false,
+        Optionality.FORBIDDEN);
+<span class="fc" id="L62">    checkArgument(SqlKind.AVG_AGG_FUNCTIONS.contains(kind), &quot;unsupported sql kind&quot;);</span>
+<span class="fc" id="L63">  }</span>
+
+  // ~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns the specific function, e.g. AVG or STDDEV_POP.
+   *
+   * @return Subtype
+   */
+  @Deprecated // to be removed before 2.0
+  public SqlAvgAggFunction.Subtype getSubtype() {
+<span class="nc" id="L74">    return SqlAvgAggFunction.Subtype.valueOf(kind.name());</span>
+  }
+
+  /** Sub-type of aggregate function. */
+<span class="nc" id="L78">  @Deprecated // to be removed before 2.0</span>
+  public enum Subtype {
+<span class="nc" id="L80">    AVG,</span>
+<span class="nc" id="L81">    STDDEV_POP,</span>
+<span class="nc" id="L82">    STDDEV_SAMP,</span>
+<span class="nc" id="L83">    VAR_POP,</span>
+<span class="nc" id="L84">    VAR_SAMP</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

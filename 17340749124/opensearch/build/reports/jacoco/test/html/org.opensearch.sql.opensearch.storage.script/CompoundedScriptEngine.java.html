@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CompoundedScriptEngine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script</a> &gt; <span class="el_source">CompoundedScriptEngine.java</span></div><h1>CompoundedScriptEngine.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rex.RexBuilder;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.script.FilterScript;
+import org.opensearch.script.ScriptContext;
+import org.opensearch.script.ScriptEngine;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper.LangScriptWrapper;
+
+/**
+ * Custom expression script engine that supports using core engine expression code in DSL as a new
+ * script language just like built-in Painless language.
+ */
+@RequiredArgsConstructor
+public class CompoundedScriptEngine implements ScriptEngine {
+
+  /** Expression script language name. */
+  public static final String COMPOUNDED_LANG_NAME = &quot;opensearch_compounded_script&quot;;
+
+<span class="nc" id="L35">  private static final ExpressionScriptEngine v2ExpressionScriptEngine =</span>
+      new ExpressionScriptEngine(new DefaultExpressionSerializer());
+
+  private final CalciteScriptEngine calciteScriptEngine;
+
+<span class="nc" id="L40">  public CompoundedScriptEngine() {</span>
+<span class="nc" id="L41">    RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);</span>
+<span class="nc" id="L42">    RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);</span>
+<span class="nc" id="L43">    this.calciteScriptEngine = new CalciteScriptEngine(cluster);</span>
+<span class="nc" id="L44">  }</span>
+
+  @Override
+  public String getType() {
+<span class="nc" id="L48">    return COMPOUNDED_LANG_NAME;</span>
+  }
+
+  @Override
+  public &lt;T&gt; T compile(
+      String scriptName, String scriptCode, ScriptContext&lt;T&gt; context, Map&lt;String, String&gt; options) {
+<span class="nc" id="L54">    LangScriptWrapper unwrapped = SerializationWrapper.unwrapLangType(scriptCode);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    return switch (unwrapped.langType) {</span>
+<span class="nc" id="L56">      case CALCITE -&gt; calciteScriptEngine.compile(scriptName, unwrapped.script, context, options);</span>
+<span class="nc" id="L57">      case V2 -&gt; v2ExpressionScriptEngine.compile(scriptName, unwrapped.script, context, options);</span>
+    };
+  }
+
+  @Override
+  public Set&lt;ScriptContext&lt;?&gt;&gt; getSupportedContexts() {
+<span class="nc" id="L63">    return Set.of(FilterScript.CONTEXT, AggregationScript.CONTEXT);</span>
+  }
+
+<span class="fc" id="L66">  public enum ScriptEngineType {</span>
+<span class="fc" id="L67">    V2(&quot;v2&quot;),</span>
+<span class="fc" id="L68">    CALCITE(&quot;calcite&quot;);</span>
+
+    private final String type;
+
+<span class="fc" id="L72">    ScriptEngineType(String type) {</span>
+<span class="fc" id="L73">      this.type = type;</span>
+<span class="fc" id="L74">    }</span>
+
+    public static ScriptEngineType fromString(String value) {
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">      for (ScriptEngineType engineType : ScriptEngineType.values()) {</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (engineType.type.equalsIgnoreCase(value)) {</span>
+<span class="fc" id="L79">          return engineType;</span>
+        }
+      }
+<span class="nc" id="L82">      throw new IllegalArgumentException(&quot;Unknown script engine type: &quot; + value);</span>
+    }
+
+    @JsonCreator
+    public static ScriptEngineType fromJson(String value) {
+<span class="fc" id="L87">      return fromString(value);</span>
+    }
+
+    @JsonValue
+    public String toJson() {
+<span class="fc" id="L92">      return type;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

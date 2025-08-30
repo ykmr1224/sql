@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QueryResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response</a> &gt; <span class="el_source">QueryResult.java</span></div><h1>QueryResult.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import lombok.Getter;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.lang.LangSpec;
+
+/**
+ * Query response that encapsulates query results and isolate {@link ExprValue} related from
+ * formatter implementation.
+ */
+public class QueryResult implements Iterable&lt;Object[]&gt; {
+
+  @Getter private final ExecutionEngine.Schema schema;
+
+  /** Results which are collection of expression. */
+  private final Collection&lt;ExprValue&gt; exprValues;
+
+  @Getter private final Cursor cursor;
+
+  private final LangSpec langSpec;
+
+  public QueryResult(ExecutionEngine.Schema schema, Collection&lt;ExprValue&gt; exprValues) {
+<span class="fc" id="L37">    this(schema, exprValues, Cursor.None, LangSpec.SQL_SPEC);</span>
+<span class="fc" id="L38">  }</span>
+
+  public QueryResult(
+      ExecutionEngine.Schema schema, Collection&lt;ExprValue&gt; exprValues, Cursor cursor) {
+<span class="fc" id="L42">    this(schema, exprValues, cursor, LangSpec.SQL_SPEC);</span>
+<span class="fc" id="L43">  }</span>
+
+  public QueryResult(
+      ExecutionEngine.Schema schema,
+      Collection&lt;ExprValue&gt; exprValues,
+      Cursor cursor,
+<span class="fc" id="L49">      LangSpec langSpec) {</span>
+<span class="fc" id="L50">    this.schema = schema;</span>
+<span class="fc" id="L51">    this.exprValues = exprValues;</span>
+<span class="fc" id="L52">    this.cursor = cursor;</span>
+<span class="fc" id="L53">    this.langSpec = langSpec;</span>
+<span class="fc" id="L54">  }</span>
+
+  /**
+   * size of results.
+   *
+   * @return size of results
+   */
+  public int size() {
+<span class="fc" id="L62">    return exprValues.size();</span>
+  }
+
+  /**
+   * Parse column name from results.
+   *
+   * @return mapping from column names to its expression type. note that column name could be
+   *     original name or its alias if any.
+   */
+  public Map&lt;String, String&gt; columnNameTypes() {
+<span class="fc" id="L72">    Map&lt;String, String&gt; colNameTypes = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L73">    schema</span>
+<span class="fc" id="L74">        .getColumns()</span>
+<span class="fc" id="L75">        .forEach(</span>
+            column -&gt;
+<span class="fc" id="L77">                colNameTypes.put(</span>
+<span class="fc" id="L78">                    getColumnName(column),</span>
+<span class="fc" id="L79">                    langSpec.typeName(column.getExprType()).toLowerCase(Locale.ROOT)));</span>
+<span class="fc" id="L80">    return colNameTypes;</span>
+  }
+
+  @Override
+  public Iterator&lt;Object[]&gt; iterator() {
+    // Any chance to avoid copy for json response generation?
+<span class="fc" id="L86">    return exprValues.stream()</span>
+<span class="fc" id="L87">        .map(ExprValueUtils::getTupleValue)</span>
+<span class="fc" id="L88">        .map(Map::values)</span>
+<span class="fc" id="L89">        .map(this::convertExprValuesToValues)</span>
+<span class="fc" id="L90">        .iterator();</span>
+  }
+
+  private String getColumnName(Column column) {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    return (column.getAlias() != null) ? column.getAlias() : column.getName();</span>
+  }
+
+  private Object[] convertExprValuesToValues(Collection&lt;ExprValue&gt; exprValues) {
+<span class="fc" id="L98">    return exprValues.stream().map(ExprValue::value).toArray(Object[]::new);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

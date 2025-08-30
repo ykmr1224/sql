@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateTimeConversionUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.datetime</a> &gt; <span class="el_source">DateTimeConversionUtils.java</span></div><h1>DateTimeConversionUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.datetime;
+
+import java.time.Duration;
+import java.time.Period;
+import java.time.temporal.TemporalAmount;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.opensearch.sql.data.model.*;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.function.FunctionProperties;
+
+public final class DateTimeConversionUtils {
+  private DateTimeConversionUtils() {}
+
+  /**
+   * Convert the given ExprValue to an ExprTimestampValue. If the input is a string, it will convert
+   * date / time / timestamp strings to ExprTimestampValue.
+   *
+   * @param value the value to convert, can be either a ExprDateValue, ExprTimeValue,
+   *     ExprTimestampValue or ExprStringValue
+   * @param properties the function properties
+   * @return the converted ExprTimestampValue
+   */
+  public static ExprTimestampValue forceConvertToTimestampValue(
+      ExprValue value, FunctionProperties properties) {
+<span class="nc bnc" id="L31" title="All 5 branches missed.">    return switch (value) {</span>
+<span class="nc" id="L32">      case ExprTimestampValue timestampValue -&gt; timestampValue;</span>
+<span class="nc" id="L33">      case ExprDateValue dateValue -&gt; (ExprTimestampValue)</span>
+<span class="nc" id="L34">          ExprValueUtils.timestampValue(dateValue.timestampValue());</span>
+<span class="nc" id="L35">      case ExprTimeValue timeValue -&gt; (ExprTimestampValue)</span>
+<span class="nc" id="L36">          ExprValueUtils.timestampValue(timeValue.timestampValue(properties));</span>
+<span class="nc" id="L37">      case ExprStringValue stringValue -&gt; new ExprTimestampValue(</span>
+<span class="nc" id="L38">          DateTimeParser.parse(stringValue.stringValue()));</span>
+<span class="nc" id="L39">      default -&gt; throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L40">          String.format(</span>
+              &quot;Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are supported&quot;,
+<span class="nc" id="L42">              value.type()));</span>
+    };
+  }
+
+  /**
+   * Convert the given ExprValue to an ExprTimestampValue. If the input is a string, it only accepts
+   * a string formatted as a valid timestamp 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'.
+   *
+   * @param value the value to convert, can be either a ExprDateValue, ExprTimeValue,
+   *     ExprTimestampValue or ExprStringValue
+   * @param properties the function properties
+   * @return the converted ExprTimestampValue
+   */
+  public static ExprTimestampValue convertToTimestampValue(
+      ExprValue value, FunctionProperties properties) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (value instanceof ExprTimestampValue timestampValue) {</span>
+<span class="nc" id="L58">      return timestampValue;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    } else if (value instanceof ExprTimeValue) {</span>
+<span class="nc" id="L60">      return new ExprTimestampValue(((ExprTimeValue) value).timestampValue(properties));</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    } else if (value.type() == ExprCoreType.STRING) {</span>
+<span class="nc" id="L62">      return new ExprTimestampValue(value.stringValue());</span>
+    } else {
+      try {
+<span class="nc" id="L65">        return new ExprTimestampValue(value.timestampValue());</span>
+<span class="nc" id="L66">      } catch (ExpressionEvaluationException e) {</span>
+<span class="nc" id="L67">        throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L68">            String.format(</span>
+                &quot;Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are&quot;
+                    + &quot; supported&quot;,
+<span class="nc" id="L71">                value.type()),</span>
+            e);
+      }
+    }
+  }
+
+  /**
+   * Convert the given ExprValue to an ExprDateValue. If the input is a string, it only accepts a
+   * string formatted as a valid date 'yyyy-MM-dd'.
+   *
+   * @param value the value to convert, can be either a ExprDateValue, ExprTimeValue,
+   *     ExprTimestampValue or ExprStringValue
+   * @param properties the function properties
+   * @return the converted ExprDateValue
+   */
+  public static ExprDateValue convertToDateValue(ExprValue value, FunctionProperties properties) {
+<span class="nc bnc" id="L87" title="All 5 branches missed.">    switch (value) {</span>
+<span class="nc" id="L88">      case ExprDateValue dateValue -&gt; {</span>
+<span class="nc" id="L89">        return dateValue;</span>
+      }
+<span class="nc" id="L91">      case ExprTimeValue timeValue -&gt; {</span>
+<span class="nc" id="L92">        return new ExprDateValue(timeValue.dateValue(properties));</span>
+      }
+<span class="nc" id="L94">      case ExprTimestampValue timestampValue -&gt; {</span>
+<span class="nc" id="L95">        return new ExprDateValue(timestampValue.dateValue());</span>
+      }
+<span class="nc" id="L97">      case ExprStringValue ignored -&gt; {</span>
+<span class="nc" id="L98">        return new ExprDateValue(value.stringValue());</span>
+      }
+      default -&gt; {
+<span class="nc" id="L101">        throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L102">            String.format(</span>
+                &quot;Cannot convert %s to date, only STRING, DATE, TIME and TIMESTAMP are supported&quot;,
+<span class="nc" id="L104">                value.type()));</span>
+      }
+    }
+  }
+
+  /**
+   * Create a temporal amount of the given number of units. For duration below a day, it returns
+   * duration; for duration including and above a day, it returns period for natural days, months,
+   * quarters, and years, which may be of unfixed lengths.
+   *
+   * @param number The count of unit
+   * @param unit The unit of the temporal amount
+   * @return A temporal amount value, can be either a Period or a Duration
+   */
+  public static TemporalAmount convertToTemporalAmount(long number, TimeUnit unit) {
+<span class="nc bnc" id="L119" title="All 12 branches missed.">    return switch (unit) {</span>
+<span class="nc" id="L120">      case YEAR -&gt; Period.ofYears((int) number);</span>
+<span class="nc" id="L121">      case QUARTER -&gt; Period.ofMonths((int) number * 3);</span>
+<span class="nc" id="L122">      case MONTH -&gt; Period.ofMonths((int) number);</span>
+<span class="nc" id="L123">      case WEEK -&gt; Period.ofWeeks((int) number);</span>
+<span class="nc" id="L124">      case DAY -&gt; Period.ofDays((int) number);</span>
+<span class="nc" id="L125">      case HOUR -&gt; Duration.ofHours(number);</span>
+<span class="nc" id="L126">      case MINUTE -&gt; Duration.ofMinutes(number);</span>
+<span class="nc" id="L127">      case SECOND -&gt; Duration.ofSeconds(number);</span>
+<span class="nc" id="L128">      case MILLISECOND -&gt; Duration.ofMillis(number);</span>
+<span class="nc" id="L129">      case MICROSECOND -&gt; Duration.ofNanos(number * 1000);</span>
+<span class="nc" id="L130">      case NANOSECOND -&gt; Duration.ofNanos(number);</span>
+
+<span class="nc" id="L132">      default -&gt; throw new UnsupportedOperationException(</span>
+          &quot;No mapping defined for Calcite TimeUnit: &quot; + unit);
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

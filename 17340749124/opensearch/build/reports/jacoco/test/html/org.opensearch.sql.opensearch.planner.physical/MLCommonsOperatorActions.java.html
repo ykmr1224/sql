@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MLCommonsOperatorActions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">MLCommonsOperatorActions.java</span></div><h1>MLCommonsOperatorActions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
+import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.ml.client.MachineLearningNodeClient;
+import org.opensearch.ml.common.FunctionName;
+import org.opensearch.ml.common.dataframe.ColumnMeta;
+import org.opensearch.ml.common.dataframe.ColumnValue;
+import org.opensearch.ml.common.dataframe.DataFrame;
+import org.opensearch.ml.common.dataframe.DataFrameBuilder;
+import org.opensearch.ml.common.dataframe.Row;
+import org.opensearch.ml.common.dataset.DataFrameInputDataset;
+import org.opensearch.ml.common.input.MLInput;
+import org.opensearch.ml.common.input.parameter.MLAlgoParams;
+import org.opensearch.ml.common.input.parameter.sample.SampleAlgoParams;
+import org.opensearch.ml.common.output.MLOutput;
+import org.opensearch.ml.common.output.MLPredictionOutput;
+import org.opensearch.ml.common.output.MLTrainingOutput;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.client.MLClient;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.transport.client.node.NodeClient;
+
+/** Common method actions for ml-commons related operators. */
+<span class="fc" id="L51">public abstract class MLCommonsOperatorActions extends PhysicalPlan {</span>
+
+  /**
+   * generate ml-commons request input dataset.
+   *
+   * @param input physical input
+   * @return ml-commons dataframe
+   */
+  protected DataFrame generateInputDataset(PhysicalPlan input) {
+<span class="fc" id="L60">    MLInputRows inputData = new MLInputRows();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    while (input.hasNext()) {</span>
+<span class="fc" id="L62">      inputData.addTupleValue(input.next().tupleValue());</span>
+    }
+
+<span class="fc" id="L65">    return inputData.toDataFrame();</span>
+  }
+
+  /**
+   * Generate ml-commons request input dataset per each category based on a given category field.
+   * Each category value will be a {@link DataFrame} pair, where the left one contains all fields
+   * for building response, and the right one contains all fields except the aggregated field for ml
+   * prediction. This is a temporary solution before ml-commons supports 2 dimensional input.
+   *
+   * @param input physical input
+   * @param categoryField String, the field should be aggregated on
+   * @return list of ml-commons dataframe pairs
+   */
+  protected List&lt;Pair&lt;DataFrame, DataFrame&gt;&gt; generateCategorizedInputDataset(
+      PhysicalPlan input, String categoryField) {
+<span class="nc" id="L80">    Map&lt;ExprValue, MLInputRows&gt; inputMap = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    while (input.hasNext()) {</span>
+<span class="nc" id="L82">      Map&lt;String, ExprValue&gt; tupleValue = input.next().tupleValue();</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">      ExprValue categoryValue = categoryField == null ? null : tupleValue.get(categoryField);</span>
+<span class="nc" id="L84">      MLInputRows inputData = inputMap.computeIfAbsent(categoryValue, k -&gt; new MLInputRows());</span>
+<span class="nc" id="L85">      inputData.addTupleValue(tupleValue);</span>
+<span class="nc" id="L86">    }</span>
+
+    // categoryField should be excluded for ml-commons predictions
+<span class="nc" id="L89">    return inputMap.values().stream()</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        .filter(inputData -&gt; inputData.size() &gt; 0)</span>
+<span class="nc" id="L91">        .map(</span>
+            inputData -&gt;
+<span class="nc" id="L93">                new ImmutablePair&lt;&gt;(</span>
+<span class="nc" id="L94">                    inputData.toDataFrame(),</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                    inputData.toFilteredDataFrame(e -&gt; !e.getKey().equals(categoryField))))</span>
+<span class="nc" id="L96">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * covert result schema into ExprValue.
+   *
+   * @param columnMetas column metas
+   * @param row row
+   * @return a map of result schema in ExprValue format
+   */
+  protected Map&lt;String, ExprValue&gt; convertRowIntoExprValue(ColumnMeta[] columnMetas, Row row) {
+<span class="fc" id="L107">    ImmutableMap.Builder&lt;String, ExprValue&gt; resultBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    for (int i = 0; i &lt; columnMetas.length; i++) {</span>
+<span class="fc" id="L109">      ColumnValue columnValue = row.getValue(i);</span>
+<span class="fc" id="L110">      String resultKeyName = columnMetas[i].getName();</span>
+<span class="fc" id="L111">      populateResultBuilder(columnValue, resultKeyName, resultBuilder);</span>
+    }
+<span class="fc" id="L113">    return resultBuilder.build();</span>
+  }
+
+  /**
+   * populate result map by ml-commons supported data type.
+   *
+   * @param columnValue column value
+   * @param resultKeyName result kay name
+   * @param resultBuilder result builder
+   */
+  protected void populateResultBuilder(
+      ColumnValue columnValue,
+      String resultKeyName,
+      ImmutableMap.Builder&lt;String, ExprValue&gt; resultBuilder) {
+<span class="pc bpc" id="L127" title="1 of 8 branches missed.">    switch (columnValue.columnType()) {</span>
+      case INTEGER:
+<span class="fc" id="L129">        resultBuilder.put(resultKeyName, new ExprIntegerValue(columnValue.intValue()));</span>
+<span class="fc" id="L130">        break;</span>
+      case DOUBLE:
+<span class="fc" id="L132">        resultBuilder.put(resultKeyName, new ExprDoubleValue(columnValue.doubleValue()));</span>
+<span class="fc" id="L133">        break;</span>
+      case STRING:
+<span class="fc" id="L135">        resultBuilder.put(resultKeyName, new ExprStringValue(columnValue.stringValue()));</span>
+<span class="fc" id="L136">        break;</span>
+      case SHORT:
+<span class="fc" id="L138">        resultBuilder.put(resultKeyName, new ExprShortValue(columnValue.shortValue()));</span>
+<span class="fc" id="L139">        break;</span>
+      case LONG:
+<span class="fc" id="L141">        resultBuilder.put(resultKeyName, new ExprLongValue(columnValue.longValue()));</span>
+<span class="fc" id="L142">        break;</span>
+      case FLOAT:
+<span class="fc" id="L144">        resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));</span>
+<span class="fc" id="L145">        break;</span>
+      case BOOLEAN:
+<span class="fc" id="L147">        resultBuilder.put(resultKeyName, ExprBooleanValue.of(columnValue.booleanValue()));</span>
+<span class="fc" id="L148">        break;</span>
+      default:
+        break;
+    }
+<span class="fc" id="L152">  }</span>
+
+  /**
+   * concert result into ExprValue.
+   *
+   * @param columnMetas column metas
+   * @param row row
+   * @param schema schema
+   * @return a map of result in ExprValue format
+   */
+  protected Map&lt;String, ExprValue&gt; convertResultRowIntoExprValue(
+      ColumnMeta[] columnMetas, Row row, Map&lt;String, ExprValue&gt; schema) {
+<span class="fc" id="L164">    ImmutableMap.Builder&lt;String, ExprValue&gt; resultBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    for (int i = 0; i &lt; columnMetas.length; i++) {</span>
+<span class="fc" id="L166">      ColumnValue columnValue = row.getValue(i);</span>
+<span class="fc" id="L167">      String resultKeyName = columnMetas[i].getName();</span>
+      // change key name to avoid duplicate key issue in result map
+      // only value will be shown in the final returned result
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">      if (schema.containsKey(resultKeyName)) {</span>
+<span class="nc" id="L171">        resultKeyName = resultKeyName + &quot;1&quot;;</span>
+      }
+<span class="fc" id="L173">      populateResultBuilder(columnValue, resultKeyName, resultBuilder);</span>
+    }
+<span class="fc" id="L175">    return resultBuilder.build();</span>
+  }
+
+  /**
+   * iterate result and built it into ExprTupleValue.
+   *
+   * @param inputRowIter input row iterator
+   * @param inputDataFrame input data frame
+   * @param predictionResult prediction result
+   * @param resultRowIter result row iterator
+   * @return result in ExprTupleValue format
+   */
+  protected ExprTupleValue buildResult(
+      Iterator&lt;Row&gt; inputRowIter,
+      DataFrame inputDataFrame,
+      MLPredictionOutput predictionResult,
+      Iterator&lt;Row&gt; resultRowIter) {
+<span class="fc" id="L192">    ImmutableMap.Builder&lt;String, ExprValue&gt; resultSchemaBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L193">    resultSchemaBuilder.putAll(</span>
+<span class="fc" id="L194">        convertRowIntoExprValue(inputDataFrame.columnMetas(), inputRowIter.next()));</span>
+<span class="fc" id="L195">    Map&lt;String, ExprValue&gt; resultSchema = resultSchemaBuilder.build();</span>
+<span class="fc" id="L196">    ImmutableMap.Builder&lt;String, ExprValue&gt; resultBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L197">    resultBuilder.putAll(</span>
+<span class="fc" id="L198">        convertResultRowIntoExprValue(</span>
+<span class="fc" id="L199">            predictionResult.getPredictionResult().columnMetas(),</span>
+<span class="fc" id="L200">            resultRowIter.next(),</span>
+            resultSchema));
+<span class="fc" id="L202">    resultBuilder.putAll(resultSchema);</span>
+<span class="fc" id="L203">    return ExprTupleValue.fromExprValueMap(resultBuilder.build());</span>
+  }
+
+  /**
+   * get ml-commons train and predict result.
+   *
+   * @param functionName ml-commons algorithm name
+   * @param mlAlgoParams ml-commons algorithm parameters
+   * @param inputDataFrame input data frame
+   * @param nodeClient node client
+   * @return ml-commons train and predict result
+   */
+  protected MLPredictionOutput getMLPredictionResult(
+      FunctionName functionName,
+      MLAlgoParams mlAlgoParams,
+      DataFrame inputDataFrame,
+      NodeClient nodeClient) {
+    MLInput mlinput =
+<span class="nc" id="L221">        MLInput.builder()</span>
+<span class="nc" id="L222">            .algorithm(functionName)</span>
+<span class="nc" id="L223">            .parameters(mlAlgoParams)</span>
+<span class="nc" id="L224">            .inputDataset(new DataFrameInputDataset(inputDataFrame))</span>
+<span class="nc" id="L225">            .build();</span>
+
+<span class="nc" id="L227">    MachineLearningNodeClient machineLearningClient = MLClient.getMLClient(nodeClient);</span>
+
+<span class="nc" id="L229">    return (MLPredictionOutput)</span>
+<span class="nc" id="L230">        machineLearningClient.trainAndPredict(mlinput).actionGet(30, TimeUnit.SECONDS);</span>
+  }
+
+  /**
+   * get ml-commons train, predict and trainandpredict result.
+   *
+   * @param inputDataFrame input data frame
+   * @param arguments ml parameters
+   * @param nodeClient node client
+   * @return ml-commons result
+   */
+  protected MLOutput getMLOutput(
+      DataFrame inputDataFrame, Map&lt;String, Object&gt; arguments, NodeClient nodeClient) {
+    MLInput mlinput =
+<span class="fc" id="L244">        MLInput.builder()</span>
+<span class="fc" id="L245">            .inputDataset(new DataFrameInputDataset(inputDataFrame))</span>
+            // Just the placeholders for algorithm and parameters which must be initialized.
+            // They will be overridden in ml client.
+<span class="fc" id="L248">            .algorithm(FunctionName.SAMPLE_ALGO)</span>
+<span class="fc" id="L249">            .parameters(new SampleAlgoParams(0))</span>
+<span class="fc" id="L250">            .build();</span>
+
+<span class="fc" id="L252">    MachineLearningNodeClient machineLearningClient = MLClient.getMLClient(nodeClient);</span>
+
+<span class="fc" id="L254">    return machineLearningClient.run(mlinput, arguments).actionGet(30, TimeUnit.SECONDS);</span>
+  }
+
+  /**
+   * iterate result and built it into ExprTupleValue.
+   *
+   * @param inputRowIter input row iterator
+   * @param inputDataFrame input data frame
+   * @param mlResult train/predict result
+   * @param resultRowIter predict result iterator
+   * @return result in ExprTupleValue format
+   */
+  protected ExprTupleValue buildPPLResult(
+      boolean isPredict,
+      Iterator&lt;Row&gt; inputRowIter,
+      DataFrame inputDataFrame,
+      MLOutput mlResult,
+      Iterator&lt;Row&gt; resultRowIter) {
+<span class="fc bfc" id="L272" title="All 2 branches covered.">    if (isPredict) {</span>
+<span class="fc" id="L273">      return buildResult(</span>
+          inputRowIter, inputDataFrame, (MLPredictionOutput) mlResult, resultRowIter);
+    } else {
+<span class="fc" id="L276">      return buildTrainResult((MLTrainingOutput) mlResult);</span>
+    }
+  }
+
+  protected ExprTupleValue buildTrainResult(MLTrainingOutput trainResult) {
+<span class="fc" id="L281">    ImmutableMap.Builder&lt;String, ExprValue&gt; resultBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L282">    resultBuilder.put(MODELID, new ExprStringValue(trainResult.getModelId()));</span>
+<span class="fc" id="L283">    resultBuilder.put(TASKID, new ExprStringValue(trainResult.getTaskId()));</span>
+<span class="fc" id="L284">    resultBuilder.put(STATUS, new ExprStringValue(trainResult.getStatus()));</span>
+
+<span class="fc" id="L286">    return ExprTupleValue.fromExprValueMap(resultBuilder.build());</span>
+  }
+
+  private static class MLInputRows extends LinkedList&lt;Map&lt;String, Object&gt;&gt; {
+    /**
+     * Add tuple value to input map, skip if any value is null.
+     *
+     * @param tupleValue a row in input data.
+     */
+    public void addTupleValue(Map&lt;String, ExprValue&gt; tupleValue) {
+<span class="pc bpc" id="L296" title="3 of 6 branches missed.">      if (tupleValue.values().stream().anyMatch(e -&gt; e.isNull() || e.isMissing())) {</span>
+<span class="nc" id="L297">        return;</span>
+      }
+<span class="fc" id="L299">      this.add(</span>
+<span class="fc" id="L300">          tupleValue.entrySet().stream()</span>
+<span class="fc" id="L301">              .collect(Collectors.toMap(Map.Entry::getKey, e -&gt; e.getValue().value())));</span>
+<span class="fc" id="L302">    }</span>
+
+    /**
+     * Convert to DataFrame.
+     *
+     * @return DataFrame
+     */
+    public DataFrame toDataFrame() {
+<span class="fc" id="L310">      return DataFrameBuilder.load(this);</span>
+    }
+
+    /**
+     * Filter each row and convert to DataFrame.
+     *
+     * @param filter used to filter fields in each row
+     * @return DataFrame
+     */
+    public DataFrame toFilteredDataFrame(Predicate&lt;Map.Entry&lt;String, Object&gt;&gt; filter) {
+<span class="nc" id="L320">      return DataFrameBuilder.load(</span>
+<span class="nc" id="L321">          this.stream()</span>
+<span class="nc" id="L322">              .map(</span>
+                  row -&gt;
+<span class="nc" id="L324">                      row.entrySet().stream()</span>
+<span class="nc" id="L325">                          .filter(filter)</span>
+<span class="nc" id="L326">                          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))</span>
+<span class="nc" id="L327">              .collect(Collectors.toList()));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

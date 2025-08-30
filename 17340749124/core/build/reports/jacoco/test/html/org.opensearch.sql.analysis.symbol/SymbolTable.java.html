@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SymbolTable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis.symbol</a> &gt; <span class="el_source">SymbolTable.java</span></div><h1>SymbolTable.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis.symbol;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptyNavigableMap;
+
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.TreeMap;
+import org.opensearch.sql.data.type.ExprType;
+
+/** Symbol table for symbol definition and resolution. */
+<span class="fc" id="L20">public class SymbolTable {</span>
+
+  /** Two-dimension hash table to manage symbols with type in different namespace. */
+<span class="fc" id="L23">  private final Map&lt;Namespace, NavigableMap&lt;String, ExprType&gt;&gt; tableByNamespace =</span>
+      new EnumMap&lt;&gt;(Namespace.class);
+
+  /**
+   * Two-dimension hash table to manage symbols with type in different namespace. Comparing with
+   * tableByNamespace, orderedTable use the LinkedHashMap to keep the order of symbol.
+   */
+<span class="fc" id="L30">  private final Map&lt;Namespace, LinkedHashMap&lt;String, ExprType&gt;&gt; orderedTable =</span>
+      new EnumMap&lt;&gt;(Namespace.class);
+
+  /**
+   * Store symbol with the type. Create new map for namespace for the first time.
+   *
+   * @param symbol symbol to define
+   * @param type symbol type
+   */
+  public void store(Symbol symbol, ExprType type) {
+<span class="fc" id="L40">    tableByNamespace</span>
+<span class="fc" id="L41">        .computeIfAbsent(symbol.getNamespace(), ns -&gt; new TreeMap&lt;&gt;())</span>
+<span class="fc" id="L42">        .put(symbol.getName(), type);</span>
+
+<span class="fc" id="L44">    orderedTable</span>
+<span class="fc" id="L45">        .computeIfAbsent(symbol.getNamespace(), ns -&gt; new LinkedHashMap&lt;&gt;())</span>
+<span class="fc" id="L46">        .put(symbol.getName(), type);</span>
+<span class="fc" id="L47">  }</span>
+
+  /** Remove a symbol from SymbolTable. */
+  public void remove(Symbol symbol) {
+<span class="fc" id="L51">    tableByNamespace.computeIfPresent(</span>
+<span class="fc" id="L52">        symbol.getNamespace(),</span>
+        (k, v) -&gt; {
+<span class="fc" id="L54">          v.remove(symbol.getName());</span>
+<span class="fc" id="L55">          return v;</span>
+        });
+<span class="fc" id="L57">    orderedTable.computeIfPresent(</span>
+<span class="fc" id="L58">        symbol.getNamespace(),</span>
+        (k, v) -&gt; {
+<span class="fc" id="L60">          v.remove(symbol.getName());</span>
+<span class="fc" id="L61">          return v;</span>
+        });
+<span class="fc" id="L63">  }</span>
+
+  /**
+   * Look up symbol in the namespace map.
+   *
+   * @param symbol symbol to look up
+   * @return symbol type which is optional
+   */
+  public Optional&lt;ExprType&gt; lookup(Symbol symbol) {
+<span class="fc" id="L72">    Map&lt;String, ExprType&gt; table = tableByNamespace.get(symbol.getNamespace());</span>
+<span class="fc" id="L73">    ExprType type = null;</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (table != null) {</span>
+<span class="fc" id="L75">      type = table.get(symbol.getName());</span>
+    }
+<span class="fc" id="L77">    return Optional.ofNullable(type);</span>
+  }
+
+  /**
+   * Look up symbols by a prefix.
+   *
+   * @param prefix a symbol prefix
+   * @return symbols starting with the prefix
+   */
+  public Map&lt;String, ExprType&gt; lookupByPrefix(Symbol prefix) {
+<span class="fc" id="L87">    NavigableMap&lt;String, ExprType&gt; table = tableByNamespace.get(prefix.getNamespace());</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (table != null) {</span>
+<span class="fc" id="L89">      return table.subMap(prefix.getName(), prefix.getName() + Character.MAX_VALUE);</span>
+    }
+<span class="fc" id="L91">    return emptyMap();</span>
+  }
+
+  /**
+   * Look up all top level symbols in the namespace. this function is mainly used by SELECT * use
+   * case to get the top level fields Todo. currently, the top level fields is the field which
+   * doesn't include &quot;.&quot; in the name or the prefix doesn't exist in the symbol table. e.g. The
+   * symbol table includes person, person.name, person/2.0. person, is the top level field
+   * person.name, isn't the top level field, because the prefix (person) in symbol table person/2.0,
+   * is the top level field, because the prefix (person/2) isn't in symbol table
+   *
+   * @param namespace a namespace
+   * @return all symbols in the namespace map
+   */
+  public Map&lt;String, ExprType&gt; lookupAllFields(Namespace namespace) {
+<span class="fc" id="L106">    final LinkedHashMap&lt;String, ExprType&gt; allSymbols =</span>
+<span class="fc" id="L107">        orderedTable.getOrDefault(namespace, new LinkedHashMap&lt;&gt;());</span>
+<span class="fc" id="L108">    final LinkedHashMap&lt;String, ExprType&gt; results = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L109">    allSymbols.entrySet().stream()</span>
+<span class="fc" id="L110">        .filter(</span>
+            entry -&gt; {
+<span class="fc" id="L112">              String symbolName = entry.getKey();</span>
+<span class="fc" id="L113">              int lastDot = symbolName.lastIndexOf(&quot;.&quot;);</span>
+<span class="fc bfc" id="L114" title="All 4 branches covered.">              return -1 == lastDot || !allSymbols.containsKey(symbolName.substring(0, lastDot));</span>
+            })
+<span class="fc" id="L116">        .forEach(entry -&gt; results.put(entry.getKey(), entry.getValue()));</span>
+<span class="fc" id="L117">    return results;</span>
+  }
+
+  /**
+   * Look up all top level symbols in the namespace.
+   *
+   * @param namespace a namespace
+   * @return all symbols in the namespace map
+   */
+  public Map&lt;String, ExprType&gt; lookupAllTupleFields(Namespace namespace) {
+<span class="fc" id="L127">    final LinkedHashMap&lt;String, ExprType&gt; allSymbols =</span>
+<span class="fc" id="L128">        orderedTable.getOrDefault(namespace, new LinkedHashMap&lt;&gt;());</span>
+<span class="fc" id="L129">    final LinkedHashMap&lt;String, ExprType&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L130">    allSymbols.entrySet().stream().forEach(entry -&gt; result.put(entry.getKey(), entry.getValue()));</span>
+<span class="fc" id="L131">    return result;</span>
+  }
+
+  /**
+   * Check if namespace map in empty (none definition).
+   *
+   * @param namespace a namespace
+   * @return true for empty
+   */
+  public boolean isEmpty(Namespace namespace) {
+<span class="fc" id="L141">    return tableByNamespace.getOrDefault(namespace, emptyNavigableMap()).isEmpty();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
