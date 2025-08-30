@@ -214,60 +214,21 @@ jobs:
       # Collect all HTML reports from artifacts and workspace
       - name: Collect HTML Reports
         run: |
-          # Enable debug mode to see all commands
-          set -x
-          
           mkdir -p site
           
-          # Debug information
-          echo "🔍 Debug: Job dependency information"
-          echo "This job runs after: generate-fake-reports"
-          echo "Run ID: ${{ github.run_id }}"
-          echo "Current working directory: $(pwd)"
-          echo "Contents of current directory:"
-          ls -la
-          
-          # List what was downloaded
-          echo "🔍 Checking downloaded artifacts..."
-          if [ -d "downloaded-artifacts" ]; then
-            echo "Downloaded artifacts directory exists"
-            ls -la downloaded-artifacts/
-            echo "All files in downloaded-artifacts:"
-            find downloaded-artifacts -type f -exec ls -la {} \;
-          else
-            echo "No downloaded-artifacts directory found"
-          fi
-          
           # Copy artifacts from the previous job
-          echo "🔍 Searching for HTML reports in artifacts..."
           if [ -d "downloaded-artifacts" ]; then
             find downloaded-artifacts -name "*.html" -type f | while read file; do
-              echo "Found artifact: $file"
               # Create directory structure and copy file
               relative_path="${file#downloaded-artifacts/}"
               target_dir="site/$(dirname "$relative_path")"
-              echo "Creating directory: $target_dir"
               mkdir -p "$target_dir"
-              echo "Copying $file to $target_dir/"
               cp "$file" "$target_dir/"
-              echo "Copy completed"
             done
-          else
-            echo "No downloaded-artifacts directory found - artifacts may not have been downloaded"
-          fi
-          
-          # Show what's in site directory after copying artifacts
-          echo "🔍 Contents of site directory after copying artifacts:"
-          if [ -d "site" ]; then
-            find site -type f -exec ls -la {} \;
-          else
-            echo "Site directory doesn't exist yet"
           fi
           
           # Find and copy all HTML files from build/reports directories (current workspace)
-          echo "🔍 Searching for HTML reports in workspace..."
           find . -name "*.html" -path "*/build/reports/*" -type f | while read file; do
-            echo "Found: $file"
             # Create directory structure and copy file
             target_dir="site/$(dirname "${file#./}")"
             mkdir -p "$target_dir"
@@ -277,7 +238,6 @@ jobs:
           # Also look for common report directories
           for pattern in "*/build/test-results/*/*.html" "*/target/surefire-reports/*.html" "*/target/site/**/*.html" "**/coverage/**/*.html" "**/jacoco/**/*.html"; do
             find . -path "$pattern" -type f 2>/dev/null | while read file; do
-              echo "Found: $file"
               target_dir="site/$(dirname "${file#./}")"
               mkdir -p "$target_dir"
               cp "$file" "$target_dir/"
@@ -383,16 +343,10 @@ jobs:
           sed -i "s/COMMIT_PLACEHOLDER/${{ github.sha }}/g" site/index.html
           sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -u)/g" site/index.html
           
-          # Generate reports list - fix the logic
-          echo "🔍 Generating reports list..."
-          
-          # Count HTML files (excluding index.html)
+          # Generate reports list
           html_count=$(find site -name "*.html" ! -name "index.html" | wc -l)
-          echo "Found $html_count HTML files to list"
           
           if [ "$html_count" -gt 0 ]; then
-              echo "Creating reports list HTML..."
-              
               # Start the list
               echo "<ul class=\"reports-list\">" > site/reports.tmp
               
@@ -401,37 +355,23 @@ jobs:
                   relative_path="${file#site/}"
                   display_name=$(basename "$file" .html)
                   dir_name=$(dirname "$relative_path")
-                  echo "Adding to list: $file -> $relative_path"
                   echo "<li><a href=\"$relative_path\">$display_name</a><span class=\"file-path\">$dir_name</span></li>" >> site/reports.tmp
               done
               
               # Close the list
               echo "</ul>" >> site/reports.tmp
-              
-              echo "Reports list generated:"
-              cat site/reports.tmp
           else
-              echo "No HTML files found, creating no-reports message..."
               echo "<div class=\"no-reports\"><h2>ℹ️ No HTML Reports Found</h2><p>No HTML reports were found in build directories. Reports will appear here after CI jobs complete.</p></div>" > site/reports.tmp
           fi
           
           # Replace the placeholder in index.html
-          echo "🔍 Replacing placeholder in index.html..."
           if [ -f "site/reports.tmp" ]; then
-              # Use sed to replace the placeholder
               sed -i '/REPORTS_LIST_PLACEHOLDER/r site/reports.tmp' site/index.html
               sed -i '/REPORTS_LIST_PLACEHOLDER/d' site/index.html
-              echo "Placeholder replaced successfully"
-          else
-              echo "❌ reports.tmp file not found!"
           fi
           
           # Clean up
           rm -f site/reports.tmp
-          
-          # Show final index.html content for debugging
-          echo "🔍 Final index.html content (first 50 lines):"
-          head -50 site/index.html
           
           # Create a summary of what was collected
           echo "## HTML Reports Summary" > site/SUMMARY.md
@@ -453,25 +393,6 @@ jobs:
               echo "No HTML reports found. Reports will appear after CI jobs complete." >> site/SUMMARY.md
           fi
 
-      # Show final site contents before deployment
-      - name: Debug - Show Final Site Contents
-        run: |
-          set -x
-          echo "🔍 Final contents of site directory before deployment:"
-          if [ -d "site" ]; then
-            echo "Site directory exists"
-            find site -type f -exec ls -la {} \;
-            echo ""
-            echo "Total files to deploy:"
-            find site -type f | wc -l
-            echo ""
-            echo "Directory structure:"
-            tree site || find site -type d | sort
-          else
-            echo "❌ Site directory does not exist!"
-            exit 1
-          fi
-
       # Publish to gh-pages using the industry-standard action
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -481,15 +402,6 @@ jobs:
           publish_dir: site
           destination_dir: revision-${{ github.sha }}
           keep_files: true
-
-      # Verify deployment
-      - name: Debug - Verify Deployment
-        run: |
-          set -x
-          echo "🔍 Deployment completed"
-          echo "Expected URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/"
-          echo "Files that should have been deployed:"
-          find site -type f | sort
 
       # Add a clickable link in the run summary
       - name: Summary

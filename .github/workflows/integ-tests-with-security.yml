@@ -88,3 +88,58 @@ jobs:
           integ-test/build/reports/**
           integ-test/build/testclusters/*/logs/*
           integ-test/build/testclusters/*/config/*
+
+    # Put each run under a unique folder (by SHA or run number)
+    - name: Stage site
+      run: |
+        dest="site/${{ github.run_number }}-${{ github.sha }}"
+        mkdir -p "$dest"
+        cp -r reports/* "$dest/"
+
+    # 👇 generate an index.html that links every folder/file
+    - name: Generate directory listing
+      uses: jayanta525/github-pages-directory-listing@v4.0.0
+      with:
+        FOLDER: site
+
+    # Upload the static site as a Pages artifact
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: site
+
+    # Publish to gh-pages using the industry-standard action
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: site
+        destination_dir: revision-${{ github.sha }}
+        keep_files: true
+
+    # Add a clickable link in the run summary
+    - name: Summary
+      run: |
+        SHORT_COMMIT="${{ github.sha }}"
+        SHORT_COMMIT="${SHORT_COMMIT:0:8}"
+        URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/"
+        
+        {
+          echo "### 📊 HTML Reports Published"
+          echo ""
+          echo "- **📋 Dashboard:** [$URL]($URL)"
+          echo "- **🔍 Revision:** ${SHORT_COMMIT}"
+          echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
+          echo "- **📅 Generated:** $(date -u)"
+          echo ""
+          echo "The dashboard automatically lists all HTML files found in build directories."
+          echo ""
+          echo "**Search Locations:**"
+          echo "- \`*/build/reports/**/*.html\`"
+          echo "- \`*/build/test-results/**/*.html\`"
+          echo "- \`*/target/surefire-reports/*.html\`"
+          echo "- \`*/target/site/**/*.html\`"
+          echo "- \`**/coverage/**/*.html\`"
+          echo "- \`**/jacoco/**/*.html\`"
+        } >> "$GITHUB_STEP_SUMMARY"
