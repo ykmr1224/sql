@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: ''
+      filename-pattern:
+        description: 'Pattern to match HTML files for index generation (e.g., "index.html" or "*.html")'
+        required: false
+        type: string
+        default: 'index.html'
 
 jobs:
   publish-html-reports:
@@ -44,11 +49,13 @@ jobs:
         cp -r downloaded-artifacts/* site/
         echo "Collected all artifacts into 'site' directory."
 
-    # Generate index.html listing all index.html files
+    # Generate index.html listing all matching HTML files
     - name: Generate HTML reports index
       run: |
         file=site/index.html
-        links=$(cd site && find . -type f -name "*.html" | sed 's/index\.html$//' | sort | awk '{ printf "<li><a href=\"%s\">%s</a></li>", $0, $0 }')
+        filename_pattern="${{ inputs.filename-pattern }}"
+        template="<li><a href=\"%s\">%s</a></li>"
+        links=$(cd site && find . -type f -name "$filename_pattern" | sort | awk '{ printf "$template", $0, $0 }')
         
         cat > $file << EOF
         <!DOCTYPE html>
@@ -56,12 +63,13 @@ jobs:
         <head><title>HTML Reports Index</title></head>
         <body>
             <p>Generated on: $(date)</p>
+            <p>Searching for files matching: $filename_pattern</p>
             <ul>$links</ul>
         </body>
         </html>
         EOF
         
-        echo "Generated reports index at: $file"
+        echo "Generated index with pattern='$filename_pattern' at: $file"
 
     # Publish to gh-pages using the industry-standard action
     - name: Deploy to GitHub Pages
