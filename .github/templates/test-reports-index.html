@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Reports - Revision {{PR_NUMBER}}</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; 
+            margin: 40px; 
+            background-color: #f6f8fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #24292e; 
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 10px;
+        }
+        .module { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #e1e4e8; 
+            border-radius: 6px; 
+            background: #fafbfc;
+        }
+        .module h2 { 
+            margin-top: 0; 
+            color: #0366d6; 
+            font-size: 1.25em;
+        }
+        .report-links { 
+            margin: 15px 0; 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .report-links a { 
+            display: inline-block; 
+            padding: 8px 16px; 
+            background: #f6f8fa; 
+            border: 1px solid #d1d5da; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            color: #24292e;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .report-links a:hover { 
+            background: #e1e4e8; 
+            border-color: #c6cbd1;
+        }
+        .summary { 
+            background: linear-gradient(135deg, #f6f8fa 0%, #e1e4e8 100%); 
+            padding: 20px; 
+            border-radius: 6px; 
+            margin-bottom: 30px; 
+            border: 1px solid #e1e4e8;
+        }
+        .summary p {
+            margin: 8px 0;
+        }
+        .timestamp { 
+            color: #586069; 
+            font-size: 0.9em; 
+        }
+        .no-reports { 
+            color: #586069; 
+            font-style: italic; 
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            display: none;
+        }
+        .no-reports-main {
+            text-align: center;
+            padding: 40px;
+            color: #586069;
+            display: none;
+        }
+        .no-reports-main h2 {
+            color: #586069;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Test Reports - Revision {{PR_NUMBER}}</h1>
+        <div class="summary">
+            <p><strong>Repository:</strong> {{REPOSITORY}}</p>
+            <p><strong>Branch:</strong> {{BRANCH}}</p>
+            <p><strong>Commit:</strong> <code>{{COMMIT}}</code></p>
+            <p class="timestamp"><strong>Generated:</strong> {{TIMESTAMP}}</p>
+        </div>
+        
+        <div id="modules-container">
+            {{MODULES_LIST}}
+        </div>
+        
+        <div class="no-reports-main" id="no-reports-message">
+            <h2>ℹ️ No Test Reports Found</h2>
+            <p>
+                No test reports were found in the build directories. 
+                This usually means tests haven't been run yet for this revision.
+                Test reports will appear here after CI jobs complete.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Function to check if a URL exists
+        async function urlExists(url) {
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        // Function to show/hide report links based on file existence
+        async function updateReportLinks() {
+            const modules = document.querySelectorAll('.module');
+            let hasAnyReports = false;
+
+            for (const module of modules) {
+                const links = module.querySelectorAll('.report-links a');
+                let hasModuleReports = false;
+
+                for (const link of links) {
+                    const exists = await urlExists(link.href);
+                    if (exists) {
+                        link.style.display = 'inline-block';
+                        hasModuleReports = true;
+                        hasAnyReports = true;
+                    } else {
+                        link.style.display = 'none';
+                    }
+                }
+
+                // Show "No reports available" if no links are visible
+                const noReportsSpan = module.querySelector('.no-reports');
+                if (!hasModuleReports && noReportsSpan) {
+                    noReportsSpan.style.display = 'block';
+                }
+            }
+
+            // Show main "no reports" message if no reports found anywhere
+            if (!hasAnyReports) {
+                document.getElementById('no-reports-message').style.display = 'block';
+            }
+        }
+
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', updateReportLinks);
+    </script>
+</body>
+</html>

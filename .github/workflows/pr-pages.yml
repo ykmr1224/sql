@@ -1,0 +1,136 @@
+name: Upload Test Reports to Pages
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
+
+permissions:
+  contents: write   # needed to push to gh-pages
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: test-reports
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/
+    steps:
+      - uses: actions/checkout@v4
+
+      # Collect all available test reports
+      - name: Collect test reports
+        run: |
+          mkdir -p site
+          
+          # List of modules to check (all directories that might have build/reports)
+          modules=(
+            "async-query" "async-query-core" "benchmarks" "common" "core" 
+            "datasources" "doctest" "integ-test" "language-grammar" "legacy" 
+            "opensearch" "plugin" "ppl" "prometheus" "protocol" "spark" "sql"
+          )
+          
+          # Copy all available reports
+          for module in "${modules[@]}"; do
+              if [ -d "$module/build/reports" ]; then
+                  echo "Copying reports from $module"
+                  mkdir -p "site/$module"
+                  cp -r "$module/build/reports"/* "site/$module/" 2>/dev/null || true
+              fi
+          done
+          
+          # Copy root-level reports if they exist
+          if [ -d "build/reports" ]; then
+              echo "Copying root-level reports"
+              mkdir -p "site/root"
+              cp -r build/reports/* "site/root/" 2>/dev/null || true
+          fi
+          
+          # Generate modules list HTML for template
+          modules_html=""
+          for module in "${modules[@]}" "root"; do
+              if [ -d "site/$module" ] || [ "$module" = "doctest" ]; then
+                  modules_html+="<div class=\"module\">
+                      <h2>$module</h2>
+                      <div class=\"report-links\">
+                          <a href=\"$module/tests/test/index.html\">Unit Tests</a>
+                          <a href=\"$module/tests/integTest/index.html\">Integration Tests</a>
+                          <a href=\"$module/jacocoHtml/index.html\">Coverage Report</a>
+                          <a href=\"$module/spotbugs/main.html\">SpotBugs</a>
+                          <a href=\"$module/checkstyle/main.html\">Checkstyle</a>
+                      </div>
+                      <span class=\"no-reports\">No reports available</span>
+                  </div>"
+              fi
+          done
+          
+          # Create index.html from template
+          cp .github/templates/test-reports-index.html site/index.html
+          
+          # Get current branch and commit info
+          CURRENT_BRANCH="${{ github.head_ref || github.ref_name }}"
+          CURRENT_COMMIT="${{ github.sha }}"
+          SHORT_COMMIT="${CURRENT_COMMIT:0:8}"
+          
+          # Replace placeholders in the template
+          sed -i "s/{{PR_NUMBER}}/${SHORT_COMMIT}/g" site/index.html
+          sed -i "s|{{REPOSITORY}}|${{ github.repository }}|g" site/index.html
+          sed -i "s/{{BRANCH}}/${CURRENT_BRANCH}/g" site/index.html
+          sed -i "s/{{COMMIT}}/${CURRENT_COMMIT}/g" site/index.html
+          sed -i "s/{{TIMESTAMP}}/$(date -u)/g" site/index.html
+          
+          # Replace modules list (using a temporary file to handle multiline)
+          echo "$modules_html" > site/modules.tmp
+          # Use perl for multiline replacement
+          perl -i -pe 'BEGIN{undef $/;} s/\{\{MODULES_LIST\}\}/`cat site\/modules.tmp`/smge' site/index.html
+          rm site/modules.tmp
+          
+          # Create a summary of what was collected
+          echo "## Test Reports Summary" > site/SUMMARY.md
+          echo "" >> site/SUMMARY.md
+          echo "Generated for revision: ${SHORT_COMMIT}" >> site/SUMMARY.md
+          echo "Repository: ${{ github.repository }}" >> site/SUMMARY.md
+          echo "Branch: ${CURRENT_BRANCH}" >> site/SUMMARY.md
+          echo "Commit: ${CURRENT_COMMIT}" >> site/SUMMARY.md
+          echo "" >> site/SUMMARY.md
+          
+          # List what was found
+          if find site -name "*.html" -not -path "site/index.html" | grep -q .; then
+              echo "### Available Reports:" >> site/SUMMARY.md
+              for module in "${modules[@]}" "root"; do
+                  if [ -d "site/$module" ] && [ "$(ls -A "site/$module" 2>/dev/null)" ]; then
+                      echo "- **$module**: Available" >> site/SUMMARY.md
+                  fi
+              done
+          else
+              echo "No test reports found. Tests may not have been executed yet." >> site/SUMMARY.md
+          fi
+
+      # Publish to gh-pages
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: site
+          destination_dir: revision-${{ github.sha }}
+          keep_files: true
+
+      # Add a clickable link in the run summary
+      - name: Summary
+        run: |
+          SHORT_COMMIT="${{ github.sha }}"
+          SHORT_COMMIT="${SHORT_COMMIT:0:8}"
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/revision-${{ github.sha }}/"
+          
+          {
+            echo "### 📊 Test Reports Published"
+            echo ""
+            echo "- **📋 Dashboard:** [$URL]($URL)"
+            echo "- **🔍 Revision:** ${SHORT_COMMIT}"
+            echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
+            echo "- **📅 Generated:** $(date -u)"
+            echo ""
+            echo "The dashboard uses JavaScript to automatically show/hide available reports."
+          } >> "$GITHUB_STEP_SUMMARY"
