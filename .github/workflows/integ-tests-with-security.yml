@@ -92,7 +92,6 @@ jobs:
   publish-html-reports:
     needs:
       - security-it-linux
-      - security-it-windows-macos
     runs-on: ubuntu-latest
     steps:
       # 👇 generate an index.html that links every folder/file
@@ -112,23 +111,8 @@ jobs:
       - name: Collect HTML reports
         run: |
           mkdir -p site
-          find downloaded-artifacts -type f -name "*.html" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.xml" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.log" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.txt" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.json" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.png" -exec cp --parents \{\} site/ \;
-          find downloaded-artifacts -type f -name "*.svg" -exec cp --parents \{\} site/ \;
-          # Also include any HTML reports generated in the current workflow run
-          find . -type f -name "*.html" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.xml" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.log" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.txt" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.json" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.png" -exec cp --parents \{\} site/ \;
-          find . -type f -name "*.svg" -exec cp --parents \{\} site/ \;
-
-          echo "Collected HTML reports and related files into 'site' directory."
+          cp -r downloaded-artifacts/* site/
+          echo "Collected all artifacts into 'site' directory."
 
       # Publish to gh-pages using the industry-standard action
       - name: Deploy to GitHub Pages
