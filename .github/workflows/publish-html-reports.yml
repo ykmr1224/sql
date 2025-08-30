@@ -46,21 +46,17 @@ jobs:
     # Generate index.html listing all index.html files
     - name: Generate HTML reports index
       run: |
-        html_files=$(find site -type f -name "index.html" | sort | awk '{ printf "<li><a href=\"%s\">%s</a></li>", $0, $0 }'
+        links=$(find site -type f -name "index.html" | sort | awk '{ printf "<li><a href=\"%s\">%s</a></li>", $0, $0 }'
         
         # Create the complete index.html file
         cat > site/index.html << EOF
         <!DOCTYPE html>
         <html>
-        <head>
-            <title>HTML Reports Index</title>
-        </head>
+        <head><title>HTML Reports Index</title></head>
         <body>
             <h1>HTML Reports Index</h1>
             <p>Generated on: $(date)</p>
-            <ul>
-        $html_files
-            </ul>
+            <ul>$links</ul>
         </body>
         </html>
         EOF
