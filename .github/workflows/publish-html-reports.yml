@@ -35,7 +35,7 @@ jobs:
       with:
         pattern: ${{ inputs.artifact-pattern }}
         path: downloaded-artifacts
-        merge-multiple: true
+        merge-multiple: false
 
     # Collect all HTML reports from artifacts and workspace
     - name: Collect artifacts
