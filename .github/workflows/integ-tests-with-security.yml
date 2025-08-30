@@ -100,11 +100,10 @@ jobs:
         with:
           FOLDER: site
 
-      # Download artifacts from the previous job
+      # Download all the artifacts from the previous job
       - name: Download HTML Report Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: html-reports-${{ github.run_id }}
           path: downloaded-artifacts
 
       # Collect all HTML reports from artifacts and workspace
