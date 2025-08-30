@@ -46,22 +46,21 @@ jobs:
     # Generate index.html listing all index.html files
     - name: Generate HTML reports index
       run: |
-        links=$(cd site && find . -type f -name "index.html" | sort | awk '{ printf "<li><a href=\"%s\">%s</a></li>", $0, $0 }')
+        file=site/index.html
+        links=$(cd site && find . -type f -name "*.html" | sed 's/index\.html$//' | sort | awk '{ printf "<li><a href=\"%s\">%s</a></li>", $0, $0 }')
         
-        # Create the complete index.html file
-        cat > site/index.html << EOF
+        cat > $file << EOF
         <!DOCTYPE html>
         <html>
         <head><title>HTML Reports Index</title></head>
         <body>
-            <h1>HTML Reports Index</h1>
             <p>Generated on: $(date)</p>
             <ul>$links</ul>
         </body>
         </html>
         EOF
         
-        echo "Generated reports index at: site/index.html"
+        echo "Generated reports index at: $file"
 
     # generate an index.html that links every folder/file
     - name: Generate directory listing
