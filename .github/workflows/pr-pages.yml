@@ -3,7 +3,6 @@ on:
   workflow_run:
     workflows: ["Generate Test Reports (Quick Test)"]
     types: [completed]
-  push:  # Also trigger on direct pushes
   workflow_dispatch:  # Manual trigger for testing
 
 permissions:
@@ -25,12 +24,33 @@ jobs:
           pattern: html-reports-*
           path: downloaded-artifacts
           merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      # Collect all HTML reports from any build/reports directories AND artifacts
+      # Debug and collect all HTML reports from any build/reports directories AND artifacts
       - name: Collect HTML Reports
         run: |
           mkdir -p site
+          
+          # Debug information
+          echo "🔍 Debug: Workflow trigger information"
+          echo "Event name: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "Triggering workflow: ${{ github.event.workflow_run.name }}"
+            echo "Triggering workflow ID: ${{ github.event.workflow_run.id }}"
+            echo "Triggering workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+          fi
+          
+          # List what was downloaded
+          echo "🔍 Checking downloaded artifacts directory..."
+          if [ -d "downloaded-artifacts" ]; then
+            echo "Downloaded artifacts directory exists"
+            ls -la downloaded-artifacts/
+            find downloaded-artifacts -type f | head -20
+          else
+            echo "No downloaded-artifacts directory found"
+          fi
           
           # Copy artifacts first (from other workflows)
           echo "🔍 Searching for HTML reports in artifacts..."
@@ -41,8 +61,10 @@ jobs:
               relative_path="${file#downloaded-artifacts/}"
               target_dir="site/$(dirname "$relative_path")"
               mkdir -p "$target_dir"
-              cp "$file" "$target_dir/$relative_path"
+              cp "$file" "$target_dir/"
             done
+          else
+            echo "No downloaded-artifacts directory found - artifacts may not have been downloaded"
           fi
           
           # Find and copy all HTML files from build/reports directories (current workspace)
