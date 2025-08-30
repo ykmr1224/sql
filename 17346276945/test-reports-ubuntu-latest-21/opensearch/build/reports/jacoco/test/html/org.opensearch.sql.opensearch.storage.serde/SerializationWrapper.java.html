@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SerializationWrapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.serde</a> &gt; <span class="el_source">SerializationWrapper.java</span></div><h1>SerializationWrapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.serde;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+
+/** Serialization wrapper that wraps the script language type with encoded script by JSON. */
+<span class="nc" id="L17">public class SerializationWrapper {</span>
+<span class="fc" id="L18">  private static final ObjectMapper mapper = new ObjectMapper();</span>
+<span class="fc" id="L19">  private static final TypeReference&lt;LangScriptWrapper&gt; TYPE_REF = new TypeReference&lt;&gt;() {};</span>
+  public static final String LANG_TYPE = &quot;langType&quot;;
+  public static final String SCRIPT = &quot;script&quot;;
+
+  /**
+   * Serialize the key-value map of langType and script to JSON string
+   *
+   * @param langType script language type
+   * @param script original script
+   * @return serialized map JSON string
+   */
+  public static String wrapWithLangType(ScriptEngineType langType, String script) {
+    try {
+<span class="fc" id="L32">      return mapper.writeValueAsString(new LangScriptWrapper(langType, script));</span>
+<span class="nc" id="L33">    } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L34">      throw new RuntimeException(&quot;Failed to wrap script with langType: &quot; + langType, e);</span>
+    }
+  }
+
+  /**
+   * Deserialize JSON string to unwrap langType and original script.
+   *
+   * @param wrapped JSON string to be deserialized
+   * @return unwrapped map of langType and script
+   */
+  public static LangScriptWrapper unwrapLangType(String wrapped) {
+    try {
+<span class="fc" id="L46">      LangScriptWrapper unwrapped = mapper.readValue(wrapped, TYPE_REF);</span>
+<span class="fc bfc" id="L47" title="All 4 branches covered.">      if (unwrapped.langType == null || StringUtils.isBlank(unwrapped.script)) {</span>
+<span class="fc" id="L48">        throw new IllegalArgumentException(&quot;Missing required fields in language script wrapper.&quot;);</span>
+      }
+<span class="fc" id="L50">      return unwrapped;</span>
+<span class="fc" id="L51">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L52">      throw new RuntimeException(&quot;Failed to unwrap script with langType.&quot;, e);</span>
+    }
+  }
+
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class LangScriptWrapper {
+    public ScriptEngineType langType;
+    public String script;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

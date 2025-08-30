@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcResponseFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">JdbcResponseFormatter.java</span></div><h1>JdbcResponseFormatter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import java.util.List;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Singular;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.executor.ExecutionEngine.Schema;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.opensearch.response.error.ErrorMessage;
+import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+/**
+ * JDBC formatter that formats both normal or error response exactly same way as legacy code to
+ * avoid impact on client side. The only difference is a new &quot;version&quot; that indicates the response
+ * was produced by new query engine.
+ */
+public class JdbcResponseFormatter extends JsonResponseFormatter&lt;QueryResult&gt; {
+
+  public JdbcResponseFormatter(Style style) {
+<span class="fc" id="L30">    super(style);</span>
+<span class="fc" id="L31">  }</span>
+
+  @Override
+  protected Object buildJsonObject(QueryResult response) {
+<span class="fc" id="L35">    JdbcResponse.JdbcResponseBuilder json = JdbcResponse.builder();</span>
+
+    // Fetch schema and data rows
+<span class="fc" id="L38">    response.getSchema().getColumns().forEach(col -&gt; json.column(fetchColumn(col)));</span>
+<span class="fc" id="L39">    json.datarows(fetchDataRows(response));</span>
+
+    // Populate other fields
+<span class="fc" id="L42">    json.total(response.size()).size(response.size()).status(200);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">    if (!response.getCursor().equals(Cursor.None)) {</span>
+<span class="fc" id="L44">      json.cursor(response.getCursor().toString());</span>
+    }
+
+<span class="fc" id="L47">    return json.build();</span>
+  }
+
+  @Override
+  public String format(Throwable t) {
+<span class="fc" id="L52">    int status = getStatus(t);</span>
+<span class="fc" id="L53">    ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);</span>
+<span class="fc" id="L54">    Error error = new Error(message.getType(), message.getReason(), message.getDetails());</span>
+<span class="fc" id="L55">    return jsonify(new JdbcErrorResponse(error, status));</span>
+  }
+
+  private Column fetchColumn(Schema.Column col) {
+<span class="fc" id="L59">    return new Column(col.getName(), col.getAlias(), convertToLegacyType(col.getExprType()));</span>
+  }
+
+  /**
+   * Convert type that exists in both legacy and new engine but has different name. Return old type
+   * name to avoid breaking impact on client-side.
+   */
+  private String convertToLegacyType(ExprType type) {
+<span class="fc" id="L67">    return type.legacyTypeName().toLowerCase();</span>
+  }
+
+  private Object[][] fetchDataRows(QueryResult response) {
+<span class="fc" id="L71">    Object[][] rows = new Object[response.size()][];</span>
+<span class="fc" id="L72">    int i = 0;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    for (Object[] values : response) {</span>
+<span class="fc" id="L74">      rows[i++] = values;</span>
+<span class="fc" id="L75">    }</span>
+<span class="fc" id="L76">    return rows;</span>
+  }
+
+  private int getStatus(Throwable t) {
+<span class="fc bfc" id="L80" title="All 4 branches covered.">    return (t instanceof SyntaxCheckException || t instanceof QueryEngineException) ? 400 : 503;</span>
+  }
+
+  /** org.json requires these inner data classes be public (and static) */
+  @Builder
+  @Getter
+  public static class JdbcResponse {
+    @Singular(&quot;column&quot;)
+    private final List&lt;Column&gt; schema;
+
+    private final Object[][] datarows;
+    private final long total;
+    private final long size;
+    private final int status;
+
+    private final String cursor;
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class Column {
+    private final String name;
+    private final String alias;
+    private final String type;
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class JdbcErrorResponse {
+    private final Error error;
+    private final int status;
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class Error {
+    private final String type;
+    private final String reason;
+    private final String details;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

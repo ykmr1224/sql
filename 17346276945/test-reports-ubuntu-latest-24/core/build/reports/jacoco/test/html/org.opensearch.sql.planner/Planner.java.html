@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Planner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner</a> &gt; <span class="el_source">Planner.java</span></div><h1>Planner.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner;
+
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.Table;
+
+/** Planner that plans and chooses the optimal physical plan. */
+@RequiredArgsConstructor
+public class Planner {
+
+  private final LogicalPlanOptimizer logicalOptimizer;
+
+  /**
+   * Generate optimal physical plan for logical plan. If no table involved, translate logical plan
+   * to physical by default implementor.&lt;br&gt;
+   * TODO: for now just delegate entire logical plan to storage engine.
+   *
+   * @param plan logical plan
+   * @return optimal physical plan
+   */
+  public PhysicalPlan plan(LogicalPlan plan) {
+<span class="fc" id="L33">    Table table = findTable(plan);</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">    if (table == null) {</span>
+<span class="fc" id="L35">      return plan.accept(new DefaultImplementor&lt;&gt;(), null);</span>
+    }
+<span class="fc" id="L37">    return table.implement(table.optimize(optimize(plan)));</span>
+  }
+
+  private Table findTable(LogicalPlan plan) {
+<span class="fc" id="L41">    return plan.accept(</span>
+<span class="fc" id="L42">        new LogicalPlanNodeVisitor&lt;Table, Object&gt;() {</span>
+
+          @Override
+          public Table visitNode(LogicalPlan node, Object context) {
+<span class="fc" id="L46">            List&lt;LogicalPlan&gt; children = node.getChild();</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (children.isEmpty()) {</span>
+<span class="fc" id="L48">              return null;</span>
+            }
+<span class="fc" id="L50">            return children.get(0).accept(this, context);</span>
+          }
+
+          @Override
+          public Table visitRelation(LogicalRelation node, Object context) {
+<span class="fc" id="L55">            return node.getTable();</span>
+          }
+        },
+        null);
+  }
+
+  private LogicalPlan optimize(LogicalPlan plan) {
+<span class="fc" id="L62">    return logicalOptimizer.optimize(plan);</span>
+  }
+
+  public RelNode customOptimize(RelNode plan) {
+<span class="nc" id="L66">    return logicalOptimizer.customOptimize(plan);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

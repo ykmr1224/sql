@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RangeBinHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.handlers</a> &gt; <span class="el_source">RangeBinHandler.java</span></div><h1>RangeBinHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.handlers;
+
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.RangeBin;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/** Handler for range-based binning (start/end parameters only). */
+<span class="nc" id="L17">public class RangeBinHandler implements BinHandler {</span>
+
+  @Override
+  public RexNode createExpression(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc" id="L23">    RangeBin rangeBin = (RangeBin) node;</span>
+
+    // Simple MIN/MAX calculation - cleaner than complex CASE expressions
+<span class="nc" id="L26">    RexNode dataMin = context.relBuilder.min(fieldExpr).over().toRex();</span>
+<span class="nc" id="L27">    RexNode dataMax = context.relBuilder.max(fieldExpr).over().toRex();</span>
+
+    // Convert start/end parameters
+<span class="nc" id="L30">    RexNode startParam = convertParameter(rangeBin.getStart(), context, visitor);</span>
+<span class="nc" id="L31">    RexNode endParam = convertParameter(rangeBin.getEnd(), context, visitor);</span>
+
+    // Use RANGE_BUCKET with data bounds and user parameters
+<span class="nc" id="L34">    return context.rexBuilder.makeCall(</span>
+        PPLBuiltinOperators.RANGE_BUCKET, fieldExpr, dataMin, dataMax, startParam, endParam);
+  }
+
+  private RexNode convertParameter(
+      org.opensearch.sql.ast.expression.UnresolvedExpression expr,
+      CalcitePlanContext context,
+      CalciteRexNodeVisitor visitor) {
+
+<span class="nc bnc" id="L43" title="All 2 branches missed.">    if (expr == null) {</span>
+<span class="nc" id="L44">      return context.relBuilder.literal(null);</span>
+    }
+
+<span class="nc" id="L47">    return visitor.analyze(expr, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

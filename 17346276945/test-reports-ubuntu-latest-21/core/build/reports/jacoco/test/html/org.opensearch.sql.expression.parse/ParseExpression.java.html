@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParseExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.parse</a> &gt; <span class="el_source">ParseExpression.java</span></div><h1>ParseExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.parse;
+
+import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.FunctionName;
+
+/** ParseExpression. */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+public abstract class ParseExpression extends FunctionExpression {
+  @Getter protected final Expression sourceField;
+  protected final Expression pattern;
+  @Getter protected final Expression identifier;
+  protected final String identifierStr;
+
+  /**
+   * ParseExpression.
+   *
+   * @param functionName name of function expression
+   * @param sourceField source text field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
+   */
+  public ParseExpression(
+      String functionName, Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L43">    super(FunctionName.of(functionName), ImmutableList.of(sourceField, pattern, identifier));</span>
+<span class="fc" id="L44">    this.sourceField = sourceField;</span>
+<span class="fc" id="L45">    this.pattern = pattern;</span>
+<span class="fc" id="L46">    this.identifier = identifier;</span>
+<span class="fc" id="L47">    this.identifierStr = identifier.valueOf().stringValue();</span>
+<span class="fc" id="L48">  }</span>
+
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L52">    ExprValue value = valueEnv.resolve(sourceField);</span>
+<span class="fc bfc" id="L53" title="All 4 branches covered.">    if (value.isNull() || value.isMissing()) {</span>
+<span class="fc" id="L54">      return ExprValueUtils.nullValue();</span>
+    }
+    try {
+<span class="fc" id="L57">      return parseValue(value);</span>
+<span class="fc" id="L58">    } catch (ExpressionEvaluationException e) {</span>
+<span class="fc" id="L59">      throw new SemanticCheckException(</span>
+<span class="fc" id="L60">          String.format(&quot;failed to parse field \&quot;%s\&quot; with type [%s]&quot;, sourceField, value.type()));</span>
+    }
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L66">    return ExprCoreType.STRING;</span>
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L71">    return visitor.visitParse(this, context);</span>
+  }
+
+  abstract ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

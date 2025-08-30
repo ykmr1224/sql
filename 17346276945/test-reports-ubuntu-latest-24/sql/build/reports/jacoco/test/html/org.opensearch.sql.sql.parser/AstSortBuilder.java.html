@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AstSortBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser</a> &gt; <span class="el_source">AstSortBuilder.java</span></div><h1>AstSortBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser;
+
+import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrderByClauseContext;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.NullOrder;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.Sort.SortOrder;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+import org.opensearch.sql.sql.parser.context.QuerySpecification;
+
+/**
+ * AST sort builder that builds Sort AST node from ORDER BY clause. During this process, the item in
+ * order by may be replaced by item in project list if it's an alias or ordinal. This is same as
+ * GROUP BY building process.
+ */
+@RequiredArgsConstructor
+public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor&lt;UnresolvedPlan&gt; {
+
+  private final QuerySpecification querySpec;
+
+  @Override
+  public UnresolvedPlan visitOrderByClause(OrderByClauseContext ctx) {
+<span class="fc" id="L40">    return new Sort(createSortFields());</span>
+  }
+
+  private List&lt;Field&gt; createSortFields() {
+<span class="fc" id="L44">    List&lt;Field&gt; fields = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L45">    List&lt;UnresolvedExpression&gt; items = querySpec.getOrderByItems();</span>
+<span class="fc" id="L46">    List&lt;SortOption&gt; options = querySpec.getOrderByOptions();</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    for (int i = 0; i &lt; items.size(); i++) {</span>
+<span class="fc" id="L48">      fields.add(</span>
+          new Field(
+<span class="fc" id="L50">              querySpec.replaceIfAliasOrOrdinal(items.get(i)),</span>
+<span class="fc" id="L51">              createSortArguments(options.get(i))));</span>
+    }
+<span class="fc" id="L53">    return fields;</span>
+  }
+
+  /**
+   * Argument &quot;asc&quot; is required. Argument &quot;nullFirst&quot; is optional and determined by Analyzer later
+   * if absent.
+   */
+  private List&lt;Argument&gt; createSortArguments(SortOption option) {
+<span class="fc" id="L61">    SortOrder sortOrder = option.getSortOrder();</span>
+<span class="fc" id="L62">    NullOrder nullOrder = option.getNullOrder();</span>
+<span class="fc" id="L63">    ImmutableList.Builder&lt;Argument&gt; args = ImmutableList.builder();</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    args.add(new Argument(&quot;asc&quot;, booleanLiteral(sortOrder != DESC))); // handle both null and ASC</span>
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (nullOrder != null) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      args.add(new Argument(&quot;nullFirst&quot;, booleanLiteral(nullOrder == NULL_FIRST)));</span>
+    }
+<span class="fc" id="L69">    return args.build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

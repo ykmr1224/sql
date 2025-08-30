@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FilterQueryBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter</a> &gt; <span class="el_source">FilterQueryBuilder.java</span></div><h1>FilterQueryBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter;
+
+import static java.util.Collections.emptyMap;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.script.Script;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.NestedQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery.Comparison;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.TermQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+
+@RequiredArgsConstructor
+public class FilterQueryBuilder extends ExpressionNodeVisitor&lt;QueryBuilder, Object&gt; {
+
+  public static class ScriptQueryUnSupportedException extends RuntimeException {
+    public ScriptQueryUnSupportedException(String message) {
+<span class="nc" id="L55">      super(message);</span>
+<span class="nc" id="L56">    }</span>
+  }
+
+  /** Serializer that serializes expression for build DSL query. */
+  private final ExpressionSerializer serializer;
+
+  /** Mapping from function name to lucene query builder. */
+  private final Map&lt;FunctionName, LuceneQuery&gt; luceneQueries =
+      ImmutableMap.&lt;FunctionName, LuceneQuery&gt;builder()
+          .put(BuiltinFunctionName.EQUAL.getName(), new TermQuery())
+          .put(BuiltinFunctionName.LESS.getName(), new RangeQuery(Comparison.LT))
+          .put(BuiltinFunctionName.GREATER.getName(), new RangeQuery(Comparison.GT))
+          .put(BuiltinFunctionName.LTE.getName(), new RangeQuery(Comparison.LTE))
+          .put(BuiltinFunctionName.GTE.getName(), new RangeQuery(Comparison.GTE))
+          .put(BuiltinFunctionName.LIKE.getName(), new LikeQuery())
+          .put(BuiltinFunctionName.MATCH.getName(), new MatchQuery())
+          .put(BuiltinFunctionName.MATCH_PHRASE.getName(), new MatchPhraseQuery())
+          .put(BuiltinFunctionName.MATCHPHRASE.getName(), new MatchPhraseQuery())
+          .put(BuiltinFunctionName.MATCHPHRASEQUERY.getName(), new MatchPhraseQuery())
+          .put(BuiltinFunctionName.QUERY.getName(), new QueryQuery())
+          .put(BuiltinFunctionName.MATCH_QUERY.getName(), new MatchQuery())
+          .put(BuiltinFunctionName.MATCHQUERY.getName(), new MatchQuery())
+          .put(BuiltinFunctionName.MULTI_MATCH.getName(), new MultiMatchQuery())
+          .put(BuiltinFunctionName.MULTIMATCH.getName(), new MultiMatchQuery())
+          .put(BuiltinFunctionName.MULTIMATCHQUERY.getName(), new MultiMatchQuery())
+          .put(BuiltinFunctionName.SIMPLE_QUERY_STRING.getName(), new SimpleQueryStringQuery())
+          .put(BuiltinFunctionName.QUERY_STRING.getName(), new QueryStringQuery())
+          .put(BuiltinFunctionName.MATCH_BOOL_PREFIX.getName(), new MatchBoolPrefixQuery())
+          .put(BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName(), new MatchPhrasePrefixQuery())
+          .put(BuiltinFunctionName.WILDCARD_QUERY.getName(), new WildcardQuery())
+          .put(BuiltinFunctionName.WILDCARDQUERY.getName(), new WildcardQuery())
+          .put(BuiltinFunctionName.NESTED.getName(), new NestedQuery())
+          .build();
+
+  /**
+   * Build OpenSearch filter query from expression.
+   *
+   * @param expr expression
+   * @return query
+   */
+  public QueryBuilder build(Expression expr) {
+<span class="fc" id="L97">    return expr.accept(this, null);</span>
+  }
+
+  @Override
+  public QueryBuilder visitFunction(FunctionExpression func, Object context) {
+<span class="fc" id="L102">    FunctionName name = func.getFunctionName();</span>
+<span class="fc bfc" id="L103" title="All 5 branches covered.">    switch (name.getFunctionName()) {</span>
+      case &quot;and&quot;:
+<span class="fc" id="L105">        return buildBoolQuery(func, context, BoolQueryBuilder::filter);</span>
+      case &quot;or&quot;:
+<span class="fc" id="L107">        return buildBoolQuery(func, context, BoolQueryBuilder::should);</span>
+      case &quot;not&quot;:
+<span class="fc" id="L109">        return buildBoolQuery(func, context, BoolQueryBuilder::mustNot);</span>
+      case &quot;nested&quot;:
+        // TODO Fill in case when adding support for syntax - nested(path, condition)
+<span class="fc" id="L112">        throw new SyntaxCheckException(</span>
+            &quot;Invalid syntax used for nested function in WHERE clause: &quot;
+                + &quot;nested(field | field, path) OPERATOR LITERAL&quot;);
+      default:
+        {
+<span class="fc" id="L117">          LuceneQuery query = luceneQueries.get(name);</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">          if (query != null &amp;&amp; query.canSupport(func)) {</span>
+<span class="fc" id="L119">            return query.build(func);</span>
+<span class="fc bfc" id="L120" title="All 4 branches covered.">          } else if (query != null &amp;&amp; query.isNestedPredicate(func)) {</span>
+<span class="fc" id="L121">            NestedQuery nestedQuery =</span>
+                (NestedQuery)
+<span class="fc" id="L123">                    luceneQueries.get(</span>
+<span class="fc" id="L124">                        ((FunctionExpression) func.getArguments().get(0)).getFunctionName());</span>
+<span class="fc" id="L125">            return nestedQuery.buildNested(func, query);</span>
+          }
+<span class="fc" id="L127">          return buildScriptQuery(func);</span>
+        }
+    }
+  }
+
+  private BoolQueryBuilder buildBoolQuery(
+      FunctionExpression node,
+      Object context,
+      BiFunction&lt;BoolQueryBuilder, QueryBuilder, QueryBuilder&gt; accumulator) {
+<span class="fc" id="L136">    BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    for (Expression arg : node.getArguments()) {</span>
+<span class="fc" id="L138">      accumulator.apply(boolQuery, arg.accept(this, context));</span>
+<span class="fc" id="L139">    }</span>
+<span class="fc" id="L140">    return boolQuery;</span>
+  }
+
+  private ScriptQueryBuilder buildScriptQuery(FunctionExpression node) {
+<span class="fc" id="L144">    Set&lt;ReferenceExpression&gt; fields = ExpressionScript.extractFields(node);</span>
+<span class="pc bpc" id="L145" title="2 of 4 branches missed.">    if (fields.stream().anyMatch(field -&gt; field.getType() == ExprCoreType.STRUCT)) {</span>
+<span class="nc" id="L146">      throw new ScriptQueryUnSupportedException(</span>
+          &quot;Script query does not support fields of struct type in OpenSearch.&quot;);
+    }
+<span class="fc" id="L149">    return new ScriptQueryBuilder(</span>
+        new Script(
+            DEFAULT_SCRIPT_TYPE,
+            COMPOUNDED_LANG_NAME,
+<span class="fc" id="L153">            SerializationWrapper.wrapWithLangType(ScriptEngineType.V2, serializer.serialize(node)),</span>
+<span class="fc" id="L154">            emptyMap()));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

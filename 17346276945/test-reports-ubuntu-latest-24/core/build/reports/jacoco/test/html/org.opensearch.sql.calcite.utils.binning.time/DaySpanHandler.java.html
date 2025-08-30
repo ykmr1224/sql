@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DaySpanHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.time</a> &gt; <span class="el_source">DaySpanHandler.java</span></div><h1>DaySpanHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.time;
+
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/** Handler for day-based time spans. */
+<span class="nc" id="L15">public class DaySpanHandler {</span>
+
+  public RexNode createExpression(RexNode fieldExpr, int intervalDays, CalcitePlanContext context) {
+
+    // Extract date part (ignoring time component)
+<span class="nc" id="L20">    RexNode inputDate = context.rexBuilder.makeCall(PPLBuiltinOperators.DATE, fieldExpr);</span>
+
+    // Calculate days since Unix epoch using DATEDIFF
+<span class="nc" id="L23">    RexNode epochDate = context.relBuilder.literal(BinConstants.UNIX_EPOCH_DATE);</span>
+<span class="nc" id="L24">    RexNode daysSinceEpoch =</span>
+<span class="nc" id="L25">        context.rexBuilder.makeCall(PPLBuiltinOperators.DATEDIFF, inputDate, epochDate);</span>
+
+    // Find bin using modular arithmetic
+<span class="nc" id="L28">    RexNode binStartDays = calculateBinStart(daysSinceEpoch, intervalDays, context);</span>
+
+    // Convert back to timestamp at midnight
+<span class="nc" id="L31">    RexNode binStartDate =</span>
+<span class="nc" id="L32">        context.rexBuilder.makeCall(PPLBuiltinOperators.ADDDATE, epochDate, binStartDays);</span>
+
+<span class="nc" id="L34">    return context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, binStartDate);</span>
+  }
+
+  private RexNode calculateBinStart(RexNode value, int interval, CalcitePlanContext context) {
+<span class="nc" id="L38">    RexNode intervalLiteral = context.relBuilder.literal(interval);</span>
+<span class="nc" id="L39">    RexNode positionInCycle =</span>
+<span class="nc" id="L40">        context.relBuilder.call(SqlStdOperatorTable.MOD, value, intervalLiteral);</span>
+<span class="nc" id="L41">    return context.relBuilder.call(SqlStdOperatorTable.MINUS, value, positionInCycle);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

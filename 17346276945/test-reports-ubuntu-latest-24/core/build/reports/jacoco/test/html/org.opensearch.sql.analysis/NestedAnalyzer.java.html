@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NestedAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">NestedAnalyzer.java</span></div><h1>NestedAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.NestedAllTupleFields;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+
+/**
+ * Analyze the Nested Function in the {@link AnalysisContext} to construct the {@link LogicalPlan}.
+ */
+@RequiredArgsConstructor
+public class NestedAnalyzer extends AbstractNodeVisitor&lt;LogicalPlan, AnalysisContext&gt; {
+  private final List&lt;NamedExpression&gt; namedExpressions;
+  private final ExpressionAnalyzer expressionAnalyzer;
+  private final LogicalPlan child;
+
+  public LogicalPlan analyze(UnresolvedExpression projectItem, AnalysisContext context) {
+<span class="fc" id="L39">    LogicalPlan nested = projectItem.accept(this, context);</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    return (nested == null) ? child : nested;</span>
+  }
+
+  @Override
+  public LogicalPlan visitAlias(Alias node, AnalysisContext context) {
+<span class="fc" id="L45">    return node.getDelegated().accept(this, context);</span>
+  }
+
+  @Override
+  public LogicalPlan visitNestedAllTupleFields(NestedAllTupleFields node, AnalysisContext context) {
+<span class="fc" id="L50">    List&lt;Map&lt;String, ReferenceExpression&gt;&gt; args = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    for (NamedExpression namedExpr : namedExpressions) {</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">      if (isNestedFunction(namedExpr.getDelegated())) {</span>
+<span class="fc" id="L53">        ReferenceExpression field =</span>
+            (ReferenceExpression)
+<span class="fc" id="L55">                ((FunctionExpression) namedExpr.getDelegated()).getArguments().get(0);</span>
+
+        // If path is same as NestedAllTupleFields path
+<span class="fc" id="L58">        if (field</span>
+<span class="fc" id="L59">            .getAttr()</span>
+<span class="fc" id="L60">            .substring(0, field.getAttr().lastIndexOf(&quot;.&quot;))</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">            .equalsIgnoreCase(node.getPath())) {</span>
+<span class="fc" id="L62">          args.add(Map.of(&quot;field&quot;, field, &quot;path&quot;, new ReferenceExpression(node.getPath(), STRING)));</span>
+        }
+      }
+<span class="fc" id="L65">    }</span>
+
+<span class="fc" id="L67">    return mergeChildIfLogicalNested(args);</span>
+  }
+
+  @Override
+  public LogicalPlan visitFunction(Function node, AnalysisContext context) {
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (node.getFuncName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {</span>
+
+<span class="fc" id="L74">      List&lt;UnresolvedExpression&gt; expressions = node.getFuncArgs();</span>
+<span class="fc" id="L75">      validateArgs(expressions);</span>
+<span class="fc" id="L76">      ReferenceExpression nestedField =</span>
+<span class="fc" id="L77">          (ReferenceExpression) expressionAnalyzer.analyze(expressions.get(0), context);</span>
+      Map&lt;String, ReferenceExpression&gt; args;
+
+      // Path parameter is supplied
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (expressions.size() == 2) {</span>
+<span class="fc" id="L82">        args =</span>
+<span class="fc" id="L83">            Map.of(</span>
+                &quot;field&quot;,
+                nestedField,
+                &quot;path&quot;,
+<span class="fc" id="L87">                (ReferenceExpression) expressionAnalyzer.analyze(expressions.get(1), context));</span>
+      } else {
+<span class="fc" id="L89">        args =</span>
+<span class="fc" id="L90">            Map.of(</span>
+                &quot;field&quot;,
+<span class="fc" id="L92">                (ReferenceExpression) expressionAnalyzer.analyze(expressions.get(0), context),</span>
+                &quot;path&quot;,
+<span class="fc" id="L94">                generatePath(nestedField.toString()));</span>
+      }
+
+<span class="fc" id="L97">      return mergeChildIfLogicalNested(new ArrayList&lt;&gt;(Arrays.asList(args)));</span>
+    }
+<span class="fc" id="L99">    return null;</span>
+  }
+
+  /**
+   * NestedAnalyzer visits all functions in SELECT clause, creates logical plans for each and merges
+   * them. This is to avoid another merge rule in LogicalPlanOptimizer:create().
+   *
+   * @param args field and path params to add to logical plan.
+   * @return child of logical nested with added args, or new LogicalNested.
+   */
+  private LogicalPlan mergeChildIfLogicalNested(List&lt;Map&lt;String, ReferenceExpression&gt;&gt; args) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (child instanceof LogicalNested) {</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">      for (var arg : args) {</span>
+<span class="fc" id="L112">        ((LogicalNested) child).addFields(arg);</span>
+<span class="fc" id="L113">      }</span>
+<span class="fc" id="L114">      return child;</span>
+    }
+<span class="fc" id="L116">    return new LogicalNested(child, args, namedExpressions);</span>
+  }
+
+  /**
+   * Validate each parameter used in nested function in SELECT clause. Any supplied parameter for a
+   * nested function in a SELECT statement must be a valid qualified name, and the field parameter
+   * must be nested at least one level.
+   *
+   * @param args : Arguments in nested function.
+   */
+  private void validateArgs(List&lt;UnresolvedExpression&gt; args) {
+<span class="fc bfc" id="L127" title="All 4 branches covered.">    if (args.size() &lt; 1 || args.size() &gt; 2) {</span>
+<span class="fc" id="L128">      throw new IllegalArgumentException(</span>
+          &quot;on nested object only allowed 2 parameters (field,path) or 1 parameter (field)&quot;);
+    }
+
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    for (int i = 0; i &lt; args.size(); i++) {</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (!(args.get(i) instanceof QualifiedName)) {</span>
+<span class="fc" id="L134">        throw new IllegalArgumentException(</span>
+<span class="fc" id="L135">            String.format(&quot;Illegal nested field name: %s&quot;, args.get(i).toString()));</span>
+      }
+<span class="fc bfc" id="L137" title="All 4 branches covered.">      if (i == 0 &amp;&amp; ((QualifiedName) args.get(i)).getParts().size() &lt; 2) {</span>
+<span class="fc" id="L138">        throw new IllegalArgumentException(</span>
+<span class="fc" id="L139">            String.format(&quot;Illegal nested field name: %s&quot;, args.get(i).toString()));</span>
+      }
+    }
+<span class="fc" id="L142">  }</span>
+
+  /**
+   * Generate nested path dynamically. Assumes at least one level of nesting in supplied string.
+   *
+   * @param field : Nested field to generate path of.
+   * @return : Path of field derived from last level of nesting.
+   */
+  public static ReferenceExpression generatePath(String field) {
+<span class="fc" id="L151">    return new ReferenceExpression(field.substring(0, field.lastIndexOf(&quot;.&quot;)), STRING);</span>
+  }
+
+  /**
+   * Check if supplied expression is a nested function.
+   *
+   * @param expr Expression checking if is nested function.
+   * @return True if expression is a nested function.
+   */
+  public static Boolean isNestedFunction(Expression expr) {
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    return (expr instanceof FunctionExpression</span>
+        &amp;&amp; ((FunctionExpression) expr)
+<span class="fc" id="L163">            .getFunctionName()</span>
+<span class="fc" id="L164">            .getFunctionName()</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">            .equalsIgnoreCase(BuiltinFunctionName.NESTED.name()));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

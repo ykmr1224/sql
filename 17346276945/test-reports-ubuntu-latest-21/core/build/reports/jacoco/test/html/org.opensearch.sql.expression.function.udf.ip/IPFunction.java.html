@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IPFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.ip</a> &gt; <span class="el_source">IPFunction.java</span></div><h1>IPFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.ip;
+
+import java.util.List;
+import java.util.Locale;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Function that casts values to IP type.
+ *
+ * &lt;p&gt;Signature:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(STRING) -&gt; IP
+ *   &lt;li&gt;(IP) -&gt; IP
+ * &lt;/ul&gt;
+ */
+public class IPFunction extends ImplementorUDF {
+
+  public IPFunction() {
+<span class="fc" id="L38">    super(new CastImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L43">    return UDFOperandMetadata.wrapUDT(</span>
+<span class="fc" id="L44">        List.of(List.of(ExprCoreType.IP), List.of(ExprCoreType.STRING)));</span>
+  }
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L49">    return PPLReturnTypes.IP_FORCE_NULLABLE;</span>
+  }
+
+<span class="fc" id="L52">  public static class CastImplementor</span>
+      implements org.apache.calcite.adapter.enumerable.NotNullImplementor {
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">      if (call.getOperands().size() != 1) {</span>
+<span class="nc" id="L58">        throw new IllegalArgumentException(&quot;IP function requires exactly one operand&quot;);</span>
+      }
+<span class="nc" id="L60">      ExprType argType =</span>
+<span class="nc" id="L61">          OpenSearchTypeFactory.convertRelDataTypeToExprType(</span>
+<span class="nc" id="L62">              call.getOperands().getFirst().getType());</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">      if (argType == ExprCoreType.IP) {</span>
+<span class="nc" id="L64">        return translatedOperands.getFirst();</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      } else if (argType == ExprCoreType.STRING) {</span>
+<span class="nc" id="L66">        return Expressions.new_(ExprIpValue.class, translatedOperands);</span>
+      } else {
+<span class="nc" id="L68">        throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L69">            String.format(</span>
+                Locale.ROOT,
+                &quot;Cannot convert %s to IP, only STRING and IP types are supported&quot;,
+                argType));
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CursorCloseOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">CursorCloseOperator.java</span></div><h1>CursorCloseOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.ExecutionEngine;
+
+/**
+ * A plan node which blocks issuing a request in {@link #open} and getting results in {@link
+ * #hasNext}, but doesn't block releasing resources in {@link #close}. Designed to be on top of the
+ * deserialized tree.
+ */
+@RequiredArgsConstructor
+public class CursorCloseOperator extends PhysicalPlan {
+
+  // Entire deserialized from cursor plan tree
+  private final PhysicalPlan input;
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L26">    return visitor.visitCursorClose(this, context);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc" id="L31">    return false;</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L36">    throw new IllegalStateException();</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L41">    return List.of(input);</span>
+  }
+
+  /** Provides an empty schema, because this plan node is always located on the top of the tree. */
+  @Override
+  public ExecutionEngine.Schema schema() {
+<span class="fc" id="L47">    return new ExecutionEngine.Schema(List.of());</span>
+  }
+
+  @Override
+  public void open() {
+    // no-op, no search should be invoked.
+<span class="fc" id="L53">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

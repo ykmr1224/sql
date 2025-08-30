@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FunctionSignature.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">FunctionSignature.java</span></div><h1>FunctionSignature.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.WideningTypeRule;
+
+/** Function signature is composed by function name and arguments list. */
+@Getter
+@RequiredArgsConstructor
+@EqualsAndHashCode
+public class FunctionSignature {
+<span class="fc" id="L23">  public static final Integer NOT_MATCH = Integer.MAX_VALUE;</span>
+<span class="fc" id="L24">  public static final Integer EXACTLY_MATCH = 0;</span>
+
+  private final FunctionName functionName;
+  private final List&lt;ExprType&gt; paramTypeList;
+
+  /**
+   * calculate the function signature match degree.
+   *
+   * @return&lt;br&gt;
+   *     EXACTLY_MATCH: exactly match&lt;br&gt;
+   *     NOT_MATCH: not match&lt;br&gt;
+   *     By widening rule, the small number means better match
+   */
+  public int match(FunctionSignature functionSignature) {
+<span class="fc" id="L38">    List&lt;ExprType&gt; functionTypeList = functionSignature.getParamTypeList();</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    if (!functionName.equals(functionSignature.getFunctionName())</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        || paramTypeList.size() != functionTypeList.size()) {</span>
+<span class="fc" id="L41">      return NOT_MATCH;</span>
+    }
+    // TODO: improve to support regular and array type mixed, ex. func(int,string,array)
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (isVarArgFunction(functionTypeList)) {</span>
+<span class="fc" id="L45">      return EXACTLY_MATCH;</span>
+    }
+
+<span class="fc" id="L48">    int matchDegree = EXACTLY_MATCH;</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    for (int i = 0; i &lt; paramTypeList.size(); i++) {</span>
+<span class="fc" id="L50">      ExprType paramType = paramTypeList.get(i);</span>
+<span class="fc" id="L51">      ExprType funcType = functionTypeList.get(i);</span>
+<span class="fc" id="L52">      int match = WideningTypeRule.distance(paramType, funcType);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">      if (match == WideningTypeRule.IMPOSSIBLE_WIDENING) {</span>
+<span class="fc" id="L54">        return NOT_MATCH;</span>
+      } else {
+<span class="fc" id="L56">        matchDegree += match;</span>
+      }
+    }
+<span class="fc" id="L59">    return matchDegree;</span>
+  }
+
+  /** util function for formatted arguments list. */
+  public String formatTypes() {
+<span class="fc" id="L64">    return getParamTypeList().stream()</span>
+<span class="fc" id="L65">        .map(ExprType::typeName)</span>
+<span class="fc" id="L66">        .collect(Collectors.joining(&quot;,&quot;, &quot;[&quot;, &quot;]&quot;));</span>
+  }
+
+  /** util function - returns true if function has variable arguments. */
+  protected static boolean isVarArgFunction(List&lt;ExprType&gt; argTypes) {
+<span class="fc bfc" id="L71" title="All 4 branches covered.">    return argTypes.size() == 1 &amp;&amp; argTypes.get(0) == ARRAY;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,1227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLFuncImpTable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">PPLFuncImpTable.java</span></div><h1>PPLFuncImpTable.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import static org.apache.calcite.sql.SqlJsonConstructorNullClause.NULL_ON_NULL;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CIDRMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COALESCE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COSH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_SUB;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFMONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFWEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXISTS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_PRESENT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_APPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGNUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIMPLE_QUERY_STRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACTFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRUNCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UNIX_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
+
+import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.executor.QueryType;
+
+public class PPLFuncImpTable {
+<span class="fc" id="L262">  private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);</span>
+
+  /** A lambda function interface which could apply parameters to get AggCall. */
+  @FunctionalInterface
+  public interface AggHandler {
+    RelBuilder.AggCall apply(
+        boolean distinct, RexNode field, List&lt;RexNode&gt; argList, CalcitePlanContext context);
+  }
+
+  public interface FunctionImp {
+<span class="nc" id="L272">    RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);</span>
+
+    RexNode resolve(RexBuilder builder, RexNode... args);
+  }
+
+  public interface FunctionImp1 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+<span class="nc bnc" id="L282" title="All 2 branches missed.">      if (args.length != 1) {</span>
+<span class="nc" id="L283">        throw new IllegalArgumentException(&quot;This function requires exactly 1 arguments&quot;);</span>
+      }
+<span class="nc" id="L285">      return resolve(builder, args[0]);</span>
+    }
+  }
+
+  public interface FunctionImp2 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+<span class="nc bnc" id="L294" title="All 2 branches missed.">      if (args.length != 2) {</span>
+<span class="nc" id="L295">        throw new IllegalArgumentException(&quot;This function requires exactly 2 arguments&quot;);</span>
+      }
+<span class="nc" id="L297">      return resolve(builder, args[0], args[1]);</span>
+    }
+  }
+
+  /** The singleton instance. */
+  public static final PPLFuncImpTable INSTANCE;
+
+  static {
+<span class="fc" id="L305">    final Builder builder = new Builder();</span>
+<span class="fc" id="L306">    builder.populate();</span>
+<span class="fc" id="L307">    final AggBuilder aggBuilder = new AggBuilder();</span>
+<span class="fc" id="L308">    aggBuilder.populate();</span>
+<span class="fc" id="L309">    INSTANCE = new PPLFuncImpTable(builder, aggBuilder);</span>
+<span class="fc" id="L310">  }</span>
+
+  /**
+   * The registry for built-in functions. Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap&lt;BuiltinFunctionName, List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt;&gt;
+      functionRegistry;
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
+  private final Map&lt;BuiltinFunctionName, List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt;&gt;
+      externalFunctionRegistry;
+
+  /**
+   * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap&lt;BuiltinFunctionName, Pair&lt;CalciteFuncSignature, AggHandler&gt;&gt;
+      aggFunctionRegistry;
+
+  /**
+   * The external agg function registry. Agg Functions whose implementations depend on a specific
+   * data engine should be registered here. This reduces coupling between the core module and
+   * particular storage backends.
+   */
+  private final Map&lt;BuiltinFunctionName, Pair&lt;CalciteFuncSignature, AggHandler&gt;&gt;
+      aggExternalFunctionRegistry;
+
+<span class="fc" id="L344">  private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {</span>
+    final ImmutableMap.Builder&lt;BuiltinFunctionName, List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt;&gt;
+<span class="fc" id="L346">        mapBuilder = ImmutableMap.builder();</span>
+<span class="fc" id="L347">    builder.map.forEach((k, v) -&gt; mapBuilder.put(k, List.copyOf(v)));</span>
+<span class="fc" id="L348">    this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());</span>
+<span class="fc" id="L349">    this.externalFunctionRegistry = new ConcurrentHashMap&lt;&gt;();</span>
+
+    final ImmutableMap.Builder&lt;BuiltinFunctionName, Pair&lt;CalciteFuncSignature, AggHandler&gt;&gt;
+<span class="fc" id="L352">        aggMapBuilder = ImmutableMap.builder();</span>
+<span class="fc" id="L353">    aggBuilder.map.forEach(aggMapBuilder::put);</span>
+<span class="fc" id="L354">    this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());</span>
+<span class="fc" id="L355">    this.aggExternalFunctionRegistry = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L356">  }</span>
+
+  /**
+   * Register an operator from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param operator a SqlOperator representing an externally implemented function
+   */
+  public void registerExternalOperator(BuiltinFunctionName functionName, SqlOperator operator) {
+<span class="nc" id="L365">    PPLTypeChecker typeChecker =</span>
+<span class="nc" id="L366">        wrapSqlOperandTypeChecker(</span>
+<span class="nc" id="L367">            operator.getOperandTypeChecker(),</span>
+<span class="nc" id="L368">            functionName.name(),</span>
+            operator instanceof SqlUserDefinedFunction);
+<span class="nc" id="L370">    CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);</span>
+<span class="nc" id="L371">    externalFunctionRegistry.compute(</span>
+        functionName,
+        (name, existingList) -&gt; {
+          List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt; list =
+<span class="nc bnc" id="L375" title="All 2 branches missed.">              existingList == null ? new ArrayList&lt;&gt;() : new ArrayList&lt;&gt;(existingList);</span>
+<span class="nc" id="L376">          list.add(Pair.of(signature, (builder, args) -&gt; builder.makeCall(operator, args)));</span>
+<span class="nc" id="L377">          return list;</span>
+        });
+<span class="nc" id="L379">  }</span>
+
+  /**
+   * Register an external aggregate operator dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param aggFunction a SqlUserDefinedAggFunction representing the aggregate function
+   *     implementation
+   */
+  public void registerExternalAggOperator(
+      BuiltinFunctionName functionName, SqlUserDefinedAggFunction aggFunction) {
+<span class="nc" id="L390">    PPLTypeChecker typeChecker =</span>
+<span class="nc" id="L391">        wrapSqlOperandTypeChecker(aggFunction.getOperandTypeChecker(), functionName.name(), true);</span>
+<span class="nc" id="L392">    CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);</span>
+<span class="nc" id="L393">    AggHandler handler =</span>
+        (distinct, field, argList, ctx) -&gt;
+<span class="nc" id="L395">            UserDefinedFunctionUtils.makeAggregateCall(</span>
+<span class="nc" id="L396">                aggFunction, List.of(field), argList, ctx.relBuilder);</span>
+<span class="nc" id="L397">    aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));</span>
+<span class="nc" id="L398">  }</span>
+
+  public RelBuilder.AggCall resolveAgg(
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List&lt;RexNode&gt; argList,
+      CalcitePlanContext context) {
+<span class="nc" id="L406">    var implementation = aggExternalFunctionRegistry.get(functionName);</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">    if (implementation == null) {</span>
+<span class="nc" id="L408">      implementation = aggFunctionRegistry.get(functionName);</span>
+    }
+<span class="nc bnc" id="L410" title="All 2 branches missed.">    if (implementation == null) {</span>
+<span class="nc" id="L411">      throw new IllegalStateException(String.format(&quot;Cannot resolve function: %s&quot;, functionName));</span>
+    }
+<span class="nc" id="L413">    CalciteFuncSignature signature = implementation.getKey();</span>
+<span class="nc" id="L414">    List&lt;RelDataType&gt; argTypes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">    if (field != null) {</span>
+<span class="nc" id="L416">      argTypes.add(field.getType());</span>
+    }
+    // Currently only PERCENTILE_APPROX and TAKE have additional arguments.
+    // Their additional arguments will always come as a map of &lt;argName, value&gt;
+<span class="nc" id="L420">    List&lt;RelDataType&gt; additionalArgTypes =</span>
+<span class="nc" id="L421">        argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();</span>
+<span class="nc" id="L422">    argTypes.addAll(additionalArgTypes);</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">    if (!signature.match(functionName.getName(), argTypes)) {</span>
+      String errorMessagePattern =
+<span class="nc bnc" id="L425" title="All 2 branches missed.">          argTypes.size() &lt;= 1</span>
+<span class="nc" id="L426">              ? &quot;Aggregation function %s expects field type {%s}, but got %s&quot;</span>
+<span class="nc" id="L427">              : &quot;Aggregation function %s expects field type and additional arguments {%s}, but got&quot;</span>
+                  + &quot; %s&quot;;
+<span class="nc" id="L429">      throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L430">          String.format(</span>
+              errorMessagePattern,
+              functionName,
+<span class="nc" id="L433">              signature.typeChecker().getAllowedSignatures(),</span>
+<span class="nc" id="L434">              getActualSignature(argTypes)));</span>
+    }
+<span class="nc" id="L436">    var handler = implementation.getValue();</span>
+<span class="nc" id="L437">    return handler.apply(distinct, field, argList, context);</span>
+  }
+
+  public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
+<span class="nc" id="L441">    Optional&lt;BuiltinFunctionName&gt; funcNameOpt = BuiltinFunctionName.of(functionName);</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">    if (funcNameOpt.isEmpty()) {</span>
+<span class="nc" id="L443">      throw new IllegalArgumentException(String.format(&quot;Unsupported function: %s&quot;, functionName));</span>
+    }
+<span class="nc" id="L445">    return resolve(builder, funcNameOpt.get(), args);</span>
+  }
+
+  public RexNode resolve(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+    // Check the external function registry first. This allows the data-storage-dependent
+    // function implementations to override the internal ones with the same name.
+<span class="nc" id="L452">    List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt; implementList =</span>
+<span class="nc" id="L453">        externalFunctionRegistry.get(functionName);</span>
+    // If the function is not part of the external registry, check the internal registry.
+<span class="nc bnc" id="L455" title="All 2 branches missed.">    if (implementList == null) {</span>
+<span class="nc" id="L456">      implementList = functionRegistry.get(functionName);</span>
+    }
+<span class="nc bnc" id="L458" title="All 4 branches missed.">    if (implementList == null || implementList.isEmpty()) {</span>
+<span class="nc" id="L459">      throw new IllegalStateException(String.format(&quot;Cannot resolve function: %s&quot;, functionName));</span>
+    }
+
+    // Make compulsory casts for some functions that require specific casting of arguments.
+    // For example, the REDUCE function requires the second argument to be cast to the
+    // return type of the lambda function.
+<span class="nc" id="L465">    compulsoryCast(builder, functionName, args);</span>
+
+<span class="nc" id="L467">    List&lt;RelDataType&gt; argTypes = Arrays.stream(args).map(RexNode::getType).toList();</span>
+    try {
+<span class="nc bnc" id="L469" title="All 2 branches missed.">      for (Map.Entry&lt;CalciteFuncSignature, FunctionImp&gt; implement : implementList) {</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">        if (implement.getKey().match(functionName.getName(), argTypes)) {</span>
+<span class="nc" id="L471">          return implement.getValue().resolve(builder, args);</span>
+        }
+<span class="nc" id="L473">      }</span>
+
+      // If no implementation found with exact match, try to cast arguments to match the
+      // signatures.
+<span class="nc" id="L477">      RexNode coerced = resolveWithCoercion(builder, functionName, implementList, args);</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">      if (coerced != null) {</span>
+<span class="nc" id="L479">        return coerced;</span>
+      }
+<span class="nc" id="L481">    } catch (Exception e) {</span>
+<span class="nc" id="L482">      throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L483">          String.format(</span>
+              &quot;Cannot resolve function: %s, arguments: %s, caused by: %s&quot;,
+<span class="nc" id="L485">              functionName, getActualSignature(argTypes), e.getMessage()),</span>
+          e);
+<span class="nc" id="L487">    }</span>
+<span class="nc" id="L488">    StringJoiner allowedSignatures = new StringJoiner(&quot;,&quot;);</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">    for (var implement : implementList) {</span>
+<span class="nc" id="L490">      String signature = implement.getKey().typeChecker().getAllowedSignatures();</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">      if (!signature.isEmpty()) {</span>
+<span class="nc" id="L492">        allowedSignatures.add(signature);</span>
+      }
+<span class="nc" id="L494">    }</span>
+<span class="nc" id="L495">    throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L496">        String.format(</span>
+            &quot;%s function expects {%s}, but got %s&quot;,
+<span class="nc" id="L498">            functionName, allowedSignatures, getActualSignature(argTypes)));</span>
+  }
+
+  /**
+   * Ad-hoc coercion for some functions that require specific casting of arguments. Now it only
+   * applies to the REDUCE function.
+   */
+  private void compulsoryCast(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+
+    //noinspection SwitchStatementWithTooFewBranches
+<span class="nc bnc" id="L509" title="All 2 branches missed.">    switch (functionName) {</span>
+      case BuiltinFunctionName.REDUCE:
+        // Set the second argument to the return type of the lambda function, so that
+        // code generated with linq4j can correctly accumulate the result.
+<span class="nc" id="L513">        RexLambda call = (RexLambda) args[2];</span>
+<span class="nc" id="L514">        args[1] = builder.makeCast(call.getType(), args[1], true, true);</span>
+<span class="nc" id="L515">        break;</span>
+      default:
+        break;
+    }
+<span class="nc" id="L519">  }</span>
+
+  private @Nullable RexNode resolveWithCoercion(
+      final RexBuilder builder,
+      final BuiltinFunctionName functionName,
+      List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt; implementList,
+      RexNode... args) {
+<span class="nc bnc" id="L526" title="All 2 branches missed.">    if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">      for (Map.Entry&lt;CalciteFuncSignature, FunctionImp&gt; implement : implementList) {</span>
+<span class="nc" id="L528">        var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));</span>
+<span class="nc bnc" id="L529" title="All 2 branches missed.">        if (widenedArgs != null) {</span>
+<span class="nc" id="L530">          boolean matchSignature =</span>
+              implement
+<span class="nc" id="L532">                  .getKey()</span>
+<span class="nc" id="L533">                  .typeChecker()</span>
+<span class="nc" id="L534">                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());</span>
+<span class="nc bnc" id="L535" title="All 2 branches missed.">          if (matchSignature) {</span>
+<span class="nc" id="L536">            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));</span>
+          }
+        }
+<span class="nc" id="L539">      }</span>
+    } else {
+<span class="nc bnc" id="L541" title="All 2 branches missed.">      for (Map.Entry&lt;CalciteFuncSignature, FunctionImp&gt; implement : implementList) {</span>
+<span class="nc" id="L542">        var signature = implement.getKey();</span>
+<span class="nc" id="L543">        var castedArgs =</span>
+<span class="nc" id="L544">            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">        if (castedArgs != null) {</span>
+          // If compatible function is found, replace the original RexNode with cast node
+          // TODO: check - this is a return-once-found implementation, rest possible combinations
+          //  will be skipped.
+          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+          //  time, and timestamp are all possible.
+<span class="nc" id="L551">          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));</span>
+        }
+<span class="nc" id="L553">      }</span>
+    }
+<span class="nc" id="L555">    return null;</span>
+  }
+
+  @SuppressWarnings({&quot;UnusedReturnValue&quot;, &quot;SameParameterValue&quot;})
+  private abstract static class AbstractBuilder {
+
+    /** Maps an operator to an implementation. */
+    abstract void register(
+        BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker);
+
+    /**
+     * Register one or multiple operators under a single function name. This allows function
+     * overloading based on operand types.
+     *
+     * &lt;p&gt;When a function is called, the system will try each registered operator in sequence,
+     * checking if the provided arguments match the operator's type requirements. The first operator
+     * whose type checker accepts the arguments will be used to execute the function.
+     *
+     * @param functionName the built-in function name under which to register the operators
+     * @param operators the operators to associate with this function name, tried in sequence until
+     *     one matches the argument types during resolution
+     */
+    protected void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
+<span class="fc bfc" id="L578" title="All 2 branches covered.">      for (SqlOperator operator : operators) {</span>
+        SqlOperandTypeChecker typeChecker;
+<span class="fc bfc" id="L580" title="All 2 branches covered.">        if (operator instanceof SqlUserDefinedFunction udfOperator) {</span>
+<span class="fc" id="L581">          typeChecker = extractTypeCheckerFromUDF(udfOperator);</span>
+        } else {
+<span class="fc" id="L583">          typeChecker = operator.getOperandTypeChecker();</span>
+        }
+<span class="fc" id="L585">        PPLTypeChecker pplTypeChecker =</span>
+<span class="fc" id="L586">            wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L587">                typeChecker, operator.getName(), operator instanceof SqlUserDefinedFunction);</span>
+<span class="fc" id="L588">        registerOperator(functionName, operator, pplTypeChecker);</span>
+      }
+<span class="fc" id="L590">    }</span>
+
+    /**
+     * Registers an operator for a built-in function name with a specified {@link PPLTypeChecker}.
+     * This allows custom type checking logic to be associated with the operator.
+     *
+     * @param functionName the built-in function name
+     * @param operator the SQL operator to register
+     * @param typeChecker the type checker to use for validating argument types
+     */
+    protected void registerOperator(
+        BuiltinFunctionName functionName, SqlOperator operator, PPLTypeChecker typeChecker) {
+<span class="fc" id="L602">      register(</span>
+          functionName,
+<span class="nc" id="L604">          (RexBuilder builder, RexNode... args) -&gt; builder.makeCall(operator, args),</span>
+          typeChecker);
+<span class="fc" id="L606">    }</span>
+
+    void populate() {
+      // register operators for comparison
+<span class="fc" id="L610">      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);</span>
+<span class="fc" id="L611">      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);</span>
+<span class="fc" id="L612">      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);</span>
+<span class="fc" id="L613">      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);</span>
+<span class="fc" id="L614">      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);</span>
+<span class="fc" id="L615">      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);</span>
+
+      // Register std operator
+<span class="fc" id="L618">      registerOperator(AND, SqlStdOperatorTable.AND);</span>
+<span class="fc" id="L619">      registerOperator(OR, SqlStdOperatorTable.OR);</span>
+<span class="fc" id="L620">      registerOperator(NOT, SqlStdOperatorTable.NOT);</span>
+
+      // Register ADDFUNCTION for numeric addition only
+<span class="fc" id="L623">      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);</span>
+<span class="fc" id="L624">      registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);</span>
+<span class="fc" id="L625">      registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);</span>
+<span class="fc" id="L626">      registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);</span>
+<span class="fc" id="L627">      registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);</span>
+<span class="fc" id="L628">      registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);</span>
+<span class="fc" id="L629">      registerOperator(ASCII, SqlStdOperatorTable.ASCII);</span>
+<span class="fc" id="L630">      registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);</span>
+<span class="fc" id="L631">      registerOperator(LOWER, SqlStdOperatorTable.LOWER);</span>
+<span class="fc" id="L632">      registerOperator(POSITION, SqlStdOperatorTable.POSITION);</span>
+<span class="fc" id="L633">      registerOperator(LOCATE, SqlStdOperatorTable.POSITION);</span>
+<span class="fc" id="L634">      registerOperator(REPLACE, SqlStdOperatorTable.REPLACE);</span>
+<span class="fc" id="L635">      registerOperator(UPPER, SqlStdOperatorTable.UPPER);</span>
+<span class="fc" id="L636">      registerOperator(ABS, SqlStdOperatorTable.ABS);</span>
+<span class="fc" id="L637">      registerOperator(ACOS, SqlStdOperatorTable.ACOS);</span>
+<span class="fc" id="L638">      registerOperator(ASIN, SqlStdOperatorTable.ASIN);</span>
+<span class="fc" id="L639">      registerOperator(ATAN, SqlStdOperatorTable.ATAN);</span>
+<span class="fc" id="L640">      registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);</span>
+<span class="fc" id="L641">      registerOperator(CEIL, SqlStdOperatorTable.CEIL);</span>
+<span class="fc" id="L642">      registerOperator(CEILING, SqlStdOperatorTable.CEIL);</span>
+<span class="fc" id="L643">      registerOperator(COS, SqlStdOperatorTable.COS);</span>
+<span class="fc" id="L644">      registerOperator(COT, SqlStdOperatorTable.COT);</span>
+<span class="fc" id="L645">      registerOperator(DEGREES, SqlStdOperatorTable.DEGREES);</span>
+<span class="fc" id="L646">      registerOperator(EXP, SqlStdOperatorTable.EXP);</span>
+<span class="fc" id="L647">      registerOperator(FLOOR, SqlStdOperatorTable.FLOOR);</span>
+<span class="fc" id="L648">      registerOperator(LN, SqlStdOperatorTable.LN);</span>
+<span class="fc" id="L649">      registerOperator(LOG10, SqlStdOperatorTable.LOG10);</span>
+<span class="fc" id="L650">      registerOperator(PI, SqlStdOperatorTable.PI);</span>
+<span class="fc" id="L651">      registerOperator(POW, SqlStdOperatorTable.POWER);</span>
+<span class="fc" id="L652">      registerOperator(POWER, SqlStdOperatorTable.POWER);</span>
+<span class="fc" id="L653">      registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);</span>
+<span class="fc" id="L654">      registerOperator(RAND, SqlStdOperatorTable.RAND);</span>
+<span class="fc" id="L655">      registerOperator(ROUND, SqlStdOperatorTable.ROUND);</span>
+<span class="fc" id="L656">      registerOperator(SIGN, SqlStdOperatorTable.SIGN);</span>
+<span class="fc" id="L657">      registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);</span>
+<span class="fc" id="L658">      registerOperator(SIN, SqlStdOperatorTable.SIN);</span>
+<span class="fc" id="L659">      registerOperator(CBRT, SqlStdOperatorTable.CBRT);</span>
+
+<span class="fc" id="L661">      registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);</span>
+<span class="fc" id="L662">      registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);</span>
+<span class="fc" id="L663">      registerOperator(LATEST, PPLBuiltinOperators.LATEST);</span>
+<span class="fc" id="L664">      registerOperator(COALESCE, PPLBuiltinOperators.ENHANCED_COALESCE);</span>
+
+      // Register library operator
+<span class="fc" id="L667">      registerOperator(REGEXP, SqlLibraryOperators.REGEXP);</span>
+<span class="fc" id="L668">      registerOperator(REGEX_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);</span>
+<span class="fc" id="L669">      registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);</span>
+<span class="fc" id="L670">      registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);</span>
+<span class="fc" id="L671">      registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);</span>
+<span class="fc" id="L672">      registerOperator(REVERSE, SqlLibraryOperators.REVERSE);</span>
+<span class="fc" id="L673">      registerOperator(RIGHT, SqlLibraryOperators.RIGHT);</span>
+<span class="fc" id="L674">      registerOperator(LEFT, SqlLibraryOperators.LEFT);</span>
+<span class="fc" id="L675">      registerOperator(LOG2, SqlLibraryOperators.LOG2);</span>
+<span class="fc" id="L676">      registerOperator(MD5, SqlLibraryOperators.MD5);</span>
+<span class="fc" id="L677">      registerOperator(SHA1, SqlLibraryOperators.SHA1);</span>
+<span class="fc" id="L678">      registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);</span>
+<span class="fc" id="L679">      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);</span>
+
+      // Register PPL UDF operator
+<span class="fc" id="L682">      registerOperator(COSH, PPLBuiltinOperators.COSH);</span>
+<span class="fc" id="L683">      registerOperator(SINH, PPLBuiltinOperators.SINH);</span>
+<span class="fc" id="L684">      registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);</span>
+<span class="fc" id="L685">      registerOperator(RINT, PPLBuiltinOperators.RINT);</span>
+<span class="fc" id="L686">      registerOperator(SPAN, PPLBuiltinOperators.SPAN);</span>
+<span class="fc" id="L687">      registerOperator(E, PPLBuiltinOperators.E);</span>
+<span class="fc" id="L688">      registerOperator(CONV, PPLBuiltinOperators.CONV);</span>
+<span class="fc" id="L689">      registerOperator(MOD, PPLBuiltinOperators.MOD);</span>
+<span class="fc" id="L690">      registerOperator(MODULUS, PPLBuiltinOperators.MOD);</span>
+<span class="fc" id="L691">      registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);</span>
+<span class="fc" id="L692">      registerOperator(CRC32, PPLBuiltinOperators.CRC32);</span>
+<span class="fc" id="L693">      registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);</span>
+<span class="fc" id="L694">      registerOperator(DIVIDEFUNCTION, PPLBuiltinOperators.DIVIDE);</span>
+<span class="fc" id="L695">      registerOperator(SHA2, PPLBuiltinOperators.SHA2);</span>
+<span class="fc" id="L696">      registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);</span>
+<span class="fc" id="L697">      registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);</span>
+<span class="fc" id="L698">      registerOperator(MATCH, PPLBuiltinOperators.MATCH);</span>
+<span class="fc" id="L699">      registerOperator(MATCH_PHRASE, PPLBuiltinOperators.MATCH_PHRASE);</span>
+<span class="fc" id="L700">      registerOperator(MATCH_BOOL_PREFIX, PPLBuiltinOperators.MATCH_BOOL_PREFIX);</span>
+<span class="fc" id="L701">      registerOperator(MATCH_PHRASE_PREFIX, PPLBuiltinOperators.MATCH_PHRASE_PREFIX);</span>
+<span class="fc" id="L702">      registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);</span>
+<span class="fc" id="L703">      registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);</span>
+<span class="fc" id="L704">      registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);</span>
+
+      // Register PPL Datetime UDF operator
+<span class="fc" id="L707">      registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);</span>
+<span class="fc" id="L708">      registerOperator(DATE, PPLBuiltinOperators.DATE);</span>
+<span class="fc" id="L709">      registerOperator(TIME, PPLBuiltinOperators.TIME);</span>
+<span class="fc" id="L710">      registerOperator(UTC_TIME, PPLBuiltinOperators.UTC_TIME);</span>
+<span class="fc" id="L711">      registerOperator(UTC_DATE, PPLBuiltinOperators.UTC_DATE);</span>
+<span class="fc" id="L712">      registerOperator(UTC_TIMESTAMP, PPLBuiltinOperators.UTC_TIMESTAMP);</span>
+<span class="fc" id="L713">      registerOperator(YEAR, PPLBuiltinOperators.YEAR);</span>
+<span class="fc" id="L714">      registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);</span>
+<span class="fc" id="L715">      registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);</span>
+<span class="fc" id="L716">      registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);</span>
+<span class="fc" id="L717">      registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);</span>
+<span class="fc" id="L718">      registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);</span>
+<span class="fc" id="L719">      registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);</span>
+<span class="fc" id="L720">      registerOperator(SUBTIME, PPLBuiltinOperators.SUBTIME);</span>
+<span class="fc" id="L721">      registerOperator(ADDDATE, PPLBuiltinOperators.ADDDATE);</span>
+<span class="fc" id="L722">      registerOperator(SUBDATE, PPLBuiltinOperators.SUBDATE);</span>
+<span class="fc" id="L723">      registerOperator(DATE_ADD, PPLBuiltinOperators.DATE_ADD);</span>
+<span class="fc" id="L724">      registerOperator(DATE_SUB, PPLBuiltinOperators.DATE_SUB);</span>
+<span class="fc" id="L725">      registerOperator(EXTRACT, PPLBuiltinOperators.EXTRACT);</span>
+<span class="fc" id="L726">      registerOperator(QUARTER, PPLBuiltinOperators.QUARTER);</span>
+<span class="fc" id="L727">      registerOperator(MONTH, PPLBuiltinOperators.MONTH);</span>
+<span class="fc" id="L728">      registerOperator(MONTH_OF_YEAR, PPLBuiltinOperators.MONTH);</span>
+<span class="fc" id="L729">      registerOperator(DAY, PPLBuiltinOperators.DAY);</span>
+<span class="fc" id="L730">      registerOperator(DAYOFMONTH, PPLBuiltinOperators.DAY);</span>
+<span class="fc" id="L731">      registerOperator(DAY_OF_MONTH, PPLBuiltinOperators.DAY);</span>
+<span class="fc" id="L732">      registerOperator(DAYOFWEEK, PPLBuiltinOperators.DAY_OF_WEEK);</span>
+<span class="fc" id="L733">      registerOperator(DAY_OF_WEEK, PPLBuiltinOperators.DAY_OF_WEEK);</span>
+<span class="fc" id="L734">      registerOperator(DAYOFYEAR, PPLBuiltinOperators.DAY_OF_YEAR);</span>
+<span class="fc" id="L735">      registerOperator(DAY_OF_YEAR, PPLBuiltinOperators.DAY_OF_YEAR);</span>
+<span class="fc" id="L736">      registerOperator(HOUR, PPLBuiltinOperators.HOUR);</span>
+<span class="fc" id="L737">      registerOperator(HOUR_OF_DAY, PPLBuiltinOperators.HOUR);</span>
+<span class="fc" id="L738">      registerOperator(MINUTE, PPLBuiltinOperators.MINUTE);</span>
+<span class="fc" id="L739">      registerOperator(MINUTE_OF_HOUR, PPLBuiltinOperators.MINUTE);</span>
+<span class="fc" id="L740">      registerOperator(MINUTE_OF_DAY, PPLBuiltinOperators.MINUTE_OF_DAY);</span>
+<span class="fc" id="L741">      registerOperator(SECOND, PPLBuiltinOperators.SECOND);</span>
+<span class="fc" id="L742">      registerOperator(SECOND_OF_MINUTE, PPLBuiltinOperators.SECOND);</span>
+<span class="fc" id="L743">      registerOperator(MICROSECOND, PPLBuiltinOperators.MICROSECOND);</span>
+<span class="fc" id="L744">      registerOperator(CURRENT_TIMESTAMP, PPLBuiltinOperators.NOW);</span>
+<span class="fc" id="L745">      registerOperator(NOW, PPLBuiltinOperators.NOW);</span>
+<span class="fc" id="L746">      registerOperator(LOCALTIMESTAMP, PPLBuiltinOperators.NOW);</span>
+<span class="fc" id="L747">      registerOperator(LOCALTIME, PPLBuiltinOperators.NOW);</span>
+<span class="fc" id="L748">      registerOperator(CURTIME, PPLBuiltinOperators.CURRENT_TIME);</span>
+<span class="fc" id="L749">      registerOperator(CURRENT_TIME, PPLBuiltinOperators.CURRENT_TIME);</span>
+<span class="fc" id="L750">      registerOperator(CURRENT_DATE, PPLBuiltinOperators.CURRENT_DATE);</span>
+<span class="fc" id="L751">      registerOperator(CURDATE, PPLBuiltinOperators.CURRENT_DATE);</span>
+<span class="fc" id="L752">      registerOperator(DATE_FORMAT, PPLBuiltinOperators.DATE_FORMAT);</span>
+<span class="fc" id="L753">      registerOperator(TIME_FORMAT, PPLBuiltinOperators.TIME_FORMAT);</span>
+<span class="fc" id="L754">      registerOperator(DAYNAME, PPLBuiltinOperators.DAYNAME);</span>
+<span class="fc" id="L755">      registerOperator(MONTHNAME, PPLBuiltinOperators.MONTHNAME);</span>
+<span class="fc" id="L756">      registerOperator(CONVERT_TZ, PPLBuiltinOperators.CONVERT_TZ);</span>
+<span class="fc" id="L757">      registerOperator(DATEDIFF, PPLBuiltinOperators.DATEDIFF);</span>
+<span class="fc" id="L758">      registerOperator(DATETIME, PPLBuiltinOperators.DATETIME);</span>
+<span class="fc" id="L759">      registerOperator(TIMESTAMPDIFF, PPLBuiltinOperators.TIMESTAMPDIFF);</span>
+<span class="fc" id="L760">      registerOperator(LAST_DAY, PPLBuiltinOperators.LAST_DAY);</span>
+<span class="fc" id="L761">      registerOperator(FROM_DAYS, PPLBuiltinOperators.FROM_DAYS);</span>
+<span class="fc" id="L762">      registerOperator(FROM_UNIXTIME, PPLBuiltinOperators.FROM_UNIXTIME);</span>
+<span class="fc" id="L763">      registerOperator(GET_FORMAT, PPLBuiltinOperators.GET_FORMAT);</span>
+<span class="fc" id="L764">      registerOperator(MAKEDATE, PPLBuiltinOperators.MAKEDATE);</span>
+<span class="fc" id="L765">      registerOperator(MAKETIME, PPLBuiltinOperators.MAKETIME);</span>
+<span class="fc" id="L766">      registerOperator(PERIOD_ADD, PPLBuiltinOperators.PERIOD_ADD);</span>
+<span class="fc" id="L767">      registerOperator(PERIOD_DIFF, PPLBuiltinOperators.PERIOD_DIFF);</span>
+<span class="fc" id="L768">      registerOperator(SEC_TO_TIME, PPLBuiltinOperators.SEC_TO_TIME);</span>
+<span class="fc" id="L769">      registerOperator(STR_TO_DATE, PPLBuiltinOperators.STR_TO_DATE);</span>
+<span class="fc" id="L770">      registerOperator(SYSDATE, PPLBuiltinOperators.SYSDATE);</span>
+<span class="fc" id="L771">      registerOperator(TIME_TO_SEC, PPLBuiltinOperators.TIME_TO_SEC);</span>
+<span class="fc" id="L772">      registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);</span>
+<span class="fc" id="L773">      registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);</span>
+<span class="fc" id="L774">      registerOperator(WEEK, PPLBuiltinOperators.WEEK);</span>
+<span class="fc" id="L775">      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);</span>
+<span class="fc" id="L776">      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);</span>
+
+<span class="fc" id="L778">      registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);</span>
+<span class="fc" id="L779">      registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);</span>
+<span class="fc" id="L780">      registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);</span>
+<span class="fc" id="L781">      registerOperator(FORALL, PPLBuiltinOperators.FORALL);</span>
+<span class="fc" id="L782">      registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);</span>
+<span class="fc" id="L783">      registerOperator(FILTER, PPLBuiltinOperators.FILTER);</span>
+<span class="fc" id="L784">      registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);</span>
+<span class="fc" id="L785">      registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);</span>
+
+      // Register Json function
+<span class="fc" id="L788">      register(</span>
+          JSON_ARRAY,
+          ((builder, args) -&gt;
+<span class="nc" id="L791">              builder.makeCall(</span>
+                  SqlStdOperatorTable.JSON_ARRAY,
+<span class="nc" id="L793">                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))</span>
+<span class="nc" id="L794">                      .toArray(RexNode[]::new))),</span>
+          null);
+<span class="fc" id="L796">      register(</span>
+          JSON_OBJECT,
+          ((builder, args) -&gt;
+<span class="nc" id="L799">              builder.makeCall(</span>
+                  SqlStdOperatorTable.JSON_OBJECT,
+<span class="nc" id="L801">                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))</span>
+<span class="nc" id="L802">                      .toArray(RexNode[]::new))),</span>
+          null);
+<span class="fc" id="L804">      registerOperator(JSON, PPLBuiltinOperators.JSON);</span>
+<span class="fc" id="L805">      registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);</span>
+<span class="fc" id="L806">      registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);</span>
+<span class="fc" id="L807">      registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);</span>
+<span class="fc" id="L808">      registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);</span>
+<span class="fc" id="L809">      registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);</span>
+<span class="fc" id="L810">      registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);</span>
+<span class="fc" id="L811">      registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);</span>
+<span class="fc" id="L812">      registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);</span>
+
+      // Register operators with a different type checker
+
+      // Register ADD (+ symbol) for string concatenation
+      // Replaced type checker since CONCAT also supports array concatenation
+<span class="fc" id="L818">      registerOperator(</span>
+          ADD,
+          SqlStdOperatorTable.CONCAT,
+<span class="fc" id="L821">          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));</span>
+      // Register ADD (+ symbol) for numeric addition
+      // Replace type checker since PLUS also supports binary addition
+<span class="fc" id="L824">      registerOperator(</span>
+          ADD,
+          SqlStdOperatorTable.PLUS,
+<span class="fc" id="L827">          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));</span>
+      // Replace with a custom CompositeOperandTypeChecker to check both operands as
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
+      // operand instead
+      // of all operands.
+<span class="fc" id="L832">      registerOperator(</span>
+          INTERNAL_ITEM,
+          SqlStdOperatorTable.ITEM,
+<span class="fc" id="L835">          PPLTypeChecker.wrapComposite(</span>
+              (CompositeOperandTypeChecker)
+<span class="fc" id="L837">                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)</span>
+<span class="fc" id="L838">                      .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),</span>
+              false));
+<span class="fc" id="L840">      registerOperator(</span>
+          XOR,
+          SqlStdOperatorTable.NOT_EQUALS,
+<span class="fc" id="L843">          PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));</span>
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
+      // type checker
+      // for it. The second and third operands are required to be of the same type. If
+      // not,
+      // it will throw an IllegalArgumentException with information Can't find
+      // leastRestrictive type
+<span class="fc" id="L850">      registerOperator(</span>
+          IF,
+          SqlStdOperatorTable.CASE,
+<span class="fc" id="L853">          PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));</span>
+      // Re-define the type checker for is not null, is present, and is null since
+      // their original
+      // type checker ANY isn't compatible with struct types.
+<span class="fc" id="L857">      registerOperator(</span>
+          IS_NOT_NULL,
+          SqlStdOperatorTable.IS_NOT_NULL,
+<span class="fc" id="L860">          PPLTypeChecker.family(SqlTypeFamily.IGNORE));</span>
+<span class="fc" id="L861">      registerOperator(</span>
+<span class="fc" id="L862">          IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));</span>
+<span class="fc" id="L863">      registerOperator(</span>
+<span class="fc" id="L864">          IS_NULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));</span>
+
+      // Register implementation.
+      // Note, make the implementation an individual class if too complex.
+<span class="fc" id="L868">      register(</span>
+          TRIM,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L872">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.TRIM,
+<span class="nc" id="L874">                      builder.makeFlag(Flag.BOTH),</span>
+<span class="nc" id="L875">                      builder.makeLiteral(&quot; &quot;),</span>
+                      arg),
+<span class="fc" id="L877">          PPLTypeChecker.family(SqlTypeFamily.CHARACTER));</span>
+
+<span class="fc" id="L879">      register(</span>
+          LTRIM,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L883">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.TRIM,
+<span class="nc" id="L885">                      builder.makeFlag(Flag.LEADING),</span>
+<span class="nc" id="L886">                      builder.makeLiteral(&quot; &quot;),</span>
+                      arg),
+<span class="fc" id="L888">          PPLTypeChecker.family(SqlTypeFamily.CHARACTER));</span>
+<span class="fc" id="L889">      register(</span>
+          RTRIM,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L893">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.TRIM,
+<span class="nc" id="L895">                      builder.makeFlag(Flag.TRAILING),</span>
+<span class="nc" id="L896">                      builder.makeLiteral(&quot; &quot;),</span>
+                      arg),
+<span class="fc" id="L898">          PPLTypeChecker.family(SqlTypeFamily.CHARACTER));</span>
+<span class="fc" id="L899">      registerOperator(</span>
+          ATAN,
+          SqlStdOperatorTable.ATAN2,
+<span class="fc" id="L902">          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));</span>
+<span class="fc" id="L903">      register(</span>
+          STRCMP,
+          (FunctionImp2)
+<span class="nc" id="L906">              (builder, arg1, arg2) -&gt; builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),</span>
+<span class="fc" id="L907">          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));</span>
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually
+      // create a type
+      // checker for it.
+<span class="fc" id="L911">      register(</span>
+          SUBSTRING,
+          (RexBuilder builder, RexNode... args) -&gt;
+<span class="nc" id="L914">              builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),</span>
+<span class="fc" id="L915">          PPLTypeChecker.wrapComposite(</span>
+              (CompositeOperandTypeChecker)
+<span class="fc" id="L917">                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)</span>
+<span class="fc" id="L918">                      .or(</span>
+<span class="fc" id="L919">                          OperandTypes.family(</span>
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
+              false));
+<span class="fc" id="L924">      register(</span>
+          SUBSTR,
+          (RexBuilder builder, RexNode... args) -&gt;
+<span class="nc" id="L927">              builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),</span>
+<span class="fc" id="L928">          PPLTypeChecker.wrapComposite(</span>
+              (CompositeOperandTypeChecker)
+<span class="fc" id="L930">                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)</span>
+<span class="fc" id="L931">                      .or(</span>
+<span class="fc" id="L932">                          OperandTypes.family(</span>
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
+              false));
+<span class="fc" id="L937">      register(</span>
+          LOG,
+          (FunctionImp2)
+<span class="nc" id="L940">              (builder, arg1, arg2) -&gt; builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1),</span>
+<span class="fc" id="L941">          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));</span>
+<span class="fc" id="L942">      register(</span>
+          LOG,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L946">                  builder.makeCall(</span>
+                      SqlLibraryOperators.LOG,
+                      arg,
+<span class="nc" id="L949">                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E))),</span>
+<span class="fc" id="L950">          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));</span>
+      // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
+      // converted to POWER(x, 0.5).
+<span class="fc" id="L953">      register(</span>
+          SQRT,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L957">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.POWER,
+                      arg,
+<span class="nc" id="L960">                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5))),</span>
+<span class="fc" id="L961">          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));</span>
+<span class="fc" id="L962">      register(</span>
+          TYPEOF,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L966">                  builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)),</span>
+          null);
+<span class="fc" id="L968">      register(</span>
+          NULLIF,
+          (FunctionImp2)
+              (builder, arg1, arg2) -&gt;
+<span class="nc" id="L972">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.CASE,
+<span class="nc" id="L974">                      builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),</span>
+<span class="nc" id="L975">                      builder.makeNullLiteral(arg1.getType()),</span>
+                      arg1),
+<span class="fc" id="L977">          PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME));</span>
+<span class="fc" id="L978">      register(</span>
+          IS_EMPTY,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L982">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.OR,
+<span class="nc" id="L984">                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),</span>
+<span class="nc" id="L985">                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),</span>
+<span class="fc" id="L986">          PPLTypeChecker.family(SqlTypeFamily.ANY));</span>
+<span class="fc" id="L987">      register(</span>
+          IS_BLANK,
+          (FunctionImp1)
+              (builder, arg) -&gt;
+<span class="nc" id="L991">                  builder.makeCall(</span>
+                      SqlStdOperatorTable.OR,
+<span class="nc" id="L993">                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),</span>
+<span class="nc" id="L994">                      builder.makeCall(</span>
+                          SqlStdOperatorTable.IS_EMPTY,
+<span class="nc" id="L996">                          builder.makeCall(</span>
+                              SqlStdOperatorTable.TRIM,
+<span class="nc" id="L998">                              builder.makeFlag(Flag.BOTH),</span>
+<span class="nc" id="L999">                              builder.makeLiteral(&quot; &quot;),</span>
+                              arg))),
+<span class="fc" id="L1001">          PPLTypeChecker.family(SqlTypeFamily.ANY));</span>
+<span class="fc" id="L1002">      register(</span>
+          LIKE,
+          (FunctionImp2)
+              (builder, arg1, arg2) -&gt;
+<span class="nc" id="L1006">                  builder.makeCall(</span>
+                      SqlLibraryOperators.ILIKE,
+                      arg1,
+                      arg2,
+                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
+                      // necessary for SQL function input
+<span class="nc" id="L1012">                      builder.makeLiteral(&quot;\\&quot;)),</span>
+<span class="fc" id="L1013">          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));</span>
+<span class="fc" id="L1014">    }</span>
+  }
+
+<span class="fc" id="L1017">  private static class Builder extends AbstractBuilder {</span>
+<span class="fc" id="L1018">    private final Map&lt;BuiltinFunctionName, List&lt;Pair&lt;CalciteFuncSignature, FunctionImp&gt;&gt;&gt; map =</span>
+        new HashMap&lt;&gt;();
+
+    @Override
+    void register(
+        BuiltinFunctionName functionName, FunctionImp implement, PPLTypeChecker typeChecker) {
+<span class="fc" id="L1024">      CalciteFuncSignature signature =</span>
+<span class="fc" id="L1025">          new CalciteFuncSignature(functionName.getName(), typeChecker);</span>
+<span class="fc bfc" id="L1026" title="All 2 branches covered.">      if (map.containsKey(functionName)) {</span>
+<span class="fc" id="L1027">        map.get(functionName).add(Pair.of(signature, implement));</span>
+      } else {
+<span class="fc" id="L1029">        map.put(functionName, new ArrayList&lt;&gt;(List.of(Pair.of(signature, implement))));</span>
+      }
+<span class="fc" id="L1031">    }</span>
+  }
+
+<span class="fc" id="L1034">  private static class AggBuilder {</span>
+<span class="fc" id="L1035">    private final Map&lt;BuiltinFunctionName, Pair&lt;CalciteFuncSignature, AggHandler&gt;&gt; map =</span>
+        new HashMap&lt;&gt;();
+
+    void register(
+        BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker) {
+<span class="fc" id="L1040">      CalciteFuncSignature signature =</span>
+<span class="fc" id="L1041">          new CalciteFuncSignature(functionName.getName(), typeChecker);</span>
+<span class="fc" id="L1042">      map.put(functionName, Pair.of(signature, aggHandler));</span>
+<span class="fc" id="L1043">    }</span>
+
+    void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
+<span class="fc" id="L1046">      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);</span>
+<span class="fc" id="L1047">      PPLTypeChecker typeChecker =</span>
+<span class="fc" id="L1048">          wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);</span>
+<span class="fc" id="L1049">      AggHandler handler =</span>
+          (distinct, field, argList, ctx) -&gt; {
+<span class="nc" id="L1051">            List&lt;RexNode&gt; newArgList =</span>
+<span class="nc" id="L1052">                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());</span>
+<span class="nc" id="L1053">            return UserDefinedFunctionUtils.makeAggregateCall(</span>
+<span class="nc" id="L1054">                aggFunction, List.of(field), newArgList, ctx.relBuilder);</span>
+          };
+<span class="fc" id="L1056">      register(functionName, handler, typeChecker);</span>
+<span class="fc" id="L1057">    }</span>
+
+    private static RexNode resolveTimeField(List&lt;RexNode&gt; argList, CalcitePlanContext ctx) {
+<span class="nc bnc" id="L1060" title="All 2 branches missed.">      if (argList.isEmpty()) {</span>
+        // Try to find @timestamp field
+<span class="nc" id="L1062">        var timestampField =</span>
+<span class="nc" id="L1063">            ctx.relBuilder.peek().getRowType().getField(&quot;@timestamp&quot;, false, false);</span>
+<span class="nc bnc" id="L1064" title="All 2 branches missed.">        if (timestampField == null) {</span>
+<span class="nc" id="L1065">          throw new IllegalArgumentException(</span>
+              &quot;Default @timestamp field not found. Please specify a time field explicitly.&quot;);
+        }
+<span class="nc" id="L1068">        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());</span>
+      } else {
+<span class="nc" id="L1070">        return PlanUtils.derefMapCall(argList.get(0));</span>
+      }
+    }
+
+    void populate() {
+<span class="fc" id="L1075">      registerOperator(MAX, SqlStdOperatorTable.MAX);</span>
+<span class="fc" id="L1076">      registerOperator(MIN, SqlStdOperatorTable.MIN);</span>
+<span class="fc" id="L1077">      registerOperator(SUM, SqlStdOperatorTable.SUM);</span>
+<span class="fc" id="L1078">      registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);</span>
+<span class="fc" id="L1079">      registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);</span>
+<span class="fc" id="L1080">      registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);</span>
+<span class="fc" id="L1081">      registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);</span>
+<span class="fc" id="L1082">      registerOperator(TAKE, PPLBuiltinOperators.TAKE);</span>
+<span class="fc" id="L1083">      registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);</span>
+
+<span class="fc" id="L1085">      register(</span>
+          AVG,
+<span class="nc" id="L1087">          (distinct, field, argList, ctx) -&gt; ctx.relBuilder.avg(distinct, null, field),</span>
+<span class="fc" id="L1088">          wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L1089">              SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));</span>
+
+<span class="fc" id="L1091">      register(</span>
+          COUNT,
+          (distinct, field, argList, ctx) -&gt; {
+<span class="nc bnc" id="L1094" title="All 2 branches missed.">            if (field == null) {</span>
+              // count() without arguments should count all rows
+<span class="nc" id="L1096">              return ctx.relBuilder.count(distinct, null);</span>
+            } else {
+              // count(field) should count non-null values of the field
+<span class="nc" id="L1099">              return ctx.relBuilder.count(distinct, null, field);</span>
+            }
+          },
+<span class="fc" id="L1102">          wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L1103">              SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));</span>
+
+<span class="fc" id="L1105">      register(</span>
+          PERCENTILE_APPROX,
+          (distinct, field, argList, ctx) -&gt; {
+<span class="nc" id="L1108">            List&lt;RexNode&gt; newArgList =</span>
+<span class="nc" id="L1109">                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());</span>
+<span class="nc" id="L1110">            newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));</span>
+<span class="nc" id="L1111">            return UserDefinedFunctionUtils.makeAggregateCall(</span>
+<span class="nc" id="L1112">                PPLBuiltinOperators.PERCENTILE_APPROX, List.of(field), newArgList, ctx.relBuilder);</span>
+          },
+<span class="fc" id="L1114">          wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L1115">              extractTypeCheckerFromUDF(PPLBuiltinOperators.PERCENTILE_APPROX),</span>
+<span class="fc" id="L1116">              PERCENTILE_APPROX.name(),</span>
+              false));
+
+<span class="fc" id="L1119">      register(</span>
+          EARLIEST,
+          (distinct, field, argList, ctx) -&gt; {
+<span class="nc" id="L1122">            RexNode timeField = resolveTimeField(argList, ctx);</span>
+<span class="nc" id="L1123">            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);</span>
+          },
+<span class="fc" id="L1125">          wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L1126">              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));</span>
+
+<span class="fc" id="L1128">      register(</span>
+          LATEST,
+          (distinct, field, argList, ctx) -&gt; {
+<span class="nc" id="L1131">            RexNode timeField = resolveTimeField(argList, ctx);</span>
+<span class="nc" id="L1132">            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);</span>
+          },
+<span class="fc" id="L1134">          wrapSqlOperandTypeChecker(</span>
+<span class="fc" id="L1135">              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));</span>
+<span class="fc" id="L1136">    }</span>
+  }
+
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
+  private static String getActualSignature(List&lt;RelDataType&gt; argTypes) {
+<span class="nc" id="L1146">    return &quot;[&quot;</span>
+<span class="nc" id="L1147">        + argTypes.stream()</span>
+<span class="nc" id="L1148">            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)</span>
+<span class="nc" id="L1149">            .map(Objects::toString)</span>
+<span class="nc" id="L1150">            .collect(Collectors.joining(&quot;,&quot;))</span>
+        + &quot;]&quot;;
+  }
+
+  /**
+   * Wraps a {@link SqlOperandTypeChecker} into a {@link PPLTypeChecker} for use in function
+   * signature validation.
+   *
+   * @param typeChecker the original SQL operand type checker
+   * @param functionName the name of the function for error reporting
+   * @param isUserDefinedFunction true if the function is user-defined, false otherwise
+   * @return a {@link PPLTypeChecker} that delegates to the provided {@code typeChecker}
+   */
+  private static PPLTypeChecker wrapSqlOperandTypeChecker(
+      SqlOperandTypeChecker typeChecker, String functionName, boolean isUserDefinedFunction) {
+    PPLTypeChecker pplTypeChecker;
+<span class="fc bfc" id="L1166" title="All 2 branches covered.">    if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {</span>
+<span class="fc" id="L1167">      pplTypeChecker = PPLTypeChecker.wrapFamily(implicitCastTypeChecker);</span>
+<span class="fc bfc" id="L1168" title="All 2 branches covered.">    } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {</span>
+      // UDFs implement their own composite type checkers, which always use OR logic for
+      // argument
+      // types. Verifying the composition type would require accessing a protected field in
+      // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+      // be skipped, so we avoid checking the composition type here.
+
+      // If compositeTypeChecker contains operand checkers other than family type checkers or
+      // other than OR compositions, the function with be registered with a null type checker,
+      // which means the function will not be type checked.
+      try {
+<span class="fc bfc" id="L1179" title="All 2 branches covered.">        pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, !isUserDefinedFunction);</span>
+<span class="fc" id="L1180">      } catch (IllegalArgumentException | UnsupportedOperationException e) {</span>
+<span class="fc" id="L1181">        logger.debug(</span>
+<span class="fc" id="L1182">            String.format(</span>
+                &quot;Failed to create composite type checker for operator: %s. Will skip its type&quot;
+                    + &quot; checking&quot;,
+                functionName),
+            e);
+<span class="fc" id="L1187">        pplTypeChecker = null;</span>
+<span class="fc" id="L1188">      }</span>
+<span class="fc bfc" id="L1189" title="All 2 branches covered.">    } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {</span>
+      // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+      // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+<span class="fc" id="L1192">      pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);</span>
+<span class="fc bfc" id="L1193" title="All 2 branches covered.">    } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {</span>
+<span class="fc" id="L1194">      pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());</span>
+    } else {
+<span class="fc" id="L1196">      logger.info(</span>
+          &quot;Cannot create type checker for function: {}. Will skip its type checking&quot;, functionName);
+<span class="fc" id="L1198">      pplTypeChecker = null;</span>
+    }
+<span class="fc" id="L1200">    return pplTypeChecker;</span>
+  }
+
+  /**
+   * Extracts the underlying {@link SqlOperandTypeChecker} from a {@link SqlOperator}.
+   *
+   * &lt;p&gt;For user-defined functions (UDFs) and user-defined aggregate functions (UDAFs), the {@link
+   * SqlOperandTypeChecker} is typically wrapped in a {@link UDFOperandMetadata}, which contains the
+   * actual type checker used for operand validation. Most of these wrapped type checkers are
+   * defined in {@link org.opensearch.sql.calcite.utils.PPLOperandTypes}. This method retrieves the
+   * inner type checker from {@link UDFOperandMetadata} if present.
+   *
+   * &lt;p&gt;For Calcite's built-in operators, its type checker is returned directly.
+   *
+   * @param operator the {@link SqlOperator}, which may be a Calcite built-in operator, a
+   *     user-defined function, or a user-defined aggregation function
+   * @return the underlying {@link SqlOperandTypeChecker} instance, or {@code null} if not available
+   */
+  private static SqlOperandTypeChecker extractTypeCheckerFromUDF(SqlOperator operator) {
+<span class="fc" id="L1219">    SqlOperandTypeChecker typeChecker = operator.getOperandTypeChecker();</span>
+<span class="fc bfc" id="L1220" title="All 2 branches covered.">    if (typeChecker instanceof UDFOperandMetadata) {</span>
+<span class="fc" id="L1221">      UDFOperandMetadata udfOperandMetadata = (UDFOperandMetadata) typeChecker;</span>
+<span class="fc" id="L1222">      return udfOperandMetadata.getInnerTypeChecker();</span>
+    }
+<span class="fc" id="L1224">    return typeChecker;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

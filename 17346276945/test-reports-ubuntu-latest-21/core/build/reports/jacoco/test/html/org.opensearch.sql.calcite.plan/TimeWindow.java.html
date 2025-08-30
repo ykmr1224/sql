@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimeWindow.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.plan</a> &gt; <span class="el_source">TimeWindow.java</span></div><h1>TimeWindow.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.plan;
+
+import java.util.List;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rex.RexNode;
+
+public class TimeWindow extends SingleRel {
+  private final RexNode timeColumn;
+  private final RexNode windowDuration;
+  private final RexNode slideDuration;
+  private final RexNode startTime;
+
+  public TimeWindow(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode input,
+      RexNode timeColumn,
+      RexNode windowDuration,
+      RexNode slideDuration,
+      RexNode startTime) {
+<span class="nc" id="L29">    super(cluster, traits, input);</span>
+<span class="nc" id="L30">    this.timeColumn = timeColumn;</span>
+<span class="nc" id="L31">    this.windowDuration = windowDuration;</span>
+<span class="nc" id="L32">    this.slideDuration = slideDuration;</span>
+<span class="nc" id="L33">    this.startTime = startTime;</span>
+<span class="nc" id="L34">  }</span>
+
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List&lt;RelNode&gt; inputs) {
+<span class="nc" id="L38">    return new TimeWindow(</span>
+<span class="nc" id="L39">        getCluster(), traitSet, sole(inputs), timeColumn, windowDuration, slideDuration, startTime);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

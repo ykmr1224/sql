@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - OpenSearchExecutionEngineTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>OpenSearchExecutionEngineTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.opensearch.executor.html">org.opensearch.sql.opensearch.executor</a> &gt; OpenSearchExecutionEngineTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">6</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.866s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+<li>
+<a href="#">Standard error</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">call add split and open in order</td>
+<td class="success">call_add_split_and_open_in_order()</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">execute successfully</td>
+<td class="success">execute_successfully()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">execute with cursor</td>
+<td class="success">execute_with_cursor()</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">execute with failure</td>
+<td class="success">execute_with_failure()</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">explain successfully</td>
+<td class="success">explain_successfully()</td>
+<td class="success">0.774s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">explain with failure</td>
+<td class="success">explain_with_failure()</td>
+<td class="success">0.059s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T17:39:18,064][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,493][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: COALESCE. Will skip its type checking
+[2025-08-30T17:39:18,510][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: array. Will skip its type checking
+[2025-08-30T17:39:18,511][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: forall. Will skip its type checking
+[2025-08-30T17:39:18,511][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: exists. Will skip its type checking
+[2025-08-30T17:39:18,511][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: filter. Will skip its type checking
+[2025-08-30T17:39:18,511][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: transform. Will skip its type checking
+[2025-08-30T17:39:18,511][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: reduce. Will skip its type checking
+[2025-08-30T17:39:18,512][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T17:39:18,512][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T17:39:18,512][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T17:39:18,513][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T17:39:18,513][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T17:39:18,513][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T17:39:18,513][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T17:39:18,519][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: INTERNAL_PATTERN. Will skip its type checking
+[2025-08-30T17:39:18,520][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: COUNT. Will skip its type checking
+[2025-08-30T17:39:18,521][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: EARLIEST. Will skip its type checking
+[2025-08-30T17:39:18,521][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: LATEST. Will skip its type checking
+[2025-08-30T17:39:18,522][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:39:18,575][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,576][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:39:18,641][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,641][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:39:18,656][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,656][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:39:18,661][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,661][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:39:18,665][INFO ][o.o.s.o.e.OpenSearchExecutionEngine] [[Test worker]] Function [GEOIP] not registered: incompatible client type org.opensearch.sql.opensearch.client.OpenSearchClient$MockitoMock$azBlpdQO
+[2025-08-30T17:39:18,665][INFO ][o.o.s.e.f.PPLFuncImpTable] [[Test worker]] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+</pre>
+</span>
+</div>
+<div class="tab">
+<h2>Standard error</h2>
+<span class="code">
+<pre>SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:39:29 PM</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,685 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteRexNodeVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite</a> &gt; <span class="el_source">CalciteRexNodeVisitor.java</span></div><h1>CalciteRexNodeVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite;
+
+import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
+import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
+import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import javax.annotation.Nullable;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
+import org.apache.logging.log4j.util.Strings;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
+
+@RequiredArgsConstructor
+public class CalciteRexNodeVisitor extends AbstractNodeVisitor&lt;RexNode, CalcitePlanContext&gt; {
+  private final CalciteRelNodeVisitor planVisitor;
+
+  public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
+<span class="nc" id="L84">    return unresolved.accept(this, context);</span>
+  }
+
+  public List&lt;RexNode&gt; analyze(List&lt;UnresolvedExpression&gt; list, CalcitePlanContext context) {
+<span class="nc" id="L88">    return list.stream().map(u -&gt; u.accept(this, context)).toList();</span>
+  }
+
+  public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
+<span class="nc" id="L92">    return context.resolveJoinCondition(unresolved, this::analyze);</span>
+  }
+
+  @Override
+  public RexNode visitLiteral(Literal node, CalcitePlanContext context) {
+<span class="nc" id="L97">    RexBuilder rexBuilder = context.rexBuilder;</span>
+<span class="nc" id="L98">    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();</span>
+<span class="nc" id="L99">    final Object value = node.getValue();</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L101">      final RelDataType type = typeFactory.createSqlType(SqlTypeName.NULL);</span>
+<span class="nc" id="L102">      return rexBuilder.makeNullLiteral(type);</span>
+    }
+<span class="nc bnc" id="L104" title="All 13 branches missed.">    switch (node.getType()) {</span>
+      case NULL:
+<span class="nc" id="L106">        return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));</span>
+      case STRING:
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (value.toString().length() == 1) {</span>
+          // To align Spark/PostgreSQL, Char(1) is useful, such as cast('1' to boolean) should
+          // return true
+<span class="nc" id="L111">          return rexBuilder.makeLiteral(</span>
+<span class="nc" id="L112">              value.toString(), typeFactory.createSqlType(SqlTypeName.CHAR));</span>
+        } else {
+          // Specific the type to VARCHAR and allowCast to true, or the STRING will be optimized to
+          // CHAR(n)
+          // which leads to incorrect return type in deriveReturnType of some functions/operators
+<span class="nc" id="L117">          return rexBuilder.makeLiteral(</span>
+<span class="nc" id="L118">              value.toString(), typeFactory.createSqlType(SqlTypeName.VARCHAR), true);</span>
+        }
+      case INTEGER:
+<span class="nc" id="L121">        return rexBuilder.makeExactLiteral(new BigDecimal((Integer) value));</span>
+      case LONG:
+<span class="nc" id="L123">        return rexBuilder.makeBigintLiteral(new BigDecimal((Long) value));</span>
+      case SHORT:
+<span class="nc" id="L125">        return rexBuilder.makeExactLiteral(</span>
+<span class="nc" id="L126">            new BigDecimal((Short) value), typeFactory.createSqlType(SqlTypeName.SMALLINT));</span>
+      case FLOAT:
+<span class="nc" id="L128">        return rexBuilder.makeApproxLiteral(</span>
+<span class="nc" id="L129">            new BigDecimal(Float.toString((Float) value)),</span>
+<span class="nc" id="L130">            typeFactory.createSqlType(SqlTypeName.FLOAT));</span>
+      case DOUBLE:
+<span class="nc" id="L132">        return rexBuilder.makeApproxLiteral(</span>
+<span class="nc" id="L133">            new BigDecimal(Double.toString((Double) value)),</span>
+<span class="nc" id="L134">            typeFactory.createSqlType(SqlTypeName.DOUBLE));</span>
+      case DECIMAL:
+<span class="nc" id="L136">        return rexBuilder.makeExactLiteral((BigDecimal) value);</span>
+      case BOOLEAN:
+<span class="nc" id="L138">        return rexBuilder.makeLiteral((Boolean) value);</span>
+      case DATE:
+<span class="nc" id="L140">        return rexBuilder.makeDateLiteral(new DateString(value.toString()));</span>
+      case TIME:
+<span class="nc" id="L142">        return rexBuilder.makeTimeLiteral(</span>
+<span class="nc" id="L143">            new TimeString(value.toString()), RelDataType.PRECISION_NOT_SPECIFIED);</span>
+      case TIMESTAMP:
+<span class="nc" id="L145">        return rexBuilder.makeTimestampLiteral(</span>
+<span class="nc" id="L146">            new TimestampString(value.toString()), RelDataType.PRECISION_NOT_SPECIFIED);</span>
+      default:
+<span class="nc" id="L148">        throw new UnsupportedOperationException(&quot;Unsupported literal type: &quot; + node.getType());</span>
+    }
+  }
+
+  @Override
+  public RexNode visitInterval(Interval node, CalcitePlanContext context) {
+<span class="nc" id="L154">    RexNode value = analyze(node.getValue(), context);</span>
+<span class="nc" id="L155">    SqlIntervalQualifier intervalQualifier =</span>
+<span class="nc" id="L156">        context.rexBuilder.createIntervalUntil(PlanUtils.intervalUnitToSpanUnit(node.getUnit()));</span>
+<span class="nc" id="L157">    return context.rexBuilder.makeIntervalLiteral(</span>
+<span class="nc" id="L158">        new BigDecimal(value.toString()), intervalQualifier);</span>
+  }
+
+  @Override
+  public RexNode visitAnd(And node, CalcitePlanContext context) {
+<span class="nc" id="L163">    final RelDataType booleanType =</span>
+<span class="nc" id="L164">        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);</span>
+<span class="nc" id="L165">    final RexNode left = analyze(node.getLeft(), context);</span>
+<span class="nc" id="L166">    final RexNode right = analyze(node.getRight(), context);</span>
+<span class="nc" id="L167">    return context.rexBuilder.makeCall(booleanType, SqlStdOperatorTable.AND, List.of(left, right));</span>
+  }
+
+  @Override
+  public RexNode visitOr(Or node, CalcitePlanContext context) {
+<span class="nc" id="L172">    final RexNode left = analyze(node.getLeft(), context);</span>
+<span class="nc" id="L173">    final RexNode right = analyze(node.getRight(), context);</span>
+<span class="nc" id="L174">    return context.relBuilder.or(left, right);</span>
+  }
+
+  @Override
+  public RexNode visitXor(Xor node, CalcitePlanContext context) {
+<span class="nc" id="L179">    final RexNode left = analyze(node.getLeft(), context);</span>
+<span class="nc" id="L180">    final RexNode right = analyze(node.getRight(), context);</span>
+<span class="nc" id="L181">    return context.relBuilder.notEquals(left, right);</span>
+  }
+
+  @Override
+  public RexNode visitNot(Not node, CalcitePlanContext context) {
+<span class="nc" id="L186">    final RexNode expr = analyze(node.getExpression(), context);</span>
+<span class="nc" id="L187">    return context.relBuilder.not(expr);</span>
+  }
+
+  @Override
+  public RexNode visitIn(In node, CalcitePlanContext context) {
+<span class="nc" id="L192">    final RexNode field = analyze(node.getField(), context);</span>
+<span class="nc" id="L193">    final List&lt;RexNode&gt; valueList =</span>
+<span class="nc" id="L194">        node.getValueList().stream().map(value -&gt; analyze(value, context)).toList();</span>
+<span class="nc" id="L195">    final List&lt;RelDataType&gt; dataTypes =</span>
+<span class="nc" id="L196">        new java.util.ArrayList&lt;&gt;(valueList.stream().map(RexNode::getType).toList());</span>
+<span class="nc" id="L197">    dataTypes.add(field.getType());</span>
+<span class="nc" id="L198">    RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">    if (commonType != null) {</span>
+<span class="nc" id="L200">      List&lt;RexNode&gt; newValueList =</span>
+<span class="nc" id="L201">          valueList.stream().map(value -&gt; context.rexBuilder.makeCast(commonType, value)).toList();</span>
+<span class="nc" id="L202">      return context.rexBuilder.makeIn(field, newValueList);</span>
+    } else {
+<span class="nc" id="L204">      List&lt;ExprType&gt; exprTypes =</span>
+<span class="nc" id="L205">          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();</span>
+<span class="nc" id="L206">      throw new SemanticCheckException(</span>
+<span class="nc" id="L207">          StringUtils.format(</span>
+              &quot;In expression types are incompatible: fields type %s, values type %s&quot;,
+<span class="nc" id="L209">              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));</span>
+    }
+  }
+
+  @Override
+  public RexNode visitCompare(Compare node, CalcitePlanContext context) {
+<span class="nc" id="L215">    RexNode left = analyze(node.getLeft(), context);</span>
+<span class="nc" id="L216">    RexNode right = analyze(node.getRight(), context);</span>
+<span class="nc" id="L217">    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);</span>
+  }
+
+  @Override
+  public RexNode visitBetween(Between node, CalcitePlanContext context) {
+<span class="nc" id="L222">    RexNode value = analyze(node.getValue(), context);</span>
+<span class="nc" id="L223">    RexNode lowerBound = analyze(node.getLowerBound(), context);</span>
+<span class="nc" id="L224">    RexNode upperBound = analyze(node.getUpperBound(), context);</span>
+<span class="nc" id="L225">    RelDataType commonType = context.rexBuilder.commonType(value, lowerBound, upperBound);</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">    if (commonType != null) {</span>
+<span class="nc" id="L227">      lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);</span>
+<span class="nc" id="L228">      upperBound = context.rexBuilder.makeCast(commonType, upperBound);</span>
+    } else {
+<span class="nc" id="L230">      throw new SemanticCheckException(</span>
+<span class="nc" id="L231">          StringUtils.format(</span>
+              &quot;BETWEEN expression types are incompatible: [%s, %s, %s]&quot;,
+<span class="nc" id="L233">              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),</span>
+<span class="nc" id="L234">              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),</span>
+<span class="nc" id="L235">              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));</span>
+    }
+<span class="nc" id="L237">    return context.relBuilder.between(value, lowerBound, upperBound);</span>
+  }
+
+  @Override
+  public RexNode visitEqualTo(EqualTo node, CalcitePlanContext context) {
+<span class="nc" id="L242">    final RexNode left = analyze(node.getLeft(), context);</span>
+<span class="nc" id="L243">    final RexNode right = analyze(node.getRight(), context);</span>
+<span class="nc" id="L244">    return context.rexBuilder.equals(left, right);</span>
+  }
+
+  /** Resolve qualified name. Note, the name should be case-sensitive. */
+  @Override
+  public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    // 1. resolve QualifiedName in join condition
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    if (context.isResolvingJoinCondition()) {</span>
+<span class="nc" id="L252">      List&lt;String&gt; parts = node.getParts();</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">      if (parts.size() == 1) {</span>
+        // 1.1 Handle the case of `id = cid`
+        try {
+<span class="nc" id="L256">          return context.relBuilder.field(2, 0, parts.getFirst());</span>
+<span class="nc" id="L257">        } catch (IllegalArgumentException ee) {</span>
+<span class="nc" id="L258">          return context.relBuilder.field(2, 1, parts.getFirst());</span>
+        }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">      } else if (parts.size() == 2) {</span>
+        // 1.2 Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
+        try {
+<span class="nc" id="L263">          return context.relBuilder.field(2, parts.get(0), parts.get(1));</span>
+<span class="nc" id="L264">        } catch (IllegalArgumentException e) {</span>
+          // Similar to the step 2.3.
+<span class="nc" id="L266">          List&lt;String&gt; candidates =</span>
+<span class="nc" id="L267">              context.relBuilder.peek(1).getRowType().getFieldNames().stream()</span>
+<span class="nc" id="L268">                  .filter(col -&gt; substringAfterLast(col, &quot;.&quot;).equals(parts.getLast()))</span>
+<span class="nc" id="L269">                  .toList();</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">          for (String candidate : candidates) {</span>
+            try {
+              // field(&quot;nation2&quot;, &quot;n2.n_name&quot;); // pass
+<span class="nc" id="L273">              return context.relBuilder.field(2, parts.get(0), candidate);</span>
+<span class="nc" id="L274">            } catch (IllegalArgumentException e1) {</span>
+              // field(&quot;nation2&quot;, &quot;n_name&quot;); // do nothing when fail (n_name is field of nation1)
+            }
+<span class="nc" id="L277">          }</span>
+<span class="nc" id="L278">          throw new UnsupportedOperationException(&quot;Unsupported qualified name: &quot; + node);</span>
+        }
+<span class="nc bnc" id="L280" title="All 2 branches missed.">      } else if (parts.size() == 3) {</span>
+<span class="nc" id="L281">        throw new UnsupportedOperationException(&quot;Unsupported qualified name: &quot; + node);</span>
+      }
+    }
+
+    // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
+    // 2. resolve QualifiedName in non-join condition
+<span class="nc" id="L287">    String qualifiedName = node.toString();</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (context.getRexLambdaRefMap().containsKey(qualifiedName)) {</span>
+<span class="nc" id="L289">      return context.getRexLambdaRefMap().get(qualifiedName);</span>
+    }
+<span class="nc" id="L291">    List&lt;String&gt; currentFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+
+<span class="nc bnc" id="L293" title="All 4 branches missed.">    if (!currentFields.contains(qualifiedName) &amp;&amp; context.isInCoalesceFunction()) {</span>
+<span class="nc" id="L294">      return context.rexBuilder.makeNullLiteral(</span>
+<span class="nc" id="L295">          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));</span>
+    }
+
+<span class="nc bnc" id="L298" title="All 2 branches missed.">    if (currentFields.contains(qualifiedName)) {</span>
+      // 2.1 resolve QualifiedName from stack top
+      // Note: QualifiedName with multiple parts also could be applied in step 2.1,
+      // for example `n2.n_name` or `nation2.n_name` in the output of join can be resolved here.
+<span class="nc" id="L302">      return context.relBuilder.field(qualifiedName);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">    } else if (node.getParts().size() == 2) {</span>
+      // 2.2 resolve QualifiedName with an alias or table name
+<span class="nc" id="L305">      List&lt;String&gt; parts = node.getParts();</span>
+      try {
+<span class="nc" id="L307">        return context.relBuilder.field(1, parts.get(0), parts.get(1));</span>
+<span class="nc" id="L308">      } catch (IllegalArgumentException e) {</span>
+        // 2.3 For field which renamed with &lt;alias.field&gt;, to resolve the field with table
+        // identifier
+        // `nation2.n_name`,
+        // we convert it to resolve &lt;table.alias.field&gt;, e.g. `nation2.n2.n_name`
+        // `n2.n_name` was the renamed field name from the duplicated field `(nation2.)n_name0` of
+        // join output.
+        // Build the candidates which contains `n_name`: e.g. `(nation1.)n_name`, `n2.n_name`
+<span class="nc" id="L316">        List&lt;String&gt; candidates =</span>
+<span class="nc" id="L317">            context.relBuilder.peek().getRowType().getFieldNames().stream()</span>
+<span class="nc" id="L318">                .filter(col -&gt; substringAfterLast(col, &quot;.&quot;).equals(parts.getLast()))</span>
+<span class="nc" id="L319">                .toList();</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">        for (String candidate : candidates) {</span>
+          try {
+            // field(&quot;nation2&quot;, &quot;n2.n_name&quot;); // pass
+<span class="nc" id="L323">            return context.relBuilder.field(parts.get(0), candidate);</span>
+<span class="nc" id="L324">          } catch (IllegalArgumentException e1) {</span>
+            // field(&quot;nation2&quot;, &quot;n_name&quot;); // do nothing when fail (n_name is field of nation1)
+          }
+<span class="nc" id="L327">        }</span>
+        // 2.4 resolve QualifiedName with outer alias
+        // check existing of parts.get(0)
+<span class="nc" id="L330">        return context</span>
+<span class="nc" id="L331">            .peekCorrelVar()</span>
+<span class="nc" id="L332">            .map(correlVar -&gt; context.relBuilder.field(correlVar, parts.get(1)))</span>
+<span class="nc" id="L333">            .orElseThrow(() -&gt; e); // Re-throw the exception if no correlated variable exists</span>
+      }
+<span class="nc bnc" id="L335" title="All 2 branches missed.">    } else if (currentFields.stream().noneMatch(f -&gt; f.startsWith(qualifiedName))) {</span>
+      // 2.5 try resolving combination of 2.1 and 2.4 to resolve rest cases
+<span class="nc" id="L337">      return context</span>
+<span class="nc" id="L338">          .peekCorrelVar()</span>
+<span class="nc" id="L339">          .map(correlVar -&gt; context.relBuilder.field(correlVar, qualifiedName))</span>
+<span class="nc" id="L340">          .orElseGet(() -&gt; context.relBuilder.field(qualifiedName));</span>
+    } else {
+<span class="nc" id="L342">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L343">          String.format(</span>
+              &quot;field [%s] not found; input fields are: %s&quot;, qualifiedName, currentFields));
+    }
+  }
+
+  @Override
+  public RexNode visitAlias(Alias node, CalcitePlanContext context) {
+<span class="nc" id="L350">    RexNode expr = analyze(node.getDelegated(), context);</span>
+    // Only OpenSearch SQL uses node.getAlias, OpenSearch PPL uses node.getName.
+<span class="nc" id="L352">    return context.relBuilder.alias(</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">        expr, Strings.isEmpty(node.getAlias()) ? node.getName() : node.getAlias());</span>
+  }
+
+  @Override
+  public RexNode visitSpan(Span node, CalcitePlanContext context) {
+<span class="nc" id="L358">    RexNode field = analyze(node.getField(), context);</span>
+<span class="nc" id="L359">    RexNode value = analyze(node.getValue(), context);</span>
+<span class="nc" id="L360">    SpanUnit unit = node.getUnit();</span>
+<span class="nc" id="L361">    RexBuilder rexBuilder = context.relBuilder.getRexBuilder();</span>
+    RexNode unitNode =
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        isTimeBased(unit) ? rexBuilder.makeLiteral(unit.getName()) : rexBuilder.constantNull();</span>
+<span class="nc" id="L364">    return PPLFuncImpTable.INSTANCE.resolve(</span>
+        context.rexBuilder, BuiltinFunctionName.SPAN, field, value, unitNode);
+  }
+
+  private boolean isTimeBased(SpanUnit unit) {
+<span class="nc bnc" id="L369" title="All 4 branches missed.">    return !(unit == NONE || unit == UNKNOWN);</span>
+  }
+
+  @Override
+  public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
+    try {
+<span class="nc" id="L375">      List&lt;QualifiedName&gt; names = node.getFuncArgs();</span>
+<span class="nc" id="L376">      List&lt;RexLambdaRef&gt; args =</span>
+<span class="nc" id="L377">          IntStream.range(0, names.size())</span>
+<span class="nc" id="L378">              .mapToObj(</span>
+                  i -&gt;
+<span class="nc" id="L380">                      context.rexLambdaRefMap.getOrDefault(</span>
+<span class="nc" id="L381">                          names.get(i).toString(),</span>
+                          new RexLambdaRef(
+                              i,
+<span class="nc" id="L384">                              names.get(i).toString(),</span>
+<span class="nc" id="L385">                              TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))</span>
+<span class="nc" id="L386">              .collect(Collectors.toList());</span>
+<span class="nc" id="L387">      RexNode body = node.getFunction().accept(this, context);</span>
+<span class="nc" id="L388">      RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);</span>
+<span class="nc" id="L389">      return lambdaNode;</span>
+<span class="nc" id="L390">    } catch (Exception e) {</span>
+<span class="nc" id="L391">      throw new RuntimeException(&quot;Cannot create lambda function&quot;, e);</span>
+    }
+  }
+
+  @Override
+  public RexNode visitLet(Let node, CalcitePlanContext context) {
+<span class="nc" id="L397">    RexNode expr = analyze(node.getExpression(), context);</span>
+<span class="nc" id="L398">    return context.relBuilder.alias(expr, node.getVar().getField().toString());</span>
+  }
+
+  /**
+   * The function will clone a context for lambda function. For lambda like (x, y, z) -&gt; ..., we
+   * will map type for each lambda argument by the order of previous argument. Also, the function
+   * will add these variables to the context so they can pass visitQualifiedName
+   */
+  public CalcitePlanContext prepareLambdaContext(
+      CalcitePlanContext context,
+      LambdaFunction node,
+      List&lt;RexNode&gt; previousArgument,
+      String functionName,
+      @Nullable RelDataType defaultTypeForReduceAcc) {
+    try {
+<span class="fc" id="L413">      CalcitePlanContext lambdaContext = context.clone();</span>
+<span class="fc" id="L414">      List&lt;RelDataType&gt; candidateType = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L415">      candidateType.add(</span>
+<span class="fc" id="L416">          ((ArraySqlType) previousArgument.get(0).getType())</span>
+<span class="fc" id="L417">              .getComponentType()); // The first argument should be array type</span>
+<span class="fc" id="L418">      candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());</span>
+<span class="fc" id="L419">      candidateType =</span>
+<span class="fc" id="L420">          modifyLambdaTypeByFunction(functionName, candidateType, defaultTypeForReduceAcc);</span>
+<span class="fc" id="L421">      List&lt;QualifiedName&gt; argNames = node.getFuncArgs();</span>
+<span class="fc" id="L422">      Map&lt;String, RexLambdaRef&gt; lambdaTypes = new HashMap&lt;&gt;();</span>
+      int candidateIndex;
+<span class="fc" id="L424">      candidateIndex = 0;</span>
+<span class="fc bfc" id="L425" title="All 2 branches covered.">      for (int i = 0; i &lt; argNames.size(); i++) {</span>
+        RelDataType type;
+<span class="fc bfc" id="L427" title="All 2 branches covered.">        if (candidateIndex &lt; candidateType.size()) {</span>
+<span class="fc" id="L428">          type = candidateType.get(candidateIndex);</span>
+<span class="fc" id="L429">          candidateIndex++;</span>
+        } else {
+<span class="fc" id="L431">          type =</span>
+<span class="fc" id="L432">              TYPE_FACTORY.createSqlType(</span>
+                  SqlTypeName.INTEGER); // For transform function, the i is missing in input.
+        }
+<span class="fc" id="L435">        lambdaTypes.put(</span>
+<span class="fc" id="L436">            argNames.get(i).toString(), new RexLambdaRef(i, argNames.get(i).toString(), type));</span>
+      }
+<span class="fc" id="L438">      lambdaContext.putRexLambdaRefMap(lambdaTypes);</span>
+<span class="fc" id="L439">      return lambdaContext;</span>
+<span class="nc" id="L440">    } catch (Exception e) {</span>
+<span class="nc" id="L441">      throw new RuntimeException(&quot;Fail to prepare lambda context&quot;, e);</span>
+    }
+  }
+
+  /**
+   * @param functionName function name
+   * @param originalType the argument type by order
+   * @return a modified types. Different functions need to implement its own order. Currently, only
+   *     reduce has special logic.
+   */
+  private List&lt;RelDataType&gt; modifyLambdaTypeByFunction(
+      String functionName,
+      List&lt;RelDataType&gt; originalType,
+      @Nullable RelDataType defaultTypeForReduceAcc) {
+<span class="fc bfc" id="L455" title="All 2 branches covered.">    switch (functionName.toUpperCase(Locale.ROOT)) {</span>
+      case &quot;REDUCE&quot;: // For reduce case, the first type is acc should be any since it is the output
+        // of accumulator lambda function
+<span class="fc bfc" id="L458" title="All 2 branches covered.">        if (originalType.size() == 2) {</span>
+<span class="fc bfc" id="L459" title="All 2 branches covered.">          if (defaultTypeForReduceAcc != null) {</span>
+<span class="fc" id="L460">            return List.of(defaultTypeForReduceAcc, originalType.get(0));</span>
+          }
+<span class="fc" id="L462">          return List.of(originalType.get(1), originalType.get(0));</span>
+        } else {
+<span class="fc" id="L464">          return List.of(originalType.get(2));</span>
+        }
+      default:
+<span class="fc" id="L467">        return originalType;</span>
+    }
+  }
+
+  @Override
+  public RexNode visitFunction(Function node, CalcitePlanContext context) {
+<span class="nc" id="L473">    List&lt;UnresolvedExpression&gt; args = node.getFuncArgs();</span>
+<span class="nc" id="L474">    List&lt;RexNode&gt; arguments = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L476">    boolean isCoalesce = &quot;coalesce&quot;.equalsIgnoreCase(node.getFuncName());</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">    if (isCoalesce) {</span>
+<span class="nc" id="L478">      context.setInCoalesceFunction(true);</span>
+    }
+
+    try {
+<span class="nc bnc" id="L482" title="All 2 branches missed.">      for (UnresolvedExpression arg : args) {</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">        if (arg instanceof LambdaFunction) {</span>
+<span class="nc" id="L484">          CalcitePlanContext lambdaContext =</span>
+<span class="nc" id="L485">              prepareLambdaContext(</span>
+<span class="nc" id="L486">                  context, (LambdaFunction) arg, arguments, node.getFuncName(), null);</span>
+<span class="nc" id="L487">          RexNode lambdaNode = analyze(arg, lambdaContext);</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">          if (node.getFuncName().equalsIgnoreCase(&quot;reduce&quot;)) {</span>
+<span class="nc" id="L489">            lambdaContext =</span>
+<span class="nc" id="L490">                prepareLambdaContext(</span>
+                    context,
+                    (LambdaFunction) arg,
+                    arguments,
+<span class="nc" id="L494">                    node.getFuncName(),</span>
+<span class="nc" id="L495">                    lambdaNode.getType());</span>
+<span class="nc" id="L496">            lambdaNode = analyze(arg, lambdaContext);</span>
+          }
+<span class="nc" id="L498">          arguments.add(lambdaNode);</span>
+<span class="nc" id="L499">        } else {</span>
+<span class="nc" id="L500">          arguments.add(analyze(arg, context));</span>
+        }
+<span class="nc" id="L502">      }</span>
+    } finally {
+<span class="nc bnc" id="L504" title="All 2 branches missed.">      if (isCoalesce) {</span>
+<span class="nc" id="L505">        context.setInCoalesceFunction(false);</span>
+      }
+    }
+
+<span class="nc" id="L509">    RexNode resolvedNode =</span>
+<span class="nc" id="L510">        PPLFuncImpTable.INSTANCE.resolve(</span>
+<span class="nc" id="L511">            context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">    if (resolvedNode != null) {</span>
+<span class="nc" id="L513">      return resolvedNode;</span>
+    }
+<span class="nc" id="L515">    throw new IllegalArgumentException(&quot;Unsupported operator: &quot; + node.getFuncName());</span>
+  }
+
+  @Override
+  public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
+<span class="nc" id="L520">    Function windowFunction = (Function) node.getFunction();</span>
+<span class="nc" id="L521">    List&lt;RexNode&gt; arguments =</span>
+<span class="nc" id="L522">        windowFunction.getFuncArgs().stream().map(arg -&gt; analyze(arg, context)).toList();</span>
+<span class="nc" id="L523">    List&lt;RexNode&gt; partitions =</span>
+<span class="nc" id="L524">        node.getPartitionByList().stream()</span>
+<span class="nc" id="L525">            .map(arg -&gt; analyze(arg, context))</span>
+<span class="nc" id="L526">            .map(this::extractRexNodeFromAlias)</span>
+<span class="nc" id="L527">            .toList();</span>
+<span class="nc" id="L528">    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())</span>
+<span class="nc" id="L529">        .map(</span>
+            functionName -&gt; {
+<span class="nc bnc" id="L531" title="All 2 branches missed.">              RexNode field = arguments.isEmpty() ? null : arguments.getFirst();</span>
+              List&lt;RexNode&gt; args =
+<span class="nc bnc" id="L533" title="All 4 branches missed.">                  (arguments.isEmpty() || arguments.size() == 1)</span>
+<span class="nc" id="L534">                      ? Collections.emptyList()</span>
+<span class="nc" id="L535">                      : arguments.subList(1, arguments.size());</span>
+<span class="nc" id="L536">              return PlanUtils.makeOver(</span>
+<span class="nc" id="L537">                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());</span>
+            })
+<span class="nc" id="L539">        .orElseThrow(</span>
+            () -&gt;
+<span class="nc" id="L541">                new UnsupportedOperationException(</span>
+<span class="nc" id="L542">                    &quot;Unexpected window function: &quot; + windowFunction.getFuncName()));</span>
+  }
+
+  /** extract the expression of Alias from a node */
+  private RexNode extractRexNodeFromAlias(RexNode node) {
+<span class="nc" id="L547">    requireNonNull(node);</span>
+<span class="nc bnc" id="L548" title="All 2 branches missed.">    if (node.getKind() == AS) {</span>
+<span class="nc" id="L549">      return ((RexCall) node).getOperands().get(0);</span>
+    } else {
+<span class="nc" id="L551">      return node;</span>
+    }
+  }
+
+  @Override
+  public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
+<span class="nc" id="L557">    List&lt;RexNode&gt; nodes = node.getChild().stream().map(child -&gt; analyze(child, context)).toList();</span>
+<span class="nc" id="L558">    UnresolvedPlan subquery = node.getQuery();</span>
+<span class="nc" id="L559">    RelNode subqueryRel = resolveSubqueryPlan(subquery, context);</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">    if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {</span>
+<span class="nc" id="L561">      throw new SemanticCheckException(</span>
+          &quot;The number of columns in the left hand side of an IN subquery does not match the number&quot;
+              + &quot; of columns in the output of subquery&quot;);
+    }
+    // TODO
+    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+    //  only support one expression. Change to follow code after calcite fixed.
+    //    return context.relBuilder.in(
+    //        nodes.getFirst(),
+    //        b -&gt; {
+    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+    //          b.build();
+    //          return subqueryRel;
+    //        });
+<span class="nc" id="L575">    return context.relBuilder.in(subqueryRel, nodes);</span>
+  }
+
+  @Override
+  public RexNode visitScalarSubquery(ScalarSubquery node, CalcitePlanContext context) {
+<span class="nc" id="L580">    return context.relBuilder.scalarQuery(</span>
+        b -&gt; {
+<span class="nc" id="L582">          UnresolvedPlan subquery = node.getQuery();</span>
+<span class="nc" id="L583">          return resolveSubqueryPlan(subquery, context);</span>
+        });
+  }
+
+  @Override
+  public RexNode visitExistsSubquery(ExistsSubquery node, CalcitePlanContext context) {
+<span class="nc" id="L589">    return context.relBuilder.exists(</span>
+        b -&gt; {
+<span class="nc" id="L591">          UnresolvedPlan subquery = node.getQuery();</span>
+<span class="nc" id="L592">          return resolveSubqueryPlan(subquery, context);</span>
+        });
+  }
+
+  private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
+<span class="nc" id="L597">    boolean isNestedSubquery = context.isResolvingSubquery();</span>
+<span class="nc" id="L598">    context.setResolvingSubquery(true);</span>
+    // clear and store the outer state
+<span class="nc" id="L600">    boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();</span>
+<span class="nc bnc" id="L601" title="All 2 branches missed.">    if (isResolvingJoinConditionOuter) {</span>
+<span class="nc" id="L602">      context.setResolvingJoinCondition(false);</span>
+    }
+<span class="nc" id="L604">    RelNode subqueryRel = subquery.accept(planVisitor, context);</span>
+    // pop the inner plan
+<span class="nc" id="L606">    context.relBuilder.build();</span>
+    // clear the exists subquery resolving state
+    // restore to the previous state
+<span class="nc bnc" id="L609" title="All 2 branches missed.">    if (isResolvingJoinConditionOuter) {</span>
+<span class="nc" id="L610">      context.setResolvingJoinCondition(true);</span>
+    }
+    // Only need to set isResolvingSubquery to false if it's not nested subquery.
+<span class="nc bnc" id="L613" title="All 2 branches missed.">    if (!isNestedSubquery) {</span>
+<span class="nc" id="L614">      context.setResolvingSubquery(false);</span>
+    }
+<span class="nc" id="L616">    return subqueryRel;</span>
+  }
+
+  @Override
+  public RexNode visitCast(Cast node, CalcitePlanContext context) {
+<span class="nc" id="L621">    RexNode expr = analyze(node.getExpression(), context);</span>
+<span class="nc" id="L622">    RelDataType type =</span>
+<span class="nc" id="L623">        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());</span>
+<span class="nc" id="L624">    RelDataType nullableType =</span>
+<span class="nc" id="L625">        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);</span>
+    // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
+<span class="nc" id="L627">    return context.rexBuilder.makeCast(nullableType, expr, true, true);</span>
+  }
+
+  @Override
+  public RexNode visitCase(Case node, CalcitePlanContext context) {
+<span class="nc" id="L632">    List&lt;RexNode&gt; caseOperands = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L633" title="All 2 branches missed.">    for (When when : node.getWhenClauses()) {</span>
+<span class="nc" id="L634">      caseOperands.add(analyze(when.getCondition(), context));</span>
+<span class="nc" id="L635">      caseOperands.add(analyze(when.getResult(), context));</span>
+<span class="nc" id="L636">    }</span>
+<span class="nc" id="L637">    RexNode elseExpr =</span>
+<span class="nc" id="L638">        node.getElseClause().map(e -&gt; analyze(e, context)).orElse(context.relBuilder.literal(null));</span>
+<span class="nc" id="L639">    caseOperands.add(elseExpr);</span>
+<span class="nc" id="L640">    return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);</span>
+  }
+
+  /*
+   * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
+  @Override
+  public RexNode visitWhen(When node, CalcitePlanContext context) {
+<span class="nc" id="L648">    throw new CalciteUnsupportedException(&quot;CastWhen function is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RexNode visitRelevanceFieldList(RelevanceFieldList node, CalcitePlanContext context) {
+<span class="nc" id="L653">    List&lt;RexNode&gt; varArgRexNodeList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L654">    node.getFieldList()</span>
+<span class="nc" id="L655">        .forEach(</span>
+            (k, v) -&gt; {
+<span class="nc" id="L657">              varArgRexNodeList.add(</span>
+<span class="nc" id="L658">                  context.rexBuilder.makeLiteral(</span>
+                      k,
+<span class="nc" id="L660">                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),</span>
+                      true));
+<span class="nc" id="L662">              varArgRexNodeList.add(</span>
+<span class="nc" id="L663">                  context.rexBuilder.makeLiteral(</span>
+                      v,
+<span class="nc" id="L665">                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE),</span>
+                      true));
+<span class="nc" id="L667">            });</span>
+<span class="nc" id="L668">    return context.rexBuilder.makeCall(</span>
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList);
+  }
+
+  @Override
+  public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
+<span class="nc" id="L674">    RexNode value = analyze(node.getValue(), context);</span>
+    /*
+     * Calcite SqlStdOperatorTable.AS doesn't have implementor registration in RexImpTable.
+     * To not block ReduceExpressionsRule constants reduction optimization, use MAP_VALUE_CONSTRUCTOR instead to achieve the same effect.
+     */
+<span class="nc" id="L679">    return context.rexBuilder.makeCall(</span>
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+<span class="nc" id="L681">        context.rexBuilder.makeLiteral(node.getArgName()),</span>
+        value);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

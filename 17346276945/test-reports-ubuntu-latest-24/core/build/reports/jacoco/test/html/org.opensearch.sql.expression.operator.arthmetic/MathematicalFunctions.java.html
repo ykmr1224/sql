@@ -1,0 +1,917 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MathematicalFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.operator.arthmetic</a> &gt; <span class="el_source">MathematicalFunctions.java</span></div><h1>MathematicalFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.operator.arthmetic;
+
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+
+import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.zip.CRC32;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprByteValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableFunction;
+
+@UtilityClass
+public class MathematicalFunctions {
+  /**
+   * Register Mathematical Functions.
+   *
+   * @param repository {@link BuiltinFunctionRepository}.
+   */
+  public static void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L56">    repository.register(abs());</span>
+<span class="fc" id="L57">    repository.register(acos());</span>
+<span class="fc" id="L58">    repository.register(asin());</span>
+<span class="fc" id="L59">    repository.register(atan());</span>
+<span class="fc" id="L60">    repository.register(atan2());</span>
+<span class="fc" id="L61">    repository.register(cbrt());</span>
+<span class="fc" id="L62">    repository.register(ceil());</span>
+<span class="fc" id="L63">    repository.register(ceiling());</span>
+<span class="fc" id="L64">    repository.register(conv());</span>
+<span class="fc" id="L65">    repository.register(cos());</span>
+<span class="fc" id="L66">    repository.register(cosh());</span>
+<span class="fc" id="L67">    repository.register(cot());</span>
+<span class="fc" id="L68">    repository.register(crc32());</span>
+<span class="fc" id="L69">    repository.register(degrees());</span>
+<span class="fc" id="L70">    repository.register(euler());</span>
+<span class="fc" id="L71">    repository.register(exp());</span>
+<span class="fc" id="L72">    repository.register(expm1());</span>
+<span class="fc" id="L73">    repository.register(floor());</span>
+<span class="fc" id="L74">    repository.register(ln());</span>
+<span class="fc" id="L75">    repository.register(log());</span>
+<span class="fc" id="L76">    repository.register(log10());</span>
+<span class="fc" id="L77">    repository.register(log2());</span>
+<span class="fc" id="L78">    repository.register(mod());</span>
+<span class="fc" id="L79">    repository.register(pi());</span>
+<span class="fc" id="L80">    repository.register(pow());</span>
+<span class="fc" id="L81">    repository.register(power());</span>
+<span class="fc" id="L82">    repository.register(radians());</span>
+<span class="fc" id="L83">    repository.register(rand());</span>
+<span class="fc" id="L84">    repository.register(rint());</span>
+<span class="fc" id="L85">    repository.register(round());</span>
+<span class="fc" id="L86">    repository.register(sign());</span>
+<span class="fc" id="L87">    repository.register(signum());</span>
+<span class="fc" id="L88">    repository.register(sin());</span>
+<span class="fc" id="L89">    repository.register(sinh());</span>
+<span class="fc" id="L90">    repository.register(sqrt());</span>
+<span class="fc" id="L91">    repository.register(tan());</span>
+<span class="fc" id="L92">    repository.register(truncate());</span>
+<span class="fc" id="L93">  }</span>
+
+  /**
+   * Base function for math functions with similar formats that return DOUBLE.
+   *
+   * @param functionName BuiltinFunctionName of math function.
+   * @param formula lambda function of math formula.
+   * @param returnType data type return type of the calling function
+   * @return DefaultFunctionResolver for math functions.
+   */
+  private static DefaultFunctionResolver baseMathFunction(
+      FunctionName functionName,
+      SerializableFunction&lt;ExprValue, ExprValue&gt; formula,
+      ExprCoreType returnType) {
+<span class="fc" id="L107">    return define(</span>
+        functionName,
+<span class="fc" id="L109">        ExprCoreType.numberTypes().stream()</span>
+<span class="fc" id="L110">            .map(type -&gt; impl(nullMissingHandling(formula), returnType, type))</span>
+<span class="fc" id="L111">            .collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of abs() function.&lt;\b&gt;&lt;br&gt;
+   * The supported signature of abs() function are&lt;br&gt;
+   * INT/LONG/FLOAT/DOUBLE -&gt; INT/LONG/FLOAT/DOUBLE
+   */
+  private static DefaultFunctionResolver abs() {
+<span class="fc" id="L120">    return define(</span>
+<span class="fc" id="L121">        BuiltinFunctionName.ABS.getName(),</span>
+<span class="fc" id="L122">        impl(nullMissingHandling(v -&gt; new ExprByteValue(Math.abs(v.byteValue()))), BYTE, BYTE),</span>
+<span class="fc" id="L123">        impl(nullMissingHandling(v -&gt; new ExprShortValue(Math.abs(v.shortValue()))), SHORT, SHORT),</span>
+<span class="fc" id="L124">        impl(</span>
+<span class="fc" id="L125">            nullMissingHandling(v -&gt; new ExprIntegerValue(Math.abs(v.integerValue()))),</span>
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L128">        impl(nullMissingHandling(v -&gt; new ExprLongValue(Math.abs(v.longValue()))), LONG, LONG),</span>
+<span class="fc" id="L129">        impl(nullMissingHandling(v -&gt; new ExprFloatValue(Math.abs(v.floatValue()))), FLOAT, FLOAT),</span>
+<span class="fc" id="L130">        impl(</span>
+<span class="fc" id="L131">            nullMissingHandling(v -&gt; new ExprDoubleValue(Math.abs(v.doubleValue()))),</span>
+            DOUBLE,
+            DOUBLE));
+  }
+
+  /**
+   * &lt;b&gt;Definition of ceil(x)/ceiling(x) function.&lt;\b&gt;&lt;br&gt;
+   * Calculate the next highest integer that x rounds up to The supported signature of ceil/ceiling
+   * function is DOUBLE -&gt; INTEGER
+   */
+  private static DefaultFunctionResolver ceil() {
+<span class="fc" id="L142">    return define(</span>
+<span class="fc" id="L143">        BuiltinFunctionName.CEIL.getName(),</span>
+<span class="fc" id="L144">        impl(</span>
+<span class="fc" id="L145">            nullMissingHandling(v -&gt; new ExprLongValue(Math.ceil(v.doubleValue()))), LONG, DOUBLE));</span>
+  }
+
+  private static DefaultFunctionResolver ceiling() {
+<span class="fc" id="L149">    return define(</span>
+<span class="fc" id="L150">        BuiltinFunctionName.CEILING.getName(),</span>
+<span class="fc" id="L151">        impl(</span>
+<span class="fc" id="L152">            nullMissingHandling(v -&gt; new ExprLongValue(Math.ceil(v.doubleValue()))), LONG, DOUBLE));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of conv(x, a, b) function.&lt;\b&gt;&lt;br&gt;
+   * Convert number x from base a to base b&lt;br&gt;
+   * The supported signature of floor function is&lt;br&gt;
+   * (STRING, INTEGER, INTEGER) -&gt; STRING&lt;br&gt;
+   * (INTEGER, INTEGER, INTEGER) -&gt; STRING
+   */
+  private static DefaultFunctionResolver conv() {
+<span class="fc" id="L163">    return define(</span>
+<span class="fc" id="L164">        BuiltinFunctionName.CONV.getName(),</span>
+<span class="fc" id="L165">        impl(</span>
+<span class="fc" id="L166">            nullMissingHandling(</span>
+                (x, a, b) -&gt;
+<span class="fc" id="L168">                    new ExprStringValue(</span>
+<span class="fc" id="L169">                        Integer.toString(</span>
+<span class="fc" id="L170">                            Integer.parseInt(x.stringValue(), a.integerValue()),</span>
+<span class="fc" id="L171">                            b.integerValue()))),</span>
+            STRING,
+            STRING,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L176">        impl(</span>
+<span class="fc" id="L177">            nullMissingHandling(</span>
+                (x, a, b) -&gt;
+<span class="fc" id="L179">                    new ExprStringValue(</span>
+<span class="fc" id="L180">                        Integer.toString(</span>
+<span class="fc" id="L181">                            Integer.parseInt(x.integerValue().toString(), a.integerValue()),</span>
+<span class="fc" id="L182">                            b.integerValue()))),</span>
+            STRING,
+            INTEGER,
+            INTEGER,
+            INTEGER));
+  }
+
+  /**
+   * &lt;b&gt;Definition of crc32(x) function.&lt;\b&gt;&lt;br&gt;
+   * Calculate a cyclic redundancy check value and returns a 32-bit unsigned value&lt;br&gt;
+   * The supported signature of crc32 function is&lt;br&gt;
+   * STRING -&gt; LONG
+   */
+  private static DefaultFunctionResolver crc32() {
+<span class="fc" id="L196">    return define(</span>
+<span class="fc" id="L197">        BuiltinFunctionName.CRC32.getName(),</span>
+<span class="fc" id="L198">        impl(</span>
+<span class="fc" id="L199">            nullMissingHandling(</span>
+                v -&gt; {
+<span class="fc" id="L201">                  CRC32 crc = new CRC32();</span>
+<span class="fc" id="L202">                  crc.update(v.stringValue().getBytes());</span>
+<span class="fc" id="L203">                  return new ExprLongValue(crc.getValue());</span>
+                }),
+            LONG,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Definition of e() function.&lt;/b&gt;&lt;br&gt;
+   * Get the Euler's number. () -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver euler() {
+<span class="fc" id="L214">    return define(BuiltinFunctionName.E.getName(), impl(() -&gt; new ExprDoubleValue(Math.E), DOUBLE));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of exp(x) function.&lt;b&gt;&lt;br&gt;
+   * Calculate exponent function e to the x The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver exp() {
+<span class="fc" id="L223">    return baseMathFunction(</span>
+<span class="fc" id="L224">        BuiltinFunctionName.EXP.getName(),</span>
+<span class="fc" id="L225">        v -&gt; new ExprDoubleValue(Math.exp(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of expm1(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate exponent function e to the x, minus 1 The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver expm1() {
+<span class="fc" id="L235">    return baseMathFunction(</span>
+<span class="fc" id="L236">        BuiltinFunctionName.EXPM1.getName(),</span>
+<span class="fc" id="L237">        v -&gt; new ExprDoubleValue(Math.expm1(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of floor(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the next nearest whole integer that x rounds down to The supported signature of floor
+   * function is DOUBLE -&gt; INTEGER
+   */
+  private static DefaultFunctionResolver floor() {
+<span class="fc" id="L247">    return define(</span>
+<span class="fc" id="L248">        BuiltinFunctionName.FLOOR.getName(),</span>
+<span class="fc" id="L249">        impl(</span>
+<span class="fc" id="L250">            nullMissingHandling(v -&gt; new ExprLongValue(Math.floor(v.doubleValue()))),</span>
+            LONG,
+            DOUBLE));
+  }
+
+  /**
+   * Definition of ln(x) function. Calculate the natural logarithm of x The supported signature of
+   * ln function is INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver ln() {
+<span class="fc" id="L260">    return baseMathFunction(</span>
+<span class="fc" id="L261">        BuiltinFunctionName.LN.getName(),</span>
+        v -&gt;
+<span class="fc bfc" id="L263" title="All 2 branches covered.">            v.doubleValue() &lt;= 0</span>
+<span class="fc" id="L264">                ? ExprNullValue.of()</span>
+<span class="fc" id="L265">                : new ExprDoubleValue(Math.log(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of log(b, x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the logarithm of x using b as the base The supported signature of log function is&lt;br&gt;
+   * (b: INTEGER/LONG/FLOAT/DOUBLE, x: INTEGER/LONG/FLOAT/DOUBLE]) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver log() {
+    ImmutableList.Builder&lt;
+            SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+<span class="fc" id="L277">        builder = new ImmutableList.Builder&lt;&gt;();</span>
+
+    // build unary log(x), SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+<span class="fc bfc" id="L280" title="All 2 branches covered.">    for (ExprType type : ExprCoreType.numberTypes()) {</span>
+<span class="fc" id="L281">      builder.add(</span>
+<span class="fc" id="L282">          impl(</span>
+<span class="fc" id="L283">              nullMissingHandling(</span>
+                  v -&gt;
+<span class="fc bfc" id="L285" title="All 2 branches covered.">                      v.doubleValue() &lt;= 0</span>
+<span class="fc" id="L286">                          ? ExprNullValue.of()</span>
+<span class="fc" id="L287">                          : new ExprDoubleValue(Math.log(v.doubleValue()))),</span>
+              DOUBLE,
+              type));
+<span class="fc" id="L290">    }</span>
+
+    // build binary function log(b, x)
+<span class="fc bfc" id="L293" title="All 2 branches covered.">    for (ExprType baseType : ExprCoreType.numberTypes()) {</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">      for (ExprType numberType : ExprCoreType.numberTypes()) {</span>
+<span class="fc" id="L295">        builder.add(</span>
+<span class="fc" id="L296">            impl(</span>
+<span class="fc" id="L297">                nullMissingHandling(</span>
+                    (b, x) -&gt;
+<span class="fc bfc" id="L299" title="All 4 branches covered.">                        b.doubleValue() &lt;= 0 || x.doubleValue() &lt;= 0</span>
+<span class="fc" id="L300">                            ? ExprNullValue.of()</span>
+<span class="fc" id="L301">                            : new ExprDoubleValue(</span>
+<span class="fc" id="L302">                                Math.log(x.doubleValue()) / Math.log(b.doubleValue()))),</span>
+                DOUBLE,
+                baseType,
+                numberType));
+<span class="fc" id="L306">      }</span>
+<span class="fc" id="L307">    }</span>
+<span class="fc" id="L308">    return define(BuiltinFunctionName.LOG.getName(), builder.build());</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of log10(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate base-10 logarithm of x The supported signature of&lt;br&gt;
+   * log function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver log10() {
+<span class="fc" id="L317">    return baseMathFunction(</span>
+<span class="fc" id="L318">        BuiltinFunctionName.LOG10.getName(),</span>
+        v -&gt;
+<span class="fc bfc" id="L320" title="All 2 branches covered.">            v.doubleValue() &lt;= 0</span>
+<span class="fc" id="L321">                ? ExprNullValue.of()</span>
+<span class="fc" id="L322">                : new ExprDoubleValue(Math.log10(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of log2(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate base-2 logarithm of x The supported signature of log&lt;br&gt;
+   * function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver log2() {
+<span class="fc" id="L332">    return baseMathFunction(</span>
+<span class="fc" id="L333">        BuiltinFunctionName.LOG2.getName(),</span>
+        v -&gt;
+<span class="fc bfc" id="L335" title="All 2 branches covered.">            v.doubleValue() &lt;= 0</span>
+<span class="fc" id="L336">                ? ExprNullValue.of()</span>
+<span class="fc" id="L337">                : new ExprDoubleValue(Math.log(v.doubleValue()) / Math.log(2)),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of mod(x, y) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the remainder of x divided by y&lt;br&gt;
+   * The supported signature of mod function is&lt;br&gt;
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE)&lt;br&gt;
+   * -&gt; wider type between types of x and y
+   */
+  private static DefaultFunctionResolver mod() {
+<span class="fc" id="L349">    return define(</span>
+<span class="fc" id="L350">        BuiltinFunctionName.MOD.getName(),</span>
+<span class="fc" id="L351">        impl(</span>
+<span class="fc" id="L352">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L354" title="All 2 branches covered.">                    v2.byteValue() == 0</span>
+<span class="fc" id="L355">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L356">                        : new ExprByteValue(v1.byteValue() % v2.byteValue())),</span>
+            BYTE,
+            BYTE,
+            BYTE),
+<span class="fc" id="L360">        impl(</span>
+<span class="fc" id="L361">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L363" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L364">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L365">                        : new ExprShortValue(v1.shortValue() % v2.shortValue())),</span>
+            SHORT,
+            SHORT,
+            SHORT),
+<span class="fc" id="L369">        impl(</span>
+<span class="fc" id="L370">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L372" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L373">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L374">                        : new ExprIntegerValue(</span>
+<span class="fc" id="L375">                            Math.floorMod(v1.integerValue(), v2.integerValue()))),</span>
+            INTEGER,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L379">        impl(</span>
+<span class="fc" id="L380">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L382" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L383">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L384">                        : new ExprLongValue(Math.floorMod(v1.longValue(), v2.longValue()))),</span>
+            LONG,
+            LONG,
+            LONG),
+<span class="fc" id="L388">        impl(</span>
+<span class="fc" id="L389">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L391" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L392">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L393">                        : new ExprFloatValue(v1.floatValue() % v2.floatValue())),</span>
+            FLOAT,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L397">        impl(</span>
+<span class="fc" id="L398">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L400" title="All 2 branches covered.">                    v2.shortValue() == 0</span>
+<span class="fc" id="L401">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L402">                        : new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  /**
+   * &lt;b&gt;Definition of pi() function.&lt;/b&gt;&lt;br&gt;
+   * Get the value of pi.&lt;br&gt;
+   * () -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver pi() {
+<span class="fc" id="L414">    return define(</span>
+<span class="fc" id="L415">        BuiltinFunctionName.PI.getName(), impl(() -&gt; new ExprDoubleValue(Math.PI), DOUBLE));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of pow(x, y)/power(x, y) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the value of x raised to the power of y&lt;br&gt;
+   * The supported signature of pow/power function is&lt;br&gt;
+   * (INTEGER, INTEGER) -&gt; DOUBLE&lt;br&gt;
+   * (LONG, LONG) -&gt; DOUBLE&lt;br&gt;
+   * (FLOAT, FLOAT) -&gt; DOUBLE&lt;br&gt;
+   * (DOUBLE, DOUBLE) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver pow() {
+<span class="fc" id="L428">    return define(BuiltinFunctionName.POW.getName(), powerFunctionImpl());</span>
+  }
+
+  private static DefaultFunctionResolver power() {
+<span class="fc" id="L432">    return define(BuiltinFunctionName.POWER.getName(), powerFunctionImpl());</span>
+  }
+
+  private List&lt;SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+      powerFunctionImpl() {
+<span class="fc" id="L437">    return Arrays.asList(</span>
+<span class="fc" id="L438">        impl(</span>
+<span class="fc" id="L439">            nullMissingHandling(</span>
+<span class="fc" id="L440">                (v1, v2) -&gt; new ExprDoubleValue(Math.pow(v1.shortValue(), v2.shortValue()))),</span>
+            DOUBLE,
+            SHORT,
+            SHORT),
+<span class="fc" id="L444">        impl(</span>
+<span class="fc" id="L445">            nullMissingHandling(</span>
+<span class="fc" id="L446">                (v1, v2) -&gt; new ExprDoubleValue(Math.pow(v1.integerValue(), v2.integerValue()))),</span>
+            DOUBLE,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L450">        impl(</span>
+<span class="fc" id="L451">            nullMissingHandling(</span>
+<span class="fc" id="L452">                (v1, v2) -&gt; new ExprDoubleValue(Math.pow(v1.longValue(), v2.longValue()))),</span>
+            DOUBLE,
+            LONG,
+            LONG),
+<span class="fc" id="L456">        impl(</span>
+<span class="fc" id="L457">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L459" title="All 4 branches covered.">                    v1.floatValue() &lt;= 0 &amp;&amp; v2.floatValue() != Math.floor(v2.floatValue())</span>
+<span class="fc" id="L460">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L461">                        : new ExprDoubleValue(Math.pow(v1.floatValue(), v2.floatValue()))),</span>
+            DOUBLE,
+            FLOAT,
+            FLOAT),
+<span class="fc" id="L465">        impl(</span>
+<span class="fc" id="L466">            nullMissingHandling(</span>
+                (v1, v2) -&gt;
+<span class="fc bfc" id="L468" title="All 4 branches covered.">                    v1.doubleValue() &lt;= 0 &amp;&amp; v2.doubleValue() != Math.floor(v2.doubleValue())</span>
+<span class="fc" id="L469">                        ? ExprNullValue.of()</span>
+<span class="fc" id="L470">                        : new ExprDoubleValue(Math.pow(v1.doubleValue(), v2.doubleValue()))),</span>
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
+  }
+
+  /**
+   * &lt;b&gt;Definition of rand() and rand(N) function.&lt;/b&gt;&lt;br&gt;
+   * rand() returns a random floating-point value in the range 0 &lt;= value &lt; 1.0&lt;br&gt;
+   * If integer N is specified, the seed is initialized prior to execution.&lt;br&gt;
+   * One implication of this behavior is with identical argument N,rand(N) returns the same value
+   * &lt;br&gt;
+   * each time, and thus produces a repeatable sequence of column values. The supported signature of
+   * &lt;br&gt;
+   * rand function is ([INTEGER]) -&gt; FLOAT
+   */
+  private static DefaultFunctionResolver rand() {
+<span class="fc" id="L487">    return define(</span>
+<span class="fc" id="L488">        BuiltinFunctionName.RAND.getName(),</span>
+<span class="fc" id="L489">        impl(() -&gt; new ExprFloatValue(new Random().nextFloat()), FLOAT),</span>
+<span class="fc" id="L490">        impl(</span>
+<span class="fc" id="L491">            nullMissingHandling(v -&gt; new ExprFloatValue(new Random(v.integerValue()).nextFloat())),</span>
+            FLOAT,
+            INTEGER));
+  }
+
+  /**
+   * &lt;b&gt;Definition of rint(x) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the closest whole integer value to x&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver rint() {
+<span class="fc" id="L503">    return baseMathFunction(</span>
+<span class="fc" id="L504">        BuiltinFunctionName.RINT.getName(),</span>
+<span class="fc" id="L505">        v -&gt; new ExprDoubleValue(Math.rint(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of round(x)/round(x, d) function.&lt;/b&gt;&lt;br&gt;
+   * Rounds the argument x to d decimal places, d defaults to 0 if not specified.&lt;br&gt;
+   * The supported signature of round function is&lt;br&gt;
+   * (x: INTEGER [, y: INTEGER]) -&gt; INTEGER&lt;br&gt;
+   * (x: LONG [, y: INTEGER]) -&gt; LONG&lt;br&gt;
+   * (x: FLOAT [, y: INTEGER]) -&gt; FLOAT&lt;br&gt;
+   * (x: DOUBLE [, y: INTEGER]) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver round() {
+<span class="fc" id="L519">    return define(</span>
+<span class="fc" id="L520">        BuiltinFunctionName.ROUND.getName(),</span>
+        // rand(x)
+<span class="fc" id="L522">        impl(</span>
+<span class="fc" id="L523">            nullMissingHandling(v -&gt; new ExprLongValue((long) Math.round(v.integerValue()))),</span>
+            LONG,
+            INTEGER),
+<span class="fc" id="L526">        impl(</span>
+<span class="fc" id="L527">            nullMissingHandling(v -&gt; new ExprLongValue((long) Math.round(v.longValue()))),</span>
+            LONG,
+            LONG),
+<span class="fc" id="L530">        impl(</span>
+<span class="fc" id="L531">            nullMissingHandling(v -&gt; new ExprDoubleValue((double) Math.round(v.floatValue()))),</span>
+            DOUBLE,
+            FLOAT),
+<span class="fc" id="L534">        impl(</span>
+<span class="fc" id="L535">            nullMissingHandling(</span>
+                v -&gt;
+<span class="fc" id="L537">                    new ExprDoubleValue(</span>
+<span class="fc" id="L538">                        new BigDecimal(v.doubleValue())</span>
+<span class="fc" id="L539">                            .setScale(0, RoundingMode.HALF_UP)</span>
+<span class="fc" id="L540">                            .doubleValue())),</span>
+            DOUBLE,
+            DOUBLE),
+
+        // rand(x, d)
+<span class="fc" id="L545">        impl(</span>
+<span class="fc" id="L546">            nullMissingHandling(</span>
+                (x, d) -&gt;
+<span class="fc" id="L548">                    new ExprLongValue(</span>
+<span class="fc" id="L549">                        new BigDecimal(x.integerValue())</span>
+<span class="fc" id="L550">                            .setScale(d.integerValue(), RoundingMode.HALF_UP)</span>
+<span class="fc" id="L551">                            .longValue())),</span>
+            LONG,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L555">        impl(</span>
+<span class="fc" id="L556">            nullMissingHandling(</span>
+                (x, d) -&gt;
+<span class="fc" id="L558">                    new ExprLongValue(</span>
+<span class="fc" id="L559">                        new BigDecimal(x.longValue())</span>
+<span class="fc" id="L560">                            .setScale(d.integerValue(), RoundingMode.HALF_UP)</span>
+<span class="fc" id="L561">                            .longValue())),</span>
+            LONG,
+            LONG,
+            INTEGER),
+<span class="fc" id="L565">        impl(</span>
+<span class="fc" id="L566">            nullMissingHandling(</span>
+                (x, d) -&gt;
+<span class="fc" id="L568">                    new ExprDoubleValue(</span>
+<span class="fc" id="L569">                        new BigDecimal(x.floatValue())</span>
+<span class="fc" id="L570">                            .setScale(d.integerValue(), RoundingMode.HALF_UP)</span>
+<span class="fc" id="L571">                            .doubleValue())),</span>
+            DOUBLE,
+            FLOAT,
+            INTEGER),
+<span class="fc" id="L575">        impl(</span>
+<span class="fc" id="L576">            nullMissingHandling(</span>
+                (x, d) -&gt;
+<span class="fc" id="L578">                    new ExprDoubleValue(</span>
+<span class="fc" id="L579">                        new BigDecimal(x.doubleValue())</span>
+<span class="fc" id="L580">                            .setScale(d.integerValue(), RoundingMode.HALF_UP)</span>
+<span class="fc" id="L581">                            .doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            INTEGER));
+  }
+
+  /**
+   * &lt;b&gt;Definition of sign(x) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the sign of the argument as -1, 0, or 1&lt;br&gt;
+   * depending on whether x is negative, zero, or positive&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; INTEGER
+   */
+  private static DefaultFunctionResolver sign() {
+<span class="fc" id="L595">    return baseMathFunction(</span>
+<span class="fc" id="L596">        BuiltinFunctionName.SIGN.getName(),</span>
+<span class="fc" id="L597">        v -&gt; new ExprIntegerValue(Math.signum(v.doubleValue())),</span>
+        INTEGER);
+  }
+
+  /**
+   * &lt;b&gt;Definition of signum(x) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the sign of the argument as -1.0, 0, or 1.0&lt;br&gt;
+   * depending on whether x is negative, zero, or positive&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; INTEGER
+   */
+  private static DefaultFunctionResolver signum() {
+<span class="fc" id="L609">    return baseMathFunction(</span>
+<span class="fc" id="L610">        BuiltinFunctionName.SIGNUM.getName(),</span>
+<span class="fc" id="L611">        v -&gt; new ExprIntegerValue(Math.signum(v.doubleValue())),</span>
+        INTEGER);
+  }
+
+  /**
+   * &lt;b&gt;Definition of sinh(x) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the hyperbolix sine of x, defined as (((e^x) - (e^(-x))) / 2)&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver sinh() {
+<span class="fc" id="L622">    return baseMathFunction(</span>
+<span class="fc" id="L623">        BuiltinFunctionName.SINH.getName(),</span>
+<span class="fc" id="L624">        v -&gt; new ExprDoubleValue(Math.sinh(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of sqrt(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the square root of a non-negative number x&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver sqrt() {
+<span class="fc" id="L635">    return baseMathFunction(</span>
+<span class="fc" id="L636">        BuiltinFunctionName.SQRT.getName(),</span>
+        v -&gt;
+<span class="fc bfc" id="L638" title="All 2 branches covered.">            v.doubleValue() &lt; 0</span>
+<span class="fc" id="L639">                ? ExprNullValue.of()</span>
+<span class="fc" id="L640">                : new ExprDoubleValue(Math.sqrt(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of cbrt(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculate the cube root of a number x&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver cbrt() {
+<span class="fc" id="L651">    return baseMathFunction(</span>
+<span class="fc" id="L652">        BuiltinFunctionName.CBRT.getName(),</span>
+<span class="fc" id="L653">        v -&gt; new ExprDoubleValue(Math.cbrt(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of truncate(x, d) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the number x, truncated to d decimal places&lt;br&gt;
+   * The supported signature of round function is&lt;br&gt;
+   * (x: INTEGER, y: INTEGER) -&gt; LONG&lt;br&gt;
+   * (x: LONG, y: INTEGER) -&gt; LONG&lt;br&gt;
+   * (x: FLOAT, y: INTEGER) -&gt; DOUBLE&lt;br&gt;
+   * (x: DOUBLE, y: INTEGER) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver truncate() {
+<span class="fc" id="L667">    return define(</span>
+<span class="fc" id="L668">        BuiltinFunctionName.TRUNCATE.getName(),</span>
+<span class="fc" id="L669">        impl(</span>
+<span class="fc" id="L670">            nullMissingHandling(</span>
+                (x, y) -&gt;
+<span class="fc" id="L672">                    new ExprLongValue(</span>
+<span class="fc" id="L673">                        BigDecimal.valueOf(x.integerValue())</span>
+<span class="fc" id="L674">                            .setScale(y.integerValue(), RoundingMode.DOWN)</span>
+<span class="fc" id="L675">                            .longValue())),</span>
+            LONG,
+            INTEGER,
+            INTEGER),
+<span class="fc" id="L679">        impl(</span>
+<span class="fc" id="L680">            nullMissingHandling(</span>
+                (x, y) -&gt;
+<span class="fc" id="L682">                    new ExprLongValue(</span>
+<span class="fc" id="L683">                        BigDecimal.valueOf(x.longValue())</span>
+<span class="fc" id="L684">                            .setScale(y.integerValue(), RoundingMode.DOWN)</span>
+<span class="fc" id="L685">                            .longValue())),</span>
+            LONG,
+            LONG,
+            INTEGER),
+<span class="fc" id="L689">        impl(</span>
+<span class="fc" id="L690">            nullMissingHandling(</span>
+                (x, y) -&gt;
+<span class="fc" id="L692">                    new ExprDoubleValue(</span>
+<span class="fc" id="L693">                        BigDecimal.valueOf(x.floatValue())</span>
+<span class="fc" id="L694">                            .setScale(y.integerValue(), RoundingMode.DOWN)</span>
+<span class="fc" id="L695">                            .doubleValue())),</span>
+            DOUBLE,
+            FLOAT,
+            INTEGER),
+<span class="fc" id="L699">        impl(</span>
+<span class="fc" id="L700">            nullMissingHandling(</span>
+                (x, y) -&gt;
+<span class="fc" id="L702">                    new ExprDoubleValue(</span>
+<span class="fc" id="L703">                        BigDecimal.valueOf(x.doubleValue())</span>
+<span class="fc" id="L704">                            .setScale(y.integerValue(), RoundingMode.DOWN)</span>
+<span class="fc" id="L705">                            .doubleValue())),</span>
+            DOUBLE,
+            DOUBLE,
+            INTEGER));
+  }
+
+  /**
+   * &lt;b&gt;Definition of acos(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the arc cosine of x, that is, the value whose cosine is x.&lt;br&gt;
+   * Returns NULL if x is not in the range -1 to 1.&lt;br&gt;
+   * The supported signature of acos function is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver acos() {
+<span class="fc" id="L719">    return define(</span>
+<span class="fc" id="L720">        BuiltinFunctionName.ACOS.getName(),</span>
+<span class="fc" id="L721">        ExprCoreType.numberTypes().stream()</span>
+<span class="fc" id="L722">            .map(</span>
+                type -&gt;
+<span class="fc" id="L724">                    impl(</span>
+<span class="fc" id="L725">                        nullMissingHandling(</span>
+                            v -&gt;
+<span class="fc bfc" id="L727" title="All 4 branches covered.">                                v.doubleValue() &lt; -1 || v.doubleValue() &gt; 1</span>
+<span class="fc" id="L728">                                    ? ExprNullValue.of()</span>
+<span class="fc" id="L729">                                    : new ExprDoubleValue(Math.acos(v.doubleValue()))),</span>
+                        DOUBLE,
+                        type))
+<span class="fc" id="L732">            .collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of asin(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the arc sine of x, that is, the value whose sine is x.&lt;br&gt;
+   * Returns NULL if x is not in the range -1 to 1.&lt;br&gt;
+   * The supported signature of asin function is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE&lt;br&gt;
+   */
+  private static DefaultFunctionResolver asin() {
+<span class="fc" id="L743">    return define(</span>
+<span class="fc" id="L744">        BuiltinFunctionName.ASIN.getName(),</span>
+<span class="fc" id="L745">        ExprCoreType.numberTypes().stream()</span>
+<span class="fc" id="L746">            .map(</span>
+                type -&gt;
+<span class="fc" id="L748">                    impl(</span>
+<span class="fc" id="L749">                        nullMissingHandling(</span>
+                            v -&gt;
+<span class="fc bfc" id="L751" title="All 4 branches covered.">                                v.doubleValue() &lt; -1 || v.doubleValue() &gt; 1</span>
+<span class="fc" id="L752">                                    ? ExprNullValue.of()</span>
+<span class="fc" id="L753">                                    : new ExprDoubleValue(Math.asin(v.doubleValue()))),</span>
+                        DOUBLE,
+                        type))
+<span class="fc" id="L756">            .collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of atan(x) and atan(y, x) function.&lt;/b&gt;&lt;br&gt;
+   * atan(x) calculates the arc tangent of x, that is, the value whose tangent is x.&lt;br&gt;
+   * atan(y, x) calculates the arc tangent of y / x, except that the signs of both arguments&lt;br&gt;
+   * are used to determine the quadrant of the result.&lt;br&gt;
+   * The supported signature of atan function is&lt;br&gt;
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver atan() {
+    ImmutableList.Builder&lt;
+            SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+<span class="fc" id="L770">        builder = new ImmutableList.Builder&lt;&gt;();</span>
+
+<span class="fc bfc" id="L772" title="All 2 branches covered.">    for (ExprType type : ExprCoreType.numberTypes()) {</span>
+<span class="fc" id="L773">      builder.add(</span>
+<span class="fc" id="L774">          impl(</span>
+<span class="fc" id="L775">              nullMissingHandling(x -&gt; new ExprDoubleValue(Math.atan(x.doubleValue()))),</span>
+              type,
+              DOUBLE));
+<span class="fc" id="L778">      builder.add(</span>
+<span class="fc" id="L779">          impl(</span>
+<span class="fc" id="L780">              nullMissingHandling(</span>
+<span class="fc" id="L781">                  (y, x) -&gt; new ExprDoubleValue(Math.atan2(y.doubleValue(), x.doubleValue()))),</span>
+              DOUBLE,
+              type,
+              type));
+<span class="fc" id="L785">    }</span>
+
+<span class="fc" id="L787">    return define(BuiltinFunctionName.ATAN.getName(), builder.build());</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of atan2(y, x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the arc tangent of y / x, except that the signs of both arguments are used to
+   * determine the quadrant of the result.&lt;br&gt;
+   * The supported signature of atan2 function is&lt;br&gt;
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver atan2() {
+    ImmutableList.Builder&lt;
+            SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+<span class="fc" id="L800">        builder = new ImmutableList.Builder&lt;&gt;();</span>
+
+<span class="fc bfc" id="L802" title="All 2 branches covered.">    for (ExprType type : ExprCoreType.numberTypes()) {</span>
+<span class="fc" id="L803">      builder.add(</span>
+<span class="fc" id="L804">          impl(</span>
+<span class="fc" id="L805">              nullMissingHandling(</span>
+<span class="fc" id="L806">                  (y, x) -&gt; new ExprDoubleValue(Math.atan2(y.doubleValue(), x.doubleValue()))),</span>
+              DOUBLE,
+              type,
+              type));
+<span class="fc" id="L810">    }</span>
+
+<span class="fc" id="L812">    return define(BuiltinFunctionName.ATAN2.getName(), builder.build());</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of cos(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the cosine of X, where X is given in radians&lt;br&gt;
+   * The supported signature of cos function is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver cos() {
+<span class="fc" id="L822">    return baseMathFunction(</span>
+<span class="fc" id="L823">        BuiltinFunctionName.COS.getName(),</span>
+<span class="fc" id="L824">        v -&gt; new ExprDoubleValue(Math.cos(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of cosh(x) function.&lt;/b&gt;&lt;br&gt;
+   * Returns the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)&lt;br&gt;
+   * The supported signature is&lt;br&gt;
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver cosh() {
+<span class="fc" id="L835">    return baseMathFunction(</span>
+<span class="fc" id="L836">        BuiltinFunctionName.COSH.getName(),</span>
+<span class="fc" id="L837">        v -&gt; new ExprDoubleValue(Math.cosh(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of cot(x) function.&lt;\b&gt;&lt;br&gt;
+   * Calculates the cotangent of x The supported signature of cot function is
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver cot() {
+<span class="fc" id="L847">    return define(</span>
+<span class="fc" id="L848">        BuiltinFunctionName.COT.getName(),</span>
+<span class="fc" id="L849">        ExprCoreType.numberTypes().stream()</span>
+<span class="fc" id="L850">            .map(</span>
+                type -&gt;
+<span class="fc" id="L852">                    impl(</span>
+<span class="fc" id="L853">                        nullMissingHandling(</span>
+                            v -&gt; {
+<span class="fc" id="L855">                              Double value = v.doubleValue();</span>
+<span class="fc bfc" id="L856" title="All 2 branches covered.">                              if (value == 0) {</span>
+<span class="fc" id="L857">                                throw new ArithmeticException(</span>
+<span class="fc" id="L858">                                    String.format(&quot;Out of range value for cot(%s)&quot;, value));</span>
+                              }
+<span class="fc" id="L860">                              return new ExprDoubleValue(1 / Math.tan(value));</span>
+                            }),
+                        DOUBLE,
+                        type))
+<span class="fc" id="L864">            .collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * &lt;b&gt;Definition of degrees(x) function.&lt;/b&gt;&lt;br&gt;
+   * Converts x from radians to degrees The supported signature of degrees function is
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver degrees() {
+<span class="fc" id="L873">    return baseMathFunction(</span>
+<span class="fc" id="L874">        BuiltinFunctionName.DEGREES.getName(),</span>
+<span class="fc" id="L875">        v -&gt; new ExprDoubleValue(Math.toDegrees(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of radians(x) function.&lt;/b&gt;&lt;br&gt;
+   * Converts x from degrees to radians The supported signature of radians function is
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver radians() {
+<span class="fc" id="L885">    return baseMathFunction(</span>
+<span class="fc" id="L886">        BuiltinFunctionName.RADIANS.getName(),</span>
+<span class="fc" id="L887">        v -&gt; new ExprDoubleValue(Math.toRadians(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of sin(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the sine of x, where x is given in radians The supported signature of sin function
+   * is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver sin() {
+<span class="fc" id="L898">    return baseMathFunction(</span>
+<span class="fc" id="L899">        BuiltinFunctionName.SIN.getName(),</span>
+<span class="fc" id="L900">        v -&gt; new ExprDoubleValue(Math.sin(v.doubleValue())),</span>
+        DOUBLE);
+  }
+
+  /**
+   * &lt;b&gt;Definition of tan(x) function.&lt;/b&gt;&lt;br&gt;
+   * Calculates the tangent of x, where x is given in radians The supported signature of tan
+   * function is&lt;br&gt;
+   * INTEGER/LONG/FLOAT/DOUBLE -&gt; DOUBLE
+   */
+  private static DefaultFunctionResolver tan() {
+<span class="fc" id="L911">    return baseMathFunction(</span>
+<span class="fc" id="L912">        BuiltinFunctionName.TAN.getName(),</span>
+<span class="fc" id="L913">        v -&gt; new ExprDoubleValue(Math.tan(v.doubleValue())),</span>
+        DOUBLE);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

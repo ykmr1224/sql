@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregateWindowFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.window.aggregation</a> &gt; <span class="el_source">AggregateWindowFunction.java</span></div><h1>AggregateWindowFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.window.aggregation;
+
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.aggregation.AggregationState;
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.expression.window.WindowFunctionExpression;
+import org.opensearch.sql.expression.window.frame.PeerRowsWindowFrame;
+import org.opensearch.sql.expression.window.frame.WindowFrame;
+
+/** Aggregate function adapter that adapts Aggregator for window operator use. */
+@EqualsAndHashCode
+@RequiredArgsConstructor
+public class AggregateWindowFunction implements WindowFunctionExpression {
+
+  private final Aggregator&lt;AggregationState&gt; aggregator;
+  private AggregationState state;
+
+  @Override
+  public WindowFrame createWindowFrame(WindowDefinition definition) {
+<span class="fc" id="L33">    return new PeerRowsWindowFrame(definition);</span>
+  }
+
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L38">    PeerRowsWindowFrame frame = (PeerRowsWindowFrame) valueEnv;</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    if (frame.isNewPartition()) {</span>
+<span class="fc" id="L40">      state = aggregator.create();</span>
+    }
+
+<span class="fc" id="L43">    List&lt;ExprValue&gt; peers = frame.next();</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    for (ExprValue peer : peers) {</span>
+<span class="fc" id="L45">      state = aggregator.iterate(peer.bindingTuples(), state);</span>
+<span class="fc" id="L46">    }</span>
+<span class="fc" id="L47">    return state.result();</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L52">    return aggregator.type();</span>
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L57">    return aggregator.accept(visitor, context);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L62">    return aggregator.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

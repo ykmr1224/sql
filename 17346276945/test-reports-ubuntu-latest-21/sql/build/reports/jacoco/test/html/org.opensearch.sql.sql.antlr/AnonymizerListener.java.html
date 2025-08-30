@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnonymizerListener.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.antlr</a> &gt; <span class="el_source">AnonymizerListener.java</span></div><h1>AnonymizerListener.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.antlr;
+
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.BACKTICK_QUOTE_ID;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.BOOLEAN;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.COMMA;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.DECIMAL_LITERAL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.DOT;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.EQUAL_SYMBOL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.EXCLAMATION_SYMBOL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.FALSE;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.FROM;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.GREATER_SYMBOL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.ID;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.LESS_SYMBOL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.ONE_DECIMAL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.REAL_LITERAL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.STRING_LITERAL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.TIMESTAMP;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.TRUE;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.TWO_DECIMAL;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.ZERO_DECIMAL;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+/** Parse tree listener for anonymizing SQL requests. */
+<span class="fc" id="L34">public class AnonymizerListener implements ParseTreeListener {</span>
+<span class="fc" id="L35">  private String anonymizedQueryString = &quot;&quot;;</span>
+  private static final int NO_TYPE = -1;
+<span class="fc" id="L37">  private int previousType = NO_TYPE;</span>
+
+  @Override
+<span class="fc" id="L40">  public void enterEveryRule(ParserRuleContext ctx) {}</span>
+
+  @Override
+<span class="fc" id="L43">  public void exitEveryRule(ParserRuleContext ctx) {}</span>
+
+  @Override
+  public void visitTerminal(TerminalNode node) {
+    // In these situations don't add a space prior:
+    // 1. a DOT between two identifiers
+    // 2. before a comma
+    // 3. between equal comparison tokens: e.g &lt;=
+    // 4.  between alt not equals: &lt;&gt;
+<span class="fc" id="L52">    int token = node.getSymbol().getType();</span>
+<span class="fc bfc" id="L53" title="All 4 branches covered.">    boolean isDotIdentifiers = token == DOT || previousType == DOT;</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    boolean isComma = token == COMMA;</span>
+<span class="fc bfc" id="L55" title="All 8 branches covered.">    boolean isEqualComparison =</span>
+        ((token == EQUAL_SYMBOL)
+            &amp;&amp; (previousType == LESS_SYMBOL
+                || previousType == GREATER_SYMBOL
+                || previousType == EXCLAMATION_SYMBOL));
+<span class="fc bfc" id="L60" title="All 4 branches covered.">    boolean isNotEqualComparisonAlternative =</span>
+        previousType == LESS_SYMBOL &amp;&amp; token == GREATER_SYMBOL;
+<span class="fc bfc" id="L62" title="All 8 branches covered.">    if (!isDotIdentifiers &amp;&amp; !isComma &amp;&amp; !isEqualComparison &amp;&amp; !isNotEqualComparisonAlternative) {</span>
+<span class="fc" id="L63">      anonymizedQueryString += &quot; &quot;;</span>
+    }
+
+    // anonymize the following tokens
+<span class="fc bfc" id="L67" title="All 6 branches covered.">    switch (node.getSymbol().getType()) {</span>
+      case ID:
+      case TIMESTAMP:
+      case BACKTICK_QUOTE_ID:
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (previousType == FROM) {</span>
+<span class="fc" id="L72">          anonymizedQueryString += &quot;table&quot;;</span>
+        } else {
+<span class="fc" id="L74">          anonymizedQueryString += &quot;identifier&quot;;</span>
+        }
+<span class="fc" id="L76">        break;</span>
+      case ZERO_DECIMAL:
+      case ONE_DECIMAL:
+      case TWO_DECIMAL:
+      case DECIMAL_LITERAL:
+      case REAL_LITERAL:
+<span class="fc" id="L82">        anonymizedQueryString += &quot;number&quot;;</span>
+<span class="fc" id="L83">        break;</span>
+      case STRING_LITERAL:
+<span class="fc" id="L85">        anonymizedQueryString += &quot;'string_literal'&quot;;</span>
+<span class="fc" id="L86">        break;</span>
+      case BOOLEAN:
+      case TRUE:
+      case FALSE:
+<span class="fc" id="L90">        anonymizedQueryString += &quot;boolean_literal&quot;;</span>
+<span class="fc" id="L91">        break;</span>
+      case NO_TYPE:
+        // end of file
+<span class="fc" id="L94">        break;</span>
+      default:
+<span class="fc" id="L96">        anonymizedQueryString += node.getText().toUpperCase();</span>
+    }
+<span class="fc" id="L98">    previousType = node.getSymbol().getType();</span>
+<span class="fc" id="L99">  }</span>
+
+  @Override
+<span class="fc" id="L102">  public void visitErrorNode(ErrorNode node) {}</span>
+
+  public String getAnonymizedQueryString() {
+<span class="fc" id="L105">    return &quot;(&quot; + anonymizedQueryString + &quot;)&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

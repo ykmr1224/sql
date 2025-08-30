@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteToolsHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">CalciteToolsHelper.java</span></div><h1>CalciteToolsHelper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This file contains code from the Apache Calcite project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Type;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.Properties;
+import java.util.function.Consumer;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaFactory;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.interpreter.BindableConvention;
+import org.apache.calcite.interpreter.Bindables;
+import org.apache.calcite.jdbc.CalciteFactory;
+import org.apache.calcite.jdbc.CalciteJdbc41Factory;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/**
+ * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
+ * 3. RelBuilder 4. RelRunner 5. CalcitePreparingStmt. TODO delete it in future if possible.
+ */
+<span class="nc" id="L98">public class CalciteToolsHelper {</span>
+
+  /** Create a RelBuilder with testing */
+  public static RelBuilder create(FrameworkConfig config) {
+<span class="nc" id="L102">    return RelBuilder.create(config);</span>
+  }
+
+  /** Create a RelBuilder with typeFactory */
+  public static RelBuilder create(
+      FrameworkConfig config, JavaTypeFactory typeFactory, Connection connection) {
+<span class="nc" id="L108">    return withPrepare(</span>
+        config,
+        typeFactory,
+        connection,
+        (cluster, relOptSchema, rootSchema, statement) -&gt;
+<span class="nc" id="L113">            new OpenSearchRelBuilder(config.getContext(), cluster, relOptSchema));</span>
+  }
+
+  public static Connection connect(FrameworkConfig config, JavaTypeFactory typeFactory) {
+<span class="nc" id="L117">    final Properties info = new Properties();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">    if (config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {</span>
+<span class="nc" id="L119">      info.setProperty(</span>
+<span class="nc" id="L120">          CalciteConnectionProperty.TYPE_SYSTEM.camelName(),</span>
+<span class="nc" id="L121">          config.getTypeSystem().getClass().getName());</span>
+    }
+    try {
+<span class="nc" id="L124">      return new OpenSearchDriver().connect(&quot;jdbc:calcite:&quot;, info, null, typeFactory);</span>
+<span class="nc" id="L125">    } catch (SQLException e) {</span>
+<span class="nc" id="L126">      throw new RuntimeException(e);</span>
+    }
+  }
+
+  /**
+   * This method copied from {@link Frameworks#withPrepare(FrameworkConfig,
+   * Frameworks.BasePrepareAction)}. The purpose is the method {@link
+   * CalciteFactory#newConnection(UnregisteredDriver, AvaticaFactory, String, Properties)} create
+   * connection with null instance of JavaTypeFactory. So we add a parameter JavaTypeFactory.
+   */
+  private static &lt;R&gt; R withPrepare(
+      FrameworkConfig config,
+      JavaTypeFactory typeFactory,
+      Connection connection,
+      Frameworks.BasePrepareAction&lt;R&gt; action) {
+    try {
+<span class="nc" id="L142">      final Properties info = new Properties();</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">      if (config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {</span>
+<span class="nc" id="L144">        info.setProperty(</span>
+<span class="nc" id="L145">            CalciteConnectionProperty.TYPE_SYSTEM.camelName(),</span>
+<span class="nc" id="L146">            config.getTypeSystem().getClass().getName());</span>
+      }
+<span class="nc" id="L148">      final CalciteServerStatement statement =</span>
+<span class="nc" id="L149">          connection.createStatement().unwrap(CalciteServerStatement.class);</span>
+<span class="nc" id="L150">      return new OpenSearchPrepareImpl().perform(statement, config, typeFactory, action);</span>
+<span class="nc" id="L151">    } catch (Exception e) {</span>
+<span class="nc" id="L152">      throw new RuntimeException(e);</span>
+    }
+  }
+
+<span class="nc" id="L156">  public static class OpenSearchDriver extends Driver {</span>
+
+    public Connection connect(
+        String url, Properties info, CalciteSchema rootSchema, JavaTypeFactory typeFactory)
+        throws SQLException {
+      // Add current timestamp in nanos as hook
+<span class="nc" id="L162">      Instant now = Instant.now();</span>
+<span class="nc" id="L163">      long nanosSinceEpoch = now.getEpochSecond() * 1_000_000_000L + now.getNano();</span>
+<span class="nc" id="L164">      Hook.CURRENT_TIME.addThread((Consumer&lt;Holder&lt;Long&gt;&gt;) h -&gt; h.set(nanosSinceEpoch));</span>
+<span class="nc" id="L165">      CalciteJdbc41Factory factory = new CalciteJdbc41Factory();</span>
+<span class="nc" id="L166">      AvaticaConnection connection =</span>
+<span class="nc" id="L167">          factory.newConnection((Driver) this, factory, url, info, rootSchema, typeFactory);</span>
+<span class="nc" id="L168">      this.handler.onConnectionInit(connection);</span>
+<span class="nc" id="L169">      return connection;</span>
+    }
+
+    @Override
+    protected Function0&lt;CalcitePrepare&gt; createPrepareFactory() {
+<span class="nc" id="L174">      return OpenSearchPrepareImpl::new;</span>
+    }
+  }
+
+  /** do nothing, just extend for a public construct for new */
+  public static class OpenSearchRelBuilder extends RelBuilder {
+    public OpenSearchRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
+<span class="fc" id="L181">      super(context, cluster, relOptSchema);</span>
+<span class="fc" id="L182">    }</span>
+
+    @Override
+    public AggCall avg(boolean distinct, String alias, RexNode operand) {
+<span class="nc" id="L186">      return aggregateCall(</span>
+          SqlParserPos.ZERO,
+          PPLBuiltinOperators.AVG_NULLABLE,
+          distinct,
+          false,
+          false,
+          null,
+          null,
+<span class="nc" id="L194">          ImmutableList.of(),</span>
+          alias,
+<span class="nc" id="L196">          ImmutableList.of(),</span>
+<span class="nc" id="L197">          ImmutableList.of(operand));</span>
+    }
+  }
+
+<span class="nc" id="L201">  public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {</span>
+    /**
+     * Similar to {@link CalcitePrepareImpl#perform(CalciteServerStatement, FrameworkConfig,
+     * Frameworks.BasePrepareAction)}, but with a custom typeFactory.
+     */
+    public &lt;R&gt; R perform(
+        CalciteServerStatement statement,
+        FrameworkConfig config,
+        JavaTypeFactory typeFactory,
+        Frameworks.BasePrepareAction&lt;R&gt; action) {
+<span class="nc" id="L211">      final CalcitePrepare.Context prepareContext = statement.createPrepareContext();</span>
+<span class="nc" id="L212">      SchemaPlus defaultSchema = config.getDefaultSchema();</span>
+      final CalciteSchema schema =
+<span class="nc bnc" id="L214" title="All 2 branches missed.">          defaultSchema != null</span>
+<span class="nc" id="L215">              ? CalciteSchema.from(defaultSchema)</span>
+<span class="nc" id="L216">              : prepareContext.getRootSchema();</span>
+<span class="nc" id="L217">      CalciteCatalogReader catalogReader =</span>
+          new CalciteCatalogReader(
+<span class="nc" id="L219">              schema.root(), schema.path(null), typeFactory, prepareContext.config());</span>
+<span class="nc" id="L220">      final RexBuilder rexBuilder = new RexBuilder(typeFactory);</span>
+<span class="nc" id="L221">      final RelOptPlanner planner =</span>
+<span class="nc" id="L222">          createPlanner(</span>
+<span class="nc" id="L223">              prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());</span>
+<span class="nc" id="L224">      registerCustomizedRules(planner);</span>
+<span class="nc" id="L225">      final RelOptCluster cluster = createCluster(planner, rexBuilder);</span>
+<span class="nc" id="L226">      return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);</span>
+    }
+
+    private void registerCustomizedRules(RelOptPlanner planner) {
+<span class="nc" id="L230">      OpenSearchRules.OPEN_SEARCH_OPT_RULES.forEach(planner::addRule);</span>
+<span class="nc" id="L231">    }</span>
+
+    /**
+     * Customize CalcitePreparingStmt. Override {@link CalcitePrepareImpl#getPreparingStmt} and
+     * return {@link OpenSearchCalcitePreparingStmt}
+     */
+    @Override
+    protected CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
+        CalcitePrepare.Context context,
+        Type elementType,
+        CalciteCatalogReader catalogReader,
+        RelOptPlanner planner) {
+<span class="nc" id="L243">      final JavaTypeFactory typeFactory = context.getTypeFactory();</span>
+      final EnumerableRel.Prefer prefer;
+<span class="nc bnc" id="L245" title="All 2 branches missed.">      if (elementType == Object[].class) {</span>
+<span class="nc" id="L246">        prefer = EnumerableRel.Prefer.ARRAY;</span>
+      } else {
+<span class="nc" id="L248">        prefer = EnumerableRel.Prefer.CUSTOM;</span>
+      }
+      final Convention resultConvention =
+<span class="nc bnc" id="L251" title="All 2 branches missed.">          enableBindable ? BindableConvention.INSTANCE : EnumerableConvention.INSTANCE;</span>
+<span class="nc" id="L252">      return new OpenSearchCalcitePreparingStmt(</span>
+          this,
+          context,
+          catalogReader,
+          typeFactory,
+<span class="nc" id="L257">          context.getRootSchema(),</span>
+          prefer,
+<span class="nc" id="L259">          createCluster(planner, new RexBuilder(typeFactory)),</span>
+          resultConvention,
+<span class="nc" id="L261">          createConvertletTable());</span>
+    }
+  }
+
+  /**
+   * Similar to {@link CalcitePrepareImpl.CalcitePreparingStmt}. Customize the logic to convert an
+   * EnumerableTableScan to BindableTableScan.
+   */
+  public static class OpenSearchCalcitePreparingStmt
+      extends CalcitePrepareImpl.CalcitePreparingStmt {
+
+    public OpenSearchCalcitePreparingStmt(
+        CalcitePrepareImpl prepare,
+        CalcitePrepare.Context context,
+        CatalogReader catalogReader,
+        RelDataTypeFactory typeFactory,
+        CalciteSchema schema,
+        EnumerableRel.Prefer prefer,
+        RelOptCluster cluster,
+        Convention resultConvention,
+        SqlRexConvertletTable convertletTable) {
+<span class="nc" id="L282">      super(</span>
+          prepare,
+          context,
+          catalogReader,
+          typeFactory,
+          schema,
+          prefer,
+          cluster,
+          resultConvention,
+          convertletTable);
+<span class="nc" id="L292">    }</span>
+
+    @Override
+    protected PreparedResult implement(RelRoot root) {
+<span class="nc" id="L296">      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);</span>
+<span class="nc" id="L297">      RelDataType resultType = root.rel.getRowType();</span>
+<span class="nc" id="L298">      boolean isDml = root.kind.belongsTo(SqlKind.DML);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">      if (root.rel instanceof Scannable scannable) {</span>
+<span class="nc" id="L300">        final Bindable bindable = dataContext -&gt; scannable.scan();</span>
+
+<span class="nc" id="L302">        return new PreparedResultImpl(</span>
+            resultType,
+<span class="nc" id="L304">            requireNonNull(parameterRowType, &quot;parameterRowType&quot;),</span>
+<span class="nc" id="L305">            requireNonNull(fieldOrigins, &quot;fieldOrigins&quot;),</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">            root.collation.getFieldCollations().isEmpty()</span>
+<span class="nc" id="L307">                ? ImmutableList.of()</span>
+<span class="nc" id="L308">                : ImmutableList.of(root.collation),</span>
+            root.rel,
+<span class="nc" id="L310">            mapTableModOp(isDml, root.kind),</span>
+<span class="nc" id="L311">            isDml) {</span>
+          @Override
+          public String getCode() {
+<span class="nc" id="L314">            throw new UnsupportedOperationException();</span>
+          }
+
+          @Override
+          public Bindable getBindable(Meta.CursorFactory cursorFactory) {
+<span class="nc" id="L319">            return bindable;</span>
+          }
+
+          @Override
+          public Type getElementType() {
+<span class="nc bnc" id="L324" title="All 2 branches missed.">            return resultType.getFieldList().size() == 1 ? Object.class : Object[].class;</span>
+          }
+        };
+      }
+<span class="nc" id="L328">      return super.implement(root);</span>
+    }
+  }
+
+<span class="nc" id="L332">  public static class OpenSearchRelRunners {</span>
+    /**
+     * Runs a relational expression by existing connection. This class copied from {@link
+     * org.apache.calcite.tools.RelRunners#run(RelNode)}
+     */
+    public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
+<span class="nc" id="L338">      final RelShuttle shuttle =</span>
+<span class="nc" id="L339">          new RelHomogeneousShuttle() {</span>
+            @Override
+            public RelNode visit(TableScan scan) {
+<span class="nc" id="L342">              final RelOptTable table = scan.getTable();</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">              if (scan instanceof LogicalTableScan</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                  &amp;&amp; Bindables.BindableTableScan.canHandle(table)) {</span>
+                // Always replace the LogicalTableScan with BindableTableScan
+                // because it's implementation does not require a &quot;schema&quot; as context.
+<span class="nc" id="L347">                return Bindables.BindableTableScan.create(scan.getCluster(), table);</span>
+              }
+<span class="nc" id="L349">              return super.visit(scan);</span>
+            }
+          };
+<span class="nc" id="L352">      rel = rel.accept(shuttle);</span>
+      // the line we changed here
+<span class="nc" id="L354">      try (Connection connection = context.connection) {</span>
+<span class="nc" id="L355">        final RelRunner runner = connection.unwrap(RelRunner.class);</span>
+<span class="nc" id="L356">        return runner.prepareStatement(rel);</span>
+<span class="nc" id="L357">      } catch (SQLException e) {</span>
+<span class="nc" id="L358">        throw Util.throwAsRuntime(e);</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

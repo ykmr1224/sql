@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchAggregateIndexScanRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchAggregateIndexScanRule.java</span></div><h1>OpenSearchAggregateIndexScanRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.opensearch.sql.opensearch.planner.physical;
+
+import java.util.function.Predicate;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.sql.SqlKind;
+import org.immutables.value.Value;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+
+/** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
+@Value.Enclosing
+public class OpenSearchAggregateIndexScanRule
+    extends RelRule&lt;OpenSearchAggregateIndexScanRule.Config&gt; {
+
+  /** Creates a OpenSearchAggregateIndexScanRule. */
+  protected OpenSearchAggregateIndexScanRule(Config config) {
+<span class="nc" id="L24">    super(config);</span>
+<span class="nc" id="L25">  }</span>
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+<span class="nc bnc" id="L29" title="All 2 branches missed.">    if (call.rels.length == 3) {</span>
+<span class="nc" id="L30">      final LogicalAggregate aggregate = call.rel(0);</span>
+<span class="nc" id="L31">      final LogicalProject project = call.rel(1);</span>
+<span class="nc" id="L32">      final CalciteLogicalIndexScan scan = call.rel(2);</span>
+<span class="nc" id="L33">      apply(call, aggregate, project, scan);</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">    } else if (call.rels.length == 2) {</span>
+      // case of count() without group-by
+<span class="nc" id="L36">      final LogicalAggregate aggregate = call.rel(0);</span>
+<span class="nc" id="L37">      final CalciteLogicalIndexScan scan = call.rel(1);</span>
+<span class="nc" id="L38">      apply(call, aggregate, null, scan);</span>
+<span class="nc" id="L39">    } else {</span>
+<span class="nc" id="L40">      throw new AssertionError(</span>
+<span class="nc" id="L41">          String.format(</span>
+              &quot;The length of rels should be %s but got %s&quot;,
+<span class="nc" id="L43">              this.operands.size(), call.rels.length));</span>
+    }
+<span class="nc" id="L45">  }</span>
+
+  protected void apply(
+      RelOptRuleCall call,
+      LogicalAggregate aggregate,
+      LogicalProject project,
+      CalciteLogicalIndexScan scan) {
+<span class="nc" id="L52">    CalciteLogicalIndexScan newScan = scan.pushDownAggregate(aggregate, project);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">    if (newScan != null) {</span>
+<span class="nc" id="L54">      call.transformTo(newScan);</span>
+    }
+<span class="nc" id="L56">  }</span>
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT =
+<span class="nc" id="L62">        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()</span>
+<span class="nc" id="L63">            .build()</span>
+<span class="nc" id="L64">            .withDescription(&quot;Agg-Project-TableScan&quot;)</span>
+<span class="nc" id="L65">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="nc" id="L67">                    b0.operand(LogicalAggregate.class)</span>
+<span class="nc" id="L68">                        .predicate(</span>
+                            agg -&gt;
+                                // Cannot push down aggregation with inner filter
+<span class="nc" id="L71">                                agg.getAggCallList().stream().noneMatch(AggregateCall::hasFilter))</span>
+<span class="nc" id="L72">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="nc" id="L74">                                b1.operand(LogicalProject.class)</span>
+<span class="nc" id="L75">                                    .predicate(</span>
+                                        // Don't push down aggregate on window function
+<span class="nc" id="L77">                                        Predicate.not(OpenSearchIndexScanRule::containsRexOver)</span>
+<span class="nc" id="L78">                                            .and(OpenSearchIndexScanRule::distinctProjectList))</span>
+<span class="nc" id="L79">                                    .oneInput(</span>
+                                        b2 -&gt;
+<span class="nc" id="L81">                                            b2.operand(CalciteLogicalIndexScan.class)</span>
+<span class="nc" id="L82">                                                .predicate(</span>
+<span class="nc" id="L83">                                                    Predicate.not(</span>
+                                                            OpenSearchIndexScanRule::isLimitPushed)
+<span class="nc" id="L85">                                                        .and(</span>
+                                                            OpenSearchIndexScanRule
+                                                                ::noAggregatePushed))
+<span class="nc" id="L88">                                                .noInputs())));</span>
+<span class="nc" id="L89">    Config COUNT_STAR =</span>
+<span class="nc" id="L90">        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()</span>
+<span class="nc" id="L91">            .build()</span>
+<span class="nc" id="L92">            .withDescription(&quot;Agg[count()]-TableScan&quot;)</span>
+<span class="nc" id="L93">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="nc" id="L95">                    b0.operand(LogicalAggregate.class)</span>
+<span class="nc" id="L96">                        .predicate(</span>
+                            agg -&gt;
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                                agg.getGroupSet().isEmpty()</span>
+<span class="nc" id="L99">                                    &amp;&amp; agg.getAggCallList().stream()</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                                        .allMatch(</span>
+                                            call -&gt;
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                                                call.getAggregation().kind == SqlKind.COUNT</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                                                    &amp;&amp; call.getArgList().isEmpty()</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                                                    &amp;&amp; !call.hasFilter()))</span>
+<span class="nc" id="L105">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="nc" id="L107">                                b1.operand(CalciteLogicalIndexScan.class)</span>
+<span class="nc" id="L108">                                    .predicate(</span>
+<span class="nc" id="L109">                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)</span>
+<span class="nc" id="L110">                                            .and(OpenSearchIndexScanRule::noAggregatePushed))</span>
+<span class="nc" id="L111">                                    .noInputs()));</span>
+
+    @Override
+    default OpenSearchAggregateIndexScanRule toRule() {
+<span class="nc" id="L115">      return new OpenSearchAggregateIndexScanRule(this);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

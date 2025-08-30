@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FunctionParameterRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance</a> &gt; <span class="el_source">FunctionParameterRepository.java</span></div><h1>FunctionParameterRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
+
+import com.google.common.collect.ImmutableMap;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import org.opensearch.common.unit.Fuzziness;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhrasePrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhraseQueryBuilder;
+import org.opensearch.index.query.MatchQueryBuilder;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
+import org.opensearch.index.query.Operator;
+import org.opensearch.index.query.QueryStringQueryBuilder;
+import org.opensearch.index.query.SimpleQueryStringBuilder;
+import org.opensearch.index.query.SimpleQueryStringFlag;
+import org.opensearch.index.query.WildcardQueryBuilder;
+import org.opensearch.index.query.support.QueryParsers;
+import org.opensearch.index.search.MatchQuery;
+import org.opensearch.sql.data.model.ExprValue;
+
+@UtilityClass
+public class FunctionParameterRepository {
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchBoolPrefixQueryBuilder&gt;&gt;
+      MatchBoolPrefixQueryBuildActions =
+          ImmutableMap
+<span class="fc" id="L36">              .&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchBoolPrefixQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L37">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L38">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L39">              .put(&quot;fuzziness&quot;, (b, v) -&gt; b.fuzziness(convertFuzziness(v)))</span>
+<span class="fc" id="L40">              .put(&quot;fuzzy_rewrite&quot;, (b, v) -&gt; b.fuzzyRewrite(checkRewrite(v, &quot;fuzzy_rewrite&quot;)))</span>
+<span class="fc" id="L41">              .put(</span>
+                  &quot;fuzzy_transpositions&quot;,
+<span class="fc" id="L43">                  (b, v) -&gt; b.fuzzyTranspositions(convertBoolValue(v, &quot;fuzzy_transpositions&quot;)))</span>
+<span class="fc" id="L44">              .put(</span>
+<span class="fc" id="L45">                  &quot;max_expansions&quot;, (b, v) -&gt; b.maxExpansions(convertIntValue(v, &quot;max_expansions&quot;)))</span>
+<span class="fc" id="L46">              .put(&quot;minimum_should_match&quot;, (b, v) -&gt; b.minimumShouldMatch(v.stringValue()))</span>
+<span class="fc" id="L47">              .put(&quot;operator&quot;, (b, v) -&gt; b.operator(convertOperator(v, &quot;operator&quot;)))</span>
+<span class="fc" id="L48">              .put(&quot;prefix_length&quot;, (b, v) -&gt; b.prefixLength(convertIntValue(v, &quot;prefix_length&quot;)))</span>
+<span class="fc" id="L49">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchPhrasePrefixQueryBuilder&gt;&gt;
+      MatchPhrasePrefixQueryBuildActions =
+          ImmutableMap
+<span class="fc" id="L54">              .&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchPhrasePrefixQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L55">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L56">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L57">              .put(</span>
+<span class="fc" id="L58">                  &quot;max_expansions&quot;, (b, v) -&gt; b.maxExpansions(convertIntValue(v, &quot;max_expansions&quot;)))</span>
+<span class="fc" id="L59">              .put(&quot;slop&quot;, (b, v) -&gt; b.slop(convertIntValue(v, &quot;slop&quot;)))</span>
+<span class="fc" id="L60">              .put(&quot;zero_terms_query&quot;, (b, v) -&gt; b.zeroTermsQuery(convertZeroTermsQuery(v)))</span>
+<span class="fc" id="L61">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchPhraseQueryBuilder&gt;&gt;
+      MatchPhraseQueryBuildActions =
+<span class="fc" id="L65">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchPhraseQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L66">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L67">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L68">              .put(&quot;slop&quot;, (b, v) -&gt; b.slop(convertIntValue(v, &quot;slop&quot;)))</span>
+<span class="fc" id="L69">              .put(&quot;zero_terms_query&quot;, (b, v) -&gt; b.zeroTermsQuery(convertZeroTermsQuery(v)))</span>
+<span class="fc" id="L70">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchQueryBuilder&gt;&gt;
+      MatchQueryBuildActions =
+<span class="fc" id="L74">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;MatchQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L75">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L76">              .put(</span>
+                  &quot;auto_generate_synonyms_phrase_query&quot;,
+                  (b, v) -&gt;
+<span class="fc" id="L79">                      b.autoGenerateSynonymsPhraseQuery(</span>
+<span class="fc" id="L80">                          convertBoolValue(v, &quot;auto_generate_synonyms_phrase_query&quot;)))</span>
+<span class="fc" id="L81">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L82">              .put(&quot;fuzziness&quot;, (b, v) -&gt; b.fuzziness(convertFuzziness(v)))</span>
+<span class="fc" id="L83">              .put(&quot;fuzzy_rewrite&quot;, (b, v) -&gt; b.fuzzyRewrite(checkRewrite(v, &quot;fuzzy_rewrite&quot;)))</span>
+<span class="fc" id="L84">              .put(</span>
+                  &quot;fuzzy_transpositions&quot;,
+<span class="fc" id="L86">                  (b, v) -&gt; b.fuzzyTranspositions(convertBoolValue(v, &quot;fuzzy_transpositions&quot;)))</span>
+<span class="fc" id="L87">              .put(&quot;lenient&quot;, (b, v) -&gt; b.lenient(convertBoolValue(v, &quot;lenient&quot;)))</span>
+<span class="fc" id="L88">              .put(&quot;minimum_should_match&quot;, (b, v) -&gt; b.minimumShouldMatch(v.stringValue()))</span>
+<span class="fc" id="L89">              .put(</span>
+<span class="fc" id="L90">                  &quot;max_expansions&quot;, (b, v) -&gt; b.maxExpansions(convertIntValue(v, &quot;max_expansions&quot;)))</span>
+<span class="fc" id="L91">              .put(&quot;operator&quot;, (b, v) -&gt; b.operator(convertOperator(v, &quot;operator&quot;)))</span>
+<span class="fc" id="L92">              .put(&quot;prefix_length&quot;, (b, v) -&gt; b.prefixLength(convertIntValue(v, &quot;prefix_length&quot;)))</span>
+<span class="fc" id="L93">              .put(&quot;zero_terms_query&quot;, (b, v) -&gt; b.zeroTermsQuery(convertZeroTermsQuery(v)))</span>
+<span class="fc" id="L94">              .build();</span>
+
+  @SuppressWarnings(&quot;deprecation&quot;) // cutoffFrequency is deprecated
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;MultiMatchQueryBuilder&gt;&gt;
+      MultiMatchQueryBuildActions =
+<span class="fc" id="L99">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;MultiMatchQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L100">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L101">              .put(</span>
+                  &quot;auto_generate_synonyms_phrase_query&quot;,
+                  (b, v) -&gt;
+<span class="fc" id="L104">                      b.autoGenerateSynonymsPhraseQuery(</span>
+<span class="fc" id="L105">                          convertBoolValue(v, &quot;auto_generate_synonyms_phrase_query&quot;)))</span>
+<span class="fc" id="L106">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L107">              .put(</span>
+                  &quot;cutoff_frequency&quot;,
+<span class="fc" id="L109">                  (b, v) -&gt; b.cutoffFrequency(convertFloatValue(v, &quot;cutoff_frequency&quot;)))</span>
+<span class="fc" id="L110">              .put(&quot;fuzziness&quot;, (b, v) -&gt; b.fuzziness(convertFuzziness(v)))</span>
+<span class="fc" id="L111">              .put(</span>
+                  &quot;fuzzy_transpositions&quot;,
+<span class="fc" id="L113">                  (b, v) -&gt; b.fuzzyTranspositions(convertBoolValue(v, &quot;fuzzy_transpositions&quot;)))</span>
+<span class="fc" id="L114">              .put(&quot;lenient&quot;, (b, v) -&gt; b.lenient(convertBoolValue(v, &quot;lenient&quot;)))</span>
+<span class="fc" id="L115">              .put(</span>
+<span class="fc" id="L116">                  &quot;max_expansions&quot;, (b, v) -&gt; b.maxExpansions(convertIntValue(v, &quot;max_expansions&quot;)))</span>
+<span class="fc" id="L117">              .put(&quot;minimum_should_match&quot;, (b, v) -&gt; b.minimumShouldMatch(v.stringValue()))</span>
+<span class="fc" id="L118">              .put(&quot;operator&quot;, (b, v) -&gt; b.operator(convertOperator(v, &quot;operator&quot;)))</span>
+<span class="fc" id="L119">              .put(&quot;prefix_length&quot;, (b, v) -&gt; b.prefixLength(convertIntValue(v, &quot;prefix_length&quot;)))</span>
+<span class="fc" id="L120">              .put(&quot;slop&quot;, (b, v) -&gt; b.slop(convertIntValue(v, &quot;slop&quot;)))</span>
+<span class="fc" id="L121">              .put(&quot;tie_breaker&quot;, (b, v) -&gt; b.tieBreaker(convertFloatValue(v, &quot;tie_breaker&quot;)))</span>
+<span class="fc" id="L122">              .put(&quot;type&quot;, (b, v) -&gt; b.type(convertType(v)))</span>
+<span class="fc" id="L123">              .put(&quot;zero_terms_query&quot;, (b, v) -&gt; b.zeroTermsQuery(convertZeroTermsQuery(v)))</span>
+<span class="fc" id="L124">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;QueryStringQueryBuilder&gt;&gt;
+      QueryStringQueryBuildActions =
+<span class="fc" id="L128">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;QueryStringQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L129">              .put(</span>
+                  &quot;allow_leading_wildcard&quot;,
+<span class="fc" id="L131">                  (b, v) -&gt; b.allowLeadingWildcard(convertBoolValue(v, &quot;allow_leading_wildcard&quot;)))</span>
+<span class="fc" id="L132">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L133">              .put(</span>
+                  &quot;analyze_wildcard&quot;,
+<span class="fc" id="L135">                  (b, v) -&gt; b.analyzeWildcard(convertBoolValue(v, &quot;analyze_wildcard&quot;)))</span>
+<span class="fc" id="L136">              .put(</span>
+                  &quot;auto_generate_synonyms_phrase_query&quot;,
+                  (b, v) -&gt;
+<span class="fc" id="L139">                      b.autoGenerateSynonymsPhraseQuery(</span>
+<span class="fc" id="L140">                          convertBoolValue(v, &quot;auto_generate_synonyms_phrase_query&quot;)))</span>
+<span class="fc" id="L141">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L142">              .put(</span>
+                  &quot;default_operator&quot;,
+<span class="fc" id="L144">                  (b, v) -&gt; b.defaultOperator(convertOperator(v, &quot;default_operator&quot;)))</span>
+<span class="fc" id="L145">              .put(</span>
+                  &quot;enable_position_increments&quot;,
+                  (b, v) -&gt;
+<span class="fc" id="L148">                      b.enablePositionIncrements(convertBoolValue(v, &quot;enable_position_increments&quot;)))</span>
+<span class="fc" id="L149">              .put(&quot;escape&quot;, (b, v) -&gt; b.escape(convertBoolValue(v, &quot;escape&quot;)))</span>
+<span class="fc" id="L150">              .put(&quot;fuzziness&quot;, (b, v) -&gt; b.fuzziness(convertFuzziness(v)))</span>
+<span class="fc" id="L151">              .put(</span>
+                  &quot;fuzzy_max_expansions&quot;,
+<span class="fc" id="L153">                  (b, v) -&gt; b.fuzzyMaxExpansions(convertIntValue(v, &quot;fuzzy_max_expansions&quot;)))</span>
+<span class="fc" id="L154">              .put(</span>
+                  &quot;fuzzy_prefix_length&quot;,
+<span class="fc" id="L156">                  (b, v) -&gt; b.fuzzyPrefixLength(convertIntValue(v, &quot;fuzzy_prefix_length&quot;)))</span>
+<span class="fc" id="L157">              .put(&quot;fuzzy_rewrite&quot;, (b, v) -&gt; b.fuzzyRewrite(checkRewrite(v, &quot;fuzzy_rewrite&quot;)))</span>
+<span class="fc" id="L158">              .put(</span>
+                  &quot;fuzzy_transpositions&quot;,
+<span class="fc" id="L160">                  (b, v) -&gt; b.fuzzyTranspositions(convertBoolValue(v, &quot;fuzzy_transpositions&quot;)))</span>
+<span class="fc" id="L161">              .put(&quot;lenient&quot;, (b, v) -&gt; b.lenient(convertBoolValue(v, &quot;lenient&quot;)))</span>
+<span class="fc" id="L162">              .put(</span>
+                  &quot;max_determinized_states&quot;,
+<span class="fc" id="L164">                  (b, v) -&gt; b.maxDeterminizedStates(convertIntValue(v, &quot;max_determinized_states&quot;)))</span>
+<span class="fc" id="L165">              .put(&quot;minimum_should_match&quot;, (b, v) -&gt; b.minimumShouldMatch(v.stringValue()))</span>
+<span class="fc" id="L166">              .put(&quot;phrase_slop&quot;, (b, v) -&gt; b.phraseSlop(convertIntValue(v, &quot;phrase_slop&quot;)))</span>
+<span class="fc" id="L167">              .put(&quot;quote_analyzer&quot;, (b, v) -&gt; b.quoteAnalyzer(v.stringValue()))</span>
+<span class="fc" id="L168">              .put(&quot;quote_field_suffix&quot;, (b, v) -&gt; b.quoteFieldSuffix(v.stringValue()))</span>
+<span class="fc" id="L169">              .put(&quot;rewrite&quot;, (b, v) -&gt; b.rewrite(checkRewrite(v, &quot;rewrite&quot;)))</span>
+<span class="fc" id="L170">              .put(&quot;tie_breaker&quot;, (b, v) -&gt; b.tieBreaker(convertFloatValue(v, &quot;tie_breaker&quot;)))</span>
+<span class="fc" id="L171">              .put(&quot;time_zone&quot;, (b, v) -&gt; b.timeZone(checkTimeZone(v)))</span>
+<span class="fc" id="L172">              .put(&quot;type&quot;, (b, v) -&gt; b.type(convertType(v)))</span>
+<span class="fc" id="L173">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;SimpleQueryStringBuilder&gt;&gt;
+      SimpleQueryStringQueryBuildActions =
+<span class="fc" id="L177">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;SimpleQueryStringBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L178">              .put(&quot;analyzer&quot;, (b, v) -&gt; b.analyzer(v.stringValue()))</span>
+<span class="fc" id="L179">              .put(</span>
+                  &quot;analyze_wildcard&quot;,
+<span class="fc" id="L181">                  (b, v) -&gt; b.analyzeWildcard(convertBoolValue(v, &quot;analyze_wildcard&quot;)))</span>
+<span class="fc" id="L182">              .put(</span>
+                  &quot;auto_generate_synonyms_phrase_query&quot;,
+                  (b, v) -&gt;
+<span class="fc" id="L185">                      b.autoGenerateSynonymsPhraseQuery(</span>
+<span class="fc" id="L186">                          convertBoolValue(v, &quot;auto_generate_synonyms_phrase_query&quot;)))</span>
+<span class="fc" id="L187">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L188">              .put(</span>
+                  &quot;default_operator&quot;,
+<span class="fc" id="L190">                  (b, v) -&gt; b.defaultOperator(convertOperator(v, &quot;default_operator&quot;)))</span>
+<span class="fc" id="L191">              .put(&quot;flags&quot;, (b, v) -&gt; b.flags(convertFlags(v)))</span>
+<span class="fc" id="L192">              .put(</span>
+                  &quot;fuzzy_max_expansions&quot;,
+<span class="fc" id="L194">                  (b, v) -&gt; b.fuzzyMaxExpansions(convertIntValue(v, &quot;fuzzy_max_expansions&quot;)))</span>
+<span class="fc" id="L195">              .put(</span>
+                  &quot;fuzzy_prefix_length&quot;,
+<span class="fc" id="L197">                  (b, v) -&gt; b.fuzzyPrefixLength(convertIntValue(v, &quot;fuzzy_prefix_length&quot;)))</span>
+<span class="fc" id="L198">              .put(</span>
+                  &quot;fuzzy_transpositions&quot;,
+<span class="fc" id="L200">                  (b, v) -&gt; b.fuzzyTranspositions(convertBoolValue(v, &quot;fuzzy_transpositions&quot;)))</span>
+<span class="fc" id="L201">              .put(&quot;lenient&quot;, (b, v) -&gt; b.lenient(convertBoolValue(v, &quot;lenient&quot;)))</span>
+<span class="fc" id="L202">              .put(&quot;minimum_should_match&quot;, (b, v) -&gt; b.minimumShouldMatch(v.stringValue()))</span>
+<span class="fc" id="L203">              .put(&quot;quote_field_suffix&quot;, (b, v) -&gt; b.quoteFieldSuffix(v.stringValue()))</span>
+<span class="fc" id="L204">              .build();</span>
+
+  public static final Map&lt;String, RelevanceQuery.QueryBuilderStep&lt;WildcardQueryBuilder&gt;&gt;
+      WildcardQueryBuildActions =
+<span class="fc" id="L208">          ImmutableMap.&lt;String, RelevanceQuery.QueryBuilderStep&lt;WildcardQueryBuilder&gt;&gt;builder()</span>
+<span class="fc" id="L209">              .put(&quot;boost&quot;, (b, v) -&gt; b.boost(convertFloatValue(v, &quot;boost&quot;)))</span>
+<span class="fc" id="L210">              .put(</span>
+                  &quot;case_insensitive&quot;,
+<span class="fc" id="L212">                  (b, v) -&gt; b.caseInsensitive(convertBoolValue(v, &quot;case_insensitive&quot;)))</span>
+<span class="fc" id="L213">              .put(&quot;rewrite&quot;, (b, v) -&gt; b.rewrite(checkRewrite(v, &quot;rewrite&quot;)))</span>
+<span class="fc" id="L214">              .build();</span>
+
+<span class="fc" id="L216">  public static final Map&lt;String, String&gt; ArgumentLimitations =</span>
+<span class="fc" id="L217">      ImmutableMap.&lt;String, String&gt;builder()</span>
+<span class="fc" id="L218">          .put(&quot;boost&quot;, &quot;Accepts only floating point values greater than 0.&quot;)</span>
+<span class="fc" id="L219">          .put(&quot;tie_breaker&quot;, &quot;Accepts only floating point values in range 0 to 1.&quot;)</span>
+<span class="fc" id="L220">          .put(</span>
+              &quot;rewrite&quot;,
+              &quot;Available values are: constant_score, &quot;
+                  + &quot;scoring_boolean, constant_score_boolean, top_terms_X, top_terms_boost_X, &quot;
+                  + &quot;top_terms_blended_freqs_X, where X is an integer value.&quot;)
+<span class="fc" id="L225">          .put(</span>
+              &quot;flags&quot;,
+<span class="fc" id="L227">              String.format(</span>
+                  &quot;Available values are: %s and any combinations of these separated by '|'.&quot;,
+<span class="fc" id="L229">                  Arrays.stream(SimpleQueryStringFlag.class.getEnumConstants())</span>
+<span class="fc" id="L230">                      .map(Enum::toString)</span>
+<span class="fc" id="L231">                      .collect(Collectors.joining(&quot;, &quot;))))</span>
+<span class="fc" id="L232">          .put(</span>
+              &quot;time_zone&quot;,
+              &quot;For more information, follow this link: &quot;
+                  + &quot;https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html#of-java.lang.String-&quot;)
+<span class="fc" id="L236">          .put(</span>
+              &quot;fuzziness&quot;,
+              &quot;Available values are: 'AUTO', 'AUTO:x,y' or z, where x, y, z - integer values.&quot;)
+<span class="fc" id="L239">          .put(</span>
+              &quot;operator&quot;,
+<span class="fc" id="L241">              String.format(</span>
+                  &quot;Available values are: %s.&quot;,
+<span class="fc" id="L243">                  Arrays.stream(Operator.class.getEnumConstants())</span>
+<span class="fc" id="L244">                      .map(Enum::toString)</span>
+<span class="fc" id="L245">                      .collect(Collectors.joining(&quot;, &quot;))))</span>
+<span class="fc" id="L246">          .put(</span>
+              &quot;type&quot;,
+<span class="fc" id="L248">              String.format(</span>
+                  &quot;Available values are: %s.&quot;,
+<span class="fc" id="L250">                  Arrays.stream(MultiMatchQueryBuilder.Type.class.getEnumConstants())</span>
+<span class="fc" id="L251">                      .map(Enum::toString)</span>
+<span class="fc" id="L252">                      .collect(Collectors.joining(&quot;, &quot;))))</span>
+<span class="fc" id="L253">          .put(</span>
+              &quot;zero_terms_query&quot;,
+<span class="fc" id="L255">              String.format(</span>
+                  &quot;Available values are: %s.&quot;,
+<span class="fc" id="L257">                  Arrays.stream(MatchQuery.ZeroTermsQuery.class.getEnumConstants())</span>
+<span class="fc" id="L258">                      .map(Enum::toString)</span>
+<span class="fc" id="L259">                      .collect(Collectors.joining(&quot;, &quot;))))</span>
+<span class="fc" id="L260">          .put(&quot;int&quot;, &quot;Accepts only integer values.&quot;)</span>
+<span class="fc" id="L261">          .put(&quot;float&quot;, &quot;Accepts only floating point values.&quot;)</span>
+<span class="fc" id="L262">          .put(&quot;bool&quot;, &quot;Accepts only boolean values: 'true' or 'false'.&quot;)</span>
+<span class="fc" id="L263">          .build();</span>
+
+  private static String formatErrorMessage(String name, String value) {
+<span class="fc" id="L266">    return formatErrorMessage(name, value, name);</span>
+  }
+
+  private static String formatErrorMessage(String name, String value, String limitationName) {
+<span class="fc" id="L270">    return String.format(</span>
+        &quot;Invalid %s value: '%s'. %s&quot;,
+        name,
+        value,
+<span class="fc bfc" id="L274" title="All 2 branches covered.">        ArgumentLimitations.containsKey(name)</span>
+<span class="fc" id="L275">            ? ArgumentLimitations.get(name)</span>
+<span class="fc" id="L276">            : ArgumentLimitations.getOrDefault(limitationName, &quot;&quot;));</span>
+  }
+
+  /**
+   * Check whether value is valid for 'rewrite' or 'fuzzy_rewrite'.
+   *
+   * @param value Value
+   * @param name Value name
+   * @return Converted
+   */
+  public static String checkRewrite(ExprValue value, String name) {
+    try {
+<span class="fc" id="L288">      QueryParsers.parseRewriteMethod(</span>
+<span class="fc" id="L289">          value.stringValue().toLowerCase(), null, LoggingDeprecationHandler.INSTANCE);</span>
+<span class="fc" id="L290">      return value.stringValue();</span>
+<span class="fc" id="L291">    } catch (Exception e) {</span>
+<span class="fc" id="L292">      throw new RuntimeException(formatErrorMessage(name, value.stringValue(), &quot;rewrite&quot;));</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to Flags.
+   *
+   * @param value Value
+   * @return Array of flags
+   */
+  public static SimpleQueryStringFlag[] convertFlags(ExprValue value) {
+    try {
+<span class="fc" id="L304">      return Arrays.stream(value.stringValue().toUpperCase().split(&quot;\\|&quot;))</span>
+<span class="fc" id="L305">          .map(SimpleQueryStringFlag::valueOf)</span>
+<span class="fc" id="L306">          .toArray(SimpleQueryStringFlag[]::new);</span>
+<span class="fc" id="L307">    } catch (Exception e) {</span>
+<span class="fc" id="L308">      throw new RuntimeException(formatErrorMessage(&quot;flags&quot;, value.stringValue()), e);</span>
+    }
+  }
+
+  /**
+   * Check whether ExprValue could be converted to timezone object.
+   *
+   * @param value Value
+   * @return Converted to string
+   */
+  public static String checkTimeZone(ExprValue value) {
+    try {
+<span class="fc" id="L320">      ZoneId.of(value.stringValue());</span>
+<span class="fc" id="L321">      return value.stringValue();</span>
+<span class="fc" id="L322">    } catch (Exception e) {</span>
+<span class="fc" id="L323">      throw new RuntimeException(formatErrorMessage(&quot;time_zone&quot;, value.stringValue()), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to Fuzziness object.
+   *
+   * @param value Value
+   * @return Fuzziness
+   */
+  public static Fuzziness convertFuzziness(ExprValue value) {
+    try {
+<span class="fc" id="L335">      return Fuzziness.build(value.stringValue().toUpperCase());</span>
+<span class="fc" id="L336">    } catch (Exception e) {</span>
+<span class="fc" id="L337">      throw new RuntimeException(formatErrorMessage(&quot;fuzziness&quot;, value.stringValue()), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to Operator object, could be used for 'operator' and 'default_operator'.
+   *
+   * @param value Value
+   * @param name Value name
+   * @return Operator
+   */
+  public static Operator convertOperator(ExprValue value, String name) {
+    try {
+<span class="fc" id="L350">      return Operator.fromString(value.stringValue().toUpperCase());</span>
+<span class="fc" id="L351">    } catch (Exception e) {</span>
+<span class="fc" id="L352">      throw new RuntimeException(formatErrorMessage(name, value.stringValue(), &quot;operator&quot;));</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to Type object.
+   *
+   * @param value Value
+   * @return Type
+   */
+  public static MultiMatchQueryBuilder.Type convertType(ExprValue value) {
+    try {
+<span class="fc" id="L364">      return MultiMatchQueryBuilder.Type.parse(</span>
+<span class="fc" id="L365">          value.stringValue().toLowerCase(), LoggingDeprecationHandler.INSTANCE);</span>
+<span class="fc" id="L366">    } catch (Exception e) {</span>
+<span class="fc" id="L367">      throw new RuntimeException(formatErrorMessage(&quot;type&quot;, value.stringValue()), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to ZeroTermsQuery object.
+   *
+   * @param value Value
+   * @return ZeroTermsQuery
+   */
+  public static MatchQuery.ZeroTermsQuery convertZeroTermsQuery(ExprValue value) {
+    try {
+<span class="fc" id="L379">      return MatchQuery.ZeroTermsQuery.valueOf(value.stringValue().toUpperCase());</span>
+<span class="fc" id="L380">    } catch (Exception e) {</span>
+<span class="fc" id="L381">      throw new RuntimeException(formatErrorMessage(&quot;zero_terms_query&quot;, value.stringValue()), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to int.
+   *
+   * @param value Value
+   * @param name Value name
+   * @return int
+   */
+  public static int convertIntValue(ExprValue value, String name) {
+    try {
+<span class="fc" id="L394">      return Integer.parseInt(value.stringValue());</span>
+<span class="fc" id="L395">    } catch (Exception e) {</span>
+<span class="fc" id="L396">      throw new RuntimeException(formatErrorMessage(name, value.stringValue(), &quot;int&quot;), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to float.
+   *
+   * @param value Value
+   * @param name Value name
+   * @return float
+   */
+  public static float convertFloatValue(ExprValue value, String name) {
+    try {
+<span class="fc" id="L409">      return Float.parseFloat(value.stringValue());</span>
+<span class="fc" id="L410">    } catch (Exception e) {</span>
+<span class="fc" id="L411">      throw new RuntimeException(formatErrorMessage(name, value.stringValue(), &quot;float&quot;), e);</span>
+    }
+  }
+
+  /**
+   * Convert ExprValue to bool.
+   *
+   * @param value Value
+   * @param name Value name
+   * @return bool
+   */
+  public static boolean convertBoolValue(ExprValue value, String name) {
+    try {
+      // Boolean.parseBoolean interprets integers or any other stuff as a valid value
+<span class="fc" id="L425">      Boolean res = Boolean.parseBoolean(value.stringValue());</span>
+<span class="fc bfc" id="L426" title="All 2 branches covered.">      if (value.stringValue().equalsIgnoreCase(res.toString())) {</span>
+<span class="fc" id="L427">        return res;</span>
+      } else {
+<span class="fc" id="L429">        throw new Exception(&quot;Invalid boolean value&quot;);</span>
+      }
+<span class="fc" id="L431">    } catch (Exception e) {</span>
+<span class="fc" id="L432">      throw new RuntimeException(formatErrorMessage(name, value.stringValue(), &quot;bool&quot;), e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

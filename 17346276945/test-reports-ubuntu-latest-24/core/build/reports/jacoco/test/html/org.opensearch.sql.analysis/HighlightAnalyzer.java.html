@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HighlightAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">HighlightAnalyzer.java</span></div><h1>HighlightAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.HighlightFunction;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+
+/** Analyze the highlight in the {@link AnalysisContext} to construct the {@link LogicalPlan}. */
+@RequiredArgsConstructor
+public class HighlightAnalyzer extends AbstractNodeVisitor&lt;LogicalPlan, AnalysisContext&gt; {
+  private final ExpressionAnalyzer expressionAnalyzer;
+  private final LogicalPlan child;
+
+  public LogicalPlan analyze(UnresolvedExpression projectItem, AnalysisContext context) {
+<span class="fc" id="L24">    LogicalPlan highlight = projectItem.accept(this, context);</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">    return (highlight == null) ? child : highlight;</span>
+  }
+
+  @Override
+  public LogicalPlan visitAlias(Alias node, AnalysisContext context) {
+<span class="fc" id="L30">    UnresolvedExpression delegated = node.getDelegated();</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">    if (!(delegated instanceof HighlightFunction)) {</span>
+<span class="fc" id="L32">      return null;</span>
+    }
+
+<span class="fc" id="L35">    HighlightFunction unresolved = (HighlightFunction) delegated;</span>
+<span class="fc" id="L36">    Expression field = expressionAnalyzer.analyze(unresolved.getHighlightField(), context);</span>
+<span class="fc" id="L37">    return new LogicalHighlight(child, field, unresolved.getArguments());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregateAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">AggregateAnalyzer.java</span></div><h1>AggregateAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This file contains code from the Apache Spark project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.opensearch.sql.opensearch.request;
+
+import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.script.Script;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.support.ValueType;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.MetricParser;
+import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
+import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
+import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
+
+/**
+ * Aggregate analyzer. Convert aggregate to AggregationBuilder {@link AggregationBuilder} and its
+ * related Parser {@link OpenSearchAggregationResponseParser}.
+ */
+public class AggregateAnalyzer {
+
+  /** How many composite buckets should be returned. */
+  public static final int AGGREGATION_BUCKET_SIZE = 1000;
+
+  /** metadata field used when there is no argument. Only apply to COUNT. */
+  private static final String METADATA_FIELD = &quot;_index&quot;;
+
+  /** Internal exception. */
+  @SuppressWarnings(&quot;serial&quot;)
+  public static final class AggregateAnalyzerException extends RuntimeException {
+
+    AggregateAnalyzerException(String message) {
+<span class="nc" id="L98">      super(message);</span>
+<span class="nc" id="L99">    }</span>
+
+    AggregateAnalyzerException(Throwable cause) {
+<span class="nc" id="L102">      super(cause);</span>
+<span class="nc" id="L103">    }</span>
+  }
+
+  /**
+   * Exception that is thrown when a {@link Aggregate} cannot be processed (or converted into an
+   * OpenSearch aggregate query).
+   */
+  public static class ExpressionNotAnalyzableException extends Exception {
+    ExpressionNotAnalyzableException(String message, Throwable cause) {
+<span class="fc" id="L112">      super(message, cause);</span>
+<span class="fc" id="L113">    }</span>
+  }
+
+  private AggregateAnalyzer() {}
+
+  @RequiredArgsConstructor
+  private static class AggregateBuilderHelper {
+    private final RelDataType rowType;
+    private final Map&lt;String, ExprType&gt; fieldTypes;
+    private final RelOptCluster cluster;
+
+    &lt;T extends ValuesSourceAggregationBuilder&lt;T&gt;&gt; T build(RexNode node, T aggBuilder) {
+<span class="fc" id="L125">      return build(node, aggBuilder::field, aggBuilder::script);</span>
+    }
+
+    &lt;T extends CompositeValuesSourceBuilder&lt;T&gt;&gt; T build(RexNode node, T sourceBuilder) {
+<span class="fc" id="L129">      return build(node, sourceBuilder::field, sourceBuilder::script);</span>
+    }
+
+    &lt;T&gt; T build(RexNode node, Function&lt;String, T&gt; fieldBuilder, Function&lt;Script, T&gt; scriptBuilder) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (node == null) return fieldBuilder.apply(METADATA_FIELD);</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">      else if (node instanceof RexInputRef ref) {</span>
+<span class="fc" id="L135">        return fieldBuilder.apply(</span>
+<span class="fc" id="L136">            new NamedFieldExpression(ref.getIndex(), rowType.getFieldNames(), fieldTypes)</span>
+<span class="fc" id="L137">                .getReferenceForTermQuery());</span>
+<span class="nc bnc" id="L138" title="All 4 branches missed.">      } else if (node instanceof RexCall || node instanceof RexLiteral) {</span>
+<span class="nc" id="L139">        return scriptBuilder.apply(</span>
+            (new PredicateAnalyzer.ScriptQueryExpression(node, rowType, fieldTypes, cluster))
+<span class="nc" id="L141">                .getScript());</span>
+      }
+<span class="nc" id="L143">      throw new IllegalStateException(</span>
+<span class="nc" id="L144">          String.format(&quot;Metric aggregation doesn't support RexNode %s&quot;, node));</span>
+    }
+
+    NamedFieldExpression inferNamedField(RexNode node) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (node instanceof RexInputRef ref) {</span>
+<span class="nc" id="L149">        return new NamedFieldExpression(ref.getIndex(), rowType.getFieldNames(), fieldTypes);</span>
+      }
+<span class="nc" id="L151">      throw new IllegalStateException(</span>
+<span class="nc" id="L152">          String.format(&quot;Cannot infer field name from RexNode %s&quot;, node));</span>
+    }
+
+    &lt;T&gt; T inferValue(RexNode node, Class&lt;T&gt; clazz) {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      if (node instanceof RexLiteral literal) {</span>
+<span class="nc" id="L157">        return literal.getValueAs(clazz);</span>
+      }
+<span class="nc" id="L159">      throw new IllegalStateException(String.format(&quot;Cannot infer value from RexNode %s&quot;, node));</span>
+    }
+  }
+
+  // TODO: should we support filter aggregation? For PPL, we don't have filter in stats command
+  public static Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; analyze(
+      Aggregate aggregate,
+      Project project,
+      RelDataType rowType,
+      Map&lt;String, ExprType&gt; fieldTypes,
+      List&lt;String&gt; outputFields,
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
+<span class="fc" id="L172">    requireNonNull(aggregate, &quot;aggregate&quot;);</span>
+    try {
+<span class="fc" id="L174">      List&lt;Integer&gt; groupList = aggregate.getGroupSet().asList();</span>
+<span class="fc" id="L175">      AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);</span>
+<span class="fc" id="L176">      List&lt;String&gt; aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());</span>
+      // Process all aggregate calls
+<span class="fc" id="L178">      Pair&lt;Builder, List&lt;MetricParser&gt;&gt; builderAndParser =</span>
+<span class="fc" id="L179">          processAggregateCalls(aggFieldNames, aggregate.getAggCallList(), project, helper);</span>
+<span class="fc" id="L180">      Builder metricBuilder = builderAndParser.getLeft();</span>
+<span class="fc" id="L181">      List&lt;MetricParser&gt; metricParserList = builderAndParser.getRight();</span>
+
+<span class="fc bfc" id="L183" title="All 2 branches covered.">      if (aggregate.getGroupSet().isEmpty()) {</span>
+<span class="fc" id="L184">        return Pair.of(</span>
+<span class="fc" id="L185">            ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),</span>
+            new NoBucketAggregationParser(metricParserList));
+      } else {
+<span class="fc" id="L188">        List&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; buckets =</span>
+<span class="fc" id="L189">            createCompositeBuckets(groupList, project, helper);</span>
+<span class="fc" id="L190">        return Pair.of(</span>
+<span class="fc" id="L191">            Collections.singletonList(</span>
+<span class="fc" id="L192">                AggregationBuilders.composite(&quot;composite_buckets&quot;, buckets)</span>
+<span class="fc" id="L193">                    .subAggregations(metricBuilder)</span>
+<span class="fc" id="L194">                    .size(AGGREGATION_BUCKET_SIZE)),</span>
+            new CompositeAggregationParser(metricParserList));
+      }
+<span class="fc" id="L197">    } catch (Throwable e) {</span>
+<span class="fc" id="L198">      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);</span>
+<span class="fc" id="L199">      throw new ExpressionNotAnalyzableException(&quot;Can't convert &quot; + aggregate, e);</span>
+    }
+  }
+
+  private static Pair&lt;Builder, List&lt;MetricParser&gt;&gt; processAggregateCalls(
+      List&lt;String&gt; aggFieldNames,
+      List&lt;AggregateCall&gt; aggCalls,
+      Project project,
+      AggregateBuilderHelper helper) {
+<span class="fc" id="L208">    Builder metricBuilder = new AggregatorFactories.Builder();</span>
+<span class="fc" id="L209">    List&lt;MetricParser&gt; metricParserList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    for (int i = 0; i &lt; aggCalls.size(); i++) {</span>
+<span class="fc" id="L212">      AggregateCall aggCall = aggCalls.get(i);</span>
+<span class="fc" id="L213">      List&lt;RexNode&gt; args = convertAggArgThroughProject(aggCall, project);</span>
+<span class="fc" id="L214">      String aggFieldName = aggFieldNames.get(i);</span>
+
+<span class="fc" id="L216">      Pair&lt;AggregationBuilder, MetricParser&gt; builderAndParser =</span>
+<span class="fc" id="L217">          createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper);</span>
+<span class="fc" id="L218">      metricBuilder.addAggregator(builderAndParser.getLeft());</span>
+<span class="fc" id="L219">      metricParserList.add(builderAndParser.getRight());</span>
+    }
+<span class="fc" id="L221">    return Pair.of(metricBuilder, metricParserList);</span>
+  }
+
+  private static List&lt;RexNode&gt; convertAggArgThroughProject(AggregateCall aggCall, Project project) {
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">    return project == null</span>
+<span class="nc" id="L226">        ? List.of()</span>
+<span class="fc" id="L227">        : aggCall.getArgList().stream().map(project.getProjects()::get).toList();</span>
+  }
+
+  private static Pair&lt;AggregationBuilder, MetricParser&gt; createAggregationBuilderAndParser(
+      AggregateCall aggCall,
+      List&lt;RexNode&gt; args,
+      String aggFieldName,
+      AggregateBuilderHelper helper) {
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">    if (aggCall.isDistinct()) {</span>
+<span class="nc" id="L236">      return createDistinctAggregation(aggCall, args, aggFieldName, helper);</span>
+    } else {
+<span class="fc" id="L238">      return createRegularAggregation(aggCall, args, aggFieldName, helper);</span>
+    }
+  }
+
+  private static Pair&lt;AggregationBuilder, MetricParser&gt; createDistinctAggregation(
+      AggregateCall aggCall,
+      List&lt;RexNode&gt; args,
+      String aggFieldName,
+      AggregateBuilderHelper helper) {
+
+<span class="nc bnc" id="L248" title="All 2 branches missed.">    return switch (aggCall.getAggregation().kind) {</span>
+<span class="nc" id="L249">      case COUNT -&gt; Pair.of(</span>
+<span class="nc" id="L250">          helper.build(</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">              !args.isEmpty() ? args.getFirst() : null,</span>
+<span class="nc" id="L252">              AggregationBuilders.cardinality(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="nc" id="L254">      default -&gt; throw new AggregateAnalyzer.AggregateAnalyzerException(</span>
+<span class="nc" id="L255">          String.format(&quot;unsupported distinct aggregator %s&quot;, aggCall.getAggregation()));</span>
+    };
+  }
+
+  private static Pair&lt;AggregationBuilder, MetricParser&gt; createRegularAggregation(
+      AggregateCall aggCall,
+      List&lt;RexNode&gt; args,
+      String aggFieldName,
+      AggregateBuilderHelper helper) {
+
+<span class="pc bpc" id="L265" title="3 of 11 branches missed.">    return switch (aggCall.getAggregation().kind) {</span>
+<span class="fc" id="L266">      case AVG -&gt; Pair.of(</span>
+<span class="fc" id="L267">          helper.build(args.getFirst(), AggregationBuilders.avg(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="fc" id="L269">      case SUM -&gt; Pair.of(</span>
+<span class="fc" id="L270">          helper.build(args.getFirst(), AggregationBuilders.sum(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="fc" id="L272">      case COUNT -&gt; Pair.of(</span>
+<span class="fc" id="L273">          helper.build(</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">              !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="fc" id="L276">      case MIN -&gt; Pair.of(</span>
+<span class="fc" id="L277">          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="fc" id="L279">      case MAX -&gt; Pair.of(</span>
+<span class="fc" id="L280">          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),</span>
+          new SingleValueParser(aggFieldName));
+<span class="fc" id="L282">      case VAR_SAMP -&gt; Pair.of(</span>
+<span class="fc" id="L283">          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),</span>
+          new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
+<span class="fc" id="L285">      case VAR_POP -&gt; Pair.of(</span>
+<span class="fc" id="L286">          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),</span>
+          new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
+<span class="fc" id="L288">      case STDDEV_SAMP -&gt; Pair.of(</span>
+<span class="fc" id="L289">          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),</span>
+          new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
+<span class="nc" id="L291">      case STDDEV_POP -&gt; Pair.of(</span>
+<span class="nc" id="L292">          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),</span>
+          new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+      case OTHER_FUNCTION -&gt; {
+<span class="nc" id="L295">        BuiltinFunctionName functionName =</span>
+<span class="nc" id="L296">            BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();</span>
+<span class="nc bnc" id="L297" title="All 3 branches missed.">        yield switch (functionName) {</span>
+<span class="nc" id="L298">          case TAKE -&gt; Pair.of(</span>
+<span class="nc" id="L299">              AggregationBuilders.topHits(aggFieldName)</span>
+<span class="nc" id="L300">                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)</span>
+<span class="nc" id="L301">                  .size(helper.inferValue(args.getLast(), Integer.class))</span>
+<span class="nc" id="L302">                  .from(0),</span>
+              new TopHitsParser(aggFieldName));
+          case PERCENTILE_APPROX -&gt; {
+<span class="nc" id="L305">            PercentilesAggregationBuilder aggBuilder =</span>
+                helper
+<span class="nc" id="L307">                    .build(args.getFirst(), AggregationBuilders.percentiles(aggFieldName))</span>
+<span class="nc" id="L308">                    .percentiles(helper.inferValue(args.get(1), Double.class));</span>
+            /* See {@link PercentileApproxFunction}, PERCENTILE_APPROX accepts args of [FIELD, PERCENTILE, TYPE, COMPRESSION(optional)] */
+<span class="nc bnc" id="L310" title="All 2 branches missed.">            if (args.size() &gt; 3) {</span>
+<span class="nc" id="L311">              aggBuilder.compression(helper.inferValue(args.getLast(), Double.class));</span>
+            }
+<span class="nc" id="L313">            yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));</span>
+          }
+<span class="nc" id="L315">          default -&gt; throw new AggregateAnalyzer.AggregateAnalyzerException(</span>
+<span class="nc" id="L316">              String.format(&quot;Unsupported push-down aggregator %s&quot;, aggCall.getAggregation()));</span>
+        };
+      }
+<span class="nc" id="L319">      default -&gt; throw new AggregateAnalyzerException(</span>
+<span class="nc" id="L320">          String.format(&quot;unsupported aggregator %s&quot;, aggCall.getAggregation()));</span>
+    };
+  }
+
+  private static List&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; createCompositeBuckets(
+      List&lt;Integer&gt; groupList, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+<span class="fc" id="L326">    ImmutableList.Builder&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; resultBuilder = ImmutableList.builder();</span>
+<span class="fc" id="L327">    groupList.forEach(groupIndex -&gt; resultBuilder.add(createBucket(groupIndex, project, helper)));</span>
+<span class="fc" id="L328">    return resultBuilder.build();</span>
+  }
+
+  private static CompositeValuesSourceBuilder&lt;?&gt; createBucket(
+      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
+<span class="fc" id="L333">    RexNode rex = project.getProjects().get(groupIndex);</span>
+<span class="fc" id="L334">    String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();</span>
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">    if (rex instanceof RexCall rexCall</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        &amp;&amp; rexCall.getKind() == SqlKind.OTHER_FUNCTION</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        &amp;&amp; rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        &amp;&amp; rexCall.getOperands().size() == 3</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">        &amp;&amp; rexCall.getOperands().getFirst() instanceof RexInputRef rexInputRef</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        &amp;&amp; rexCall.getOperands().get(1) instanceof RexLiteral valueLiteral</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        &amp;&amp; rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral) {</span>
+<span class="nc" id="L342">      return BucketAggregationBuilder.buildHistogram(</span>
+          bucketName,
+<span class="nc" id="L344">          helper.inferNamedField(rexInputRef).getRootName(),</span>
+<span class="nc" id="L345">          valueLiteral.getValueAs(Double.class),</span>
+<span class="nc" id="L346">          SpanUnit.of(unitLiteral.getValueAs(String.class)),</span>
+          MissingOrder.FIRST);
+    } else {
+<span class="fc" id="L349">      return createTermsSourceBuilder(bucketName, rex, helper);</span>
+    }
+  }
+
+  private static CompositeValuesSourceBuilder&lt;?&gt; createTermsSourceBuilder(
+      String bucketName, RexNode group, AggregateBuilderHelper helper) {
+<span class="fc" id="L355">    CompositeValuesSourceBuilder&lt;?&gt; sourceBuilder =</span>
+<span class="fc" id="L356">        helper.build(</span>
+            group,
+            new TermsValuesSourceBuilder(bucketName)
+<span class="fc" id="L359">                .missingBucket(true)</span>
+<span class="fc" id="L360">                .missingOrder(MissingOrder.FIRST)</span>
+<span class="fc" id="L361">                .order(SortOrder.ASC));</span>
+
+    // Time types values are converted to LONG in ExpressionAggregationScript::execute
+<span class="fc" id="L364">    if (List.of(TIMESTAMP, TIME, DATE)</span>
+<span class="pc bpc" id="L365" title="1 of 2 branches missed.">        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {</span>
+<span class="nc" id="L366">      sourceBuilder.userValuetypeHint(ValueType.LONG);</span>
+    }
+
+<span class="fc" id="L369">    return sourceBuilder;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TableScanPushDown.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.optimizer.rule.read</a> &gt; <span class="el_source">TableScanPushDown.java</span></div><h1>TableScanPushDown.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.optimizer.rule.read;
+
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.aggregate;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.filter;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.highlight;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.nested;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.project;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.scanBuilder;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.sort;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.TableScanPushDownBuilder.match;
+
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Captures;
+import com.facebook.presto.matching.Pattern;
+import com.facebook.presto.matching.pattern.CapturePattern;
+import com.facebook.presto.matching.pattern.WithPattern;
+import java.util.function.BiFunction;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.optimizer.Rule;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+
+/**
+ * Rule template for all table scan push down rules. Because all push down optimization rules have
+ * similar workflow in common, such as a pattern that match an operator on top of table scan
+ * builder, and action that eliminates the original operator if pushed down, this class helps remove
+ * redundant code and improve readability.
+ *
+ * @param &lt;T&gt; logical plan node type
+ */
+public class TableScanPushDown&lt;T extends LogicalPlan&gt; implements Rule&lt;T&gt; {
+
+  /** Push down optimize rule for filtering condition. */
+  public static final Rule&lt;?&gt; PUSH_DOWN_FILTER =
+<span class="fc" id="L40">      match(filter(scanBuilder()))</span>
+<span class="fc" id="L41">          .apply((filter, scanBuilder) -&gt; scanBuilder.pushDownFilter(filter));</span>
+
+  /** Push down optimize rule for aggregate operator. */
+  public static final Rule&lt;?&gt; PUSH_DOWN_AGGREGATION =
+<span class="fc" id="L45">      match(aggregate(scanBuilder()))</span>
+<span class="fc" id="L46">          .apply((agg, scanBuilder) -&gt; scanBuilder.pushDownAggregation(agg));</span>
+
+  /** Push down optimize rule for sort operator. */
+  public static final Rule&lt;?&gt; PUSH_DOWN_SORT =
+<span class="fc" id="L50">      match(sort(scanBuilder())).apply((sort, scanBuilder) -&gt; scanBuilder.pushDownSort(sort));</span>
+
+  /** Push down optimize rule for limit operator. */
+  public static final Rule&lt;?&gt; PUSH_DOWN_LIMIT =
+<span class="fc" id="L54">      match(limit(scanBuilder())).apply((limit, scanBuilder) -&gt; scanBuilder.pushDownLimit(limit));</span>
+
+  public static final Rule&lt;?&gt; PUSH_DOWN_PROJECT =
+<span class="fc" id="L57">      match(project(scanBuilder()))</span>
+<span class="fc" id="L58">          .apply((project, scanBuilder) -&gt; scanBuilder.pushDownProject(project));</span>
+
+  public static final Rule&lt;?&gt; PUSH_DOWN_HIGHLIGHT =
+<span class="fc" id="L61">      match(highlight(scanBuilder()))</span>
+<span class="fc" id="L62">          .apply((highlight, scanBuilder) -&gt; scanBuilder.pushDownHighlight(highlight));</span>
+
+<span class="fc" id="L64">  public static final Rule&lt;?&gt; PUSH_DOWN_NESTED =</span>
+<span class="fc" id="L65">      match(nested(scanBuilder()))</span>
+<span class="fc" id="L66">          .apply((nested, scanBuilder) -&gt; scanBuilder.pushDownNested(nested));</span>
+
+  /** Pattern that matches a plan node. */
+  private final WithPattern&lt;T&gt; pattern;
+
+  /** Capture table scan builder inside a plan node. */
+  private final Capture&lt;TableScanBuilder&gt; capture;
+
+  /** Push down function applied to the plan node and captured table scan builder. */
+  private final BiFunction&lt;T, TableScanBuilder, Boolean&gt; pushDownFunction;
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  private TableScanPushDown(
+<span class="fc" id="L79">      WithPattern&lt;T&gt; pattern, BiFunction&lt;T, TableScanBuilder, Boolean&gt; pushDownFunction) {</span>
+<span class="fc" id="L80">    this.pattern = pattern;</span>
+<span class="fc" id="L81">    this.capture = ((CapturePattern&lt;TableScanBuilder&gt;) pattern.getPattern()).capture();</span>
+<span class="fc" id="L82">    this.pushDownFunction = pushDownFunction;</span>
+<span class="fc" id="L83">  }</span>
+
+  @Override
+  public Pattern&lt;T&gt; pattern() {
+<span class="fc" id="L87">    return pattern;</span>
+  }
+
+  @Override
+  public LogicalPlan apply(T plan, Captures captures) {
+<span class="fc" id="L92">    TableScanBuilder scanBuilder = captures.get(capture);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (pushDownFunction.apply(plan, scanBuilder)) {</span>
+<span class="fc" id="L94">      return scanBuilder;</span>
+    }
+<span class="fc" id="L96">    return plan;</span>
+  }
+
+  /** Custom builder class other than generated by Lombok to provide more readable code. */
+<span class="fc" id="L100">  static class TableScanPushDownBuilder&lt;T extends LogicalPlan&gt; {</span>
+
+    private WithPattern&lt;T&gt; pattern;
+
+    public static &lt;T extends LogicalPlan&gt; TableScanPushDownBuilder&lt;T&gt; match(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L105">      TableScanPushDownBuilder&lt;T&gt; builder = new TableScanPushDownBuilder&lt;&gt;();</span>
+<span class="fc" id="L106">      builder.pattern = (WithPattern&lt;T&gt;) pattern;</span>
+<span class="fc" id="L107">      return builder;</span>
+    }
+
+    public TableScanPushDown&lt;T&gt; apply(BiFunction&lt;T, TableScanBuilder, Boolean&gt; pushDownFunction) {
+<span class="fc" id="L111">      return new TableScanPushDown&lt;&gt;(pattern, pushDownFunction);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

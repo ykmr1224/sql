@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ADOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">ADOperator.java</span></div><h1>ADOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
+import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
+import static org.opensearch.sql.utils.MLCommonsConstants.NUMBER_OF_TREES;
+import static org.opensearch.sql.utils.MLCommonsConstants.OUTPUT_AFTER;
+import static org.opensearch.sql.utils.MLCommonsConstants.SAMPLE_SIZE;
+import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.ml.common.FunctionName;
+import org.opensearch.ml.common.dataframe.DataFrame;
+import org.opensearch.ml.common.dataframe.Row;
+import org.opensearch.ml.common.input.parameter.MLAlgoParams;
+import org.opensearch.ml.common.input.parameter.rcf.BatchRCFParams;
+import org.opensearch.ml.common.input.parameter.rcf.FitRCFParams;
+import org.opensearch.ml.common.output.MLPredictionOutput;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+import org.opensearch.transport.client.node.NodeClient;
+
+/** AD Physical operator to call AD interface to get results for algorithm execution. */
+@RequiredArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+public class ADOperator extends MLCommonsOperatorActions {
+
+  @Getter private final PhysicalPlan input;
+
+  @Getter private final Map&lt;String, Literal&gt; arguments;
+
+  @Getter private final NodeClient nodeClient;
+
+  @EqualsAndHashCode.Exclude private Iterator&lt;ExprValue&gt; iterator;
+
+  private FunctionName rcfType;
+
+  @Override
+  public void open() {
+<span class="nc" id="L60">    super.open();</span>
+    String categoryField =
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        arguments.containsKey(CATEGORY_FIELD)</span>
+<span class="nc" id="L63">            ? (String) arguments.get(CATEGORY_FIELD).getValue()</span>
+<span class="nc" id="L64">            : null;</span>
+<span class="nc" id="L65">    List&lt;Pair&lt;DataFrame, DataFrame&gt;&gt; inputDataFrames =</span>
+<span class="nc" id="L66">        generateCategorizedInputDataset(input, categoryField);</span>
+<span class="nc" id="L67">    MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments);</span>
+
+<span class="nc" id="L69">    List&lt;MLPredictionOutput&gt; predictionResults =</span>
+<span class="nc" id="L70">        inputDataFrames.stream()</span>
+<span class="nc" id="L71">            .map(pair -&gt; getMLPredictionResult(rcfType, mlAlgoParams, pair.getRight(), nodeClient))</span>
+<span class="nc" id="L72">            .collect(Collectors.toList());</span>
+
+<span class="nc" id="L74">    Iterator&lt;Pair&lt;DataFrame, DataFrame&gt;&gt; inputDataFramesIter = inputDataFrames.iterator();</span>
+<span class="nc" id="L75">    Iterator&lt;MLPredictionOutput&gt; predictionResultIter = predictionResults.iterator();</span>
+<span class="nc" id="L76">    iterator =</span>
+<span class="nc" id="L77">        new Iterator&lt;ExprValue&gt;() {</span>
+<span class="nc" id="L78">          private DataFrame inputDataFrame = null;</span>
+<span class="nc" id="L79">          private Iterator&lt;Row&gt; inputRowIter = null;</span>
+<span class="nc" id="L80">          private MLPredictionOutput predictionResult = null;</span>
+<span class="nc" id="L81">          private Iterator&lt;Row&gt; resultRowIter = null;</span>
+
+          @Override
+          public boolean hasNext() {
+<span class="nc bnc" id="L85" title="All 6 branches missed.">            return inputRowIter != null &amp;&amp; inputRowIter.hasNext() || inputDataFramesIter.hasNext();</span>
+          }
+
+          @Override
+          public ExprValue next() {
+<span class="nc bnc" id="L90" title="All 4 branches missed.">            if (inputRowIter == null || !inputRowIter.hasNext()) {</span>
+<span class="nc" id="L91">              inputDataFrame = inputDataFramesIter.next().getLeft();</span>
+<span class="nc" id="L92">              inputRowIter = inputDataFrame.iterator();</span>
+<span class="nc" id="L93">              predictionResult = predictionResultIter.next();</span>
+<span class="nc" id="L94">              resultRowIter = predictionResult.getPredictionResult().iterator();</span>
+            }
+<span class="nc" id="L96">            return buildResult(inputRowIter, inputDataFrame, predictionResult, resultRowIter);</span>
+          }
+        };
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="nc" id="L103">    return visitor.visitAD(this, context);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="nc" id="L108">    return iterator.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="nc" id="L113">    return iterator.next();</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="nc" id="L118">    return Collections.singletonList(input);</span>
+  }
+
+  protected MLAlgoParams convertArgumentToMLParameter(Map&lt;String, Literal&gt; arguments) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (arguments.get(TIME_FIELD) == null) {</span>
+<span class="nc" id="L123">      rcfType = FunctionName.BATCH_RCF;</span>
+<span class="nc" id="L124">      return BatchRCFParams.builder()</span>
+<span class="nc" id="L125">          .numberOfTrees(</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">              arguments.containsKey(NUMBER_OF_TREES)</span>
+<span class="nc" id="L127">                  ? ((Integer) arguments.get(NUMBER_OF_TREES).getValue())</span>
+<span class="nc" id="L128">                  : null)</span>
+<span class="nc" id="L129">          .sampleSize(</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">              arguments.containsKey(SAMPLE_SIZE)</span>
+<span class="nc" id="L131">                  ? ((Integer) arguments.get(SAMPLE_SIZE).getValue())</span>
+<span class="nc" id="L132">                  : null)</span>
+<span class="nc" id="L133">          .outputAfter(</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">              arguments.containsKey(OUTPUT_AFTER)</span>
+<span class="nc" id="L135">                  ? ((Integer) arguments.get(OUTPUT_AFTER).getValue())</span>
+<span class="nc" id="L136">                  : null)</span>
+<span class="nc" id="L137">          .trainingDataSize(</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">              arguments.containsKey(TRAINING_DATA_SIZE)</span>
+<span class="nc" id="L139">                  ? ((Integer) arguments.get(TRAINING_DATA_SIZE).getValue())</span>
+<span class="nc" id="L140">                  : null)</span>
+<span class="nc" id="L141">          .anomalyScoreThreshold(</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">              arguments.containsKey(ANOMALY_SCORE_THRESHOLD)</span>
+<span class="nc" id="L143">                  ? ((Double) arguments.get(ANOMALY_SCORE_THRESHOLD).getValue())</span>
+<span class="nc" id="L144">                  : null)</span>
+<span class="nc" id="L145">          .build();</span>
+    }
+<span class="nc" id="L147">    rcfType = FunctionName.FIT_RCF;</span>
+<span class="nc" id="L148">    return FitRCFParams.builder()</span>
+<span class="nc" id="L149">        .numberOfTrees(</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            arguments.containsKey(NUMBER_OF_TREES)</span>
+<span class="nc" id="L151">                ? ((Integer) arguments.get(NUMBER_OF_TREES).getValue())</span>
+<span class="nc" id="L152">                : null)</span>
+<span class="nc" id="L153">        .shingleSize(</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            arguments.containsKey(SHINGLE_SIZE)</span>
+<span class="nc" id="L155">                ? ((Integer) arguments.get(SHINGLE_SIZE).getValue())</span>
+<span class="nc" id="L156">                : null)</span>
+<span class="nc" id="L157">        .sampleSize(</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">            arguments.containsKey(SAMPLE_SIZE)</span>
+<span class="nc" id="L159">                ? ((Integer) arguments.get(SAMPLE_SIZE).getValue())</span>
+<span class="nc" id="L160">                : null)</span>
+<span class="nc" id="L161">        .outputAfter(</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            arguments.containsKey(OUTPUT_AFTER)</span>
+<span class="nc" id="L163">                ? ((Integer) arguments.get(OUTPUT_AFTER).getValue())</span>
+<span class="nc" id="L164">                : null)</span>
+<span class="nc" id="L165">        .timeDecay(</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            arguments.containsKey(TIME_DECAY)</span>
+<span class="nc" id="L167">                ? ((Double) arguments.get(TIME_DECAY).getValue())</span>
+<span class="nc" id="L168">                : null)</span>
+<span class="nc" id="L169">        .anomalyRate(</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            arguments.containsKey(ANOMALY_RATE)</span>
+<span class="nc" id="L171">                ? ((Double) arguments.get(ANOMALY_RATE).getValue())</span>
+<span class="nc" id="L172">                : null)</span>
+<span class="nc" id="L173">        .timeField(</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            arguments.containsKey(TIME_FIELD)</span>
+<span class="nc" id="L175">                ? ((String) arguments.get(TIME_FIELD).getValue())</span>
+<span class="nc" id="L176">                : null)</span>
+<span class="nc" id="L177">        .dateFormat(</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            arguments.containsKey(DATE_FORMAT)</span>
+<span class="nc" id="L179">                ? ((String) arguments.get(DATE_FORMAT).getValue())</span>
+<span class="nc" id="L180">                : &quot;yyyy-MM-dd HH:mm:ss&quot;)</span>
+<span class="nc" id="L181">        .timeZone(</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            arguments.containsKey(TIME_ZONE)</span>
+<span class="nc" id="L183">                ? ((String) arguments.get(TIME_ZONE).getValue())</span>
+<span class="nc" id="L184">                : null)</span>
+<span class="nc" id="L185">        .build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

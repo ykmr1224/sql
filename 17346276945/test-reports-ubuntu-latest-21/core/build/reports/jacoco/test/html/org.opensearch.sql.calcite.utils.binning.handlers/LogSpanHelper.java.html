@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogSpanHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.handlers</a> &gt; <span class="el_source">LogSpanHelper.java</span></div><h1>LogSpanHelper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.handlers;
+
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.calcite.utils.binning.RangeFormatter;
+import org.opensearch.sql.calcite.utils.binning.SpanInfo;
+
+/** Helper for creating logarithmic span expressions. */
+<span class="nc" id="L16">public class LogSpanHelper {</span>
+
+  /** Creates logarithmic span expression. */
+  public RexNode createLogSpanExpression(
+      RexNode fieldExpr, SpanInfo spanInfo, CalcitePlanContext context) {
+
+<span class="nc" id="L22">    double base = spanInfo.getBase();</span>
+<span class="nc" id="L23">    double coefficient = spanInfo.getCoefficient();</span>
+
+    // Check if value is positive
+<span class="nc" id="L26">    RexNode positiveCheck =</span>
+<span class="nc" id="L27">        context.relBuilder.call(</span>
+<span class="nc" id="L28">            SqlStdOperatorTable.GREATER_THAN, fieldExpr, context.relBuilder.literal(0.0));</span>
+
+    // Apply coefficient if needed
+<span class="nc" id="L31">    RexNode adjustedField = fieldExpr;</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    if (coefficient != 1.0) {</span>
+<span class="nc" id="L33">      adjustedField =</span>
+<span class="nc" id="L34">          context.relBuilder.call(</span>
+<span class="nc" id="L35">              SqlStdOperatorTable.DIVIDE, fieldExpr, context.relBuilder.literal(coefficient));</span>
+    }
+
+    // Calculate log_base(adjusted_field)
+<span class="nc" id="L39">    RexNode lnField = context.relBuilder.call(SqlStdOperatorTable.LN, adjustedField);</span>
+<span class="nc" id="L40">    RexNode lnBase = context.relBuilder.literal(Math.log(base));</span>
+<span class="nc" id="L41">    RexNode logValue = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, lnField, lnBase);</span>
+
+    // Get bin number
+<span class="nc" id="L44">    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, logValue);</span>
+
+    // Calculate bounds
+<span class="nc" id="L47">    RexNode baseNode = context.relBuilder.literal(base);</span>
+<span class="nc" id="L48">    RexNode coefficientNode = context.relBuilder.literal(coefficient);</span>
+
+<span class="nc" id="L50">    RexNode basePowerBin = context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binNumber);</span>
+<span class="nc" id="L51">    RexNode lowerBound =</span>
+<span class="nc" id="L52">        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBin);</span>
+
+<span class="nc" id="L54">    RexNode binPlusOne =</span>
+<span class="nc" id="L55">        context.relBuilder.call(</span>
+<span class="nc" id="L56">            SqlStdOperatorTable.PLUS, binNumber, context.relBuilder.literal(1.0));</span>
+<span class="nc" id="L57">    RexNode basePowerBinPlusOne =</span>
+<span class="nc" id="L58">        context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binPlusOne);</span>
+<span class="nc" id="L59">    RexNode upperBound =</span>
+<span class="nc" id="L60">        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBinPlusOne);</span>
+
+    // Create range string
+<span class="nc" id="L63">    RexNode rangeStr = RangeFormatter.createRangeString(lowerBound, upperBound, context);</span>
+
+    // Return range for positive values, &quot;Invalid&quot; for non-positive
+<span class="nc" id="L66">    return context.relBuilder.call(</span>
+        SqlStdOperatorTable.CASE,
+        positiveCheck,
+        rangeStr,
+<span class="nc" id="L70">        context.relBuilder.literal(BinConstants.INVALID_CATEGORY));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

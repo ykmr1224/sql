@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AstExpressionBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ppl</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.ppl.parser</a> &gt; <span class="el_source">AstExpressionBuilder.java</span></div><h1>AstExpressionBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.parser;
+
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountEvalFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalExpressionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
+import org.opensearch.sql.ppl.utils.ArgumentFactory;
+
+/** Class of building AST Expression nodes. */
+public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor&lt;UnresolvedExpression&gt; {
+
+  private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
+
+  /** The function name mapping between fronted and core engine. */
+<span class="fc" id="L136">  private static final Map&lt;String, String&gt; FUNCTION_NAME_MAPPING =</span>
+      new ImmutableMap.Builder&lt;String, String&gt;()
+<span class="fc" id="L138">          .put(&quot;isnull&quot;, IS_NULL.getName().getFunctionName())</span>
+<span class="fc" id="L139">          .put(&quot;isnotnull&quot;, IS_NOT_NULL.getName().getFunctionName())</span>
+<span class="fc" id="L140">          .build();</span>
+
+  private final AstBuilder astBuilder;
+
+<span class="fc" id="L144">  public AstExpressionBuilder(AstBuilder astBuilder) {</span>
+<span class="fc" id="L145">    this.astBuilder = astBuilder;</span>
+<span class="fc" id="L146">  }</span>
+
+  /** Eval clause. */
+  @Override
+  public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
+<span class="fc" id="L151">    return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));</span>
+  }
+
+  /** Trendline clause. */
+  @Override
+  public Trendline.TrendlineComputation visitTrendlineClause(
+      OpenSearchPPLParser.TrendlineClauseContext ctx) {
+<span class="fc" id="L158">    final int numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (numberOfDataPoints &lt; 1) {</span>
+<span class="fc" id="L160">      throw new SyntaxCheckException(</span>
+          &quot;Number of trendline data-points must be greater than or equal to 1&quot;);
+    }
+
+<span class="fc" id="L164">    final Field dataField = (Field) this.visitFieldExpression(ctx.field);</span>
+    final String alias =
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        ctx.alias != null</span>
+<span class="fc" id="L167">            ? ctx.alias.getText()</span>
+<span class="fc" id="L168">            : dataField.getChild().get(0).toString() + &quot;_trendline&quot;;</span>
+
+<span class="fc" id="L170">    final Trendline.TrendlineType computationType =</span>
+<span class="fc" id="L171">        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));</span>
+<span class="fc" id="L172">    return new Trendline.TrendlineComputation(</span>
+<span class="fc" id="L173">        numberOfDataPoints, dataField, alias, computationType);</span>
+  }
+
+  /** Logical expression excluding boolean, comparison. */
+  @Override
+  public UnresolvedExpression visitLogicalNot(LogicalNotContext ctx) {
+<span class="fc" id="L179">    return new Not(visit(ctx.logicalExpression()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitLogicalOr(LogicalOrContext ctx) {
+<span class="fc" id="L184">    return new Or(visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitLogicalAnd(LogicalAndContext ctx) {
+<span class="fc" id="L189">    return new And(visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitLogicalXor(LogicalXorContext ctx) {
+<span class="fc" id="L194">    return new Xor(visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  /** lambda expression */
+  @Override
+  public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
+<span class="nc" id="L200">    List&lt;QualifiedName&gt; arguments =</span>
+<span class="nc" id="L201">        ctx.ident().stream()</span>
+<span class="nc" id="L202">            .map(x -&gt; this.visitIdentifiers(Collections.singletonList(x)))</span>
+<span class="nc" id="L203">            .collect(Collectors.toList());</span>
+<span class="nc" id="L204">    UnresolvedExpression function = visit(ctx.logicalExpression());</span>
+<span class="nc" id="L205">    return new LambdaFunction(function, arguments);</span>
+  }
+
+  /** Comparison expression. */
+  @Override
+  public UnresolvedExpression visitCompareExpr(CompareExprContext ctx) {
+<span class="fc" id="L211">    String operator = ctx.comparisonOperator().getText();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (&quot;==&quot;.equals(operator)) {</span>
+<span class="fc" id="L213">      operator = EQUAL.getName().getFunctionName();</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {</span>
+<span class="fc" id="L215">      operator = LIKE.getName().getFunctionName();</span>
+    }
+<span class="fc" id="L217">    return new Compare(operator, visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitInExpr(InExprContext ctx) {
+<span class="fc" id="L222">    UnresolvedExpression expr =</span>
+        new In(
+<span class="fc" id="L224">            visit(ctx.expression()),</span>
+<span class="fc" id="L225">            ctx.valueList().literalValue().stream()</span>
+<span class="fc" id="L226">                .map(this::visitLiteralValue)</span>
+<span class="fc" id="L227">                .collect(Collectors.toList()));</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">    return ctx.NOT() != null ? new Not(expr) : expr;</span>
+  }
+
+  /** Value Expression. */
+  @Override
+  public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
+<span class="fc" id="L234">    return new Function(ctx.binaryOperator.getText(), buildArguments(ctx.left, ctx.right));</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; buildArguments(
+      OpenSearchPPLParser.ValueExpressionContext... ctx) {
+<span class="fc" id="L239">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">    for (OpenSearchPPLParser.ValueExpressionContext value : ctx) {</span>
+<span class="fc" id="L241">      UnresolvedExpression unresolvedExpression = visit(value);</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">      if (unresolvedExpression != null) builder.add(unresolvedExpression);</span>
+    }
+<span class="fc" id="L244">    return builder.build();</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNestedValueExpr(OpenSearchPPLParser.NestedValueExprContext ctx) {
+<span class="fc" id="L249">    return visit(ctx.logicalExpression()); // Discard parenthesis around</span>
+  }
+
+  /** Field expression. */
+  @Override
+  public UnresolvedExpression visitFieldExpression(FieldExpressionContext ctx) {
+<span class="fc" id="L255">    return new Field((QualifiedName) visit(ctx.qualifiedName()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitWcFieldExpression(WcFieldExpressionContext ctx) {
+<span class="fc" id="L260">    return new Field((QualifiedName) visit(ctx.wcQualifiedName()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSelectFieldExpression(
+      OpenSearchPPLParser.SelectFieldExpressionContext ctx) {
+<span class="fc bfc" id="L266" title="All 2 branches covered.">    if (ctx.STAR() != null) {</span>
+<span class="fc" id="L267">      return AllFields.of();</span>
+    }
+<span class="fc" id="L269">    return new Field((QualifiedName) visit(ctx.wcQualifiedName()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSortField(SortFieldContext ctx) {
+
+<span class="fc" id="L275">    UnresolvedExpression fieldExpression =</span>
+<span class="fc" id="L276">        visit(ctx.sortFieldExpression().fieldExpression().qualifiedName());</span>
+
+<span class="fc bfc" id="L278" title="All 2 branches covered.">    if (ctx.sortFieldExpression().IP() != null) {</span>
+<span class="fc" id="L279">      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral(&quot;ip&quot;));</span>
+<span class="fc bfc" id="L280" title="All 2 branches covered.">    } else if (ctx.sortFieldExpression().NUM() != null) {</span>
+<span class="fc" id="L281">      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral(&quot;double&quot;));</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">    } else if (ctx.sortFieldExpression().STR() != null) {</span>
+<span class="fc" id="L283">      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral(&quot;string&quot;));</span>
+    }
+    // AUTO() case uses the field expression as-is
+<span class="fc" id="L286">    return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));</span>
+  }
+
+  /** Aggregation function. */
+  @Override
+  public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
+<span class="fc" id="L292">    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitCountAllFunctionCall(CountAllFunctionCallContext ctx) {
+<span class="fc" id="L297">    return new AggregateFunction(&quot;count&quot;, AllFields.of());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitCountEvalFunctionCall(CountEvalFunctionCallContext ctx) {
+<span class="fc" id="L302">    return new AggregateFunction(&quot;count&quot;, visit(ctx.evalExpression()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">    String funcName = ctx.DISTINCT_COUNT_APPROX() != null ? &quot;distinct_count_approx&quot; : &quot;count&quot;;</span>
+<span class="fc" id="L308">    return new AggregateFunction(funcName, visit(ctx.valueExpression()), true);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitEvalExpression(EvalExpressionContext ctx) {
+    /*
+     * Rewrite &quot;eval(p)&quot; as &quot;CASE WHEN p THEN 1 ELSE NULL END&quot; so that COUNT or DISTINCT_COUNT
+     * can correctly perform filtered counting.
+     * Note: at present only eval(&lt;predicate&gt;) inside counting functions is supported.
+     */
+<span class="fc" id="L318">    UnresolvedExpression predicate = visit(ctx.logicalExpression());</span>
+<span class="fc" id="L319">    return AstDSL.caseWhen(null, AstDSL.when(predicate, AstDSL.intLiteral(1)));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitPercentileApproxFunctionCall(
+      OpenSearchPPLParser.PercentileApproxFunctionCallContext ctx) {
+<span class="fc" id="L325">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L326">    builder.add(new UnresolvedArgument(&quot;percent&quot;, visit(ctx.percentileApproxFunction().percent)));</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">    if (ctx.percentileApproxFunction().compression != null) {</span>
+<span class="fc" id="L328">      builder.add(</span>
+<span class="fc" id="L329">          new UnresolvedArgument(&quot;compression&quot;, visit(ctx.percentileApproxFunction().compression)));</span>
+    }
+<span class="fc" id="L331">    return new AggregateFunction(</span>
+<span class="fc" id="L332">        &quot;percentile&quot;, visit(ctx.percentileApproxFunction().aggField), builder.build());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTakeAggFunctionCall(
+      OpenSearchPPLParser.TakeAggFunctionCallContext ctx) {
+<span class="fc" id="L338">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L339">    builder.add(</span>
+        new UnresolvedArgument(
+            &quot;size&quot;,
+<span class="fc bfc" id="L342" title="All 2 branches covered.">            ctx.takeAggFunction().size != null</span>
+<span class="fc" id="L343">                ? visit(ctx.takeAggFunction().size)</span>
+<span class="fc" id="L344">                : AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));</span>
+<span class="fc" id="L345">    return new AggregateFunction(</span>
+<span class="fc" id="L346">        &quot;take&quot;, visit(ctx.takeAggFunction().fieldExpression()), builder.build());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitPercentileShortcutFunctionCall(
+      OpenSearchPPLParser.PercentileShortcutFunctionCallContext ctx) {
+<span class="fc" id="L352">    String functionName = ctx.getStart().getText();</span>
+
+<span class="fc bfc" id="L354" title="All 2 branches covered.">    int prefixLength = functionName.toLowerCase().startsWith(&quot;perc&quot;) ? 4 : 1;</span>
+<span class="fc" id="L355">    String percentileValue = functionName.substring(prefixLength);</span>
+
+<span class="fc" id="L357">    double percent = Double.parseDouble(percentileValue);</span>
+<span class="pc bpc" id="L358" title="1 of 4 branches missed.">    if (percent &lt; 0.0 || percent &gt; 100.0) {</span>
+<span class="fc" id="L359">      throw new SyntaxCheckException(</span>
+<span class="fc" id="L360">          String.format(&quot;Percentile value must be between 0 and 100, got: %s&quot;, percent));</span>
+    }
+
+<span class="fc" id="L363">    return new AggregateFunction(</span>
+        &quot;percentile&quot;,
+<span class="fc" id="L365">        visit(ctx.valueExpression()),</span>
+<span class="fc" id="L366">        Collections.singletonList(</span>
+<span class="fc" id="L367">            new UnresolvedArgument(&quot;percent&quot;, AstDSL.doubleLiteral(percent))));</span>
+  }
+
+  public UnresolvedExpression visitEarliestLatestFunctionCall(
+      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
+<span class="fc" id="L372">    return visit(ctx.earliestLatestFunction());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitEarliestLatestFunction(
+      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
+<span class="fc bfc" id="L378" title="All 2 branches covered.">    String functionName = ctx.EARLIEST() != null ? &quot;earliest&quot; : &quot;latest&quot;;</span>
+<span class="fc" id="L379">    UnresolvedExpression valueField = visit(ctx.valueExpression(0));</span>
+
+<span class="fc bfc" id="L381" title="All 2 branches covered.">    if (ctx.timeField != null) {</span>
+      // Two parameters: earliest(field, time_field) or latest(field, time_field)
+<span class="fc" id="L383">      UnresolvedExpression timeField = visit(ctx.timeField);</span>
+<span class="fc" id="L384">      return new AggregateFunction(</span>
+          functionName,
+          valueField,
+<span class="fc" id="L387">          Collections.singletonList(new UnresolvedArgument(&quot;time_field&quot;, timeField)));</span>
+    } else {
+      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
+<span class="fc" id="L390">      return new AggregateFunction(functionName, valueField);</span>
+    }
+  }
+
+  /** Case function. */
+  @Override
+  public UnresolvedExpression visitCaseFunctionCall(
+      OpenSearchPPLParser.CaseFunctionCallContext ctx) {
+<span class="fc" id="L398">    List&lt;When&gt; whens =</span>
+<span class="fc" id="L399">        IntStream.range(0, ctx.logicalExpression().size())</span>
+<span class="fc" id="L400">            .mapToObj(</span>
+                index -&gt; {
+<span class="fc" id="L402">                  UnresolvedExpression condition = visit(ctx.logicalExpression(index));</span>
+<span class="fc" id="L403">                  UnresolvedExpression result = visit(ctx.valueExpression(index));</span>
+<span class="fc" id="L404">                  return new When(condition, result);</span>
+                })
+<span class="fc" id="L406">            .collect(Collectors.toList());</span>
+<span class="fc" id="L407">    UnresolvedExpression elseValue = null;</span>
+<span class="fc bfc" id="L408" title="All 2 branches covered.">    if (ctx.ELSE() != null) {</span>
+<span class="fc" id="L409">      elseValue = visit(ctx.valueExpression(ctx.valueExpression().size() - 1));</span>
+    }
+<span class="fc" id="L411">    return new Case(null, whens, Optional.ofNullable(elseValue));</span>
+  }
+
+  /** Eval function. */
+  @Override
+  public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
+<span class="fc" id="L417">    final String functionName = ctx.evalFunctionName().getText();</span>
+<span class="fc" id="L418">    final String mappedName =</span>
+<span class="fc" id="L419">        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);</span>
+
+    // Rewrite sum and avg functions to arithmetic expressions
+<span class="fc bfc" id="L422" title="All 2 branches covered.">    if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)</span>
+<span class="fc bfc" id="L423" title="All 2 branches covered.">        || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {</span>
+<span class="fc" id="L424">      return rewriteSumAvgFunction(mappedName, ctx.functionArgs().functionArg());</span>
+    }
+
+<span class="fc" id="L427">    return buildFunction(mappedName, ctx.functionArgs().functionArg());</span>
+  }
+
+  /** Cast function. */
+  @Override
+  public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
+<span class="fc" id="L433">    return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
+<span class="fc" id="L438">    return AstDSL.stringLiteral(ctx.getText());</span>
+  }
+
+  private Function buildFunction(
+      String functionName, List&lt;OpenSearchPPLParser.FunctionArgContext&gt; args) {
+<span class="fc" id="L443">    return new Function(</span>
+<span class="fc" id="L444">        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * Rewrites sum(a, b, c, ...) to (a + b + c + ...) and avg(a, b, c, ...) to (a + b + c + ...) / n
+   * Uses balanced tree construction to avoid deep recursion with large argument lists.
+   */
+  private UnresolvedExpression rewriteSumAvgFunction(
+      String functionName, List&lt;OpenSearchPPLParser.FunctionArgContext&gt; args) {
+<span class="pc bpc" id="L453" title="1 of 2 branches missed.">    if (args.isEmpty()) {</span>
+<span class="nc" id="L454">      throw new SyntaxCheckException(functionName + &quot; function requires at least one argument&quot;);</span>
+    }
+
+<span class="fc" id="L457">    List&lt;UnresolvedExpression&gt; arguments =</span>
+<span class="fc" id="L458">        args.stream().map(this::visitFunctionArg).collect(Collectors.toList());</span>
+
+    // Build the sum expression as a balanced tree to avoid deep recursion
+<span class="fc" id="L461">    UnresolvedExpression functionExpr = buildBalancedTree(&quot;+&quot;, arguments);</span>
+
+    // For avg, divide by the count of arguments
+<span class="fc bfc" id="L464" title="All 2 branches covered.">    if (AVG.getName().getFunctionName().equalsIgnoreCase(functionName)) {</span>
+<span class="fc" id="L465">      UnresolvedExpression count = AstDSL.doubleLiteral((double) arguments.size());</span>
+<span class="fc" id="L466">      functionExpr = new Function(&quot;/&quot;, Arrays.asList(functionExpr, count));</span>
+    }
+
+<span class="fc" id="L469">    return functionExpr;</span>
+  }
+
+  /**
+   * Builds a balanced tree of binary operations to avoid deep recursion. For example, [a, b, c, d]
+   * becomes ((a + b) + (c + d)) instead of (((a + b) + c) + d). This ensures recursion depth is
+   * O(log n) instead of O(n).
+   */
+  private UnresolvedExpression buildBalancedTree(
+      String operator, List&lt;UnresolvedExpression&gt; expressions) {
+<span class="fc bfc" id="L479" title="All 2 branches covered.">    if (expressions.size() == 1) {</span>
+<span class="fc" id="L480">      return expressions.get(0);</span>
+    }
+
+<span class="fc bfc" id="L483" title="All 2 branches covered.">    if (expressions.size() == 2) {</span>
+<span class="fc" id="L484">      return new Function(operator, Arrays.asList(expressions.get(0), expressions.get(1)));</span>
+    }
+
+    // Split the list in half and recursively build balanced subtrees
+<span class="fc" id="L488">    int mid = expressions.size() / 2;</span>
+<span class="fc" id="L489">    UnresolvedExpression left = buildBalancedTree(operator, expressions.subList(0, mid));</span>
+<span class="fc" id="L490">    UnresolvedExpression right =</span>
+<span class="fc" id="L491">        buildBalancedTree(operator, expressions.subList(mid, expressions.size()));</span>
+
+<span class="fc" id="L493">    return new Function(operator, Arrays.asList(left, right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSingleFieldRelevanceFunction(
+      SingleFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L499">    return new Function(</span>
+<span class="fc" id="L500">        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L501">        singleFieldRelevanceArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitMultiFieldRelevanceFunction(
+      MultiFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L507">    return new Function(</span>
+<span class="fc" id="L508">        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L509">        multiFieldRelevanceArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
+<span class="fc bfc" id="L514" title="All 2 branches covered.">    if (ctx.getChild(0) instanceof IdentsAsTableQualifiedNameContext) {</span>
+<span class="fc" id="L515">      return visitIdentsAsTableQualifiedName((IdentsAsTableQualifiedNameContext) ctx.getChild(0));</span>
+    } else {
+<span class="fc" id="L517">      return visitIdentifiers(Arrays.asList(ctx));</span>
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitPositionFunctionCall(
+      OpenSearchPPLParser.PositionFunctionCallContext ctx) {
+<span class="fc" id="L524">    return new Function(</span>
+<span class="fc" id="L525">        POSITION.getName().getFunctionName(),</span>
+<span class="fc" id="L526">        Arrays.asList(visitFunctionArg(ctx.functionArg(0)), visitFunctionArg(ctx.functionArg(1))));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitExtractFunctionCall(
+      OpenSearchPPLParser.ExtractFunctionCallContext ctx) {
+<span class="fc" id="L532">    return new Function(ctx.EXTRACT().toString(), getExtractFunctionArguments(ctx));</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; getExtractFunctionArguments(
+      OpenSearchPPLParser.ExtractFunctionCallContext ctx) {
+<span class="fc" id="L537">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L538">        Arrays.asList(</span>
+<span class="fc" id="L539">            new Literal(ctx.datetimePart().getText(), DataType.STRING),</span>
+<span class="fc" id="L540">            visitFunctionArg(ctx.functionArg()));</span>
+<span class="fc" id="L541">    return args;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitGetFormatFunctionCall(
+      OpenSearchPPLParser.GetFormatFunctionCallContext ctx) {
+<span class="fc" id="L547">    return new Function(ctx.GET_FORMAT().toString(), getFormatFunctionArguments(ctx));</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; getFormatFunctionArguments(
+      OpenSearchPPLParser.GetFormatFunctionCallContext ctx) {
+<span class="fc" id="L552">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L553">        Arrays.asList(</span>
+<span class="fc" id="L554">            new Literal(ctx.getFormatType().getText(), DataType.STRING),</span>
+<span class="fc" id="L555">            visitFunctionArg(ctx.functionArg()));</span>
+<span class="fc" id="L556">    return args;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTimestampFunctionCall(
+      OpenSearchPPLParser.TimestampFunctionCallContext ctx) {
+<span class="fc" id="L562">    return new Function(ctx.timestampFunctionName().getText(), timestampFunctionArguments(ctx));</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; timestampFunctionArguments(
+      OpenSearchPPLParser.TimestampFunctionCallContext ctx) {
+<span class="fc" id="L567">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L568">        Arrays.asList(</span>
+<span class="fc" id="L569">            new Literal(ctx.simpleDateTimePart().getText(), DataType.STRING),</span>
+<span class="fc" id="L570">            visitFunctionArg(ctx.firstArg),</span>
+<span class="fc" id="L571">            visitFunctionArg(ctx.secondArg));</span>
+<span class="fc" id="L572">    return args;</span>
+  }
+
+  /** Literal and value. */
+  @Override
+  public UnresolvedExpression visitIdentsAsQualifiedName(IdentsAsQualifiedNameContext ctx) {
+<span class="fc" id="L578">    return visitIdentifiers(ctx.ident());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIdentsAsTableQualifiedName(
+      IdentsAsTableQualifiedNameContext ctx) {
+<span class="fc" id="L584">    return visitIdentifiers(</span>
+<span class="fc" id="L585">        Stream.concat(Stream.of(ctx.tableIdent()), ctx.ident().stream())</span>
+<span class="fc" id="L586">            .collect(Collectors.toList()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIdentsAsWildcardQualifiedName(
+      IdentsAsWildcardQualifiedNameContext ctx) {
+<span class="fc" id="L592">    return visitIdentifiers(ctx.wildcard());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIntervalLiteral(IntervalLiteralContext ctx) {
+<span class="fc" id="L597">    return new Interval(</span>
+<span class="fc" id="L598">        visit(ctx.valueExpression()), IntervalUnit.of(ctx.intervalUnit().getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitStringLiteral(StringLiteralContext ctx) {
+<span class="fc" id="L603">    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIntegerLiteral(IntegerLiteralContext ctx) {
+<span class="fc" id="L608">    long number = Long.parseLong(ctx.getText());</span>
+<span class="fc bfc" id="L609" title="All 4 branches covered.">    if (Integer.MIN_VALUE &lt;= number &amp;&amp; number &lt;= Integer.MAX_VALUE) {</span>
+<span class="fc" id="L610">      return new Literal((int) number, DataType.INTEGER);</span>
+    }
+<span class="fc" id="L612">    return new Literal(number, DataType.LONG);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDecimalLiteral(DecimalLiteralContext ctx) {
+    // For backward compatibility, we accept decimal literal by `Literal(double, DataType.DECIMAL)`
+    // The double value will be converted to decimal by BigDecimal.valueOf((Double) value),
+    // some double values such as 0.0001 will be converted to string &quot;1.0E-4&quot; and finally
+    // generate decimal 0.00010. So here we parse a decimal text to Double then convert it
+    // to BigDecimal as well.
+    // In v2, a decimal literal will be converted back to double in resolving expression
+    // via ExprDoubleValue.
+    // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
+    // in runtime.
+<span class="fc" id="L626">    return new Literal(BigDecimal.valueOf(Double.parseDouble(ctx.getText())), DataType.DECIMAL);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDoubleLiteral(DoubleLiteralContext ctx) {
+<span class="fc" id="L631">    return new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitFloatLiteral(FloatLiteralContext ctx) {
+<span class="fc" id="L636">    return new Literal(Float.valueOf(ctx.getText()), DataType.FLOAT);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBooleanLiteral(BooleanLiteralContext ctx) {
+<span class="fc" id="L641">    return new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
+<span class="fc" id="L646">    String name = ctx.spanClause().getText();</span>
+<span class="fc bfc" id="L647" title="All 2 branches covered.">    return ctx.alias != null</span>
+<span class="fc" id="L648">        ? new Alias(StringUtils.unquoteIdentifier(ctx.alias.getText()), visit(ctx.spanClause()))</span>
+<span class="fc" id="L649">        : new Alias(name, visit(ctx.spanClause()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
+<span class="fc bfc" id="L654" title="All 2 branches covered.">    String unit = ctx.unit != null ? ctx.unit.getText() : &quot;&quot;;</span>
+<span class="fc" id="L655">    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitLeftHint(OpenSearchPPLParser.LeftHintContext ctx) {
+<span class="nc" id="L660">    return new EqualTo(</span>
+<span class="nc" id="L661">        new Literal(ctx.leftHintKey.getText(), DataType.STRING), visit(ctx.leftHintValue));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitRightHint(OpenSearchPPLParser.RightHintContext ctx) {
+<span class="nc" id="L666">    return new EqualTo(</span>
+<span class="nc" id="L667">        new Literal(ctx.rightHintKey.getText(), DataType.STRING), visit(ctx.rightHintValue));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryExpr(OpenSearchPPLParser.InSubqueryExprContext ctx) {
+<span class="fc" id="L672">    List&lt;UnresolvedExpression&gt; s =</span>
+<span class="fc" id="L673">        ctx.valueExpression().stream().map(this::visit).collect(Collectors.toList());</span>
+<span class="fc" id="L674">    UnresolvedExpression expr = new InSubquery(s, astBuilder.visitSubSearch(ctx.subSearch()));</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">    return ctx.NOT() != null ? new Not(expr) : expr;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarSubqueryExpr(
+      OpenSearchPPLParser.ScalarSubqueryExprContext ctx) {
+<span class="fc" id="L681">    return new ScalarSubquery(astBuilder.visitSubSearch(ctx.subSearch()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpr(
+      OpenSearchPPLParser.ExistsSubqueryExprContext ctx) {
+<span class="fc" id="L687">    return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBetween(OpenSearchPPLParser.BetweenContext ctx) {
+<span class="fc" id="L692">    UnresolvedExpression betweenExpr =</span>
+<span class="fc" id="L693">        new Between(visit(ctx.expression(0)), visit(ctx.expression(1)), visit(ctx.expression(2)));</span>
+<span class="fc bfc" id="L694" title="All 2 branches covered.">    return ctx.NOT() != null ? new Not(betweenExpr) : betweenExpr;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
+<span class="fc" id="L699">    Function f =</span>
+<span class="fc" id="L700">        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());</span>
+    // In PPL eventstats command, all window functions have the same partition and order spec.
+<span class="fc" id="L702">    return new WindowFunction(f);</span>
+  }
+
+  private QualifiedName visitIdentifiers(List&lt;? extends ParserRuleContext&gt; ctx) {
+<span class="fc" id="L706">    return new QualifiedName(</span>
+<span class="fc" id="L707">        ctx.stream()</span>
+<span class="fc" id="L708">            .map(RuleContext::getText)</span>
+<span class="fc" id="L709">            .map(StringUtils::unquoteIdentifier)</span>
+<span class="fc" id="L710">            .collect(Collectors.toList()));</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; singleFieldRelevanceArguments(
+      SingleFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L717">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L718">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L720">            &quot;field&quot;, new QualifiedName(StringUtils.unquoteText(ctx.field.getText()))));</span>
+<span class="fc" id="L721">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L723">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L724">    ctx.relevanceArg()</span>
+<span class="fc" id="L725">        .forEach(</span>
+            v -&gt;
+<span class="fc" id="L727">                builder.add(</span>
+                    new UnresolvedArgument(
+<span class="fc" id="L729">                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),</span>
+                        new Literal(
+<span class="fc" id="L731">                            StringUtils.unquoteText(v.relevanceArgValue().getText()),</span>
+                            DataType.STRING))));
+<span class="fc" id="L733">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; multiFieldRelevanceArguments(
+      MultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L740">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+
+    // Handle optional fields - only add fields argument if fields are present
+<span class="fc" id="L743">    var fieldContexts =</span>
+<span class="fc" id="L744">        ctx.getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class);</span>
+<span class="pc bpc" id="L745" title="1 of 4 branches missed.">    if (fieldContexts != null &amp;&amp; !fieldContexts.isEmpty()) {</span>
+<span class="fc" id="L746">      var fields =</span>
+          new RelevanceFieldList(
+<span class="fc" id="L748">              fieldContexts.stream()</span>
+<span class="fc" id="L749">                  .collect(</span>
+<span class="fc" id="L750">                      Collectors.toMap(</span>
+<span class="fc" id="L751">                          f -&gt; StringUtils.unquoteText(f.field.getText()),</span>
+<span class="fc bfc" id="L752" title="All 2 branches covered.">                          f -&gt; (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));</span>
+<span class="fc" id="L753">      builder.add(new UnresolvedArgument(&quot;fields&quot;, fields));</span>
+    }
+
+    // Query is always required
+<span class="fc" id="L757">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L759">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+
+    // Add optional arguments
+<span class="fc" id="L762">    ctx.relevanceArg()</span>
+<span class="fc" id="L763">        .forEach(</span>
+            v -&gt;
+<span class="fc" id="L765">                builder.add(</span>
+                    new UnresolvedArgument(
+<span class="fc" id="L767">                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),</span>
+                        new Literal(
+<span class="fc" id="L769">                            StringUtils.unquoteText(v.relevanceArgValue().getText()),</span>
+                            DataType.STRING))));
+<span class="fc" id="L771">    return builder.build();</span>
+  }
+
+  // New visitor methods for spanValue grammar rules
+
+  @Override
+  public UnresolvedExpression visitNumericSpanValue(
+      OpenSearchPPLParser.NumericSpanValueContext ctx) {
+<span class="fc" id="L779">    String spanValue = ctx.literalValue().getText();</span>
+<span class="fc bfc" id="L780" title="All 2 branches covered.">    String spanUnit = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : null;</span>
+
+<span class="fc bfc" id="L782" title="All 2 branches covered.">    if (spanUnit != null) {</span>
+      // Create combined span like &quot;1h&quot;, &quot;30m&quot;, etc.
+<span class="fc" id="L784">      return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(spanValue + spanUnit);</span>
+    } else {
+<span class="fc" id="L786">      return visit(ctx.literalValue());</span>
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
+<span class="nc" id="L792">    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VarianceAggregator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.aggregation</a> &gt; <span class="el_source">VarianceAggregator.java</span></div><h1>VarianceAggregator.java</h1><pre class="source lang-java linenums">/*
+ *   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;).
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the &quot;license&quot; file accompanying this file. This file is distributed
+ *   on an &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+package org.opensearch.sql.expression.aggregation;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
+import static org.opensearch.sql.utils.ExpressionUtils.format;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/** Variance Aggregator. */
+public class VarianceAggregator extends Aggregator&lt;VarianceAggregator.VarianceState&gt; {
+
+  private final boolean isSampleVariance;
+
+  /** Build Population Variance {@link VarianceAggregator}. */
+  public static Aggregator variancePopulation(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L36">    return new VarianceAggregator(false, arguments, returnType);</span>
+  }
+
+  /** Build Sample Variance {@link VarianceAggregator}. */
+  public static Aggregator varianceSample(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L41">    return new VarianceAggregator(true, arguments, returnType);</span>
+  }
+
+  /**
+   * VarianceAggregator constructor.
+   *
+   * @param isSampleVariance true for sample variance aggregator, false for population variance
+   *     aggregator.
+   * @param arguments aggregator arguments.
+   * @param returnType aggregator return types.
+   */
+  public VarianceAggregator(
+      Boolean isSampleVariance, List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L54">    super(</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        isSampleVariance</span>
+<span class="fc" id="L56">            ? BuiltinFunctionName.VARSAMP.getName()</span>
+<span class="fc" id="L57">            : BuiltinFunctionName.VARPOP.getName(),</span>
+        arguments,
+        returnType);
+<span class="fc" id="L60">    this.isSampleVariance = isSampleVariance;</span>
+<span class="fc" id="L61">  }</span>
+
+  @Override
+  public VarianceState create() {
+<span class="fc" id="L65">    return new VarianceState(isSampleVariance);</span>
+  }
+
+  @Override
+  protected VarianceState iterate(ExprValue value, VarianceState state) {
+<span class="fc" id="L70">    state.evaluate(value);</span>
+<span class="fc" id="L71">    return state;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L76">    return StringUtils.format(</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        &quot;%s(%s)&quot;, isSampleVariance ? &quot;var_samp&quot; : &quot;var_pop&quot;, format(getArguments()));</span>
+  }
+
+  protected static class VarianceState implements AggregationState {
+
+    private final Variance variance;
+
+<span class="fc" id="L84">    private final List&lt;Double&gt; values = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L86">    public VarianceState(boolean isSampleVariance) {</span>
+<span class="fc" id="L87">      this.variance = new Variance(isSampleVariance);</span>
+<span class="fc" id="L88">    }</span>
+
+    public void evaluate(ExprValue value) {
+<span class="fc" id="L91">      values.add(value.doubleValue());</span>
+<span class="fc" id="L92">    }</span>
+
+    @Override
+    public ExprValue result() {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">      return values.size() == 0</span>
+<span class="fc" id="L97">          ? ExprNullValue.of()</span>
+<span class="fc" id="L98">          : doubleValue(variance.evaluate(values.stream().mapToDouble(d -&gt; d).toArray()));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

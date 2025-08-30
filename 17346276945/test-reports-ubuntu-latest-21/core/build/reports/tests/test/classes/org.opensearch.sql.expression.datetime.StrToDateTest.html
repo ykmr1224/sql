@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - StrToDateTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>StrToDateTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.expression.datetime.html">org.opensearch.sql.expression.datetime</a> &gt; StrToDateTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">21</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.013s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">a09:30:17 | a%h:%i:%s</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[10]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">abc | abc</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[11]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1 | %Y,%m</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[12]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1,10 | %Y,%m,%h</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[13]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1,10,11 | %Y,%m,%h,%i</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[14]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">9 | %m</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[15]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">9 | %s</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[16]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">01,5,2013 | %d,%m,%Y</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[1]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">May 1, 2013 | %M %d, %Y</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">May 1, 2013 - 9,23,11 | %M %d, %Y - %h,%i,%s</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1,1 | %Y,%m,%d</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1,1,10 | %Y,%m,%d,%h</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[5]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">2000,1,1,10,11 | %Y,%m,%d,%h,%i</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[6]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">01-May-13 | %d-%b-%y</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[7]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">01-Jan-00 | %d-%b-%y</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">31-Jul-99 | %d-%b-%y</td>
+<td class="success">test_str_to_date(String, String, ExprValue, ExprCoreType)[9]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_str_to_date_with_date_format()</td>
+<td class="success">test_str_to_date_with_date_format()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_str_to_date_with_time_format()</td>
+<td class="success">test_str_to_date_with_time_format()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">%h,%i,%s</td>
+<td class="success">test_str_to_date_with_time_type(String, String)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">%Y,%h,%i,%s</td>
+<td class="success">test_str_to_date_with_time_type(String, String)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">%Y,%m,%h,%i,%s</td>
+<td class="success">test_str_to_date_with_time_type(String, String)[3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:29:09 PM</p>
+</div>
+</div>
+</body>
+</html>

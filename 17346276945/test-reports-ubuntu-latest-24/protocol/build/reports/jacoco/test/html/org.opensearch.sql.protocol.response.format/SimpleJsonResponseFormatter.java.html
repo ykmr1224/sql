@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleJsonResponseFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">SimpleJsonResponseFormatter.java</span></div><h1>SimpleJsonResponseFormatter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import java.util.List;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Singular;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+/**
+ * JSON response format with schema header and data rows. For example,
+ *
+ * &lt;pre&gt;
+ *  {
+ *      &quot;schema&quot;: [
+ *          {
+ *              &quot;name&quot;: &quot;name&quot;,
+ *              &quot;type&quot;: &quot;string&quot;
+ *          }
+ *      ],
+ *      &quot;datarows&quot;: [
+ *          [&quot;John&quot;],
+ *          [&quot;Smith&quot;]
+ *      ],
+ *      &quot;total&quot;: 2,
+ *      &quot;size&quot;: 2
+ *  }
+ * &lt;/pre&gt;
+ */
+public class SimpleJsonResponseFormatter extends JsonResponseFormatter&lt;QueryResult&gt; {
+
+  public SimpleJsonResponseFormatter(Style style) {
+<span class="fc" id="L38">    super(style);</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public Object buildJsonObject(QueryResult response) {
+<span class="fc" id="L43">    JsonResponse.JsonResponseBuilder json = JsonResponse.builder();</span>
+
+<span class="fc" id="L45">    json.total(response.size()).size(response.size());</span>
+
+<span class="fc" id="L47">    response.columnNameTypes().forEach((name, type) -&gt; json.column(new Column(name, type)));</span>
+
+<span class="fc" id="L49">    json.datarows(fetchDataRows(response));</span>
+<span class="fc" id="L50">    return json.build();</span>
+  }
+
+  private Object[][] fetchDataRows(QueryResult response) {
+<span class="fc" id="L54">    Object[][] rows = new Object[response.size()][];</span>
+<span class="fc" id="L55">    int i = 0;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    for (Object[] values : response) {</span>
+<span class="fc" id="L57">      rows[i++] = values;</span>
+<span class="fc" id="L58">    }</span>
+<span class="fc" id="L59">    return rows;</span>
+  }
+
+  /** org.json requires these inner data classes be public (and static) */
+  @Builder
+  @Getter
+  public static class JsonResponse {
+    @Singular(&quot;column&quot;)
+    private final List&lt;Column&gt; schema;
+
+    private final Object[][] datarows;
+
+    private long total;
+    private long size;
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class Column {
+    private final String name;
+    private final String type;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

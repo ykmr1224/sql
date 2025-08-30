@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimeSpanHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.handlers</a> &gt; <span class="el_source">TimeSpanHelper.java</span></div><h1>TimeSpanHelper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.handlers;
+
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.BinTimeSpanUtils;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.calcite.utils.binning.SpanParser;
+
+/** Helper for creating time-based span expressions. */
+<span class="nc" id="L16">public class TimeSpanHelper {</span>
+
+  /** Creates time span expression with optional alignment. */
+  public RexNode createTimeSpanExpression(
+      String spanStr, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+
+    // Check if aligntime should be applied
+<span class="nc bnc" id="L23" title="All 4 branches missed.">    if (alignTimeValue != null &amp;&amp; shouldApplyAligntime(spanStr)) {</span>
+<span class="nc" id="L24">      return createAlignedTimeSpan(spanStr, fieldExpr, alignTimeValue, context);</span>
+    }
+
+    // No alignment - use standard time span
+<span class="nc" id="L28">    return createStandardTimeSpan(spanStr, fieldExpr, context);</span>
+  }
+
+  private boolean shouldApplyAligntime(String spanStr) {
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    if (spanStr == null) return false;</span>
+
+<span class="nc" id="L34">    spanStr = spanStr.replace(&quot;'&quot;, &quot;&quot;).replace(&quot;\&quot;&quot;, &quot;&quot;).trim().toLowerCase();</span>
+<span class="nc" id="L35">    String timeUnit = SpanParser.extractTimeUnit(spanStr);</span>
+
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (timeUnit == null) return true; // Pure number, assume hours</span>
+
+    // Aligntime ignored for days, months, years
+<span class="nc" id="L40">    String normalizedUnit = normalizeTimeUnit(timeUnit);</span>
+<span class="nc bnc" id="L41" title="All 4 branches missed.">    return !normalizedUnit.equals(&quot;d&quot;) &amp;&amp; !normalizedUnit.equals(&quot;M&quot;);</span>
+  }
+
+  private RexNode createAlignedTimeSpan(
+      String spanStr, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    if (!(alignTimeValue instanceof RexLiteral)) {</span>
+<span class="nc" id="L48">      return createStandardTimeSpan(spanStr, fieldExpr, context);</span>
+    }
+
+<span class="nc" id="L51">    Object value = ((RexLiteral) alignTimeValue).getValue();</span>
+<span class="nc" id="L52">    String aligntimeStr = extractAlignTimeString(value);</span>
+
+<span class="nc bnc" id="L54" title="All 2 branches missed.">    if (aligntimeStr == null) {</span>
+<span class="nc" id="L55">      return createStandardTimeSpan(spanStr, fieldExpr, context);</span>
+    }
+
+    // Parse span parameters
+<span class="nc" id="L59">    spanStr = spanStr.replace(&quot;'&quot;, &quot;&quot;).replace(&quot;\&quot;&quot;, &quot;&quot;).trim();</span>
+<span class="nc" id="L60">    String timeUnit = SpanParser.extractTimeUnit(spanStr);</span>
+    int intervalValue;
+    String normalizedUnit;
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (timeUnit != null) {</span>
+<span class="nc" id="L65">      String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());</span>
+<span class="nc" id="L66">      intervalValue = Integer.parseInt(valueStr);</span>
+<span class="nc" id="L67">      normalizedUnit = normalizeTimeUnit(timeUnit);</span>
+<span class="nc" id="L68">    } else {</span>
+<span class="nc" id="L69">      intervalValue = Integer.parseInt(spanStr);</span>
+<span class="nc" id="L70">      normalizedUnit = &quot;h&quot;;</span>
+    }
+
+    // Extract modifier from alignment string
+<span class="nc" id="L74">    String modifier = extractModifier(aligntimeStr);</span>
+
+<span class="nc" id="L76">    return BinTimeSpanUtils.createBinTimeSpanExpressionWithTimeModifier(</span>
+        fieldExpr, intervalValue, normalizedUnit, modifier, context);
+  }
+
+  private RexNode createStandardTimeSpan(
+      String spanStr, RexNode fieldExpr, CalcitePlanContext context) {
+
+<span class="nc" id="L83">    spanStr = spanStr.replace(&quot;'&quot;, &quot;&quot;).replace(&quot;\&quot;&quot;, &quot;&quot;).trim();</span>
+<span class="nc" id="L84">    String timeUnit = SpanParser.extractTimeUnit(spanStr);</span>
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">    if (timeUnit != null) {</span>
+<span class="nc" id="L87">      String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());</span>
+<span class="nc" id="L88">      int value = Integer.parseInt(valueStr);</span>
+<span class="nc" id="L89">      String normalizedUnit = normalizeTimeUnit(timeUnit);</span>
+<span class="nc" id="L90">      return BinTimeSpanUtils.createBinTimeSpanExpression(</span>
+          fieldExpr, value, normalizedUnit, 0, context);
+    } else {
+      // Assume hours if no unit
+<span class="nc" id="L94">      int value = Integer.parseInt(spanStr);</span>
+<span class="nc" id="L95">      return BinTimeSpanUtils.createBinTimeSpanExpression(fieldExpr, value, &quot;h&quot;, 0, context);</span>
+    }
+  }
+
+  private String extractAlignTimeString(Object value) {
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if (value instanceof org.apache.calcite.util.NlsString) {</span>
+<span class="nc" id="L101">      return ((org.apache.calcite.util.NlsString) value).getValue();</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    } else if (value instanceof String) {</span>
+<span class="nc" id="L103">      return (String) value;</span>
+    }
+<span class="nc" id="L105">    return null;</span>
+  }
+
+  private String extractModifier(String aligntimeStr) {
+<span class="nc" id="L109">    aligntimeStr = aligntimeStr.replace(&quot;\&quot;&quot;, &quot;&quot;).replace(&quot;'&quot;, &quot;&quot;).trim();</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">    if (aligntimeStr.startsWith(BinConstants.ALIGNTIME_EPOCH_PREFIX)) {</span>
+<span class="nc" id="L112">      return aligntimeStr.substring(BinConstants.ALIGNTIME_EPOCH_PREFIX.length());</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    } else if (aligntimeStr.startsWith(BinConstants.ALIGNTIME_TIME_MODIFIER_PREFIX)) {</span>
+<span class="nc" id="L114">      return aligntimeStr.substring(BinConstants.ALIGNTIME_TIME_MODIFIER_PREFIX.length());</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    } else if (aligntimeStr.startsWith(&quot;@d&quot;)) {</span>
+<span class="nc" id="L116">      return aligntimeStr;</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    } else if (aligntimeStr.matches(&quot;\\d+&quot;)) {</span>
+<span class="nc" id="L118">      return aligntimeStr;</span>
+    }
+
+<span class="nc" id="L121">    return null;</span>
+  }
+
+  private String normalizeTimeUnit(String unit) {
+<span class="nc bnc" id="L125" title="All 10 branches missed.">    switch (unit.toLowerCase()) {</span>
+      case &quot;s&quot;, &quot;sec&quot;, &quot;secs&quot;, &quot;second&quot;, &quot;seconds&quot; -&gt; {
+<span class="nc" id="L127">        return &quot;s&quot;;</span>
+      }
+      case &quot;m&quot;, &quot;min&quot;, &quot;mins&quot;, &quot;minute&quot;, &quot;minutes&quot; -&gt; {
+<span class="nc" id="L130">        return &quot;m&quot;;</span>
+      }
+      case &quot;h&quot;, &quot;hr&quot;, &quot;hrs&quot;, &quot;hour&quot;, &quot;hours&quot; -&gt; {
+<span class="nc" id="L133">        return &quot;h&quot;;</span>
+      }
+      case &quot;d&quot;, &quot;day&quot;, &quot;days&quot; -&gt; {
+<span class="nc" id="L136">        return &quot;d&quot;;</span>
+      }
+      case &quot;mon&quot;, &quot;month&quot;, &quot;months&quot; -&gt; {
+<span class="nc" id="L139">        return &quot;months&quot;;</span>
+      }
+      case &quot;us&quot; -&gt; {
+<span class="nc" id="L142">        return &quot;us&quot;;</span>
+      }
+      case &quot;ms&quot; -&gt; {
+<span class="nc" id="L145">        return &quot;ms&quot;;</span>
+      }
+      case &quot;cs&quot; -&gt; {
+<span class="nc" id="L148">        return &quot;cs&quot;;</span>
+      }
+      case &quot;ds&quot; -&gt; {
+<span class="nc" id="L151">        return &quot;ds&quot;;</span>
+      }
+      default -&gt; {
+<span class="nc" id="L154">        return unit;</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

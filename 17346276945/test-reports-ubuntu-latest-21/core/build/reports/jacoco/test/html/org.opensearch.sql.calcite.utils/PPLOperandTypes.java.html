@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLOperandTypes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">PPLOperandTypes.java</span></div><h1>PPLOperandTypes.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * This class contains common operand types for PPL functions. They are created by either wrapping a
+ * {@link FamilyOperandTypeChecker} or a {@link CompositeOperandTypeChecker} with a {@link
+ * UDFOperandMetadata}.
+ */
+public class PPLOperandTypes {
+  // This class is not meant to be instantiated.
+  private PPLOperandTypes() {}
+
+<span class="fc" id="L25">  public static final UDFOperandMetadata NONE = UDFOperandMetadata.wrap(OperandTypes.family());</span>
+<span class="fc" id="L26">  public static final UDFOperandMetadata OPTIONAL_INTEGER =</span>
+<span class="fc" id="L27">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L28">          (CompositeOperandTypeChecker) OperandTypes.INTEGER.or(OperandTypes.family()));</span>
+<span class="fc" id="L29">  public static final UDFOperandMetadata STRING =</span>
+<span class="fc" id="L30">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.CHARACTER);</span>
+<span class="fc" id="L31">  public static final UDFOperandMetadata INTEGER =</span>
+<span class="fc" id="L32">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER);</span>
+<span class="fc" id="L33">  public static final UDFOperandMetadata NUMERIC =</span>
+<span class="fc" id="L34">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC);</span>
+
+<span class="fc" id="L36">  public static final UDFOperandMetadata NUMERIC_OPTIONAL_STRING =</span>
+<span class="fc" id="L37">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L39">              OperandTypes.NUMERIC.or(</span>
+<span class="fc" id="L40">                  OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)));</span>
+
+<span class="fc" id="L42">  public static final UDFOperandMetadata ANY_OPTIONAL_INTEGER =</span>
+<span class="fc" id="L43">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L45">              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));</span>
+<span class="fc" id="L46">  public static final UDFOperandMetadata INTEGER_INTEGER =</span>
+<span class="fc" id="L47">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);</span>
+<span class="fc" id="L48">  public static final UDFOperandMetadata STRING_STRING =</span>
+<span class="fc" id="L49">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.CHARACTER_CHARACTER);</span>
+<span class="fc" id="L50">  public static final UDFOperandMetadata NUMERIC_NUMERIC =</span>
+<span class="fc" id="L51">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC);</span>
+<span class="fc" id="L52">  public static final UDFOperandMetadata STRING_INTEGER =</span>
+<span class="fc" id="L53">      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));</span>
+
+<span class="fc" id="L55">  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =</span>
+<span class="fc" id="L56">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L58">              OperandTypes.NUMERIC_NUMERIC.or(</span>
+<span class="fc" id="L59">                  OperandTypes.family(</span>
+                      SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
+<span class="fc" id="L61">  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =</span>
+<span class="fc" id="L62">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L63">          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));</span>
+<span class="fc" id="L64">  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC =</span>
+<span class="fc" id="L65">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L66">          OperandTypes.family(</span>
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
+<span class="fc" id="L71">  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =</span>
+<span class="fc" id="L72">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L73">          OperandTypes.family(</span>
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
+<span class="fc" id="L79">  public static final UDFOperandMetadata STRING_OR_INTEGER_INTEGER_INTEGER =</span>
+<span class="fc" id="L80">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L82">              OperandTypes.family(</span>
+                      SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)
+<span class="fc" id="L84">                  .or(</span>
+<span class="fc" id="L85">                      OperandTypes.family(</span>
+                          SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)));
+
+<span class="fc" id="L88">  public static final UDFOperandMetadata OPTIONAL_DATE_OR_TIMESTAMP_OR_NUMERIC =</span>
+<span class="fc" id="L89">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L91">              OperandTypes.DATETIME.or(OperandTypes.NUMERIC).or(OperandTypes.family()));</span>
+
+<span class="fc" id="L93">  public static final UDFOperandMetadata DATETIME_OR_STRING =</span>
+<span class="fc" id="L94">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L95">          (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.CHARACTER));</span>
+<span class="fc" id="L96">  public static final UDFOperandMetadata TIME_OR_TIMESTAMP_OR_STRING =</span>
+<span class="fc" id="L97">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L99">              OperandTypes.CHARACTER.or(OperandTypes.TIME).or(OperandTypes.TIMESTAMP));</span>
+<span class="fc" id="L100">  public static final UDFOperandMetadata DATE_OR_TIMESTAMP_OR_STRING =</span>
+<span class="fc" id="L101">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L102">          (CompositeOperandTypeChecker) OperandTypes.DATE_OR_TIMESTAMP.or(OperandTypes.CHARACTER));</span>
+<span class="fc" id="L103">  public static final UDFOperandMetadata DATETIME_OR_STRING_OR_INTEGER =</span>
+<span class="fc" id="L104">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L106">              OperandTypes.DATETIME.or(OperandTypes.CHARACTER).or(OperandTypes.INTEGER));</span>
+
+<span class="fc" id="L108">  public static final UDFOperandMetadata DATETIME_OPTIONAL_INTEGER =</span>
+<span class="fc" id="L109">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L111">              OperandTypes.DATETIME.or(</span>
+<span class="fc" id="L112">                  OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));</span>
+
+<span class="fc" id="L114">  public static final UDFOperandMetadata DATETIME_DATETIME =</span>
+<span class="fc" id="L115">      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));</span>
+<span class="fc" id="L116">  public static final UDFOperandMetadata DATETIME_OR_STRING_STRING =</span>
+<span class="fc" id="L117">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L119">              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)</span>
+<span class="fc" id="L120">                  .or(OperandTypes.CHARACTER_CHARACTER));</span>
+<span class="fc" id="L121">  public static final UDFOperandMetadata DATETIME_OR_STRING_DATETIME_OR_STRING =</span>
+<span class="fc" id="L122">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+              OperandTypes.CHARACTER_CHARACTER
+<span class="fc" id="L125">                  .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))</span>
+<span class="fc" id="L126">                  .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER))</span>
+<span class="fc" id="L127">                  .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME)));</span>
+<span class="fc" id="L128">  public static final UDFOperandMetadata STRING_TIMESTAMP =</span>
+<span class="fc" id="L129">      UDFOperandMetadata.wrap(</span>
+<span class="fc" id="L130">          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIMESTAMP));</span>
+<span class="fc" id="L131">  public static final UDFOperandMetadata STRING_DATETIME =</span>
+<span class="fc" id="L132">      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME));</span>
+<span class="fc" id="L133">  public static final UDFOperandMetadata DATETIME_INTERVAL =</span>
+<span class="fc" id="L134">      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.DATETIME_INTERVAL);</span>
+<span class="fc" id="L135">  public static final UDFOperandMetadata TIME_TIME =</span>
+<span class="fc" id="L136">      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME));</span>
+
+<span class="fc" id="L138">  public static final UDFOperandMetadata TIMESTAMP_OR_STRING_STRING_STRING =</span>
+<span class="fc" id="L139">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L141">              OperandTypes.family(</span>
+                      SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
+<span class="fc" id="L143">                  .or(</span>
+<span class="fc" id="L144">                      OperandTypes.family(</span>
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.CHARACTER)));
+<span class="fc" id="L148">  public static final UDFOperandMetadata STRING_INTEGER_DATETIME_OR_STRING =</span>
+<span class="fc" id="L149">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L151">              OperandTypes.family(</span>
+                      SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER, SqlTypeFamily.CHARACTER)
+<span class="fc" id="L153">                  .or(</span>
+<span class="fc" id="L154">                      OperandTypes.family(</span>
+                          SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER, SqlTypeFamily.DATETIME)));
+<span class="fc" id="L156">  public static final UDFOperandMetadata INTERVAL_DATETIME_DATETIME =</span>
+<span class="fc" id="L157">      UDFOperandMetadata.wrap(</span>
+          (CompositeOperandTypeChecker)
+<span class="fc" id="L159">              OperandTypes.family(</span>
+                      SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)
+<span class="fc" id="L161">                  .or(</span>
+<span class="fc" id="L162">                      OperandTypes.family(</span>
+                          SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME))
+<span class="fc" id="L164">                  .or(</span>
+<span class="fc" id="L165">                      OperandTypes.family(</span>
+                          SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER))
+<span class="fc" id="L167">                  .or(</span>
+<span class="fc" id="L168">                      OperandTypes.family(</span>
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.CHARACTER)));
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

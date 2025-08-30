@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WideningTypeRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.type</a> &gt; <span class="el_source">WideningTypeRule.java</span></div><h1>WideningTypeRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.type;
+
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+/**
+ * The definition of widening type rule for expression value.
+ *
+ * &lt;table border=&quot;3&quot;&gt;
+ * &lt;tr&gt;&lt;th&gt;ExprType&lt;/th&gt;&lt;th&gt;Widens to data types&lt;/th&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;INTEGER&lt;/td&gt;&lt;td&gt;LONG, FLOAT, DOUBLE&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;LONG&lt;/td&gt;&lt;td&gt;FLOAT, DOUBLE&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;FLOAT&lt;/td&gt;&lt;td&gt;DOUBLE&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;DOUBLE&lt;/td&gt;&lt;td&gt;DOUBLE&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;STRING&lt;/td&gt;&lt;td&gt;STRING&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;BOOLEAN&lt;/td&gt;&lt;td&gt;BOOLEAN&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;ARRAY&lt;/td&gt;&lt;td&gt;ARRAY&lt;/td&gt;&lt;/tr&gt;
+ * &lt;tr&gt;&lt;td&gt;STRUCT&lt;/td&gt;&lt;td&gt;STRUCT&lt;/td&gt;&lt;/tr&gt;
+ * &lt;/table&gt;
+ */
+@UtilityClass
+public class WideningTypeRule {
+  public static final int IMPOSSIBLE_WIDENING = Integer.MAX_VALUE;
+  public static final int TYPE_EQUAL = 0;
+
+  /**
+   * The widening distance is calculated from the leaf to root. e.g. distance(INTEGER, FLOAT) = 2,
+   * but distance(FLOAT, INTEGER) = IMPOSSIBLE_WIDENING
+   *
+   * @param type1 widen from type
+   * @param type2 widen to type
+   * @return The widening distance when widen one type to another type.
+   */
+  public static int distance(ExprType type1, ExprType type2) {
+<span class="fc" id="L42">    return distance(type1, type2, TYPE_EQUAL);</span>
+  }
+
+  private static int distance(ExprType type1, ExprType type2, int distance) {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (type1 == type2) {</span>
+<span class="fc" id="L47">      return distance;</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    } else if (type1 == UNKNOWN) {</span>
+<span class="fc" id="L49">      return IMPOSSIBLE_WIDENING;</span>
+    } else {
+<span class="fc" id="L51">      return type1.getParent().stream()</span>
+<span class="fc" id="L52">          .map(parentOfType1 -&gt; distance(parentOfType1, type2, distance + 1))</span>
+<span class="fc" id="L53">          .reduce(Math::min)</span>
+<span class="fc" id="L54">          .get();</span>
+    }
+  }
+
+  /**
+   * The max type among two types. The max is defined as follow if type1 could widen to type2, then
+   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
+   * then throw {@link ExpressionEvaluationException}.
+   *
+   * @param type1 type1
+   * @param type2 type2
+   * @return the max type among two types.
+   */
+  public static ExprType max(ExprType type1, ExprType type2) {
+<span class="fc" id="L68">    int type1To2 = distance(type1, type2);</span>
+<span class="fc" id="L69">    int type2To1 = distance(type2, type1);</span>
+
+<span class="fc bfc" id="L71" title="All 4 branches covered.">    if (type1To2 == Integer.MAX_VALUE &amp;&amp; type2To1 == Integer.MAX_VALUE) {</span>
+<span class="fc" id="L72">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L73">          String.format(&quot;no max type of %s and %s &quot;, type1, type2));</span>
+    } else {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">      return type1To2 == Integer.MAX_VALUE ? type1 : type2;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

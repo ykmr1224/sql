@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnumerableIndexScanRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">EnumerableIndexScanRule.java</span></div><h1>EnumerableIndexScanRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+
+/** Rule to convert a {@link CalciteLogicalIndexScan} to a {@link CalciteEnumerableIndexScan}. */
+public class EnumerableIndexScanRule extends ConverterRule {
+  /** Default configuration. */
+<span class="nc" id="L19">  public static final Config DEFAULT_CONFIG =</span>
+      Config.INSTANCE
+<span class="nc" id="L21">          .as(Config.class)</span>
+<span class="nc" id="L22">          .withConversion(</span>
+              CalciteLogicalIndexScan.class,
+<span class="nc bnc" id="L24" title="All 2 branches missed.">              s -&gt; s.getOsIndex() != null,</span>
+              Convention.NONE,
+              EnumerableConvention.INSTANCE,
+              &quot;EnumerableIndexScanRule&quot;)
+<span class="nc" id="L28">          .withRuleFactory(EnumerableIndexScanRule::new);</span>
+
+  /** Creates an EnumerableIndexScanRule. */
+  protected EnumerableIndexScanRule(Config config) {
+<span class="nc" id="L32">    super(config);</span>
+<span class="nc" id="L33">  }</span>
+
+  @Override
+  public boolean matches(RelOptRuleCall call) {
+<span class="nc" id="L37">    CalciteLogicalIndexScan scan = call.rel(0);</span>
+<span class="nc" id="L38">    return scan.getVariablesSet().isEmpty();</span>
+  }
+
+  @Override
+  public RelNode convert(RelNode rel) {
+<span class="nc" id="L43">    final CalciteLogicalIndexScan scan = (CalciteLogicalIndexScan) rel;</span>
+<span class="nc" id="L44">    return new CalciteEnumerableIndexScan(</span>
+<span class="nc" id="L45">        scan.getCluster(),</span>
+        // Retains RelDistribution and RelCollation but replaces Convention
+<span class="nc" id="L47">        scan.getTraitSet().plus(EnumerableConvention.INSTANCE),</span>
+<span class="nc" id="L48">        scan.getHints(),</span>
+<span class="nc" id="L49">        scan.getTable(),</span>
+<span class="nc" id="L50">        scan.getOsIndex(),</span>
+<span class="nc" id="L51">        scan.getSchema(),</span>
+<span class="nc" id="L52">        scan.getPushDownContext());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultImplementor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner</a> &gt; <span class="el_source">DefaultImplementor.java</span></div><h1>DefaultImplementor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner;
+
+import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalDedupe;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRareTopN;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalRemove;
+import org.opensearch.sql.planner.logical.LogicalRename;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
+import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWindow;
+import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.DedupeOperator;
+import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.NestedOperator;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.RareTopNOperator;
+import org.opensearch.sql.planner.physical.RemoveOperator;
+import org.opensearch.sql.planner.physical.RenameOperator;
+import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
+import org.opensearch.sql.planner.physical.WindowOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
+
+/**
+ * Default implementor for implementing logical to physical translation. &quot;Default&quot; here means all
+ * logical operator will be translated to correspondent physical operator to pipeline operations in
+ * post-processing style in memory. Different storage can override methods here to optimize default
+ * pipelining operator, for example a storage has the flexibility to override visitFilter and
+ * visitRelation to push down filtering operation and return a single physical index scan operator.
+ *
+ * @param &lt;C&gt; context type
+ */
+<span class="fc" id="L58">public class DefaultImplementor&lt;C&gt; extends LogicalPlanNodeVisitor&lt;PhysicalPlan, C&gt; {</span>
+
+  @Override
+  public PhysicalPlan visitRareTopN(LogicalRareTopN node, C context) {
+<span class="fc" id="L62">    return new RareTopNOperator(</span>
+<span class="fc" id="L63">        visitChild(node, context),</span>
+<span class="fc" id="L64">        node.getCommandType(),</span>
+<span class="fc" id="L65">        node.getNoOfResults(),</span>
+<span class="fc" id="L66">        node.getFieldList(),</span>
+<span class="fc" id="L67">        node.getGroupByList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitDedupe(LogicalDedupe node, C context) {
+<span class="fc" id="L72">    return new DedupeOperator(</span>
+<span class="fc" id="L73">        visitChild(node, context),</span>
+<span class="fc" id="L74">        node.getDedupeList(),</span>
+<span class="fc" id="L75">        node.getAllowedDuplication(),</span>
+<span class="fc" id="L76">        node.getKeepEmpty(),</span>
+<span class="fc" id="L77">        node.getConsecutive());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitProject(LogicalProject node, C context) {
+<span class="fc" id="L82">    return new ProjectOperator(</span>
+<span class="fc" id="L83">        visitChild(node, context), node.getProjectList(), node.getNamedParseExpressions());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitWindow(LogicalWindow node, C context) {
+<span class="fc" id="L88">    return new WindowOperator(</span>
+<span class="fc" id="L89">        visitChild(node, context), node.getWindowFunction(), node.getWindowDefinition());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRemove(LogicalRemove node, C context) {
+<span class="fc" id="L94">    return new RemoveOperator(visitChild(node, context), node.getRemoveList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitEval(LogicalEval node, C context) {
+<span class="fc" id="L99">    return new EvalOperator(visitChild(node, context), node.getExpressions());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitNested(LogicalNested node, C context) {
+<span class="fc" id="L104">    return new NestedOperator(visitChild(node, context), node.getFields());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitSort(LogicalSort node, C context) {
+<span class="fc" id="L109">    PhysicalPlan child = visitChild(node, context);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    if (node.getCount() != 0) {</span>
+<span class="nc" id="L111">      return new TakeOrderedOperator(child, node.getCount(), 0, node.getSortList());</span>
+    }
+<span class="fc" id="L113">    return new SortOperator(child, node.getSortList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRename(LogicalRename node, C context) {
+<span class="fc" id="L118">    return new RenameOperator(visitChild(node, context), node.getRenameMap());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitAggregation(LogicalAggregation node, C context) {
+<span class="fc" id="L123">    return new AggregationOperator(</span>
+<span class="fc" id="L124">        visitChild(node, context), node.getAggregatorList(), node.getGroupByList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitFilter(LogicalFilter node, C context) {
+<span class="fc" id="L129">    return new FilterOperator(visitChild(node, context), node.getCondition());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitValues(LogicalValues node, C context) {
+<span class="fc" id="L134">    return new ValuesOperator(node.getValues());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitLimit(LogicalLimit node, C context) {
+<span class="fc" id="L139">    PhysicalPlan child = visitChild(node, context);</span>
+    // Optimize sort + limit to take ordered operator
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    if (child instanceof SortOperator sortChild) {</span>
+<span class="fc" id="L142">      return new TakeOrderedOperator(</span>
+<span class="fc" id="L143">          sortChild.getInput(), node.getLimit(), node.getOffset(), sortChild.getSortList());</span>
+    }
+<span class="fc" id="L145">    return new LimitOperator(child, node.getLimit(), node.getOffset());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitTableScanBuilder(TableScanBuilder plan, C context) {
+<span class="fc" id="L150">    return plan.build();</span>
+  }
+
+  @Override
+  public PhysicalPlan visitTableWriteBuilder(TableWriteBuilder plan, C context) {
+<span class="fc" id="L155">    return plan.build(visitChild(plan, context));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRelation(LogicalRelation node, C context) {
+<span class="fc" id="L160">    throw new UnsupportedOperationException(</span>
+        &quot;Storage engine is responsible for &quot;
+            + &quot;implementing and optimizing logical plan with relation involved&quot;);
+  }
+
+  @Override
+  public PhysicalPlan visitFetchCursor(LogicalFetchCursor plan, C context) {
+<span class="fc" id="L167">    return new PlanSerializer(plan.getEngine()).convertToPlan(plan.getCursor());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitCloseCursor(LogicalCloseCursor node, C context) {
+<span class="fc" id="L172">    return new CursorCloseOperator(visitChild(node, context));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitTrendline(LogicalTrendline plan, C context) {
+<span class="fc" id="L177">    return new TrendlineOperator(visitChild(plan, context), plan.getComputations());</span>
+  }
+
+  // Called when paging query requested without `FROM` clause only
+  @Override
+  public PhysicalPlan visitPaginate(LogicalPaginate plan, C context) {
+<span class="fc" id="L183">    return visitChild(plan, context);</span>
+  }
+
+  protected PhysicalPlan visitChild(LogicalPlan node, C context) {
+    // Logical operators visited here must have a single child
+<span class="fc" id="L188">    return node.getChild().get(0).accept(this, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RelevanceQuery.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance</a> &gt; <span class="el_source">RelevanceQuery.java</span></div><h1>RelevanceQuery.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
+
+/** Base class for query abstraction that builds a relevance query from function expression. */
+@RequiredArgsConstructor
+public abstract class RelevanceQuery&lt;T extends QueryBuilder&gt; extends LuceneQuery {
+  @Getter private final Map&lt;String, QueryBuilderStep&lt;T&gt;&gt; queryBuildActions;
+
+  protected void ignoreArguments(List&lt;NamedArgumentExpression&gt; arguments) {
+<span class="fc" id="L30">    arguments.removeIf(</span>
+        a -&gt;
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            a.getArgName().equalsIgnoreCase(&quot;field&quot;)</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">                || a.getArgName().equalsIgnoreCase(&quot;fields&quot;)</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">                || a.getArgName().equalsIgnoreCase(&quot;query&quot;));</span>
+<span class="fc" id="L35">  }</span>
+
+  protected void checkValidArguments(String argNormalized, T queryBuilder) {
+<span class="fc bfc" id="L38" title="All 2 branches covered.">    if (!queryBuildActions.containsKey(argNormalized)) {</span>
+<span class="fc" id="L39">      throw new SemanticCheckException(</span>
+<span class="fc" id="L40">          String.format(</span>
+              &quot;Parameter %s is invalid for %s function.&quot;,
+<span class="fc" id="L42">              argNormalized, queryBuilder.getWriteableName()));</span>
+    }
+<span class="fc" id="L44">  }</span>
+
+  protected T loadArguments(List&lt;NamedArgumentExpression&gt; arguments) throws SemanticCheckException {
+    // Aggregate parameters by name, so getting a Map&lt;Name:String, List&gt;
+<span class="fc" id="L48">    arguments.stream()</span>
+<span class="fc" id="L49">        .collect(Collectors.groupingBy(a -&gt; a.getArgName().toLowerCase()))</span>
+<span class="fc" id="L50">        .forEach(</span>
+            (k, v) -&gt; {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">              if (v.size() &gt; 1) {</span>
+<span class="fc" id="L53">                throw new SemanticCheckException(</span>
+<span class="fc" id="L54">                    String.format(&quot;Parameter '%s' can only be specified once.&quot;, k));</span>
+              }
+<span class="fc" id="L56">            });</span>
+
+<span class="fc" id="L58">    T queryBuilder = createQueryBuilder(arguments);</span>
+
+<span class="fc" id="L60">    ignoreArguments(arguments);</span>
+
+<span class="fc" id="L62">    var iterator = arguments.listIterator();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    while (iterator.hasNext()) {</span>
+<span class="fc" id="L64">      NamedArgumentExpression arg = iterator.next();</span>
+<span class="fc" id="L65">      String argNormalized = arg.getArgName().toLowerCase();</span>
+
+<span class="fc" id="L67">      checkValidArguments(argNormalized, queryBuilder);</span>
+
+<span class="fc" id="L69">      (Objects.requireNonNull(queryBuildActions.get(argNormalized)))</span>
+<span class="fc" id="L70">          .apply(queryBuilder, arg.getValue().valueOf());</span>
+<span class="fc" id="L71">    }</span>
+
+<span class="fc" id="L73">    return queryBuilder;</span>
+  }
+
+  @Override
+  public QueryBuilder build(FunctionExpression func) {
+<span class="fc" id="L78">    var arguments =</span>
+<span class="fc" id="L79">        func.getArguments().stream()</span>
+<span class="fc" id="L80">            .map(a -&gt; (NamedArgumentExpression) a)</span>
+<span class="fc" id="L81">            .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    if (arguments.size() &lt; getMinimumParameterCount()) {</span>
+<span class="fc" id="L83">      throw new SyntaxCheckException(</span>
+<span class="fc" id="L84">          String.format(</span>
+<span class="fc" id="L85">              &quot;%s requires at least %d parameter(s)&quot;, getQueryName(), getMinimumParameterCount()));</span>
+    }
+
+<span class="fc" id="L88">    return loadArguments(arguments);</span>
+  }
+
+  /**
+   * Returns the minimum number of parameters required by the query. Subclasses can override this
+   * method to allow different minimum parameter counts.
+   *
+   * @return minimum parameter count
+   */
+  protected int getMinimumParameterCount() {
+<span class="fc" id="L98">    return 2; // Default: requires both fields and query</span>
+  }
+
+  /**
+   * Enrich initially created opensearch index query builder with optional arguments that are
+   * wrapped in Calcite MAP RexCall.
+   *
+   * @param queryBuilder queryBuilder Initially created opensearch index relevance query builder
+   * @param optionalArguments Map contains optional relevance query argument key value pairs
+   * @return enriched QueryBuilder
+   */
+  protected T applyArguments(T queryBuilder, Map&lt;String, String&gt; optionalArguments) {
+<span class="pc bpc" id="L110" title="1 of 4 branches missed.">    if (optionalArguments != null &amp;&amp; !optionalArguments.isEmpty()) {</span>
+<span class="fc" id="L111">      optionalArguments.forEach(</span>
+          (k, v) -&gt; {
+<span class="fc" id="L113">            checkValidArguments(k, queryBuilder);</span>
+<span class="fc" id="L114">            (Objects.requireNonNull(getQueryBuildActions().get(k)))</span>
+<span class="fc" id="L115">                .apply(queryBuilder, new ExprStringValue(v));</span>
+<span class="fc" id="L116">          });</span>
+    }
+
+<span class="fc" id="L119">    return queryBuilder;</span>
+  }
+
+  protected abstract T createQueryBuilder(List&lt;NamedArgumentExpression&gt; arguments);
+
+  protected abstract String getQueryName();
+
+  /**
+   * Convenience interface for a function that updates a QueryBuilder based on ExprValue.
+   *
+   * @param &lt;T&gt; Concrete query builder
+   */
+  protected interface QueryBuilderStep&lt;T extends QueryBuilder&gt;
+      extends BiFunction&lt;T, ExprValue, T&gt; {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

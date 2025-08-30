@@ -1,0 +1,569 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchSettings.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.setting</a> &gt; <span class="el_source">OpenSearchSettings.java</span></div><h1>OpenSearchSettings.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.setting;
+
+import static org.opensearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.opensearch.cluster.ClusterName;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.SecureSetting;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.common.setting.Settings;
+
+/** Setting implementation on OpenSearch. */
+<span class="fc" id="L34">@Log4j2</span>
+public class OpenSearchSettings extends Settings {
+  /** Default settings. */
+  private final Map&lt;Settings.Key, Setting&lt;?&gt;&gt; defaultSettings;
+
+  /** Latest setting value for each registered key. Thread-safe is required. */
+<span class="fc" id="L40">  @VisibleForTesting</span>
+  private final Map&lt;Settings.Key, Object&gt; latestSettings = new ConcurrentHashMap&lt;&gt;();
+
+<span class="fc" id="L43">  public static final Setting&lt;?&gt; SQL_ENABLED_SETTING =</span>
+<span class="fc" id="L44">      Setting.boolSetting(</span>
+<span class="fc" id="L45">          Key.SQL_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L50">  public static final Setting&lt;?&gt; SQL_SLOWLOG_SETTING =</span>
+<span class="fc" id="L51">      Setting.intSetting(</span>
+<span class="fc" id="L52">          Key.SQL_SLOWLOG.getKeyValue(),</span>
+          2,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L58">  public static final Setting&lt;?&gt; SQL_CURSOR_KEEP_ALIVE_SETTING =</span>
+<span class="fc" id="L59">      Setting.positiveTimeSetting(</span>
+<span class="fc" id="L60">          Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),</span>
+<span class="fc" id="L61">          timeValueMinutes(1),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L65">  public static final Setting&lt;?&gt; PPL_ENABLED_SETTING =</span>
+<span class="fc" id="L66">      Setting.boolSetting(</span>
+<span class="fc" id="L67">          Key.PPL_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L72">  public static final Setting&lt;?&gt; DEFAULT_PATTERN_METHOD_SETTING =</span>
+<span class="fc" id="L73">      Setting.simpleString(</span>
+<span class="fc" id="L74">          Key.PATTERN_METHOD.getKeyValue(),</span>
+          &quot;SIMPLE_PATTERN&quot;,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L79">  public static final Setting&lt;?&gt; DEFAULT_PATTERN_MODE_SETTING =</span>
+<span class="fc" id="L80">      Setting.simpleString(</span>
+<span class="fc" id="L81">          Key.PATTERN_MODE.getKeyValue(),</span>
+          &quot;LABEL&quot;,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L86">  public static final Setting&lt;?&gt; DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING =</span>
+<span class="fc" id="L87">      Setting.intSetting(</span>
+<span class="fc" id="L88">          Key.PATTERN_MAX_SAMPLE_COUNT.getKeyValue(),</span>
+          10,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L94">  public static final Setting&lt;?&gt; DEFAULT_PATTERN_BUFFER_LIMIT_SETTING =</span>
+<span class="fc" id="L95">      Setting.intSetting(</span>
+<span class="fc" id="L96">          Key.PATTERN_BUFFER_LIMIT.getKeyValue(),</span>
+          100000,
+          50000,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L102">  public static final Setting&lt;?&gt; CALCITE_ENGINE_ENABLED_SETTING =</span>
+<span class="fc" id="L103">      Setting.boolSetting(</span>
+<span class="fc" id="L104">          Key.CALCITE_ENGINE_ENABLED.getKeyValue(),</span>
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L109">  public static final Setting&lt;?&gt; CALCITE_FALLBACK_ALLOWED_SETTING =</span>
+<span class="fc" id="L110">      Setting.boolSetting(</span>
+<span class="fc" id="L111">          Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),</span>
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L116">  public static final Setting&lt;?&gt; CALCITE_PUSHDOWN_ENABLED_SETTING =</span>
+<span class="fc" id="L117">      Setting.boolSetting(</span>
+<span class="fc" id="L118">          Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L123">  public static final Setting&lt;Double&gt; CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING =</span>
+<span class="fc" id="L124">      Setting.doubleSetting(</span>
+<span class="fc" id="L125">          Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),</span>
+          0.9,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L130">  public static final Setting&lt;?&gt; QUERY_MEMORY_LIMIT_SETTING =</span>
+<span class="fc" id="L131">      Setting.memorySizeSetting(</span>
+<span class="fc" id="L132">          Key.QUERY_MEMORY_LIMIT.getKeyValue(),</span>
+          &quot;85%&quot;,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L137">  public static final Setting&lt;?&gt; QUERY_SIZE_LIMIT_SETTING =</span>
+<span class="fc" id="L138">      Setting.intSetting(</span>
+<span class="fc" id="L139">          Key.QUERY_SIZE_LIMIT.getKeyValue(),</span>
+          IndexSettings.MAX_RESULT_WINDOW_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L145">  public static final Setting&lt;?&gt; METRICS_ROLLING_WINDOW_SETTING =</span>
+<span class="fc" id="L146">      Setting.longSetting(</span>
+<span class="fc" id="L147">          Key.METRICS_ROLLING_WINDOW.getKeyValue(),</span>
+          3600L,
+          2L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L153">  public static final Setting&lt;?&gt; METRICS_ROLLING_INTERVAL_SETTING =</span>
+<span class="fc" id="L154">      Setting.longSetting(</span>
+<span class="fc" id="L155">          Key.METRICS_ROLLING_INTERVAL.getKeyValue(),</span>
+          60L,
+          1L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  // we are keeping this to not break upgrades if the config is already present.
+  // This will be completely removed in 3.0.
+<span class="fc" id="L163">  public static final Setting&lt;InputStream&gt; DATASOURCE_CONFIG =</span>
+<span class="fc" id="L164">      SecureSetting.secureFile(</span>
+          &quot;plugins.query.federation.datasources.config&quot;, null, Setting.Property.Deprecated);
+
+<span class="fc" id="L167">  public static final Setting&lt;String&gt; DATASOURCE_MASTER_SECRET_KEY =</span>
+<span class="fc" id="L168">      Setting.simpleString(</span>
+<span class="fc" id="L169">          ENCYRPTION_MASTER_KEY.getKeyValue(),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Final,
+          Setting.Property.Filtered);
+
+<span class="fc" id="L174">  public static final Setting&lt;List&lt;String&gt;&gt; DATASOURCE_URI_HOSTS_DENY_LIST =</span>
+<span class="fc" id="L175">      Setting.listSetting(</span>
+<span class="fc" id="L176">          Key.DATASOURCES_URI_HOSTS_DENY_LIST.getKeyValue(),</span>
+<span class="fc" id="L177">          Collections.emptyList(),</span>
+<span class="fc" id="L178">          Function.identity(),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L182">  public static final Setting&lt;Boolean&gt; DATASOURCE_ENABLED_SETTING =</span>
+<span class="fc" id="L183">      Setting.boolSetting(</span>
+<span class="fc" id="L184">          Key.DATASOURCES_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L189">  public static final Setting&lt;Boolean&gt; ASYNC_QUERY_ENABLED_SETTING =</span>
+<span class="fc" id="L190">      Setting.boolSetting(</span>
+<span class="fc" id="L191">          Key.ASYNC_QUERY_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L196">  public static final Setting&lt;Boolean&gt; ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING =</span>
+<span class="fc" id="L197">      Setting.boolSetting(</span>
+<span class="fc" id="L198">          Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L203">  public static final Setting&lt;String&gt; ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING =</span>
+<span class="fc" id="L204">      Setting.simpleString(</span>
+<span class="fc" id="L205">          Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL.getKeyValue(),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L209">  public static final Setting&lt;String&gt; SPARK_EXECUTION_ENGINE_CONFIG =</span>
+<span class="fc" id="L210">      Setting.simpleString(</span>
+<span class="fc" id="L211">          Key.SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue(),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L215">  public static final Setting&lt;?&gt; SPARK_EXECUTION_SESSION_LIMIT_SETTING =</span>
+<span class="fc" id="L216">      Setting.intSetting(</span>
+<span class="fc" id="L217">          Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),</span>
+          10,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L222">  public static final Setting&lt;?&gt; SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING =</span>
+<span class="fc" id="L223">      Setting.intSetting(</span>
+<span class="fc" id="L224">          Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT.getKeyValue(),</span>
+          5,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L229">  public static final Setting&lt;TimeValue&gt; SESSION_INDEX_TTL_SETTING =</span>
+<span class="fc" id="L230">      Setting.positiveTimeSetting(</span>
+<span class="fc" id="L231">          Key.SESSION_INDEX_TTL.getKeyValue(),</span>
+<span class="fc" id="L232">          timeValueDays(30),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L236">  public static final Setting&lt;TimeValue&gt; RESULT_INDEX_TTL_SETTING =</span>
+<span class="fc" id="L237">      Setting.positiveTimeSetting(</span>
+<span class="fc" id="L238">          Key.RESULT_INDEX_TTL.getKeyValue(),</span>
+<span class="fc" id="L239">          timeValueDays(60),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L243">  public static final Setting&lt;Boolean&gt; AUTO_INDEX_MANAGEMENT_ENABLED_SETTING =</span>
+<span class="fc" id="L244">      Setting.boolSetting(</span>
+<span class="fc" id="L245">          Key.AUTO_INDEX_MANAGEMENT_ENABLED.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L250">  public static final Setting&lt;?&gt; DATASOURCES_LIMIT_SETTING =</span>
+<span class="fc" id="L251">      Setting.intSetting(</span>
+<span class="fc" id="L252">          Key.DATASOURCES_LIMIT.getKeyValue(),</span>
+          20,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L257">  public static final Setting&lt;Long&gt; SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING =</span>
+<span class="fc" id="L258">      Setting.longSetting(</span>
+<span class="fc" id="L259">          Key.SESSION_INACTIVITY_TIMEOUT_MILLIS.getKeyValue(),</span>
+          180000L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L264">  public static final Setting&lt;TimeValue&gt; STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING =</span>
+<span class="fc" id="L265">      Setting.positiveTimeSetting(</span>
+<span class="fc" id="L266">          Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL.getKeyValue(),</span>
+<span class="fc" id="L267">          timeValueMinutes(15),</span>
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+<span class="fc" id="L271">  public static final Setting&lt;?&gt; FIELD_TYPE_TOLERANCE_SETTING =</span>
+<span class="fc" id="L272">      Setting.boolSetting(</span>
+<span class="fc" id="L273">          Key.FIELD_TYPE_TOLERANCE.getKeyValue(),</span>
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
+  @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L280">  public OpenSearchSettings(ClusterSettings clusterSettings) {</span>
+<span class="fc" id="L281">    ImmutableMap.Builder&lt;Key, Setting&lt;?&gt;&gt; settingBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L282">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_ENABLED,
+        SQL_ENABLED_SETTING,
+        new Updater(Key.SQL_ENABLED));
+<span class="fc" id="L288">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_SLOWLOG,
+        SQL_SLOWLOG_SETTING,
+        new Updater(Key.SQL_SLOWLOG));
+<span class="fc" id="L294">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_CURSOR_KEEP_ALIVE,
+        SQL_CURSOR_KEEP_ALIVE_SETTING,
+        new Updater(Key.SQL_CURSOR_KEEP_ALIVE));
+<span class="fc" id="L300">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_ENABLED,
+        PPL_ENABLED_SETTING,
+        new Updater(Key.PPL_ENABLED));
+<span class="fc" id="L306">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_METHOD,
+        DEFAULT_PATTERN_METHOD_SETTING,
+        new Updater(Key.PATTERN_METHOD));
+<span class="fc" id="L312">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_MODE,
+        DEFAULT_PATTERN_MODE_SETTING,
+        new Updater(Key.PATTERN_MODE));
+<span class="fc" id="L318">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_MAX_SAMPLE_COUNT,
+        DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING,
+        new Updater(Key.PATTERN_MAX_SAMPLE_COUNT));
+<span class="fc" id="L324">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_BUFFER_LIMIT,
+        DEFAULT_PATTERN_BUFFER_LIMIT_SETTING,
+        new Updater(Key.PATTERN_BUFFER_LIMIT));
+<span class="fc" id="L330">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_ENGINE_ENABLED,
+        CALCITE_ENGINE_ENABLED_SETTING,
+        new Updater(Key.CALCITE_ENGINE_ENABLED));
+<span class="fc" id="L336">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_FALLBACK_ALLOWED,
+        CALCITE_FALLBACK_ALLOWED_SETTING,
+        new Updater(Key.CALCITE_FALLBACK_ALLOWED));
+<span class="fc" id="L342">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ENABLED,
+        CALCITE_PUSHDOWN_ENABLED_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
+<span class="fc" id="L348">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR,
+        CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR));
+<span class="fc" id="L354">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.QUERY_MEMORY_LIMIT,
+        QUERY_MEMORY_LIMIT_SETTING,
+        new Updater(Key.QUERY_MEMORY_LIMIT));
+<span class="fc" id="L360">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.QUERY_SIZE_LIMIT,
+        QUERY_SIZE_LIMIT_SETTING,
+        new Updater(Key.QUERY_SIZE_LIMIT));
+<span class="fc" id="L366">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.METRICS_ROLLING_WINDOW,
+        METRICS_ROLLING_WINDOW_SETTING,
+        new Updater(Key.METRICS_ROLLING_WINDOW));
+<span class="fc" id="L372">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.METRICS_ROLLING_INTERVAL,
+        METRICS_ROLLING_INTERVAL_SETTING,
+        new Updater(Key.METRICS_ROLLING_INTERVAL));
+<span class="fc" id="L378">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.DATASOURCES_URI_HOSTS_DENY_LIST,
+        DATASOURCE_URI_HOSTS_DENY_LIST,
+        new Updater(Key.DATASOURCES_URI_HOSTS_DENY_LIST));
+<span class="fc" id="L384">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.DATASOURCES_ENABLED,
+        DATASOURCE_ENABLED_SETTING,
+        new Updater(Key.DATASOURCES_ENABLED));
+<span class="fc" id="L390">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.ASYNC_QUERY_ENABLED,
+        ASYNC_QUERY_ENABLED_SETTING,
+        new Updater(Key.ASYNC_QUERY_ENABLED));
+<span class="fc" id="L396">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED,
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING,
+        new Updater(Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED));
+<span class="fc" id="L402">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL,
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING,
+        new Updater(Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL));
+<span class="fc" id="L408">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_ENGINE_CONFIG,
+        SPARK_EXECUTION_ENGINE_CONFIG,
+        new Updater(Key.SPARK_EXECUTION_ENGINE_CONFIG));
+<span class="fc" id="L414">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_SESSION_LIMIT,
+        SPARK_EXECUTION_SESSION_LIMIT_SETTING,
+        new Updater(Key.SPARK_EXECUTION_SESSION_LIMIT));
+<span class="fc" id="L420">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT,
+        SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING,
+        new Updater(Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT));
+<span class="fc" id="L426">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SESSION_INDEX_TTL,
+        SESSION_INDEX_TTL_SETTING,
+        new Updater(Key.SESSION_INDEX_TTL));
+<span class="fc" id="L432">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.RESULT_INDEX_TTL,
+        RESULT_INDEX_TTL_SETTING,
+        new Updater(Key.RESULT_INDEX_TTL));
+<span class="fc" id="L438">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.AUTO_INDEX_MANAGEMENT_ENABLED,
+        AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
+        new Updater(Key.AUTO_INDEX_MANAGEMENT_ENABLED));
+<span class="fc" id="L444">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.DATASOURCES_LIMIT,
+        DATASOURCES_LIMIT_SETTING,
+        new Updater(Key.DATASOURCES_LIMIT));
+<span class="fc" id="L450">    registerNonDynamicSettings(</span>
+        settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
+<span class="fc" id="L452">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.SESSION_INACTIVITY_TIMEOUT_MILLIS,
+        SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING,
+        new Updater(Key.SESSION_INACTIVITY_TIMEOUT_MILLIS));
+<span class="fc" id="L458">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL,
+        STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
+        new Updater(Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL));
+<span class="fc" id="L464">    register(</span>
+        settingBuilder,
+        clusterSettings,
+        Key.FIELD_TYPE_TOLERANCE,
+        FIELD_TYPE_TOLERANCE_SETTING,
+        new Updater(Key.FIELD_TYPE_TOLERANCE));
+<span class="fc" id="L470">    defaultSettings = settingBuilder.build();</span>
+<span class="fc" id="L471">  }</span>
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public &lt;T&gt; T getSettingValue(Settings.Key key) {
+<span class="fc" id="L476">    return (T) latestSettings.getOrDefault(key, defaultSettings.get(key).getDefault(EMPTY));</span>
+  }
+
+  /** Register the pair of {key, setting}. */
+  private void register(
+      ImmutableMap.Builder&lt;Key, Setting&lt;?&gt;&gt; settingBuilder,
+      ClusterSettings clusterSettings,
+      Settings.Key key,
+      Setting setting,
+      Consumer&lt;Object&gt; updater) {
+<span class="fc bfc" id="L486" title="All 2 branches covered.">    if (clusterSettings.get(setting) != null) {</span>
+<span class="fc" id="L487">      latestSettings.put(key, clusterSettings.get(setting));</span>
+    }
+<span class="fc" id="L489">    settingBuilder.put(key, setting);</span>
+<span class="fc" id="L490">    clusterSettings.addSettingsUpdateConsumer(setting, updater);</span>
+<span class="fc" id="L491">  }</span>
+
+  /** Register Non Dynamic Settings without consumer. */
+  private void registerNonDynamicSettings(
+      ImmutableMap.Builder&lt;Key, Setting&lt;?&gt;&gt; settingBuilder,
+      ClusterSettings clusterSettings,
+      Settings.Key key,
+      Setting setting) {
+<span class="fc" id="L499">    settingBuilder.put(key, setting);</span>
+<span class="fc" id="L500">    latestSettings.put(key, clusterSettings.get(setting));</span>
+<span class="fc" id="L501">  }</span>
+
+  /**
+   * Add the inner class only for UT coverage purpose. Lambda could be much elegant solution. But
+   * which is hard to test.
+   */
+  @VisibleForTesting
+  @RequiredArgsConstructor
+  class Updater implements Consumer {
+    private final Settings.Key key;
+
+    @Override
+    public void accept(Object newValue) {
+<span class="fc" id="L514">      log.debug(&quot;The value of setting [{}] changed to [{}]&quot;, key, newValue);</span>
+<span class="fc" id="L515">      latestSettings.put(key, newValue);</span>
+<span class="fc" id="L516">    }</span>
+  }
+
+  /** Used by Plugin to init Setting. */
+  public static List&lt;Setting&lt;?&gt;&gt; pluginSettings() {
+<span class="fc" id="L521">    return new ImmutableList.Builder&lt;Setting&lt;?&gt;&gt;()</span>
+<span class="fc" id="L522">        .add(SQL_ENABLED_SETTING)</span>
+<span class="fc" id="L523">        .add(SQL_SLOWLOG_SETTING)</span>
+<span class="fc" id="L524">        .add(SQL_CURSOR_KEEP_ALIVE_SETTING)</span>
+<span class="fc" id="L525">        .add(PPL_ENABLED_SETTING)</span>
+<span class="fc" id="L526">        .add(CALCITE_ENGINE_ENABLED_SETTING)</span>
+<span class="fc" id="L527">        .add(CALCITE_FALLBACK_ALLOWED_SETTING)</span>
+<span class="fc" id="L528">        .add(CALCITE_PUSHDOWN_ENABLED_SETTING)</span>
+<span class="fc" id="L529">        .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)</span>
+<span class="fc" id="L530">        .add(DEFAULT_PATTERN_METHOD_SETTING)</span>
+<span class="fc" id="L531">        .add(DEFAULT_PATTERN_MODE_SETTING)</span>
+<span class="fc" id="L532">        .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)</span>
+<span class="fc" id="L533">        .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)</span>
+<span class="fc" id="L534">        .add(QUERY_MEMORY_LIMIT_SETTING)</span>
+<span class="fc" id="L535">        .add(QUERY_SIZE_LIMIT_SETTING)</span>
+<span class="fc" id="L536">        .add(METRICS_ROLLING_WINDOW_SETTING)</span>
+<span class="fc" id="L537">        .add(METRICS_ROLLING_INTERVAL_SETTING)</span>
+<span class="fc" id="L538">        .add(DATASOURCE_URI_HOSTS_DENY_LIST)</span>
+<span class="fc" id="L539">        .add(DATASOURCE_ENABLED_SETTING)</span>
+<span class="fc" id="L540">        .add(ASYNC_QUERY_ENABLED_SETTING)</span>
+<span class="fc" id="L541">        .add(ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING)</span>
+<span class="fc" id="L542">        .add(ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING)</span>
+<span class="fc" id="L543">        .add(SPARK_EXECUTION_ENGINE_CONFIG)</span>
+<span class="fc" id="L544">        .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)</span>
+<span class="fc" id="L545">        .add(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING)</span>
+<span class="fc" id="L546">        .add(SESSION_INDEX_TTL_SETTING)</span>
+<span class="fc" id="L547">        .add(RESULT_INDEX_TTL_SETTING)</span>
+<span class="fc" id="L548">        .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)</span>
+<span class="fc" id="L549">        .add(DATASOURCES_LIMIT_SETTING)</span>
+<span class="fc" id="L550">        .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)</span>
+<span class="fc" id="L551">        .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)</span>
+<span class="fc" id="L552">        .add(FIELD_TYPE_TOLERANCE_SETTING)</span>
+<span class="fc" id="L553">        .build();</span>
+  }
+
+  /** Init Non Dynamic Plugin Settings. */
+  public static List&lt;Setting&lt;?&gt;&gt; pluginNonDynamicSettings() {
+<span class="fc" id="L558">    return new ImmutableList.Builder&lt;Setting&lt;?&gt;&gt;()</span>
+<span class="fc" id="L559">        .add(DATASOURCE_MASTER_SECRET_KEY)</span>
+<span class="fc" id="L560">        .add(DATASOURCE_CONFIG)</span>
+<span class="fc" id="L561">        .build();</span>
+  }
+
+  /** Used by local cluster to get settings from a setting instance. */
+  public List&lt;Setting&lt;?&gt;&gt; getSettings() {
+<span class="fc" id="L566">    return pluginSettings();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

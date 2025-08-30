@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchDateType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.type</a> &gt; <span class="el_source">OpenSearchDateType.java</span></div><h1>OpenSearchDateType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.type;
+
+import static org.opensearch.common.time.DateFormatter.splitCombinedPatterns;
+import static org.opensearch.common.time.DateFormatter.strip8Prefix;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.EqualsAndHashCode;
+import org.opensearch.common.time.DateFormatter;
+import org.opensearch.common.time.DateFormatters;
+import org.opensearch.common.time.FormatNames;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+
+/** Date type with support for predefined and custom formats read from the index mapping. */
+@EqualsAndHashCode(callSuper = true)
+public class OpenSearchDateType extends OpenSearchDataType {
+
+<span class="fc" id="L32">  private static final OpenSearchDateType instance = new OpenSearchDateType();</span>
+
+  /** Numeric formats which support full datetime. */
+<span class="fc" id="L35">  public static final List&lt;FormatNames&gt; SUPPORTED_NAMED_NUMERIC_FORMATS =</span>
+<span class="fc" id="L36">      List.of(FormatNames.EPOCH_MILLIS, FormatNames.EPOCH_SECOND);</span>
+
+  /** List of named formats which support full datetime. */
+<span class="fc" id="L39">  public static final List&lt;FormatNames&gt; SUPPORTED_NAMED_DATETIME_FORMATS =</span>
+<span class="fc" id="L40">      List.of(</span>
+          FormatNames.ISO8601,
+          FormatNames.BASIC_DATE_TIME,
+          FormatNames.BASIC_DATE_TIME_NO_MILLIS,
+          FormatNames.BASIC_ORDINAL_DATE_TIME,
+          FormatNames.BASIC_ORDINAL_DATE_TIME_NO_MILLIS,
+          FormatNames.BASIC_WEEK_DATE_TIME,
+          FormatNames.STRICT_BASIC_WEEK_DATE_TIME,
+          FormatNames.BASIC_WEEK_DATE_TIME_NO_MILLIS,
+          FormatNames.STRICT_BASIC_WEEK_DATE_TIME_NO_MILLIS,
+          FormatNames.BASIC_WEEK_DATE,
+          FormatNames.STRICT_BASIC_WEEK_DATE,
+          FormatNames.DATE_OPTIONAL_TIME,
+          FormatNames.STRICT_DATE_OPTIONAL_TIME,
+          FormatNames.STRICT_DATE_OPTIONAL_TIME_NANOS,
+          FormatNames.DATE_TIME,
+          FormatNames.STRICT_DATE_TIME,
+          FormatNames.DATE_TIME_NO_MILLIS,
+          FormatNames.STRICT_DATE_TIME_NO_MILLIS,
+          FormatNames.DATE_HOUR_MINUTE_SECOND_FRACTION,
+          FormatNames.STRICT_DATE_HOUR_MINUTE_SECOND_FRACTION,
+          FormatNames.DATE_HOUR_MINUTE_SECOND_FRACTION,
+          FormatNames.DATE_HOUR_MINUTE_SECOND_MILLIS,
+          FormatNames.STRICT_DATE_HOUR_MINUTE_SECOND_MILLIS,
+          FormatNames.DATE_HOUR_MINUTE_SECOND,
+          FormatNames.STRICT_DATE_HOUR_MINUTE_SECOND,
+          FormatNames.DATE_HOUR_MINUTE,
+          FormatNames.STRICT_DATE_HOUR_MINUTE,
+          FormatNames.DATE_HOUR,
+          FormatNames.STRICT_DATE_HOUR,
+          FormatNames.ORDINAL_DATE_TIME,
+          FormatNames.STRICT_ORDINAL_DATE_TIME,
+          FormatNames.ORDINAL_DATE_TIME_NO_MILLIS,
+          FormatNames.STRICT_ORDINAL_DATE_TIME_NO_MILLIS,
+          FormatNames.WEEK_DATE_TIME,
+          FormatNames.STRICT_WEEK_DATE_TIME,
+          FormatNames.WEEK_DATE_TIME_NO_MILLIS,
+          FormatNames.STRICT_WEEK_DATE_TIME_NO_MILLIS);
+
+  /** List of named formats that only support year/month/day. */
+<span class="fc" id="L80">  public static final List&lt;FormatNames&gt; SUPPORTED_NAMED_DATE_FORMATS =</span>
+<span class="fc" id="L81">      List.of(</span>
+          FormatNames.BASIC_DATE,
+          FormatNames.BASIC_ORDINAL_DATE,
+          FormatNames.DATE,
+          FormatNames.STRICT_DATE,
+          FormatNames.YEAR_MONTH_DAY,
+          FormatNames.STRICT_YEAR_MONTH_DAY,
+          FormatNames.ORDINAL_DATE,
+          FormatNames.STRICT_ORDINAL_DATE,
+          FormatNames.WEEK_DATE,
+          FormatNames.STRICT_WEEK_DATE,
+          FormatNames.WEEKYEAR_WEEK_DAY,
+          FormatNames.STRICT_WEEKYEAR_WEEK_DAY);
+
+  /**
+   * list of named formats which produce incomplete date, e.g. 1 or 2 are missing from tuple
+   * year/month/day.
+   */
+<span class="fc" id="L99">  public static final List&lt;FormatNames&gt; SUPPORTED_NAMED_INCOMPLETE_DATE_FORMATS =</span>
+<span class="fc" id="L100">      List.of(</span>
+          FormatNames.YEAR_MONTH,
+          FormatNames.STRICT_YEAR_MONTH,
+          FormatNames.YEAR,
+          FormatNames.STRICT_YEAR,
+          FormatNames.WEEK_YEAR,
+          FormatNames.WEEK_YEAR_WEEK,
+          FormatNames.STRICT_WEEKYEAR_WEEK,
+          FormatNames.WEEKYEAR,
+          FormatNames.STRICT_WEEKYEAR);
+
+  /** List of named formats that only support hour/minute/second. */
+<span class="fc" id="L112">  public static final List&lt;FormatNames&gt; SUPPORTED_NAMED_TIME_FORMATS =</span>
+<span class="fc" id="L113">      List.of(</span>
+          FormatNames.BASIC_TIME,
+          FormatNames.BASIC_TIME_NO_MILLIS,
+          FormatNames.BASIC_T_TIME,
+          FormatNames.BASIC_T_TIME_NO_MILLIS,
+          FormatNames.TIME,
+          FormatNames.STRICT_TIME,
+          FormatNames.TIME_NO_MILLIS,
+          FormatNames.STRICT_TIME_NO_MILLIS,
+          FormatNames.HOUR_MINUTE_SECOND_FRACTION,
+          FormatNames.STRICT_HOUR_MINUTE_SECOND_FRACTION,
+          FormatNames.HOUR_MINUTE_SECOND_MILLIS,
+          FormatNames.STRICT_HOUR_MINUTE_SECOND_MILLIS,
+          FormatNames.HOUR_MINUTE_SECOND,
+          FormatNames.STRICT_HOUR_MINUTE_SECOND,
+          FormatNames.HOUR_MINUTE,
+          FormatNames.STRICT_HOUR_MINUTE,
+          FormatNames.HOUR,
+          FormatNames.STRICT_HOUR,
+          FormatNames.T_TIME,
+          FormatNames.STRICT_T_TIME,
+          FormatNames.T_TIME_NO_MILLIS,
+          FormatNames.STRICT_T_TIME_NO_MILLIS);
+
+  /**
+   * Formatter symbols which used to format time or date correspondingly. {@link
+   * java.time.format.DateTimeFormatter}.
+   */
+  private static final String CUSTOM_FORMAT_TIME_SYMBOLS = &quot;nNASsmHkKha&quot;;
+
+  private static final String CUSTOM_FORMAT_DATE_SYMBOLS = &quot;FecEWwYqQgdMLDyuG&quot;;
+
+<span class="fc" id="L145">  private static final List&lt;DateFormatter&gt; OPENSEARCH_DEFAULT_FORMATTERS =</span>
+<span class="fc" id="L146">      Stream.of(&quot;strict_date_time_no_millis&quot;, &quot;strict_date_optional_time&quot;, &quot;epoch_millis&quot;)</span>
+<span class="fc" id="L147">          .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L148">          .toList();</span>
+
+  @EqualsAndHashCode.Exclude private final List&lt;String&gt; formats;
+
+  private OpenSearchDateType() {
+<span class="fc" id="L153">    super(MappingType.Date);</span>
+<span class="fc" id="L154">    this.formats = List.of();</span>
+<span class="fc" id="L155">  }</span>
+
+  private OpenSearchDateType(ExprCoreType exprCoreType) {
+<span class="fc" id="L158">    this();</span>
+<span class="fc" id="L159">    this.exprCoreType = exprCoreType;</span>
+<span class="fc" id="L160">  }</span>
+
+  private OpenSearchDateType(ExprType exprType) {
+<span class="fc" id="L163">    this();</span>
+<span class="fc" id="L164">    this.exprCoreType = (ExprCoreType) exprType;</span>
+<span class="fc" id="L165">  }</span>
+
+  private OpenSearchDateType(String format) {
+<span class="fc" id="L168">    super(MappingType.Date);</span>
+<span class="fc" id="L169">    this.formats = getFormatList(format);</span>
+<span class="fc" id="L170">    this.exprCoreType = getExprTypeFromFormatString(format);</span>
+<span class="fc" id="L171">  }</span>
+
+  public boolean hasFormats() {
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    return !formats.isEmpty();</span>
+  }
+
+  /**
+   * Retrieves and splits a user defined format string from the mapping into a list of formats.
+   *
+   * @return A list of format names and user defined formats.
+   */
+  private List&lt;String&gt; getFormatList(String format) {
+<span class="fc" id="L183">    format = strip8Prefix(format);</span>
+<span class="fc" id="L184">    return splitCombinedPatterns(format).stream().map(String::trim).collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of named OpenSearch formatters given by user mapping.
+   *
+   * @return a list of DateFormatters that can be used to parse a Date/Time/Timestamp.
+   */
+  public List&lt;DateFormatter&gt; getAllNamedFormatters() {
+<span class="fc" id="L193">    return formats.stream()</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        .filter(formatString -&gt; FormatNames.forName(formatString) != null)</span>
+<span class="fc" id="L195">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L196">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of numeric formatters that format for dates.
+   *
+   * @return a list of DateFormatters that can be used to parse a Date.
+   */
+  public List&lt;DateFormatter&gt; getNumericNamedFormatters() {
+<span class="fc" id="L205">    return formats.stream()</span>
+<span class="fc" id="L206">        .filter(</span>
+            formatString -&gt; {
+<span class="fc" id="L208">              FormatNames namedFormat = FormatNames.forName(formatString);</span>
+<span class="fc bfc" id="L209" title="All 4 branches covered.">              return namedFormat != null &amp;&amp; SUPPORTED_NAMED_NUMERIC_FORMATS.contains(namedFormat);</span>
+            })
+<span class="fc" id="L211">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L212">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of custom formats defined by the user.
+   *
+   * @return a list of formats as strings that can be used to parse a Date/Time/Timestamp.
+   */
+  public List&lt;String&gt; getAllCustomFormats() {
+<span class="fc" id="L221">    return formats.stream()</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">        .filter(format -&gt; FormatNames.forName(format) == null)</span>
+<span class="fc" id="L223">        .map(</span>
+            format -&gt; {
+              try {
+<span class="fc" id="L226">                DateFormatter.forPattern(format);</span>
+<span class="fc" id="L227">                return format;</span>
+<span class="fc" id="L228">              } catch (Exception ignored) {</span>
+                // parsing failed
+<span class="fc" id="L230">                return null;</span>
+              }
+            })
+<span class="fc" id="L233">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L234">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of custom formatters defined by the user.
+   *
+   * @return a list of DateFormatters that can be used to parse a Date/Time/Timestamp.
+   */
+  public List&lt;DateFormatter&gt; getAllCustomFormatters() {
+<span class="fc" id="L243">    return getAllCustomFormats().stream()</span>
+<span class="fc" id="L244">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L245">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of custom formatters and OpenSearch named formatters defined by the user, and
+   * attempts to parse the given date/time string using these formatters.
+   *
+   * @param dateTime The date/time string to parse.
+   * @return A ZonedDateTime representing the parsed date/time in UTC, or null if parsing fails.
+   */
+  public ZonedDateTime getParsedDateTime(String dateTime) {
+<span class="fc" id="L256">    List&lt;DateFormatter&gt; dateFormatters =</span>
+<span class="fc" id="L257">        Stream.concat(this.getAllNamedFormatters().stream(), this.getAllCustomFormatters().stream())</span>
+<span class="fc" id="L258">            .collect(Collectors.toList());</span>
+<span class="fc" id="L259">    ZonedDateTime zonedDateTime = null;</span>
+
+    // check if dateFormatters are empty, then set default ones
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (dateFormatters.isEmpty()) {</span>
+<span class="fc" id="L263">      dateFormatters = OPENSEARCH_DEFAULT_FORMATTERS;</span>
+    }
+    // parse using OpenSearch DateFormatters
+<span class="fc bfc" id="L266" title="All 2 branches covered.">    for (DateFormatter formatter : dateFormatters) {</span>
+      try {
+<span class="fc" id="L268">        TemporalAccessor accessor = formatter.parse(dateTime);</span>
+<span class="fc" id="L269">        zonedDateTime = DateFormatters.from(accessor).withZoneSameLocal(ZoneOffset.UTC);</span>
+<span class="fc" id="L270">        break;</span>
+<span class="fc" id="L271">      } catch (IllegalArgumentException ignored) {</span>
+        // nothing to do, try another format
+      }
+<span class="fc" id="L274">    }</span>
+<span class="fc" id="L275">    return zonedDateTime;</span>
+  }
+
+  /**
+   * Returns a formatted date string using the internal formatter, if available.
+   *
+   * @param accessor The TemporalAccessor object containing the date/time information.
+   * @return A formatted date string if a formatter is available, otherwise null.
+   */
+  public String getFormattedDate(TemporalAccessor accessor) {
+<span class="fc bfc" id="L285" title="All 2 branches covered.">    if (hasNoFormatter()) {</span>
+<span class="fc" id="L286">      return OPENSEARCH_DEFAULT_FORMATTERS.get(0).format(accessor);</span>
+    }
+    // Use the first available format string to create the formatter
+<span class="fc" id="L289">    return DateFormatter.forPattern(this.formats.get(0)).format(accessor);</span>
+  }
+
+  /**
+   * Checks if the formatter is not initialized.
+   *
+   * @return True if the formatter is not set, otherwise false.
+   */
+  public boolean hasNoFormatter() {
+<span class="fc" id="L298">    return this.formats.isEmpty();</span>
+  }
+
+  /**
+   * Retrieves a list of named formatters that format for dates.
+   *
+   * @return a list of DateFormatters that can be used to parse a Date.
+   */
+  public List&lt;DateFormatter&gt; getDateNamedFormatters() {
+<span class="fc" id="L307">    return formats.stream()</span>
+<span class="fc" id="L308">        .filter(</span>
+            formatString -&gt; {
+<span class="fc" id="L310">              FormatNames namedFormat = FormatNames.forName(formatString);</span>
+<span class="fc bfc" id="L311" title="All 4 branches covered.">              return namedFormat != null &amp;&amp; SUPPORTED_NAMED_DATE_FORMATS.contains(namedFormat);</span>
+            })
+<span class="fc" id="L313">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L314">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of named formatters that format for Times.
+   *
+   * @return a list of DateFormatters that can be used to parse a Time.
+   */
+  public List&lt;DateFormatter&gt; getTimeNamedFormatters() {
+<span class="fc" id="L323">    return formats.stream()</span>
+<span class="fc" id="L324">        .filter(</span>
+            formatString -&gt; {
+<span class="fc" id="L326">              FormatNames namedFormat = FormatNames.forName(formatString);</span>
+<span class="fc bfc" id="L327" title="All 4 branches covered.">              return namedFormat != null &amp;&amp; SUPPORTED_NAMED_TIME_FORMATS.contains(namedFormat);</span>
+            })
+<span class="fc" id="L329">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L330">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Retrieves a list of named formatters that format for DateTimes.
+   *
+   * @return a list of DateFormatters that can be used to parse a DateTime.
+   */
+  public List&lt;DateFormatter&gt; getDateTimeNamedFormatters() {
+<span class="fc" id="L339">    return formats.stream()</span>
+<span class="fc" id="L340">        .filter(</span>
+            formatString -&gt; {
+<span class="fc" id="L342">              FormatNames namedFormat = FormatNames.forName(formatString);</span>
+<span class="fc bfc" id="L343" title="All 4 branches covered.">              return namedFormat != null &amp;&amp; SUPPORTED_NAMED_DATETIME_FORMATS.contains(namedFormat);</span>
+            })
+<span class="fc" id="L345">        .map(DateFormatter::forPattern)</span>
+<span class="fc" id="L346">        .collect(Collectors.toList());</span>
+  }
+
+  private ExprCoreType getExprTypeFromCustomFormats(List&lt;String&gt; formats) {
+<span class="fc" id="L350">    boolean isDate = false;</span>
+<span class="fc" id="L351">    boolean isTime = false;</span>
+
+<span class="fc bfc" id="L353" title="All 2 branches covered.">    for (String format : formats) {</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">      if (!isTime) {</span>
+<span class="fc bfc" id="L355" title="All 2 branches covered.">        for (char symbol : CUSTOM_FORMAT_TIME_SYMBOLS.toCharArray()) {</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">          if (format.contains(String.valueOf(symbol))) {</span>
+<span class="fc" id="L357">            isTime = true;</span>
+<span class="fc" id="L358">            break;</span>
+          }
+        }
+      }
+<span class="fc bfc" id="L362" title="All 2 branches covered.">      if (!isDate) {</span>
+<span class="fc bfc" id="L363" title="All 2 branches covered.">        for (char symbol : CUSTOM_FORMAT_DATE_SYMBOLS.toCharArray()) {</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">          if (format.contains(String.valueOf(symbol))) {</span>
+<span class="fc" id="L365">            isDate = true;</span>
+<span class="fc" id="L366">            break;</span>
+          }
+        }
+      }
+<span class="fc bfc" id="L370" title="All 4 branches covered.">      if (isDate &amp;&amp; isTime) {</span>
+<span class="fc" id="L371">        return TIMESTAMP;</span>
+      }
+<span class="fc" id="L373">    }</span>
+
+<span class="fc bfc" id="L375" title="All 2 branches covered.">    if (isDate) {</span>
+<span class="fc" id="L376">      return DATE;</span>
+    }
+<span class="fc bfc" id="L378" title="All 2 branches covered.">    if (isTime) {</span>
+<span class="fc" id="L379">      return TIME;</span>
+    }
+
+    // Incomplete or incorrect formats: can't be converted to DATE nor TIME, for example `year`
+<span class="fc" id="L383">    return TIMESTAMP;</span>
+  }
+
+  private ExprCoreType getExprTypeFromFormatString(String formatString) {
+<span class="fc" id="L387">    List&lt;DateFormatter&gt; datetimeFormatters = getDateTimeNamedFormatters();</span>
+<span class="fc" id="L388">    List&lt;DateFormatter&gt; numericFormatters = getNumericNamedFormatters();</span>
+
+<span class="fc bfc" id="L390" title="All 6 branches covered.">    if (formatString.isEmpty() || !datetimeFormatters.isEmpty() || !numericFormatters.isEmpty()) {</span>
+<span class="fc" id="L391">      return TIMESTAMP;</span>
+    }
+
+<span class="fc" id="L394">    List&lt;DateFormatter&gt; timeFormatters = getTimeNamedFormatters();</span>
+<span class="fc" id="L395">    List&lt;DateFormatter&gt; dateFormatters = getDateNamedFormatters();</span>
+<span class="fc bfc" id="L396" title="All 4 branches covered.">    if (!timeFormatters.isEmpty() &amp;&amp; !dateFormatters.isEmpty()) {</span>
+<span class="fc" id="L397">      return TIMESTAMP;</span>
+    }
+
+<span class="fc" id="L400">    List&lt;String&gt; customFormatters = getAllCustomFormats();</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">    if (!customFormatters.isEmpty()) {</span>
+<span class="fc" id="L402">      ExprCoreType customFormatType = getExprTypeFromCustomFormats(customFormatters);</span>
+<span class="fc" id="L403">      ExprCoreType combinedByDefaultFormats = customFormatType;</span>
+<span class="fc bfc" id="L404" title="All 2 branches covered.">      if (!dateFormatters.isEmpty()) {</span>
+<span class="fc" id="L405">        combinedByDefaultFormats = DATE;</span>
+      }
+<span class="fc bfc" id="L407" title="All 2 branches covered.">      if (!timeFormatters.isEmpty()) {</span>
+<span class="fc" id="L408">        combinedByDefaultFormats = TIME;</span>
+      }
+<span class="fc bfc" id="L410" title="All 2 branches covered.">      return customFormatType == combinedByDefaultFormats ? customFormatType : TIMESTAMP;</span>
+    }
+
+    // if there is nothing in the dateformatter that accepts a year/month/day, then
+    // we can assume the type is strictly a Time object
+<span class="fc bfc" id="L415" title="All 2 branches covered.">    if (!timeFormatters.isEmpty()) {</span>
+<span class="fc" id="L416">      return TIME;</span>
+    }
+
+    // if there is nothing in the dateformatter that accepts a hour/minute/second, then
+    // we can assume the type is strictly a Date object
+<span class="fc bfc" id="L421" title="All 2 branches covered.">    if (!dateFormatters.isEmpty()) {</span>
+<span class="fc" id="L422">      return DATE;</span>
+    }
+
+    // Unknown or incorrect format provided
+<span class="fc" id="L426">    return TIMESTAMP;</span>
+  }
+
+  /**
+   * Check if ExprType is compatible for creation of OpenSearchDateType object.
+   *
+   * @param exprType type of the field in the SQL query
+   * @return a boolean if type is a date/time/timestamp type
+   */
+  public static boolean isDateTypeCompatible(ExprType exprType) {
+<span class="fc bfc" id="L436" title="All 2 branches covered.">    if (!(exprType instanceof ExprCoreType)) {</span>
+<span class="fc" id="L437">      return false;</span>
+    }
+<span class="fc bfc" id="L439" title="All 2 branches covered.">    switch ((ExprCoreType) exprType) {</span>
+      case TIMESTAMP:
+      case DATE:
+      case TIME:
+<span class="fc" id="L443">        return true;</span>
+      default:
+<span class="fc" id="L445">        return false;</span>
+    }
+  }
+
+  /**
+   * Create a Date type which has a LinkedHashMap defining all formats.
+   *
+   * @return A new type object.
+   */
+  public static OpenSearchDateType of(String format) {
+<span class="fc" id="L455">    return new OpenSearchDateType(format);</span>
+  }
+
+  public static OpenSearchDateType of(ExprCoreType exprCoreType) {
+<span class="fc" id="L459">    return new OpenSearchDateType(exprCoreType);</span>
+  }
+
+  public static OpenSearchDateType of(ExprType exprType) {
+<span class="fc" id="L463">    return new OpenSearchDateType(exprType);</span>
+  }
+
+  public static OpenSearchDateType of() {
+<span class="fc" id="L467">    return OpenSearchDateType.instance;</span>
+  }
+
+  @Override
+  public List&lt;ExprType&gt; getParent() {
+<span class="fc" id="L472">    return List.of(exprCoreType);</span>
+  }
+
+  @Override
+  public boolean shouldCast(ExprType other) {
+<span class="fc" id="L477">    return false;</span>
+  }
+
+  @Override
+  protected OpenSearchDataType cloneEmpty() {
+<span class="fc bfc" id="L482" title="All 2 branches covered.">    if (formats.isEmpty()) {</span>
+<span class="fc" id="L483">      return OpenSearchDateType.of(exprCoreType);</span>
+    }
+<span class="fc" id="L485">    return OpenSearchDateType.of(String.join(&quot; || &quot;, formats));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

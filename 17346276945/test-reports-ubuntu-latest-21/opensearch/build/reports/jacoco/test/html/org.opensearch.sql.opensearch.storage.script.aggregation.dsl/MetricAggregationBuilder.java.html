@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetricAggregationBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation.dsl</a> &gt; <span class="el_source">MetricAggregationBuilder.java</span></div><h1>MetricAggregationBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
+
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.response.agg.*;
+import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+
+/** Build the Metric Aggregation and List of {@link MetricParser} from {@link NamedAggregator}. */
+public class MetricAggregationBuilder
+    extends ExpressionNodeVisitor&lt;Pair&lt;AggregationBuilder, MetricParser&gt;, Object&gt; {
+
+  private final AggregationBuilderHelper helper;
+  private final FilterQueryBuilder filterBuilder;
+
+  /** Constructor. */
+<span class="fc" id="L40">  public MetricAggregationBuilder(ExpressionSerializer serializer) {</span>
+<span class="fc" id="L41">    this.helper = new AggregationBuilderHelper(serializer);</span>
+<span class="fc" id="L42">    this.filterBuilder = new FilterQueryBuilder(serializer);</span>
+<span class="fc" id="L43">  }</span>
+
+  /**
+   * Build AggregatorFactories.Builder from {@link NamedAggregator}.
+   *
+   * @param aggregatorList aggregator list
+   * @return AggregatorFactories.Builder
+   */
+  public Pair&lt;AggregatorFactories.Builder, List&lt;MetricParser&gt;&gt; build(
+      List&lt;NamedAggregator&gt; aggregatorList) {
+<span class="fc" id="L53">    AggregatorFactories.Builder builder = new AggregatorFactories.Builder();</span>
+<span class="fc" id="L54">    List&lt;MetricParser&gt; metricParserList = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">    for (NamedAggregator aggregator : aggregatorList) {</span>
+<span class="fc" id="L56">      Pair&lt;AggregationBuilder, MetricParser&gt; pair = aggregator.accept(this, null);</span>
+<span class="fc" id="L57">      builder.addAggregator(pair.getLeft());</span>
+<span class="fc" id="L58">      metricParserList.add(pair.getRight());</span>
+<span class="fc" id="L59">    }</span>
+<span class="fc" id="L60">    return Pair.of(builder, metricParserList);</span>
+  }
+
+  @Override
+  public Pair&lt;AggregationBuilder, MetricParser&gt; visitNamedAggregator(
+      NamedAggregator node, Object context) {
+<span class="fc" id="L66">    Expression expression = node.getArguments().get(0);</span>
+<span class="fc" id="L67">    Expression condition = node.getDelegated().condition();</span>
+<span class="fc" id="L68">    Boolean distinct = node.getDelegated().distinct();</span>
+<span class="fc" id="L69">    String name = node.getName();</span>
+<span class="fc" id="L70">    String functionName = node.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT);</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (distinct) {</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">      switch (functionName) {</span>
+        case &quot;count&quot;:
+<span class="fc" id="L75">          return make(</span>
+<span class="fc" id="L76">              AggregationBuilders.cardinality(name),</span>
+              expression,
+              condition,
+              name,
+              new SingleValueParser(name));
+        default:
+<span class="fc" id="L82">          throw new IllegalStateException(</span>
+<span class="fc" id="L83">              String.format(</span>
+<span class="fc" id="L84">                  &quot;unsupported distinct aggregator %s&quot;, node.getFunctionName().getFunctionName()));</span>
+      }
+    }
+
+<span class="fc bfc" id="L88" title="All 12 branches covered.">    switch (functionName) {</span>
+      case &quot;avg&quot;:
+<span class="fc" id="L90">        return make(</span>
+<span class="fc" id="L91">            AggregationBuilders.avg(name),</span>
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
+      case &quot;sum&quot;:
+<span class="fc" id="L97">        return make(</span>
+<span class="fc" id="L98">            AggregationBuilders.sum(name),</span>
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
+      case &quot;count&quot;:
+<span class="fc" id="L104">        return make(</span>
+<span class="fc" id="L105">            AggregationBuilders.count(name),</span>
+<span class="fc" id="L106">            replaceStarOrLiteral(expression),</span>
+            condition,
+            name,
+            new SingleValueParser(name));
+      case &quot;min&quot;:
+<span class="fc" id="L111">        return make(</span>
+<span class="fc" id="L112">            AggregationBuilders.min(name),</span>
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
+      case &quot;max&quot;:
+<span class="fc" id="L118">        return make(</span>
+<span class="fc" id="L119">            AggregationBuilders.max(name),</span>
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
+      case &quot;var_samp&quot;:
+<span class="fc" id="L125">        return make(</span>
+<span class="fc" id="L126">            AggregationBuilders.extendedStats(name),</span>
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getVarianceSampling, name));
+      case &quot;var_pop&quot;:
+<span class="fc" id="L132">        return make(</span>
+<span class="fc" id="L133">            AggregationBuilders.extendedStats(name),</span>
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getVariancePopulation, name));
+      case &quot;stddev_samp&quot;:
+<span class="fc" id="L139">        return make(</span>
+<span class="fc" id="L140">            AggregationBuilders.extendedStats(name),</span>
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationSampling, name));
+      case &quot;stddev_pop&quot;:
+<span class="fc" id="L146">        return make(</span>
+<span class="fc" id="L147">            AggregationBuilders.extendedStats(name),</span>
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationPopulation, name));
+      case &quot;take&quot;:
+<span class="fc" id="L153">        return make(</span>
+<span class="fc" id="L154">            AggregationBuilders.topHits(name),</span>
+            expression,
+<span class="fc" id="L156">            node.getArguments().get(1),</span>
+            condition,
+            name,
+            new TopHitsParser(name));
+      case &quot;percentile&quot;:
+      case &quot;percentile_approx&quot;:
+<span class="fc" id="L162">        return make(</span>
+<span class="fc" id="L163">            AggregationBuilders.percentiles(name),</span>
+            expression,
+<span class="fc" id="L165">            node.getArguments().get(1), // percent</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">            node.getArguments().size() &gt;= 3 ? node.getArguments().get(2) : null, // compression</span>
+            condition,
+            name,
+            new SinglePercentileParser(name));
+      default:
+<span class="fc" id="L171">        throw new IllegalStateException(</span>
+<span class="fc" id="L172">            String.format(&quot;unsupported aggregator %s&quot;, node.getFunctionName().getFunctionName()));</span>
+    }
+  }
+
+  private Pair&lt;AggregationBuilder, MetricParser&gt; make(
+      ValuesSourceAggregationBuilder&lt;?&gt; builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+<span class="fc" id="L182">    ValuesSourceAggregationBuilder aggregationBuilder =</span>
+<span class="fc" id="L183">        helper.build(expression, builder::field, builder::script);</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (condition != null) {</span>
+<span class="fc" id="L185">      return Pair.of(</span>
+<span class="fc" id="L186">          makeFilterAggregation(aggregationBuilder, condition, name),</span>
+<span class="fc" id="L187">          FilterParser.builder().name(name).metricsParser(parser).build());</span>
+    }
+<span class="fc" id="L189">    return Pair.of(aggregationBuilder, parser);</span>
+  }
+
+  /** Make {@link CardinalityAggregationBuilder} for distinct count aggregations. */
+  private Pair&lt;AggregationBuilder, MetricParser&gt; make(
+      CardinalityAggregationBuilder builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+<span class="fc" id="L199">    CardinalityAggregationBuilder aggregationBuilder =</span>
+<span class="fc" id="L200">        helper.build(expression, builder::field, builder::script);</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (condition != null) {</span>
+<span class="fc" id="L202">      return Pair.of(</span>
+<span class="fc" id="L203">          makeFilterAggregation(aggregationBuilder, condition, name),</span>
+<span class="fc" id="L204">          FilterParser.builder().name(name).metricsParser(parser).build());</span>
+    }
+<span class="fc" id="L206">    return Pair.of(aggregationBuilder, parser);</span>
+  }
+
+  /** Make {@link TopHitsAggregationBuilder} for take aggregations. */
+  private Pair&lt;AggregationBuilder, MetricParser&gt; make(
+      TopHitsAggregationBuilder builder,
+      Expression expression,
+      Expression size,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+<span class="fc" id="L217">    String fieldName = ((ReferenceExpression) expression).getAttr();</span>
+<span class="fc" id="L218">    builder.fetchSource(fieldName, null);</span>
+<span class="fc" id="L219">    builder.size(size.valueOf().integerValue());</span>
+<span class="fc" id="L220">    builder.from(0);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (condition != null) {</span>
+<span class="fc" id="L222">      return Pair.of(</span>
+<span class="fc" id="L223">          makeFilterAggregation(builder, condition, name),</span>
+<span class="fc" id="L224">          FilterParser.builder().name(name).metricsParser(parser).build());</span>
+    }
+<span class="fc" id="L226">    return Pair.of(builder, parser);</span>
+  }
+
+  private Pair&lt;AggregationBuilder, MetricParser&gt; make(
+      PercentilesAggregationBuilder builder,
+      Expression expression,
+      Expression percent,
+      Expression compression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+<span class="fc" id="L237">    PercentilesAggregationBuilder aggregationBuilder =</span>
+<span class="fc" id="L238">        helper.build(expression, builder::field, builder::script);</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">    if (compression != null) {</span>
+<span class="fc" id="L240">      aggregationBuilder.compression(compression.valueOf().doubleValue());</span>
+    }
+<span class="fc" id="L242">    aggregationBuilder.percentiles(percent.valueOf().doubleValue());</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">    if (condition != null) {</span>
+<span class="fc" id="L244">      return Pair.of(</span>
+<span class="fc" id="L245">          makeFilterAggregation(aggregationBuilder, condition, name),</span>
+<span class="fc" id="L246">          FilterParser.builder().name(name).metricsParser(parser).build());</span>
+    }
+<span class="fc" id="L248">    return Pair.of(aggregationBuilder, parser);</span>
+  }
+
+  /**
+   * Replace star or literal with OpenSearch metadata field &quot;_index&quot;. Because: 1) Analyzer already
+   * converts * to string literal, literal check here can handle both COUNT(*) and COUNT(1). 2)
+   * Value count aggregation on _index counts all docs (after filter), therefore it has same
+   * semantics as COUNT(*) or COUNT(1).
+   *
+   * @param countArg count function argument
+   * @return Reference to _index if literal, otherwise return original argument expression
+   */
+  private Expression replaceStarOrLiteral(Expression countArg) {
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    if (countArg instanceof LiteralExpression) {</span>
+<span class="fc" id="L262">      return new ReferenceExpression(&quot;_index&quot;, INTEGER);</span>
+    }
+<span class="fc" id="L264">    return countArg;</span>
+  }
+
+  /**
+   * Make builder to build FilterAggregation for aggregations with filter in the bucket.
+   *
+   * @param subAggBuilder AggregationBuilder instance which the filter is applied to.
+   * @param condition Condition expression in the filter.
+   * @param name Name of the FilterAggregation instance to build.
+   * @return {@link FilterAggregationBuilder}.
+   */
+  private FilterAggregationBuilder makeFilterAggregation(
+      AggregationBuilder subAggBuilder, Expression condition, String name) {
+<span class="fc" id="L277">    return AggregationBuilders.filter(name, filterBuilder.build(condition))</span>
+<span class="fc" id="L278">        .subAggregation(subAggBuilder);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

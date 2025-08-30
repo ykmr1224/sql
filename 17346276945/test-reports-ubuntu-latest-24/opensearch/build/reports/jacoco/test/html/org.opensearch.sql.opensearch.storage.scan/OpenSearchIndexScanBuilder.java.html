@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchIndexScanBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.scan</a> &gt; <span class="el_source">OpenSearchIndexScanBuilder.java</span></div><h1>OpenSearchIndexScanBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+
+import java.util.function.Function;
+import lombok.EqualsAndHashCode;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+
+/**
+ * Table scan builder that builds table scan operator for OpenSearch. The actual work is performed
+ * by delegated builder internally. This is to avoid conditional check of different push down logic
+ * for non-aggregate and aggregate query everywhere.
+ */
+public class OpenSearchIndexScanBuilder extends TableScanBuilder {
+
+  private final Function&lt;OpenSearchRequestBuilder, OpenSearchIndexScan&gt; scanFactory;
+
+  /** Delegated index scan builder for non-aggregate or aggregate query. */
+  @EqualsAndHashCode.Include private PushDownQueryBuilder delegate;
+
+  /** Is limit operator pushed down. */
+<span class="fc" id="L38">  private boolean isLimitPushedDown = false;</span>
+
+  /** Constructor used during query execution. */
+  public OpenSearchIndexScanBuilder(
+      OpenSearchRequestBuilder requestBuilder,
+<span class="fc" id="L43">      Function&lt;OpenSearchRequestBuilder, OpenSearchIndexScan&gt; scanFactory) {</span>
+<span class="fc" id="L44">    this.delegate = new OpenSearchIndexScanQueryBuilder(requestBuilder);</span>
+<span class="fc" id="L45">    this.scanFactory = scanFactory;</span>
+<span class="fc" id="L46">  }</span>
+
+  /** Constructor used for unit tests. */
+  protected OpenSearchIndexScanBuilder(
+      PushDownQueryBuilder translator,
+<span class="fc" id="L51">      Function&lt;OpenSearchRequestBuilder, OpenSearchIndexScan&gt; scanFactory) {</span>
+<span class="fc" id="L52">    this.delegate = translator;</span>
+<span class="fc" id="L53">    this.scanFactory = scanFactory;</span>
+<span class="fc" id="L54">  }</span>
+
+  @Override
+  public TableScanOperator build() {
+<span class="fc" id="L58">    return scanFactory.apply(delegate.build());</span>
+  }
+
+  @Override
+  public boolean pushDownFilter(LogicalFilter filter) {
+    // Current DSL can not handle limit-then-filter correctly
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">    if (isLimitPushedDown) {</span>
+<span class="nc" id="L65">      return false;</span>
+    }
+<span class="fc" id="L67">    return delegate.pushDownFilter(filter);</span>
+  }
+
+  @Override
+  public boolean pushDownAggregation(LogicalAggregation aggregation) {
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (isLimitPushedDown) {</span>
+<span class="fc" id="L73">      return false;</span>
+    }
+
+    // Switch to builder for aggregate query which has different push down logic
+    //  for later filter, sort and limit operator.
+<span class="fc" id="L78">    delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build(), aggregation);</span>
+<span class="fc" id="L79">    return true;</span>
+  }
+
+  @Override
+  public boolean pushDownPageSize(LogicalPaginate paginate) {
+<span class="fc" id="L84">    return delegate.pushDownPageSize(paginate);</span>
+  }
+
+  @Override
+  public boolean pushDownSort(LogicalSort sort) {
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (!sortByFieldsOnly(sort)) {</span>
+<span class="fc" id="L90">      return false;</span>
+    }
+<span class="fc" id="L92">    return delegate.pushDownSort(sort);</span>
+  }
+
+  @Override
+  public boolean pushDownLimit(LogicalLimit limit) {
+    // Assume limit push down happening on OpenSearchIndexScanQueryBuilder
+<span class="fc" id="L98">    isLimitPushedDown = true;</span>
+<span class="fc" id="L99">    return delegate.pushDownLimit(limit);</span>
+  }
+
+  @Override
+  public boolean pushDownProject(LogicalProject project) {
+<span class="fc" id="L104">    return delegate.pushDownProject(project);</span>
+  }
+
+  @Override
+  public boolean pushDownHighlight(LogicalHighlight highlight) {
+<span class="fc" id="L109">    return delegate.pushDownHighlight(highlight);</span>
+  }
+
+  @Override
+  public boolean pushDownNested(LogicalNested nested) {
+<span class="fc" id="L114">    return delegate.pushDownNested(nested);</span>
+  }
+
+  /**
+   * Valid if sorting is only by fields.
+   *
+   * @param sort Logical sort
+   * @return True if sorting by fields only
+   */
+  private boolean sortByFieldsOnly(LogicalSort sort) {
+<span class="fc" id="L124">    return sort.getSortList().stream()</span>
+<span class="fc" id="L125">        .map(</span>
+            sortItem -&gt;
+<span class="fc bfc" id="L127" title="All 2 branches covered.">                sortItem.getRight() instanceof ReferenceExpression</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">                    || isNestedFunction(sortItem.getRight()))</span>
+<span class="fc" id="L129">        .reduce(true, Boolean::logicalAnd);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

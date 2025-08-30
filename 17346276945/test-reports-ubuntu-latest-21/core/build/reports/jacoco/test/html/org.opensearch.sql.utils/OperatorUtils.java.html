@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">OperatorUtils.java</span></div><h1>OperatorUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import java.util.regex.Pattern;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprValue;
+
+@UtilityClass
+public class OperatorUtils {
+  /**
+   * Wildcard pattern matcher util.&lt;br&gt;
+   * Percent (%) character for wildcard,&lt;br&gt;
+   * Underscore (_) character for a single character match.
+   *
+   * @param pattern string pattern to match.
+   * @return if text matches pattern returns true; else return false.
+   */
+  public static ExprBooleanValue matches(ExprValue text, ExprValue pattern) {
+<span class="fc" id="L25">    return ExprBooleanValue.of(</span>
+<span class="fc" id="L26">        Pattern.compile(patternToRegex(pattern.stringValue()), Pattern.CASE_INSENSITIVE)</span>
+<span class="fc" id="L27">            .matcher(text.stringValue())</span>
+<span class="fc" id="L28">            .matches());</span>
+  }
+
+  /**
+   * Checks if text matches regular expression pattern.
+   *
+   * @param pattern string pattern to match.
+   * @return if text matches pattern returns true; else return false.
+   */
+  public static ExprIntegerValue matchesRegexp(ExprValue text, ExprValue pattern) {
+<span class="fc" id="L38">    return new ExprIntegerValue(</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        Pattern.compile(pattern.stringValue()).matcher(text.stringValue()).matches() ? 1 : 0);</span>
+  }
+
+  private static final char DEFAULT_ESCAPE = '\\';
+
+  private static String patternToRegex(String patternString) {
+<span class="fc" id="L45">    StringBuilder regex = new StringBuilder(patternString.length() * 2);</span>
+<span class="fc" id="L46">    regex.append('^');</span>
+<span class="fc" id="L47">    boolean escaped = false;</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    for (char currentChar : patternString.toCharArray()) {</span>
+<span class="fc bfc" id="L49" title="All 4 branches covered.">      if (!escaped &amp;&amp; currentChar == DEFAULT_ESCAPE) {</span>
+<span class="fc" id="L50">        escaped = true;</span>
+      } else {
+<span class="fc bfc" id="L52" title="All 3 branches covered.">        switch (currentChar) {</span>
+          case '%':
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            if (escaped) {</span>
+<span class="fc" id="L55">              regex.append(&quot;%&quot;);</span>
+            } else {
+<span class="fc" id="L57">              regex.append(&quot;.*&quot;);</span>
+            }
+<span class="fc" id="L59">            escaped = false;</span>
+<span class="fc" id="L60">            break;</span>
+          case '_':
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (escaped) {</span>
+<span class="fc" id="L63">              regex.append(&quot;_&quot;);</span>
+            } else {
+<span class="fc" id="L65">              regex.append('.');</span>
+            }
+<span class="fc" id="L67">            escaped = false;</span>
+<span class="fc" id="L68">            break;</span>
+          default:
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            switch (currentChar) {</span>
+              case '\\':
+              case '^':
+              case '$':
+              case '.':
+              case '*':
+              case '[':
+              case ']':
+              case '(':
+              case ')':
+              case '|':
+              case '+':
+<span class="fc" id="L82">                regex.append('\\');</span>
+<span class="fc" id="L83">                break;</span>
+              default:
+            }
+
+<span class="fc" id="L87">            regex.append(currentChar);</span>
+<span class="fc" id="L88">            escaped = false;</span>
+        }
+      }
+    }
+<span class="fc" id="L92">    regex.append('$');</span>
+<span class="fc" id="L93">    return regex.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

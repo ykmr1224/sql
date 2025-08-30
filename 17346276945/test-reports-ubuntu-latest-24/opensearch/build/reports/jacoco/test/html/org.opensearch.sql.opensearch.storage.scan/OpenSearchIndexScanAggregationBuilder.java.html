@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchIndexScanAggregationBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.scan</a> &gt; <span class="el_source">OpenSearchIndexScanAggregationBuilder.java</span></div><h1>OpenSearchIndexScanAggregationBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalSort;
+
+/** Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally. */
+@EqualsAndHashCode
+class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
+
+  /** OpenSearch index scan to be optimized. */
+  private final OpenSearchRequestBuilder requestBuilder;
+
+  /** Aggregators pushed down. */
+  private final List&lt;NamedAggregator&gt; aggregatorList;
+
+  /** Grouping items pushed down. */
+  private final List&lt;NamedExpression&gt; groupByList;
+
+  /** Sorting items pushed down. */
+  private List&lt;Pair&lt;Sort.SortOption, Expression&gt;&gt; sortList;
+
+  OpenSearchIndexScanAggregationBuilder(
+<span class="fc" id="L44">      OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {</span>
+<span class="fc" id="L45">    this.requestBuilder = requestBuilder;</span>
+<span class="fc" id="L46">    aggregatorList = aggregation.getAggregatorList();</span>
+<span class="fc" id="L47">    groupByList = aggregation.getGroupByList();</span>
+<span class="fc" id="L48">  }</span>
+
+  @Override
+  public OpenSearchRequestBuilder build() {
+<span class="fc" id="L52">    AggregationQueryBuilder builder =</span>
+        new AggregationQueryBuilder(new DefaultExpressionSerializer());
+<span class="fc" id="L54">    Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; aggregationBuilder =</span>
+<span class="fc" id="L55">        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList);</span>
+<span class="fc" id="L56">    requestBuilder.pushDownAggregation(aggregationBuilder);</span>
+<span class="fc" id="L57">    requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));</span>
+<span class="fc" id="L58">    return requestBuilder;</span>
+  }
+
+  @Override
+  public boolean pushDownFilter(LogicalFilter filter) {
+<span class="fc" id="L63">    return false;</span>
+  }
+
+  @Override
+  public boolean pushDownSort(LogicalSort sort) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (hasAggregatorInSortBy(sort)) {</span>
+<span class="fc" id="L69">      return false;</span>
+    }
+
+<span class="fc" id="L72">    sortList = sort.getSortList();</span>
+<span class="fc" id="L73">    return true;</span>
+  }
+
+  private boolean hasAggregatorInSortBy(LogicalSort sort) {
+<span class="fc" id="L77">    final Set&lt;String&gt; aggregatorNames =</span>
+<span class="fc" id="L78">        aggregatorList.stream().map(NamedAggregator::getName).collect(Collectors.toSet());</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (Pair&lt;Sort.SortOption, Expression&gt; sortPair : sort.getSortList()) {</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">      if (aggregatorNames.contains(((ReferenceExpression) sortPair.getRight()).getAttr())) {</span>
+<span class="fc" id="L81">        return true;</span>
+      }
+<span class="fc" id="L83">    }</span>
+<span class="fc" id="L84">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

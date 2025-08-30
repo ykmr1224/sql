@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlanUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">PlanUtils.java</span></div><h1>PlanUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import static org.apache.calcite.rex.RexWindowBounds.CURRENT_ROW;
+import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
+import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
+import static org.apache.calcite.rex.RexWindowBounds.following;
+import static org.apache.calcite.rex.RexWindowBounds.preceding;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.WindowBound;
+import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
+
+public interface PlanUtils {
+
+  /** this is only for dedup command, do not reuse it in other command */
+  String ROW_NUMBER_COLUMN_FOR_DEDUP = &quot;_row_number_dedup_&quot;;
+
+  String ROW_NUMBER_COLUMN_NAME = &quot;_row_number_&quot;;
+  String ROW_NUMBER_COLUMN_NAME_MAIN = &quot;_row_number_main_&quot;;
+  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = &quot;_row_number_subsearch_&quot;;
+
+  static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
+<span class="nc bnc" id="L58" title="All 11 branches missed.">    return switch (unit) {</span>
+<span class="nc" id="L59">      case MICROSECOND -&gt; SpanUnit.MILLISECOND;</span>
+<span class="nc" id="L60">      case SECOND -&gt; SpanUnit.SECOND;</span>
+<span class="nc" id="L61">      case MINUTE -&gt; SpanUnit.MINUTE;</span>
+<span class="nc" id="L62">      case HOUR -&gt; SpanUnit.HOUR;</span>
+<span class="nc" id="L63">      case DAY -&gt; SpanUnit.DAY;</span>
+<span class="nc" id="L64">      case WEEK -&gt; SpanUnit.WEEK;</span>
+<span class="nc" id="L65">      case MONTH -&gt; SpanUnit.MONTH;</span>
+<span class="nc" id="L66">      case QUARTER -&gt; SpanUnit.QUARTER;</span>
+<span class="nc" id="L67">      case YEAR -&gt; SpanUnit.YEAR;</span>
+<span class="nc" id="L68">      case UNKNOWN -&gt; SpanUnit.UNKNOWN;</span>
+<span class="nc" id="L69">      default -&gt; throw new UnsupportedOperationException(&quot;Unsupported interval unit: &quot; + unit);</span>
+    };
+  }
+
+  static RexNode makeOver(
+      CalcitePlanContext context,
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List&lt;RexNode&gt; argList,
+      List&lt;RexNode&gt; partitions,
+      List&lt;RexNode&gt; orderKeys,
+      @Nullable WindowFrame windowFrame) {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    if (windowFrame == null) {</span>
+<span class="nc" id="L82">      windowFrame = WindowFrame.rowsUnbounded();</span>
+    }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    boolean rows = windowFrame.getType() == WindowFrame.FrameType.ROWS;</span>
+<span class="nc" id="L85">    RexWindowBound lowerBound = convert(context, windowFrame.getLower());</span>
+<span class="nc" id="L86">    RexWindowBound upperBound = convert(context, windowFrame.getUpper());</span>
+<span class="nc bnc" id="L87" title="All 8 branches missed.">    switch (functionName) {</span>
+        // There is no &quot;avg&quot; AggImplementor in Calcite, we have to change avg window
+        // function to `sum over(...).toRex / count over(...).toRex`
+      case AVG:
+        // avg(x) ==&gt;
+        //     sum(x) / count(x)
+<span class="nc" id="L93">        return context.relBuilder.call(</span>
+            SqlStdOperatorTable.DIVIDE,
+<span class="nc" id="L95">            sumOver(context, field, partitions, rows, lowerBound, upperBound),</span>
+<span class="nc" id="L96">            context.relBuilder.cast(</span>
+<span class="nc" id="L97">                countOver(context, field, partitions, rows, lowerBound, upperBound),</span>
+                SqlTypeName.DOUBLE));
+        // stddev_pop(x) ==&gt;
+        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
+        //
+        // stddev_samp(x) ==&gt;
+        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
+        //
+        // var_pop(x) ==&gt;
+        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
+        //
+        // var_samp(x) ==&gt;
+        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
+      case STDDEV_POP:
+<span class="nc" id="L111">        return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);</span>
+      case STDDEV_SAMP:
+<span class="nc" id="L113">        return variance(context, field, partitions, rows, lowerBound, upperBound, false, true);</span>
+      case VARPOP:
+<span class="nc" id="L115">        return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);</span>
+      case VARSAMP:
+<span class="nc" id="L117">        return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);</span>
+      case ROW_NUMBER:
+<span class="nc" id="L119">        return withOver(</span>
+<span class="nc" id="L120">            context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),</span>
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
+      case NTH_VALUE:
+<span class="nc" id="L127">        return withOver(</span>
+<span class="nc" id="L128">            context.relBuilder.aggregateCall(SqlStdOperatorTable.NTH_VALUE, field, argList.get(0)),</span>
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
+      default:
+<span class="nc" id="L135">        return withOver(</span>
+<span class="nc" id="L136">            makeAggCall(context, functionName, false, field, argList),</span>
+            partitions,
+            orderKeys,
+            rows,
+            lowerBound,
+            upperBound);
+    }
+  }
+
+  private static RexNode sumOver(
+      CalcitePlanContext ctx,
+      RexNode operation,
+      List&lt;RexNode&gt; partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+<span class="nc" id="L152">    return withOver(</span>
+<span class="nc" id="L153">        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);</span>
+  }
+
+  private static RexNode countOver(
+      CalcitePlanContext ctx,
+      RexNode operation,
+      List&lt;RexNode&gt; partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+<span class="nc" id="L163">    return withOver(</span>
+<span class="nc" id="L164">        ctx.relBuilder.count(ImmutableList.of(operation)),</span>
+        partitions,
+<span class="nc" id="L166">        List.of(),</span>
+        rows,
+        lowerBound,
+        upperBound);
+  }
+
+  private static RexNode withOver(
+      RelBuilder.AggCall aggCall,
+      List&lt;RexNode&gt; partitions,
+      List&lt;RexNode&gt; orderKeys,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+<span class="nc" id="L179">    return aggCall</span>
+<span class="nc" id="L180">        .over()</span>
+<span class="nc" id="L181">        .partitionBy(partitions)</span>
+<span class="nc" id="L182">        .orderBy(orderKeys)</span>
+<span class="nc" id="L183">        .let(</span>
+            c -&gt;
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                rows</span>
+<span class="nc" id="L186">                    ? c.rowsBetween(lowerBound, upperBound)</span>
+<span class="nc" id="L187">                    : c.rangeBetween(lowerBound, upperBound))</span>
+<span class="nc" id="L188">        .toRex();</span>
+  }
+
+  private static RexNode variance(
+      CalcitePlanContext ctx,
+      RexNode operator,
+      List&lt;RexNode&gt; partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      boolean biased,
+      boolean sqrt) {
+<span class="nc" id="L200">    RexNode argSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, operator, operator);</span>
+<span class="nc" id="L201">    RexNode sumArgSquared = sumOver(ctx, argSquared, partitions, rows, lowerBound, upperBound);</span>
+<span class="nc" id="L202">    RexNode sum = sumOver(ctx, operator, partitions, rows, lowerBound, upperBound);</span>
+<span class="nc" id="L203">    RexNode sumSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, sum, sum);</span>
+<span class="nc" id="L204">    RexNode count = countOver(ctx, operator, partitions, rows, lowerBound, upperBound);</span>
+<span class="nc" id="L205">    RexNode countCast = ctx.relBuilder.cast(count, SqlTypeName.DOUBLE);</span>
+<span class="nc" id="L206">    RexNode avgSumSquared = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, sumSquared, countCast);</span>
+<span class="nc" id="L207">    RexNode diff = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, sumArgSquared, avgSumSquared);</span>
+    RexNode denominator;
+<span class="nc bnc" id="L209" title="All 2 branches missed.">    if (biased) {</span>
+<span class="nc" id="L210">      denominator = countCast;</span>
+    } else {
+<span class="nc" id="L212">      RexNode one = ctx.relBuilder.literal(1);</span>
+<span class="nc" id="L213">      denominator = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, countCast, one);</span>
+    }
+<span class="nc" id="L215">    RexNode div = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, diff, denominator);</span>
+<span class="nc" id="L216">    RexNode result = div;</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">    if (sqrt) {</span>
+<span class="nc" id="L218">      RexNode half = ctx.relBuilder.literal(0.5);</span>
+<span class="nc" id="L219">      result = ctx.relBuilder.call(SqlStdOperatorTable.POWER, div, half);</span>
+    }
+<span class="nc" id="L221">    return result;</span>
+  }
+
+  static RexWindowBound convert(CalcitePlanContext context, WindowBound windowBound) {
+<span class="nc bnc" id="L225" title="All 2 branches missed.">    if (windowBound instanceof WindowBound.UnboundedWindowBound unbounded) {</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">      if (unbounded.isPreceding()) {</span>
+<span class="nc" id="L227">        return UNBOUNDED_PRECEDING;</span>
+      } else {
+<span class="nc" id="L229">        return UNBOUNDED_FOLLOWING;</span>
+      }
+<span class="nc bnc" id="L231" title="All 2 branches missed.">    } else if (windowBound instanceof WindowBound.CurrentRowWindowBound current) {</span>
+<span class="nc" id="L232">      return CURRENT_ROW;</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">    } else if (windowBound instanceof WindowBound.OffSetWindowBound offset) {</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">      if (offset.isPreceding()) {</span>
+<span class="nc" id="L235">        return preceding(context.relBuilder.literal(offset.getOffset()));</span>
+      } else {
+<span class="nc" id="L237">        return following(context.relBuilder.literal(offset.getOffset()));</span>
+      }
+    } else {
+<span class="nc" id="L240">      throw new UnsupportedOperationException(&quot;Unexpected window bound: &quot; + windowBound);</span>
+    }
+  }
+
+  static RelBuilder.AggCall makeAggCall(
+      CalcitePlanContext context,
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List&lt;RexNode&gt; argList) {
+<span class="nc" id="L250">    return PPLFuncImpTable.INSTANCE.resolveAgg(functionName, distinct, field, argList, context);</span>
+  }
+
+  /** Get all uniq input references from a RexNode. */
+  static List&lt;RexInputRef&gt; getInputRefs(RexNode node) {
+<span class="nc" id="L255">    List&lt;RexInputRef&gt; inputRefs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L256">    node.accept(</span>
+<span class="nc" id="L257">        new RexVisitorImpl&lt;Void&gt;(true) {</span>
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            if (!inputRefs.contains(inputRef)) {</span>
+<span class="nc" id="L261">              inputRefs.add(inputRef);</span>
+            }
+<span class="nc" id="L263">            return null;</span>
+          }
+        });
+<span class="nc" id="L266">    return inputRefs;</span>
+  }
+
+  /** Get all uniq input references from a list of RexNodes. */
+  static List&lt;RexInputRef&gt; getInputRefs(List&lt;RexNode&gt; nodes) {
+<span class="nc" id="L271">    return nodes.stream().flatMap(node -&gt; getInputRefs(node).stream()).toList();</span>
+  }
+
+  /** Get all uniq input references from a list of agg calls. */
+  static List&lt;RexInputRef&gt; getInputRefsFromAggCall(List&lt;RelBuilder.AggCall&gt; aggCalls) {
+<span class="nc" id="L276">    return aggCalls.stream()</span>
+<span class="nc" id="L277">        .map(RelBuilder.AggCall::over)</span>
+<span class="nc" id="L278">        .map(RelBuilder.OverCall::toRex)</span>
+<span class="nc" id="L279">        .flatMap(rex -&gt; getInputRefs(rex).stream())</span>
+<span class="nc" id="L280">        .toList();</span>
+  }
+
+  /**
+   * Visit the children of an unresolved plan to find it leaf relation
+   *
+   * @param node to visit its children
+   * @return the relation if found
+   */
+  static UnresolvedPlan getRelation(UnresolvedPlan node) {
+<span class="nc" id="L290">    AbstractNodeVisitor&lt;Relation, Object&gt; relationVisitor =</span>
+<span class="nc" id="L291">        new AbstractNodeVisitor&lt;Relation, Object&gt;() {</span>
+          @Override
+          public Relation visitRelation(Relation node, Object context) {
+<span class="nc" id="L294">            return node;</span>
+          }
+        };
+<span class="nc" id="L297">    return node.getChild().getFirst().accept(relationVisitor, null);</span>
+  }
+
+  /** Similar to {@link org.apache.calcite.plan.RelOptUtil#findTable(RelNode, String) } */
+  static RelOptTable findTable(RelNode root) {
+    try {
+<span class="nc" id="L303">      RelShuttle visitor =</span>
+<span class="nc" id="L304">          new RelHomogeneousShuttle() {</span>
+            @Override
+            public RelNode visit(TableScan scan) {
+<span class="nc" id="L307">              final RelOptTable scanTable = scan.getTable();</span>
+<span class="nc" id="L308">              throw new Util.FoundOne(scanTable);</span>
+            }
+          };
+<span class="nc" id="L311">      root.accept(visitor);</span>
+<span class="nc" id="L312">      return null;</span>
+<span class="nc" id="L313">    } catch (Util.FoundOne e) {</span>
+<span class="nc" id="L314">      Util.swallow(e, null);</span>
+<span class="nc" id="L315">      return (RelOptTable) e.getNode();</span>
+    }
+  }
+
+  /**
+   * Transform plan to attach specified child to the first leaf node.
+   *
+   * @param node to transform
+   * @param child to attach
+   */
+  static void transformPlanToAttachChild(UnresolvedPlan node, UnresolvedPlan child) {
+<span class="nc" id="L326">    AbstractNodeVisitor&lt;Void, Object&gt; leafVisitor =</span>
+<span class="nc" id="L327">        new AbstractNodeVisitor&lt;Void, Object&gt;() {</span>
+          @Override
+          public Void visitChildren(Node node, Object context) {
+<span class="nc bnc" id="L330" title="All 4 branches missed.">            if (node.getChild() == null || node.getChild().isEmpty()) {</span>
+              // find leaf node
+<span class="nc" id="L332">              ((UnresolvedPlan) node).attach(child);</span>
+            } else {
+<span class="nc" id="L334">              node.getChild().forEach(child -&gt; child.accept(this, context));</span>
+            }
+<span class="nc" id="L336">            return null;</span>
+          }
+        };
+<span class="nc" id="L339">    node.accept(leafVisitor, null);</span>
+<span class="nc" id="L340">  }</span>
+
+  /**
+   * Return the first value RexNode of the valid map RexCall structure
+   *
+   * @param rexNode RexNode that expects type of MAP_VALUE_CONSTRUCTOR RexCall
+   * @return first value of the valid map RexCall
+   */
+  static RexNode derefMapCall(RexNode rexNode) {
+<span class="nc bnc" id="L349" title="All 2 branches missed.">    if (rexNode instanceof RexCall) {</span>
+<span class="nc" id="L350">      RexCall call = (RexCall) rexNode;</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {</span>
+<span class="nc" id="L352">        return call.getOperands().get(1);</span>
+      }
+    }
+<span class="nc" id="L355">    return rexNode;</span>
+  }
+
+  /** Check if contains RexOver */
+  static boolean containsRowNumberDedup(LogicalProject project) {
+<span class="nc" id="L360">    return project.getProjects().stream()</span>
+<span class="nc bnc" id="L361" title="All 4 branches missed.">        .anyMatch(p -&gt; p instanceof RexOver &amp;&amp; p.getKind() == SqlKind.ROW_NUMBER);</span>
+  }
+
+  /** Get all RexWindow list from LogicalProject */
+  static List&lt;RexWindow&gt; getRexWindowFromProject(LogicalProject project) {
+<span class="nc" id="L366">    final List&lt;RexWindow&gt; res = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L367">    final RexVisitorImpl&lt;Void&gt; visitor =</span>
+<span class="nc" id="L368">        new RexVisitorImpl&lt;&gt;(true) {</span>
+          @Override
+          public Void visitOver(RexOver over) {
+<span class="nc" id="L371">            res.add(over.getWindow());</span>
+<span class="nc" id="L372">            return null;</span>
+          }
+        };
+<span class="nc" id="L375">    visitor.visitEach(project.getProjects());</span>
+<span class="nc" id="L376">    return res;</span>
+  }
+
+  static List&lt;Integer&gt; getSelectColumns(List&lt;RexNode&gt; rexNodes) {
+<span class="nc" id="L380">    final List&lt;Integer&gt; selectedColumns = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L381">    final RexVisitorImpl&lt;Void&gt; visitor =</span>
+<span class="nc" id="L382">        new RexVisitorImpl&lt;Void&gt;(true) {</span>
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">            if (!selectedColumns.contains(inputRef.getIndex())) {</span>
+<span class="nc" id="L386">              selectedColumns.add(inputRef.getIndex());</span>
+            }
+<span class="nc" id="L388">            return null;</span>
+          }
+        };
+<span class="nc" id="L391">    visitor.visitEach(rexNodes);</span>
+<span class="nc" id="L392">    return selectedColumns;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

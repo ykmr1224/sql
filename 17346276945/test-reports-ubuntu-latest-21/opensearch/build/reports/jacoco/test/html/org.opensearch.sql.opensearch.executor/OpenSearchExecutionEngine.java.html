@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchExecutionEngine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.executor</a> &gt; <span class="el_source">OpenSearchExecutionEngine.java</span></div><h1>OpenSearchExecutionEngine.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.executor;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.ExecutionContext;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.executor.Explain;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
+import org.opensearch.sql.opensearch.functions.GeoIpFunction;
+import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.TableScanOperator;
+
+/** OpenSearch execution engine implementation. */
+public class OpenSearchExecutionEngine implements ExecutionEngine {
+<span class="fc" id="L60">  private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);</span>
+
+  private final OpenSearchClient client;
+
+  private final ExecutionProtector executionProtector;
+  private final PlanSerializer planSerializer;
+
+  public OpenSearchExecutionEngine(
+      OpenSearchClient client,
+      ExecutionProtector executionProtector,
+<span class="fc" id="L70">      PlanSerializer planSerializer) {</span>
+<span class="fc" id="L71">    this.client = client;</span>
+<span class="fc" id="L72">    this.executionProtector = executionProtector;</span>
+<span class="fc" id="L73">    this.planSerializer = planSerializer;</span>
+<span class="fc" id="L74">    registerOpenSearchFunctions();</span>
+<span class="fc" id="L75">  }</span>
+
+  @Override
+  public void execute(PhysicalPlan physicalPlan, ResponseListener&lt;QueryResponse&gt; listener) {
+<span class="fc" id="L79">    execute(physicalPlan, ExecutionContext.emptyExecutionContext(), listener);</span>
+<span class="fc" id="L80">  }</span>
+
+  @Override
+  public void execute(
+      PhysicalPlan physicalPlan,
+      ExecutionContext context,
+      ResponseListener&lt;QueryResponse&gt; listener) {
+<span class="fc" id="L87">    PhysicalPlan plan = executionProtector.protect(physicalPlan);</span>
+<span class="fc" id="L88">    client.schedule(</span>
+        () -&gt; {
+          try {
+<span class="fc" id="L91">            List&lt;ExprValue&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L93">            context.getSplit().ifPresent(plan::add);</span>
+<span class="fc" id="L94">            plan.open();</span>
+
+<span class="fc" id="L96">            Integer querySizeLimit = context.getQuerySizeLimit();</span>
+<span class="pc bpc" id="L97" title="3 of 6 branches missed.">            while (plan.hasNext() &amp;&amp; (querySizeLimit == null || result.size() &lt; querySizeLimit)) {</span>
+<span class="fc" id="L98">              result.add(plan.next());</span>
+            }
+
+<span class="fc" id="L101">            QueryResponse response =</span>
+                new QueryResponse(
+<span class="fc" id="L103">                    physicalPlan.schema(), result, planSerializer.convertToCursor(plan));</span>
+<span class="fc" id="L104">            listener.onResponse(response);</span>
+<span class="fc" id="L105">          } catch (Exception e) {</span>
+<span class="fc" id="L106">            listener.onFailure(e);</span>
+          } finally {
+<span class="fc" id="L108">            plan.close();</span>
+          }
+<span class="fc" id="L110">        });</span>
+<span class="fc" id="L111">  }</span>
+
+  @Override
+  public void explain(PhysicalPlan plan, ResponseListener&lt;ExplainResponse&gt; listener) {
+<span class="fc" id="L115">    client.schedule(</span>
+        () -&gt; {
+          try {
+<span class="fc" id="L118">            Explain openSearchExplain =</span>
+<span class="fc" id="L119">                new Explain() {</span>
+                  @Override
+                  public ExplainResponseNode visitTableScan(
+                      TableScanOperator node, Object context) {
+<span class="fc" id="L123">                    return explain(</span>
+                        node,
+                        context,
+                        explainNode -&gt; {
+<span class="fc" id="L127">                          explainNode.setDescription(Map.of(&quot;request&quot;, node.explain()));</span>
+<span class="fc" id="L128">                        });</span>
+                  }
+                };
+
+<span class="fc" id="L132">            listener.onResponse(openSearchExplain.apply(plan));</span>
+<span class="fc" id="L133">          } catch (Exception e) {</span>
+<span class="fc" id="L134">            listener.onFailure(e);</span>
+<span class="fc" id="L135">          }</span>
+<span class="fc" id="L136">        });</span>
+<span class="fc" id="L137">  }</span>
+
+  private Hook.Closeable getPhysicalPlanInHook(
+      AtomicReference&lt;String&gt; physical, SqlExplainLevel level) {
+<span class="nc" id="L141">    return Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(</span>
+        obj -&gt; {
+<span class="nc" id="L143">          RelRoot relRoot = (RelRoot) obj;</span>
+<span class="nc" id="L144">          physical.set(RelOptUtil.toString(relRoot.rel, level));</span>
+<span class="nc" id="L145">        });</span>
+  }
+
+  private Hook.Closeable getCodegenInHook(AtomicReference&lt;String&gt; codegen) {
+<span class="nc" id="L149">    return Hook.JAVA_PLAN.addThread(</span>
+        obj -&gt; {
+<span class="nc" id="L151">          codegen.set((String) obj);</span>
+<span class="nc" id="L152">        });</span>
+  }
+
+  @Override
+  public void explain(
+      RelNode rel,
+      ExplainFormat format,
+      CalcitePlanContext context,
+      ResponseListener&lt;ExplainResponse&gt; listener) {
+<span class="nc" id="L161">    client.schedule(</span>
+        () -&gt; {
+          try {
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            if (format == ExplainFormat.SIMPLE) {</span>
+<span class="nc" id="L165">              String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);</span>
+<span class="nc" id="L166">              listener.onResponse(</span>
+                  new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
+<span class="nc" id="L168">            } else {</span>
+              SqlExplainLevel level =
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                  format == ExplainFormat.COST</span>
+<span class="nc" id="L171">                      ? SqlExplainLevel.ALL_ATTRIBUTES</span>
+<span class="nc" id="L172">                      : SqlExplainLevel.EXPPLAN_ATTRIBUTES;</span>
+<span class="nc" id="L173">              String logical = RelOptUtil.toString(rel, level);</span>
+<span class="nc" id="L174">              AtomicReference&lt;String&gt; physical = new AtomicReference&lt;&gt;();</span>
+<span class="nc" id="L175">              AtomicReference&lt;String&gt; javaCode = new AtomicReference&lt;&gt;();</span>
+<span class="nc" id="L176">              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                if (format == ExplainFormat.EXTENDED) {</span>
+<span class="nc" id="L178">                  getCodegenInHook(javaCode);</span>
+<span class="nc" id="L179">                  CalcitePlanContext.skipEncoding.set(true);</span>
+                }
+                // triggers the hook
+<span class="nc" id="L182">                AccessController.doPrivileged(</span>
+                    (PrivilegedAction&lt;PreparedStatement&gt;)
+<span class="nc" id="L184">                        () -&gt; OpenSearchRelRunners.run(context, rel));</span>
+              }
+<span class="nc" id="L186">              listener.onResponse(</span>
+                  new ExplainResponse(
+<span class="nc" id="L188">                      new ExplainResponseNodeV2(logical, physical.get(), javaCode.get())));</span>
+            }
+<span class="nc" id="L190">          } catch (Exception e) {</span>
+<span class="nc" id="L191">            listener.onFailure(e);</span>
+          } finally {
+<span class="nc" id="L193">            CalcitePlanContext.skipEncoding.remove();</span>
+          }
+<span class="nc" id="L195">        });</span>
+<span class="nc" id="L196">  }</span>
+
+  @Override
+  public void execute(
+      RelNode rel, CalcitePlanContext context, ResponseListener&lt;QueryResponse&gt; listener) {
+<span class="nc" id="L201">    client.schedule(</span>
+        () -&gt;
+<span class="nc" id="L203">            AccessController.doPrivileged(</span>
+                (PrivilegedAction&lt;Void&gt;)
+                    () -&gt; {
+<span class="nc" id="L206">                      try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {</span>
+<span class="nc" id="L207">                        ResultSet result = statement.executeQuery();</span>
+<span class="nc" id="L208">                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);</span>
+<span class="nc" id="L209">                      } catch (SQLException e) {</span>
+<span class="nc" id="L210">                        throw new RuntimeException(e);</span>
+<span class="nc" id="L211">                      }</span>
+<span class="nc" id="L212">                      return null;</span>
+                    }));
+<span class="nc" id="L214">  }</span>
+
+  private void buildResultSet(
+      ResultSet resultSet,
+      RelDataType rowTypes,
+      Integer querySizeLimit,
+      ResponseListener&lt;QueryResponse&gt; listener)
+      throws SQLException {
+    // Get the ResultSet metadata to know about columns
+<span class="nc" id="L223">    ResultSetMetaData metaData = resultSet.getMetaData();</span>
+<span class="nc" id="L224">    int columnCount = metaData.getColumnCount();</span>
+<span class="nc" id="L225">    List&lt;RelDataType&gt; fieldTypes =</span>
+<span class="nc" id="L226">        rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();</span>
+<span class="nc" id="L227">    List&lt;ExprValue&gt; values = new ArrayList&lt;&gt;();</span>
+    // Iterate through the ResultSet
+<span class="nc bnc" id="L229" title="All 6 branches missed.">    while (resultSet.next() &amp;&amp; (querySizeLimit == null || values.size() &lt; querySizeLimit)) {</span>
+<span class="nc" id="L230">      Map&lt;String, ExprValue&gt; row = new LinkedHashMap&lt;String, ExprValue&gt;();</span>
+      // Loop through each column
+<span class="nc bnc" id="L232" title="All 2 branches missed.">      for (int i = 1; i &lt;= columnCount; i++) {</span>
+<span class="nc" id="L233">        String columnName = metaData.getColumnName(i);</span>
+<span class="nc" id="L234">        int sqlType = metaData.getColumnType(i);</span>
+<span class="nc" id="L235">        RelDataType fieldType = fieldTypes.get(i - 1);</span>
+<span class="nc" id="L236">        ExprValue exprValue =</span>
+<span class="nc" id="L237">            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(</span>
+                resultSet, i, sqlType, fieldType, columnName);
+<span class="nc" id="L239">        row.put(columnName, exprValue);</span>
+      }
+<span class="nc" id="L241">      values.add(ExprTupleValue.fromExprValueMap(row));</span>
+<span class="nc" id="L242">    }</span>
+
+<span class="nc" id="L244">    List&lt;Column&gt; columns = new ArrayList&lt;&gt;(metaData.getColumnCount());</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">    for (int i = 1; i &lt;= columnCount; ++i) {</span>
+<span class="nc" id="L246">      String columnName = metaData.getColumnName(i);</span>
+<span class="nc" id="L247">      RelDataType fieldType = fieldTypes.get(i - 1);</span>
+      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
+      //  The element type of struct and array is currently set to ANY.
+      //  We set them using the runtime type as a workaround.
+      ExprType exprType;
+<span class="nc bnc" id="L252" title="All 2 branches missed.">      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (!values.isEmpty()) {</span>
+<span class="nc" id="L254">          exprType = values.getFirst().tupleValue().get(columnName).type();</span>
+        } else {
+          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
+<span class="nc" id="L257">          exprType = ExprCoreType.UNDEFINED;</span>
+        }
+      } else {
+<span class="nc" id="L260">        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);</span>
+      }
+<span class="nc" id="L262">      columns.add(new Column(columnName, null, exprType));</span>
+    }
+<span class="nc" id="L264">    Schema schema = new Schema(columns);</span>
+<span class="nc" id="L265">    QueryResponse response = new QueryResponse(schema, values, null);</span>
+<span class="nc" id="L266">    listener.onResponse(response);</span>
+<span class="nc" id="L267">  }</span>
+
+  /** Registers opensearch-dependent functions */
+  private void registerOpenSearchFunctions() {
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">    if (client instanceof OpenSearchNodeClient) {</span>
+<span class="nc" id="L272">      SqlUserDefinedFunction geoIpFunction =</span>
+<span class="nc" id="L273">          new GeoIpFunction(client.getNodeClient()).toUDF(&quot;GEOIP&quot;);</span>
+<span class="nc" id="L274">      PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);</span>
+<span class="nc" id="L275">    } else {</span>
+<span class="fc" id="L276">      logger.info(</span>
+          &quot;Function [GEOIP] not registered: incompatible client type {}&quot;,
+<span class="fc" id="L278">          client.getClass().getName());</span>
+    }
+
+<span class="fc" id="L281">    SqlUserDefinedAggFunction approxDistinctCountFunction =</span>
+<span class="fc" id="L282">        UserDefinedFunctionUtils.createUserDefinedAggFunction(</span>
+            DistinctCountApproxAggFunction.class,
+            &quot;APPROX_DISTINCT_COUNT&quot;,
+            ReturnTypes.BIGINT_FORCE_NULLABLE,
+            null);
+<span class="fc" id="L287">    PPLFuncImpTable.INSTANCE.registerExternalAggOperator(</span>
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+<span class="fc" id="L289">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QueryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor</a> &gt; <span class="el_source">QueryService.java</span></div><h1>QueryService.java</h1><pre class="source lang-java linenums">/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+package org.opensearch.sql.executor;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.List;
+import java.util.Optional;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Programs;
+import org.opensearch.sql.analysis.AnalysisContext;
+import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.planner.PlanContext;
+import org.opensearch.sql.planner.Planner;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+
+/** The low level interface of core engine. */
+@RequiredArgsConstructor
+@AllArgsConstructor
+<span class="fc" id="L55">@Log4j2</span>
+public class QueryService {
+  private final Analyzer analyzer;
+  private final ExecutionEngine executionEngine;
+  private final Planner planner;
+
+  @Getter(lazy = true)
+  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor();
+
+  private DataSourceService dataSourceService;
+  private Settings settings;
+
+  /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.&lt;br&gt; */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; listener) {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (shouldUseCalcite(queryType)) {</span>
+<span class="nc" id="L73">      executeWithCalcite(plan, queryType, listener);</span>
+    } else {
+<span class="fc" id="L75">      executeWithLegacy(plan, queryType, listener, Optional.empty());</span>
+    }
+<span class="fc" id="L77">  }</span>
+
+  /** Explain the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.&lt;br&gt; */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.ExplainResponse&gt; listener,
+      Explain.ExplainFormat format) {
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">    if (shouldUseCalcite(queryType)) {</span>
+<span class="nc" id="L86">      explainWithCalcite(plan, queryType, listener, format);</span>
+    } else {
+<span class="fc" id="L88">      explainWithLegacy(plan, queryType, listener, format, Optional.empty());</span>
+    }
+<span class="fc" id="L90">  }</span>
+
+  public void executeWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; listener) {
+    try {
+<span class="nc" id="L97">      AccessController.doPrivileged(</span>
+          (PrivilegedAction&lt;Void&gt;)
+              () -&gt; {
+<span class="nc" id="L100">                CalcitePlanContext context =</span>
+<span class="nc" id="L101">                    CalcitePlanContext.create(</span>
+<span class="nc" id="L102">                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);</span>
+<span class="nc" id="L103">                RelNode relNode = analyze(plan, context);</span>
+<span class="nc" id="L104">                RelNode optimized = optimize(relNode, context);</span>
+<span class="nc" id="L105">                RelNode calcitePlan = convertToCalcitePlan(optimized);</span>
+<span class="nc" id="L106">                executionEngine.execute(calcitePlan, context, listener);</span>
+<span class="nc" id="L107">                return null;</span>
+              });
+<span class="nc" id="L109">    } catch (Throwable t) {</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">      if (isCalciteFallbackAllowed() &amp;&amp; !(t instanceof NonFallbackCalciteException)) {</span>
+<span class="nc" id="L111">        log.warn(&quot;Fallback to V2 query engine since got exception&quot;, t);</span>
+<span class="nc" id="L112">        executeWithLegacy(plan, queryType, listener, Optional.of(t));</span>
+      } else {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (t instanceof Exception) {</span>
+<span class="nc" id="L115">          listener.onFailure((Exception) t);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        } else if (t instanceof VirtualMachineError) {</span>
+          // throw and fast fail the VM errors such as OOM (same with v2).
+<span class="nc" id="L118">          throw t;</span>
+        } else {
+          // Calcite may throw AssertError during query execution.
+<span class="nc" id="L121">          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));</span>
+        }
+      }
+<span class="nc" id="L124">    }</span>
+<span class="nc" id="L125">  }</span>
+
+  public void explainWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.ExplainResponse&gt; listener,
+      Explain.ExplainFormat format) {
+    try {
+<span class="nc" id="L133">      AccessController.doPrivileged(</span>
+          (PrivilegedAction&lt;Void&gt;)
+              () -&gt; {
+<span class="nc" id="L136">                CalcitePlanContext context =</span>
+<span class="nc" id="L137">                    CalcitePlanContext.create(</span>
+<span class="nc" id="L138">                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);</span>
+<span class="nc" id="L139">                RelNode relNode = analyze(plan, context);</span>
+<span class="nc" id="L140">                RelNode optimized = optimize(relNode, context);</span>
+<span class="nc" id="L141">                RelNode calcitePlan = convertToCalcitePlan(optimized);</span>
+<span class="nc" id="L142">                executionEngine.explain(calcitePlan, format, context, listener);</span>
+<span class="nc" id="L143">                return null;</span>
+              });
+<span class="nc" id="L145">    } catch (Throwable t) {</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">      if (isCalciteFallbackAllowed()) {</span>
+<span class="nc" id="L147">        log.warn(&quot;Fallback to V2 query engine since got exception&quot;, t);</span>
+<span class="nc" id="L148">        explainWithLegacy(plan, queryType, listener, format, Optional.of(t));</span>
+      } else {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (t instanceof Error) {</span>
+          // Calcite may throw AssertError during query execution.
+<span class="nc" id="L152">          listener.onFailure(new CalciteUnsupportedException(t.getMessage()));</span>
+        } else {
+<span class="nc" id="L154">          listener.onFailure((Exception) t);</span>
+        }
+      }
+<span class="nc" id="L157">    }</span>
+<span class="nc" id="L158">  }</span>
+
+  public void executeWithLegacy(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; listener,
+      Optional&lt;Throwable&gt; calciteFailure) {
+    try {
+<span class="fc" id="L166">      executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);</span>
+<span class="fc" id="L167">    } catch (Exception e) {</span>
+<span class="pc bpc" id="L168" title="3 of 4 branches missed.">      if (shouldUseCalcite(queryType) &amp;&amp; isCalciteFallbackAllowed()) {</span>
+        // if there is a failure thrown from Calcite and execution after fallback V2
+        // keeps failure, we should throw the failure from Calcite.
+<span class="nc" id="L171">        calciteFailure.ifPresentOrElse(</span>
+<span class="nc" id="L172">            t -&gt; listener.onFailure(new RuntimeException(t)), () -&gt; listener.onFailure(e));</span>
+      } else {
+<span class="fc" id="L174">        listener.onFailure(e);</span>
+      }
+<span class="fc" id="L176">    }</span>
+<span class="fc" id="L177">  }</span>
+
+  /**
+   * Explain the query in {@link UnresolvedPlan} using {@link ResponseListener} to get and format
+   * explain response.
+   *
+   * @param plan {@link UnresolvedPlan}
+   * @param queryType {@link QueryType}
+   * @param listener {@link ResponseListener} for explain response
+   * @param calciteFailure Optional failure thrown from calcite
+   */
+  public void explainWithLegacy(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.ExplainResponse&gt; listener,
+      Explain.ExplainFormat format,
+      Optional&lt;Throwable&gt; calciteFailure) {
+    try {
+<span class="pc bpc" id="L195" title="2 of 4 branches missed.">      if (format != null &amp;&amp; format != Explain.ExplainFormat.STANDARD) {</span>
+<span class="nc" id="L196">        throw new UnsupportedOperationException(</span>
+<span class="nc" id="L197">            &quot;Explain mode &quot; + format.name() + &quot; is not supported in v2 engine&quot;);</span>
+      }
+<span class="fc" id="L199">      executionEngine.explain(plan(analyze(plan, queryType)), listener);</span>
+<span class="fc" id="L200">    } catch (Exception e) {</span>
+<span class="pc bpc" id="L201" title="3 of 4 branches missed.">      if (shouldUseCalcite(queryType) &amp;&amp; isCalciteFallbackAllowed()) {</span>
+        // if there is a failure thrown from Calcite and execution after fallback V2
+        // keeps failure, we should throw the failure from Calcite.
+<span class="nc" id="L204">        calciteFailure.ifPresentOrElse(</span>
+<span class="nc" id="L205">            t -&gt; listener.onFailure(new RuntimeException(t)), () -&gt; listener.onFailure(e));</span>
+      } else {
+<span class="fc" id="L207">        listener.onFailure(e);</span>
+      }
+<span class="fc" id="L209">    }</span>
+<span class="fc" id="L210">  }</span>
+
+  /**
+   * Execute the {@link LogicalPlan}, with {@link PlanContext} and using {@link ResponseListener} to
+   * get response.&lt;br&gt;
+   * Todo. Pass split from PlanContext to ExecutionEngine in following PR.
+   *
+   * @param plan {@link LogicalPlan}
+   * @param planContext {@link PlanContext}
+   * @param listener {@link ResponseListener}
+   */
+  public void executePlan(
+      LogicalPlan plan,
+      PlanContext planContext,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; listener) {
+    try {
+<span class="fc" id="L226">      planContext</span>
+<span class="fc" id="L227">          .getSplit()</span>
+<span class="fc" id="L228">          .ifPresentOrElse(</span>
+<span class="fc" id="L229">              split -&gt; executionEngine.execute(plan(plan), new ExecutionContext(split), listener),</span>
+              () -&gt;
+<span class="fc" id="L231">                  executionEngine.execute(</span>
+<span class="fc" id="L232">                      plan(plan),</span>
+<span class="fc" id="L233">                      ExecutionContext.querySizeLimit(</span>
+                          // For pagination, querySizeLimit shouldn't take effect.
+                          // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">                          plan instanceof LogicalPaginate ? null : getQuerySizeLimit()),</span>
+                      listener));
+<span class="fc" id="L238">    } catch (Exception e) {</span>
+<span class="fc" id="L239">      listener.onFailure(e);</span>
+<span class="fc" id="L240">    }</span>
+<span class="fc" id="L241">  }</span>
+
+  public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
+<span class="nc" id="L244">    return getRelNodeVisitor().analyze(plan, context);</span>
+  }
+
+  /** Analyze {@link UnresolvedPlan}. */
+  public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
+<span class="fc" id="L249">    return analyzer.analyze(plan, new AnalysisContext(queryType));</span>
+  }
+
+  /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
+  public PhysicalPlan plan(LogicalPlan plan) {
+<span class="fc" id="L254">    return planner.plan(plan);</span>
+  }
+
+  /**
+   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
+   * `EXPLAIN` to avoid changing its output plan.
+   */
+  public RelNode optimize(RelNode plan, CalcitePlanContext context) {
+<span class="nc" id="L262">    return LogicalSystemLimit.create(</span>
+<span class="nc" id="L263">        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));</span>
+  }
+
+  private boolean isCalciteFallbackAllowed() {
+<span class="nc bnc" id="L267" title="All 2 branches missed.">    if (settings != null) {</span>
+<span class="nc" id="L268">      return settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);</span>
+    } else {
+<span class="nc" id="L270">      return true;</span>
+    }
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+<span class="fc bfc" id="L275" title="All 2 branches covered.">    if (settings != null) {</span>
+<span class="fc" id="L276">      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);</span>
+    } else {
+<span class="fc" id="L278">      return false;</span>
+    }
+  }
+
+  private Integer getQuerySizeLimit() {
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">    return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);</span>
+  }
+
+  // TODO https://github.com/opensearch-project/sql/issues/3457
+  // Calcite is not available for SQL query now. Maybe release in 3.1.0?
+  private boolean shouldUseCalcite(QueryType queryType) {
+<span class="pc bpc" id="L289" title="3 of 4 branches missed.">    return isCalciteEnabled(settings) &amp;&amp; queryType == QueryType.PPL;</span>
+  }
+
+  private FrameworkConfig buildFrameworkConfig() {
+    // Use simple calcite schema since we don't compute tables in advance of the query.
+<span class="nc" id="L294">    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, false).plus();</span>
+<span class="nc" id="L295">    final SchemaPlus opensearchSchema =</span>
+<span class="nc" id="L296">        rootSchema.add(</span>
+            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
+    Frameworks.ConfigBuilder configBuilder =
+<span class="nc" id="L299">        Frameworks.newConfigBuilder()</span>
+<span class="nc" id="L300">            .parserConfig(SqlParser.Config.DEFAULT) // TODO check</span>
+<span class="nc" id="L301">            .defaultSchema(opensearchSchema)</span>
+<span class="nc" id="L302">            .traitDefs((List&lt;RelTraitDef&gt;) null)</span>
+<span class="nc" id="L303">            .programs(Programs.standard())</span>
+<span class="nc" id="L304">            .typeSystem(OpenSearchTypeSystem.INSTANCE);</span>
+<span class="nc" id="L305">    return configBuilder.build();</span>
+  }
+
+  /**
+   * Convert OpenSearch Plan to Calcite Plan. Although both plans consist of Calcite RelNodes, there
+   * are some differences in the topological structures or semantics between them.
+   *
+   * @param osPlan Logical Plan derived from OpenSearch PPL
+   */
+  private static RelNode convertToCalcitePlan(RelNode osPlan) {
+<span class="nc" id="L315">    RelNode calcitePlan = osPlan;</span>
+    /* Calcite only ensures collation of the final result produced from the root sort operator.
+     * While we expect that the collation can be preserved through the pipes over PPL, we need to
+     * explicitly add a sort operator on top of the original plan
+     * to ensure the correct collation of the final result.
+     * See logic in ${@link CalcitePrepareImpl}
+     * For the redundant sort, we rely on Calcite optimizer to eliminate
+     */
+<span class="nc" id="L323">    RelCollation collation = osPlan.getTraitSet().getCollation();</span>
+<span class="nc bnc" id="L324" title="All 4 branches missed.">    if (!(osPlan instanceof Sort) &amp;&amp; collation != RelCollations.EMPTY) {</span>
+<span class="nc" id="L325">      calcitePlan = LogicalSort.create(osPlan, collation, null, null);</span>
+    }
+<span class="nc" id="L327">    return calcitePlan;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

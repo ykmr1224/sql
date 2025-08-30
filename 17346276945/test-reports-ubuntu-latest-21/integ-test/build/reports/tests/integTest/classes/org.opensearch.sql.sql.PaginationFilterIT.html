@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.sql.PaginationFilterIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.sql.PaginationFilterIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.sql.html">org.opensearch.sql.sql</a> &gt; PaginationFilterIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">18</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.325s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 1000}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 5}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 1000}</td>
+<td class="success">0.052s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 5}</td>
+<td class="success">0.283s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 1000}</td>
+<td class="success">0.073s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 5}</td>
+<td class="success">0.420s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 1000}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 5}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 1000}</td>
+<td class="success">0.016s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 5}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 1000}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 5}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 1000}</td>
+<td class="success">0.018s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 5}</td>
+<td class="success">0.056s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000}</td>
+<td class="success">0.274s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5}</td>
+<td class="success">0.028s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_with_where {query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T17:37:44,849][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000] before test
+[2025-08-30T17:37:44,849][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] initializing REST clients against [http://[::1]:45383, http://127.0.0.1:33855]
+[2025-08-30T17:37:45,120][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,121][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000] after test
+[2025-08-30T17:37:45,123][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 1000] before test
+[2025-08-30T17:37:45,130][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'); total hits: १; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,131][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 1000] after test
+[2025-08-30T17:37:45,132][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 1000] before test
+[2025-08-30T17:37:45,200][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,204][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: १००० || response १/२
+[2025-08-30T17:37:45,204][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 1000] after test
+[2025-08-30T17:37:45,206][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 1000] before test
+[2025-08-30T17:37:45,220][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15; total hits: १; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,220][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 1000] after test
+[2025-08-30T17:37:45,223][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 1000] before test
+[2025-08-30T17:37:45,230][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_bank; total hits: ७; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,230][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 1000] after test
+[2025-08-30T17:37:45,232][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 5] before test
+[2025-08-30T17:37:45,240][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10; total hits: १; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,240][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 5] after test
+[2025-08-30T17:37:45,242][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 5] before test
+[2025-08-30T17:37:45,253][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15; total hits: १; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,253][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15, total_hits = 1, page_size = 5] after test
+[2025-08-30T17:37:45,255][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5] before test
+[2025-08-30T17:37:45,277][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,281][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: ५ || response १/२
+[2025-08-30T17:37:45,281][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5] after test
+[2025-08-30T17:37:45,283][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 5] before test
+[2025-08-30T17:37:45,314][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,318][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १/७८
+[2025-08-30T17:37:45,322][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २/७८
+[2025-08-30T17:37:45,325][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३/७८
+[2025-08-30T17:37:45,328][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४/७८
+[2025-08-30T17:37:45,331][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५/७८
+[2025-08-30T17:37:45,334][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६/७८
+[2025-08-30T17:37:45,337][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७/७८
+[2025-08-30T17:37:45,340][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ८/७८
+[2025-08-30T17:37:45,342][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ९/७८
+[2025-08-30T17:37:45,346][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १०/७८
+[2025-08-30T17:37:45,349][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ११/७८
+[2025-08-30T17:37:45,351][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १२/७८
+[2025-08-30T17:37:45,354][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १३/७८
+[2025-08-30T17:37:45,398][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १४/७८
+[2025-08-30T17:37:45,403][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १५/७८
+[2025-08-30T17:37:45,406][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १६/७८
+[2025-08-30T17:37:45,409][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १७/७८
+[2025-08-30T17:37:45,414][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १८/७८
+[2025-08-30T17:37:45,416][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response १९/७८
+[2025-08-30T17:37:45,419][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २०/७८
+[2025-08-30T17:37:45,421][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २१/७८
+[2025-08-30T17:37:45,424][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २२/७८
+[2025-08-30T17:37:45,426][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २३/७८
+[2025-08-30T17:37:45,428][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २४/७८
+[2025-08-30T17:37:45,430][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २५/७८
+[2025-08-30T17:37:45,432][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २६/७८
+[2025-08-30T17:37:45,434][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २७/७८
+[2025-08-30T17:37:45,436][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २८/७८
+[2025-08-30T17:37:45,438][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response २९/७८
+[2025-08-30T17:37:45,440][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३०/७८
+[2025-08-30T17:37:45,442][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३१/७८
+[2025-08-30T17:37:45,445][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३२/७८
+[2025-08-30T17:37:45,447][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३३/७८
+[2025-08-30T17:37:45,449][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३४/७८
+[2025-08-30T17:37:45,451][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३५/७८
+[2025-08-30T17:37:45,453][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३६/७८
+[2025-08-30T17:37:45,456][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३७/७८
+[2025-08-30T17:37:45,459][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३८/७८
+[2025-08-30T17:37:45,463][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ३९/७८
+[2025-08-30T17:37:45,465][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४०/७८
+[2025-08-30T17:37:45,468][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४१/७८
+[2025-08-30T17:37:45,472][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४२/७८
+[2025-08-30T17:37:45,474][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४३/७८
+[2025-08-30T17:37:45,477][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४४/७८
+[2025-08-30T17:37:45,479][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४५/७८
+[2025-08-30T17:37:45,482][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४६/७८
+[2025-08-30T17:37:45,485][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४७/७८
+[2025-08-30T17:37:45,487][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४८/७८
+[2025-08-30T17:37:45,490][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ४९/७८
+[2025-08-30T17:37:45,492][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५०/७८
+[2025-08-30T17:37:45,495][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५१/७८
+[2025-08-30T17:37:45,498][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५२/७८
+[2025-08-30T17:37:45,501][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५३/७८
+[2025-08-30T17:37:45,503][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५४/७८
+[2025-08-30T17:37:45,506][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५५/७८
+[2025-08-30T17:37:45,508][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५६/७८
+[2025-08-30T17:37:45,511][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५७/७८
+[2025-08-30T17:37:45,513][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५८/७८
+[2025-08-30T17:37:45,516][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ५९/७८
+[2025-08-30T17:37:45,519][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६०/७८
+[2025-08-30T17:37:45,522][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६१/७८
+[2025-08-30T17:37:45,526][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६२/७८
+[2025-08-30T17:37:45,529][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६३/७८
+[2025-08-30T17:37:45,531][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६४/७८
+[2025-08-30T17:37:45,534][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६५/७८
+[2025-08-30T17:37:45,537][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६६/७८
+[2025-08-30T17:37:45,539][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६७/७८
+[2025-08-30T17:37:45,542][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६८/७८
+[2025-08-30T17:37:45,544][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ६९/७८
+[2025-08-30T17:37:45,547][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७०/७८
+[2025-08-30T17:37:45,549][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७१/७८
+[2025-08-30T17:37:45,551][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७२/७८
+[2025-08-30T17:37:45,554][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७३/७८
+[2025-08-30T17:37:45,557][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७४/७८
+[2025-08-30T17:37:45,559][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७५/७८
+[2025-08-30T17:37:45,562][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७६/७८
+[2025-08-30T17:37:45,563][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: ५ || response ७७/७८
+[2025-08-30T17:37:45,564][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 5] after test
+[2025-08-30T17:37:45,566][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 5] before test
+[2025-08-30T17:37:45,585][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,588][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response १/१३
+[2025-08-30T17:37:45,592][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response २/१३
+[2025-08-30T17:37:45,595][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ३/१३
+[2025-08-30T17:37:45,597][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ४/१३
+[2025-08-30T17:37:45,600][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ५/१३
+[2025-08-30T17:37:45,603][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ६/१३
+[2025-08-30T17:37:45,607][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ७/१३
+[2025-08-30T17:37:45,610][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ८/१३
+[2025-08-30T17:37:45,613][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ९/१३
+[2025-08-30T17:37:45,615][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response १०/१३
+[2025-08-30T17:37:45,618][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response ११/१३
+[2025-08-30T17:37:45,620][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: ५ || response १२/१३
+[2025-08-30T17:37:45,620][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 5] after test
+[2025-08-30T17:37:45,622][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 1000] before test
+[2025-08-30T17:37:45,672][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'); total hits: ३८५; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,672][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street'), total_hits = 385, page_size = 1000] after test
+[2025-08-30T17:37:45,674][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000] before test
+[2025-08-30T17:37:45,686][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:45,686][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 1000] after test
+[2025-08-30T17:37:45,688][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 5] before test
+[2025-08-30T17:37:45,695][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_bank; total hits: ७; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,698][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_bank; total hits: ७; page size: ५ || response १/२
+[2025-08-30T17:37:45,698][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_bank, total_hits = 7, page_size = 5] after test
+[2025-08-30T17:37:45,699][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5] before test
+[2025-08-30T17:37:45,709][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,711][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'); total hits: ५; page size: ५ || response १/२
+[2025-08-30T17:37:45,712][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH'), total_hits = 5, page_size = 5] after test
+[2025-08-30T17:37:45,713][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 5] before test
+[2025-08-30T17:37:45,741][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:45,744][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १/२०१
+[2025-08-30T17:37:45,746][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २/२०१
+[2025-08-30T17:37:45,748][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३/२०१
+[2025-08-30T17:37:45,750][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४/२०१
+[2025-08-30T17:37:45,752][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५/२०१
+[2025-08-30T17:37:45,754][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६/२०१
+[2025-08-30T17:37:45,756][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७/२०१
+[2025-08-30T17:37:45,759][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८/२०१
+[2025-08-30T17:37:45,761][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९/२०१
+[2025-08-30T17:37:45,763][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०/२०१
+[2025-08-30T17:37:45,764][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११/२०१
+[2025-08-30T17:37:45,766][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२/२०१
+[2025-08-30T17:37:45,768][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३/२०१
+[2025-08-30T17:37:45,770][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४/२०१
+[2025-08-30T17:37:45,773][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५/२०१
+[2025-08-30T17:37:45,775][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६/२०१
+[2025-08-30T17:37:45,777][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७/२०१
+[2025-08-30T17:37:45,779][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८/२०१
+[2025-08-30T17:37:45,781][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९/२०१
+[2025-08-30T17:37:45,783][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २०/२०१
+[2025-08-30T17:37:45,785][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २१/२०१
+[2025-08-30T17:37:45,787][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २२/२०१
+[2025-08-30T17:37:45,789][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २३/२०१
+[2025-08-30T17:37:45,791][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २४/२०१
+[2025-08-30T17:37:45,794][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २५/२०१
+[2025-08-30T17:37:45,796][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २६/२०१
+[2025-08-30T17:37:45,798][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २७/२०१
+[2025-08-30T17:37:45,800][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २८/२०१
+[2025-08-30T17:37:45,801][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २९/२०१
+[2025-08-30T17:37:45,803][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३०/२०१
+[2025-08-30T17:37:45,805][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३१/२०१
+[2025-08-30T17:37:45,812][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३२/२०१
+[2025-08-30T17:37:45,814][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३३/२०१
+[2025-08-30T17:37:45,816][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३४/२०१
+[2025-08-30T17:37:45,818][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३५/२०१
+[2025-08-30T17:37:45,820][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३६/२०१
+[2025-08-30T17:37:45,822][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३७/२०१
+[2025-08-30T17:37:45,824][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३८/२०१
+[2025-08-30T17:37:45,826][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ३९/२०१
+[2025-08-30T17:37:45,828][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४०/२०१
+[2025-08-30T17:37:45,830][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४१/२०१
+[2025-08-30T17:37:45,832][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४२/२०१
+[2025-08-30T17:37:45,834][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४३/२०१
+[2025-08-30T17:37:45,836][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४४/२०१
+[2025-08-30T17:37:45,838][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४५/२०१
+[2025-08-30T17:37:45,840][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४६/२०१
+[2025-08-30T17:37:45,842][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४७/२०१
+[2025-08-30T17:37:45,844][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४८/२०१
+[2025-08-30T17:37:45,845][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ४९/२०१
+[2025-08-30T17:37:45,847][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५०/२०१
+[2025-08-30T17:37:45,849][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५१/२०१
+[2025-08-30T17:37:45,851][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५२/२०१
+[2025-08-30T17:37:45,853][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५३/२०१
+[2025-08-30T17:37:45,855][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५४/२०१
+[2025-08-30T17:37:45,857][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५५/२०१
+[2025-08-30T17:37:45,859][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५६/२०१
+[2025-08-30T17:37:45,861][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५७/२०१
+[2025-08-30T17:37:45,862][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५८/२०१
+[2025-08-30T17:37:45,864][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ५९/२०१
+[2025-08-30T17:37:45,866][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६०/२०१
+[2025-08-30T17:37:45,868][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६१/२०१
+[2025-08-30T17:37:45,870][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६२/२०१
+[2025-08-30T17:37:45,872][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६३/२०१
+[2025-08-30T17:37:45,874][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६४/२०१
+[2025-08-30T17:37:45,875][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६५/२०१
+[2025-08-30T17:37:45,877][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६६/२०१
+[2025-08-30T17:37:45,879][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६७/२०१
+[2025-08-30T17:37:45,881][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६८/२०१
+[2025-08-30T17:37:45,883][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ६९/२०१
+[2025-08-30T17:37:45,885][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७०/२०१
+[2025-08-30T17:37:45,887][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७१/२०१
+[2025-08-30T17:37:45,889][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७२/२०१
+[2025-08-30T17:37:45,890][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७३/२०१
+[2025-08-30T17:37:45,893][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७४/२०१
+[2025-08-30T17:37:45,895][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७५/२०१
+[2025-08-30T17:37:45,897][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७६/२०१
+[2025-08-30T17:37:45,900][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७७/२०१
+[2025-08-30T17:37:45,902][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७८/२०१
+[2025-08-30T17:37:45,904][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ७९/२०१
+[2025-08-30T17:37:45,906][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८०/२०१
+[2025-08-30T17:37:45,909][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८१/२०१
+[2025-08-30T17:37:45,911][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८२/२०१
+[2025-08-30T17:37:45,913][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८३/२०१
+[2025-08-30T17:37:45,917][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८४/२०१
+[2025-08-30T17:37:45,919][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८५/२०१
+[2025-08-30T17:37:45,921][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८६/२०१
+[2025-08-30T17:37:45,923][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८७/२०१
+[2025-08-30T17:37:45,925][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८८/२०१
+[2025-08-30T17:37:45,926][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ८९/२०१
+[2025-08-30T17:37:45,928][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९०/२०१
+[2025-08-30T17:37:45,930][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९१/२०१
+[2025-08-30T17:37:45,932][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९२/२०१
+[2025-08-30T17:37:45,933][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९३/२०१
+[2025-08-30T17:37:45,935][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९४/२०१
+[2025-08-30T17:37:45,937][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९५/२०१
+[2025-08-30T17:37:45,938][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९६/२०१
+[2025-08-30T17:37:45,940][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९७/२०१
+[2025-08-30T17:37:45,942][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९८/२०१
+[2025-08-30T17:37:45,943][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ९९/२०१
+[2025-08-30T17:37:45,945][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १००/२०१
+[2025-08-30T17:37:45,947][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०१/२०१
+[2025-08-30T17:37:45,948][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०२/२०१
+[2025-08-30T17:37:45,950][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०३/२०१
+[2025-08-30T17:37:45,952][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०४/२०१
+[2025-08-30T17:37:45,954][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०५/२०१
+[2025-08-30T17:37:45,955][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०६/२०१
+[2025-08-30T17:37:45,957][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०७/२०१
+[2025-08-30T17:37:45,959][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०८/२०१
+[2025-08-30T17:37:45,960][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १०९/२०१
+[2025-08-30T17:37:45,962][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११०/२०१
+[2025-08-30T17:37:45,964][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १११/२०१
+[2025-08-30T17:37:45,965][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११२/२०१
+[2025-08-30T17:37:45,967][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११३/२०१
+[2025-08-30T17:37:45,969][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११४/२०१
+[2025-08-30T17:37:45,971][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११५/२०१
+[2025-08-30T17:37:45,972][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११६/२०१
+[2025-08-30T17:37:45,974][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११७/२०१
+[2025-08-30T17:37:45,976][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११८/२०१
+[2025-08-30T17:37:45,978][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response ११९/२०१
+[2025-08-30T17:37:45,980][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२०/२०१
+[2025-08-30T17:37:45,982][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२१/२०१
+[2025-08-30T17:37:45,984][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२२/२०१
+[2025-08-30T17:37:45,986][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२३/२०१
+[2025-08-30T17:37:45,988][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२४/२०१
+[2025-08-30T17:37:45,990][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२५/२०१
+[2025-08-30T17:37:45,992][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२६/२०१
+[2025-08-30T17:37:45,994][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२७/२०१
+[2025-08-30T17:37:45,996][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२८/२०१
+[2025-08-30T17:37:45,998][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १२९/२०१
+[2025-08-30T17:37:46,000][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३०/२०१
+[2025-08-30T17:37:46,003][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३१/२०१
+[2025-08-30T17:37:46,005][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३२/२०१
+[2025-08-30T17:37:46,007][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३३/२०१
+[2025-08-30T17:37:46,009][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३४/२०१
+[2025-08-30T17:37:46,011][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३५/२०१
+[2025-08-30T17:37:46,014][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३६/२०१
+[2025-08-30T17:37:46,016][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३७/२०१
+[2025-08-30T17:37:46,017][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३८/२०१
+[2025-08-30T17:37:46,019][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १३९/२०१
+[2025-08-30T17:37:46,021][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४०/२०१
+[2025-08-30T17:37:46,023][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४१/२०१
+[2025-08-30T17:37:46,025][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४२/२०१
+[2025-08-30T17:37:46,027][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४३/२०१
+[2025-08-30T17:37:46,029][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४४/२०१
+[2025-08-30T17:37:46,030][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४५/२०१
+[2025-08-30T17:37:46,032][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४६/२०१
+[2025-08-30T17:37:46,034][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४७/२०१
+[2025-08-30T17:37:46,036][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४८/२०१
+[2025-08-30T17:37:46,037][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १४९/२०१
+[2025-08-30T17:37:46,039][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५०/२०१
+[2025-08-30T17:37:46,041][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५१/२०१
+[2025-08-30T17:37:46,043][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५२/२०१
+[2025-08-30T17:37:46,044][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५३/२०१
+[2025-08-30T17:37:46,046][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५४/२०१
+[2025-08-30T17:37:46,048][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५५/२०१
+[2025-08-30T17:37:46,050][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५६/२०१
+[2025-08-30T17:37:46,052][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५७/२०१
+[2025-08-30T17:37:46,054][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५८/२०१
+[2025-08-30T17:37:46,056][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १५९/२०१
+[2025-08-30T17:37:46,058][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६०/२०१
+[2025-08-30T17:37:46,060][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६१/२०१
+[2025-08-30T17:37:46,062][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६२/२०१
+[2025-08-30T17:37:46,063][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६३/२०१
+[2025-08-30T17:37:46,065][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६४/२०१
+[2025-08-30T17:37:46,067][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६५/२०१
+[2025-08-30T17:37:46,069][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६६/२०१
+[2025-08-30T17:37:46,071][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६७/२०१
+[2025-08-30T17:37:46,073][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६८/२०१
+[2025-08-30T17:37:46,074][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १६९/२०१
+[2025-08-30T17:37:46,076][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७०/२०१
+[2025-08-30T17:37:46,079][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७१/२०१
+[2025-08-30T17:37:46,081][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७२/२०१
+[2025-08-30T17:37:46,083][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७३/२०१
+[2025-08-30T17:37:46,085][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७४/२०१
+[2025-08-30T17:37:46,086][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७५/२०१
+[2025-08-30T17:37:46,088][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७६/२०१
+[2025-08-30T17:37:46,090][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७७/२०१
+[2025-08-30T17:37:46,091][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७८/२०१
+[2025-08-30T17:37:46,093][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १७९/२०१
+[2025-08-30T17:37:46,095][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८०/२०१
+[2025-08-30T17:37:46,097][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८१/२०१
+[2025-08-30T17:37:46,099][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८२/२०१
+[2025-08-30T17:37:46,100][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८३/२०१
+[2025-08-30T17:37:46,102][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८४/२०१
+[2025-08-30T17:37:46,104][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८५/२०१
+[2025-08-30T17:37:46,105][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८६/२०१
+[2025-08-30T17:37:46,107][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८७/२०१
+[2025-08-30T17:37:46,109][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८८/२०१
+[2025-08-30T17:37:46,111][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १८९/२०१
+[2025-08-30T17:37:46,113][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९०/२०१
+[2025-08-30T17:37:46,114][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९१/२०१
+[2025-08-30T17:37:46,116][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९२/२०१
+[2025-08-30T17:37:46,118][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९३/२०१
+[2025-08-30T17:37:46,120][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९४/२०१
+[2025-08-30T17:37:46,122][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९५/२०१
+[2025-08-30T17:37:46,124][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९६/२०१
+[2025-08-30T17:37:46,126][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९७/२०१
+[2025-08-30T17:37:46,128][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९८/२०१
+[2025-08-30T17:37:46,130][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response १९९/२०१
+[2025-08-30T17:37:46,132][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account; total hits: १०००; page size: ५ || response २००/२०१
+[2025-08-30T17:37:46,132][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account, total_hits = 1000, page_size = 5] after test
+[2025-08-30T17:37:46,135][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 5] before test
+[2025-08-30T17:37:46,144][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'); total hits: १; page size: ५ || &lt;first response&gt;
+[2025-08-30T17:37:46,144][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola'), total_hits = 1, page_size = 5] after test
+[2025-08-30T17:37:46,146][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 1000] before test
+[2025-08-30T17:37:46,155][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10; total hits: १; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:46,155][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10, total_hits = 1, page_size = 1000] after test
+[2025-08-30T17:37:46,156][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 1000] before test
+[2025-08-30T17:37:46,173][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] query: SELECT * FROM opensearch-sql_test_index_beer WHERE true; total hits: ६०; page size: १००० || &lt;first response&gt;
+[2025-08-30T17:37:46,173][INFO ][o.o.s.s.PaginationFilterIT] [test_pagination_with_where] [query = SELECT * FROM opensearch-sql_test_index_beer WHERE true, total_hits = 60, page_size = 1000] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:37:54 PM</p>
+</div>
+</div>
+</body>
+</html>

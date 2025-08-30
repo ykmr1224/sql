@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchAliasType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.type</a> &gt; <span class="el_source">OpenSearchAliasType.java</span></div><h1>OpenSearchAliasType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.type;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.opensearch.sql.data.type.ExprType;
+
+/**
+ * The type of alias. See &lt;a
+ * href=&quot;https://opensearch.org/docs/latest/opensearch/supported-field-types/alias/&quot;&gt;doc&lt;/a&gt;
+ */
+public class OpenSearchAliasType extends OpenSearchDataType {
+
+  public static final String typeName = &quot;alias&quot;;
+  public static final String pathPropertyName = &quot;path&quot;;
+<span class="fc" id="L21">  public static final Set&lt;MappingType&gt; objectFieldTypes =</span>
+<span class="fc" id="L22">      Set.of(MappingType.Object, MappingType.Nested);</span>
+  private final String path;
+  private final OpenSearchDataType originalType;
+
+  public OpenSearchAliasType(String path, OpenSearchDataType type) {
+<span class="fc" id="L27">    super(type.getExprCoreType());</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">    if (type instanceof OpenSearchAliasType) {</span>
+<span class="fc" id="L29">      throw new IllegalStateException(</span>
+<span class="fc" id="L30">          String.format(&quot;Alias field cannot refer to the path [%s] of alias type&quot;, path));</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">    } else if (objectFieldTypes.contains(type.getMappingType())) {</span>
+<span class="fc" id="L32">      throw new IllegalStateException(</span>
+<span class="fc" id="L33">          String.format(&quot;Alias field cannot refer to the path [%s] of object type&quot;, path));</span>
+    }
+<span class="fc" id="L35">    this.path = path;</span>
+<span class="fc" id="L36">    this.originalType = type;</span>
+<span class="fc" id="L37">  }</span>
+
+  @Override
+  public Optional&lt;String&gt; getOriginalPath() {
+<span class="fc" id="L41">    return Optional.of(this.path);</span>
+  }
+
+  @Override
+  public ExprType getOriginalExprType() {
+<span class="fc" id="L46">    return originalType.getExprType();</span>
+  }
+
+  @Override
+  public ExprType getExprType() {
+<span class="fc" id="L51">    return this;</span>
+  }
+
+  @Override
+  public OpenSearchDataType cloneEmpty() {
+<span class="fc" id="L56">    return new OpenSearchAliasType(this.path, originalType.cloneEmpty());</span>
+  }
+
+  @Override
+  public boolean isCompatible(ExprType other) {
+<span class="fc" id="L61">    return originalType.isCompatible(other);</span>
+  }
+
+  @Override
+  public List&lt;ExprType&gt; getParent() {
+<span class="fc" id="L66">    return originalType.getParent();</span>
+  }
+
+  @Override
+  public String typeName() {
+<span class="fc" id="L71">    return originalType.typeName();</span>
+  }
+
+  @Override
+  public String legacyTypeName() {
+<span class="fc" id="L76">    return originalType.legacyTypeName();</span>
+  }
+
+  @Override
+  public boolean shouldCast(ExprType other) {
+<span class="fc" id="L81">    return originalType.shouldCast(other);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

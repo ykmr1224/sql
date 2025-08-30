@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BuiltinFunctionName.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">BuiltinFunctionName.java</span></div><h1>BuiltinFunctionName.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+/** Builtin Function Name. */
+<span class="fc" id="L18">@Getter</span>
+@AllArgsConstructor
+@RequiredArgsConstructor
+public enum BuiltinFunctionName {
+  /** Mathematical Functions. */
+<span class="fc" id="L23">  ABS(FunctionName.of(&quot;abs&quot;)),</span>
+<span class="fc" id="L24">  CEIL(FunctionName.of(&quot;ceil&quot;)),</span>
+<span class="fc" id="L25">  CEILING(FunctionName.of(&quot;ceiling&quot;)),</span>
+<span class="fc" id="L26">  CONV(FunctionName.of(&quot;conv&quot;)),</span>
+<span class="fc" id="L27">  CRC32(FunctionName.of(&quot;crc32&quot;)),</span>
+<span class="fc" id="L28">  E(FunctionName.of(&quot;e&quot;)),</span>
+<span class="fc" id="L29">  EXP(FunctionName.of(&quot;exp&quot;)),</span>
+<span class="fc" id="L30">  EXPM1(FunctionName.of(&quot;expm1&quot;)),</span>
+<span class="fc" id="L31">  FLOOR(FunctionName.of(&quot;floor&quot;)),</span>
+<span class="fc" id="L32">  LN(FunctionName.of(&quot;ln&quot;)),</span>
+<span class="fc" id="L33">  LOG(FunctionName.of(&quot;log&quot;)),</span>
+<span class="fc" id="L34">  LOG10(FunctionName.of(&quot;log10&quot;)),</span>
+<span class="fc" id="L35">  LOG2(FunctionName.of(&quot;log2&quot;)),</span>
+<span class="fc" id="L36">  PI(FunctionName.of(&quot;pi&quot;)),</span>
+<span class="fc" id="L37">  POW(FunctionName.of(&quot;pow&quot;)),</span>
+<span class="fc" id="L38">  POWER(FunctionName.of(&quot;power&quot;)),</span>
+<span class="fc" id="L39">  RAND(FunctionName.of(&quot;rand&quot;)),</span>
+<span class="fc" id="L40">  RINT(FunctionName.of(&quot;rint&quot;)),</span>
+<span class="fc" id="L41">  ROUND(FunctionName.of(&quot;round&quot;)),</span>
+<span class="fc" id="L42">  SIGN(FunctionName.of(&quot;sign&quot;)),</span>
+<span class="fc" id="L43">  SIGNUM(FunctionName.of(&quot;signum&quot;)),</span>
+<span class="fc" id="L44">  SINH(FunctionName.of(&quot;sinh&quot;)),</span>
+<span class="fc" id="L45">  SQRT(FunctionName.of(&quot;sqrt&quot;)),</span>
+<span class="fc" id="L46">  CBRT(FunctionName.of(&quot;cbrt&quot;)),</span>
+<span class="fc" id="L47">  TRUNCATE(FunctionName.of(&quot;truncate&quot;)),</span>
+
+<span class="fc" id="L49">  ACOS(FunctionName.of(&quot;acos&quot;)),</span>
+<span class="fc" id="L50">  ASIN(FunctionName.of(&quot;asin&quot;)),</span>
+<span class="fc" id="L51">  ATAN(FunctionName.of(&quot;atan&quot;)),</span>
+<span class="fc" id="L52">  ATAN2(FunctionName.of(&quot;atan2&quot;)),</span>
+<span class="fc" id="L53">  COS(FunctionName.of(&quot;cos&quot;)),</span>
+<span class="fc" id="L54">  COSH(FunctionName.of(&quot;cosh&quot;)),</span>
+<span class="fc" id="L55">  COT(FunctionName.of(&quot;cot&quot;)),</span>
+<span class="fc" id="L56">  DEGREES(FunctionName.of(&quot;degrees&quot;)),</span>
+<span class="fc" id="L57">  RADIANS(FunctionName.of(&quot;radians&quot;)),</span>
+<span class="fc" id="L58">  SIN(FunctionName.of(&quot;sin&quot;)),</span>
+<span class="fc" id="L59">  TAN(FunctionName.of(&quot;tan&quot;)),</span>
+<span class="fc" id="L60">  SPAN(FunctionName.of(&quot;span&quot;)),</span>
+
+  /** Collection functions */
+<span class="fc" id="L63">  ARRAY(FunctionName.of(&quot;array&quot;)),</span>
+<span class="fc" id="L64">  ARRAY_LENGTH(FunctionName.of(&quot;array_length&quot;)),</span>
+<span class="fc" id="L65">  FORALL(FunctionName.of(&quot;forall&quot;)),</span>
+<span class="fc" id="L66">  EXISTS(FunctionName.of(&quot;exists&quot;)),</span>
+<span class="fc" id="L67">  FILTER(FunctionName.of(&quot;filter&quot;)),</span>
+<span class="fc" id="L68">  TRANSFORM(FunctionName.of(&quot;transform&quot;)),</span>
+<span class="fc" id="L69">  REDUCE(FunctionName.of(&quot;reduce&quot;)),</span>
+
+  /** Date and Time Functions. */
+<span class="fc" id="L72">  ADDDATE(FunctionName.of(&quot;adddate&quot;)),</span>
+<span class="fc" id="L73">  ADDTIME(FunctionName.of(&quot;addtime&quot;)),</span>
+<span class="fc" id="L74">  CONVERT_TZ(FunctionName.of(&quot;convert_tz&quot;)),</span>
+<span class="fc" id="L75">  DATE(FunctionName.of(&quot;date&quot;)),</span>
+<span class="fc" id="L76">  DATEDIFF(FunctionName.of(&quot;datediff&quot;)),</span>
+<span class="fc" id="L77">  DATETIME(FunctionName.of(&quot;datetime&quot;)),</span>
+<span class="fc" id="L78">  DATE_ADD(FunctionName.of(&quot;date_add&quot;)),</span>
+<span class="fc" id="L79">  DATE_FORMAT(FunctionName.of(&quot;date_format&quot;)),</span>
+<span class="fc" id="L80">  DATE_SUB(FunctionName.of(&quot;date_sub&quot;)),</span>
+<span class="fc" id="L81">  DAY(FunctionName.of(&quot;day&quot;)),</span>
+<span class="fc" id="L82">  DAYNAME(FunctionName.of(&quot;dayname&quot;)),</span>
+<span class="fc" id="L83">  DAYOFMONTH(FunctionName.of(&quot;dayofmonth&quot;)),</span>
+<span class="fc" id="L84">  DAY_OF_MONTH(FunctionName.of(&quot;day_of_month&quot;)),</span>
+<span class="fc" id="L85">  DAYOFWEEK(FunctionName.of(&quot;dayofweek&quot;)),</span>
+<span class="fc" id="L86">  DAYOFYEAR(FunctionName.of(&quot;dayofyear&quot;)),</span>
+<span class="fc" id="L87">  DAY_OF_WEEK(FunctionName.of(&quot;day_of_week&quot;)),</span>
+<span class="fc" id="L88">  DAY_OF_YEAR(FunctionName.of(&quot;day_of_year&quot;)),</span>
+<span class="fc" id="L89">  EXTRACT(FunctionName.of(&quot;extract&quot;)),</span>
+<span class="fc" id="L90">  FROM_DAYS(FunctionName.of(&quot;from_days&quot;)),</span>
+<span class="fc" id="L91">  FROM_UNIXTIME(FunctionName.of(&quot;from_unixtime&quot;)),</span>
+<span class="fc" id="L92">  GET_FORMAT(FunctionName.of(&quot;get_format&quot;)),</span>
+<span class="fc" id="L93">  HOUR(FunctionName.of(&quot;hour&quot;)),</span>
+<span class="fc" id="L94">  HOUR_OF_DAY(FunctionName.of(&quot;hour_of_day&quot;)),</span>
+<span class="fc" id="L95">  LAST_DAY(FunctionName.of(&quot;last_day&quot;)),</span>
+<span class="fc" id="L96">  MAKEDATE(FunctionName.of(&quot;makedate&quot;)),</span>
+<span class="fc" id="L97">  MAKETIME(FunctionName.of(&quot;maketime&quot;)),</span>
+<span class="fc" id="L98">  MICROSECOND(FunctionName.of(&quot;microsecond&quot;)),</span>
+<span class="fc" id="L99">  MINUTE(FunctionName.of(&quot;minute&quot;)),</span>
+<span class="fc" id="L100">  MINUTE_OF_DAY(FunctionName.of(&quot;minute_of_day&quot;)),</span>
+<span class="fc" id="L101">  MINUTE_OF_HOUR(FunctionName.of(&quot;minute_of_hour&quot;)),</span>
+<span class="fc" id="L102">  MONTH(FunctionName.of(&quot;month&quot;)),</span>
+<span class="fc" id="L103">  MONTH_OF_YEAR(FunctionName.of(&quot;month_of_year&quot;)),</span>
+<span class="fc" id="L104">  MONTHNAME(FunctionName.of(&quot;monthname&quot;)),</span>
+<span class="fc" id="L105">  PERIOD_ADD(FunctionName.of(&quot;period_add&quot;)),</span>
+<span class="fc" id="L106">  PERIOD_DIFF(FunctionName.of(&quot;period_diff&quot;)),</span>
+<span class="fc" id="L107">  QUARTER(FunctionName.of(&quot;quarter&quot;)),</span>
+<span class="fc" id="L108">  SEC_TO_TIME(FunctionName.of(&quot;sec_to_time&quot;)),</span>
+<span class="fc" id="L109">  SECOND(FunctionName.of(&quot;second&quot;)),</span>
+<span class="fc" id="L110">  SECOND_OF_MINUTE(FunctionName.of(&quot;second_of_minute&quot;)),</span>
+<span class="fc" id="L111">  STR_TO_DATE(FunctionName.of(&quot;str_to_date&quot;)),</span>
+<span class="fc" id="L112">  SUBDATE(FunctionName.of(&quot;subdate&quot;)),</span>
+<span class="fc" id="L113">  SUBTIME(FunctionName.of(&quot;subtime&quot;)),</span>
+<span class="fc" id="L114">  TIME(FunctionName.of(&quot;time&quot;)),</span>
+<span class="fc" id="L115">  TIMEDIFF(FunctionName.of(&quot;timediff&quot;)),</span>
+<span class="fc" id="L116">  TIME_TO_SEC(FunctionName.of(&quot;time_to_sec&quot;)),</span>
+<span class="fc" id="L117">  TIMESTAMP(FunctionName.of(&quot;timestamp&quot;)),</span>
+<span class="fc" id="L118">  TIMESTAMPADD(FunctionName.of(&quot;timestampadd&quot;)),</span>
+<span class="fc" id="L119">  TIMESTAMPDIFF(FunctionName.of(&quot;timestampdiff&quot;)),</span>
+<span class="fc" id="L120">  TIME_FORMAT(FunctionName.of(&quot;time_format&quot;)),</span>
+<span class="fc" id="L121">  TO_DAYS(FunctionName.of(&quot;to_days&quot;)),</span>
+<span class="fc" id="L122">  TO_SECONDS(FunctionName.of(&quot;to_seconds&quot;)),</span>
+<span class="fc" id="L123">  UTC_DATE(FunctionName.of(&quot;utc_date&quot;)),</span>
+<span class="fc" id="L124">  UTC_TIME(FunctionName.of(&quot;utc_time&quot;)),</span>
+<span class="fc" id="L125">  UTC_TIMESTAMP(FunctionName.of(&quot;utc_timestamp&quot;)),</span>
+<span class="fc" id="L126">  UNIX_TIMESTAMP(FunctionName.of(&quot;unix_timestamp&quot;)),</span>
+<span class="fc" id="L127">  WEEK(FunctionName.of(&quot;week&quot;)),</span>
+<span class="fc" id="L128">  WEEKDAY(FunctionName.of(&quot;weekday&quot;)),</span>
+<span class="fc" id="L129">  WEEKOFYEAR(FunctionName.of(&quot;weekofyear&quot;)),</span>
+<span class="fc" id="L130">  WEEK_OF_YEAR(FunctionName.of(&quot;week_of_year&quot;)),</span>
+<span class="fc" id="L131">  YEAR(FunctionName.of(&quot;year&quot;)),</span>
+<span class="fc" id="L132">  YEARWEEK(FunctionName.of(&quot;yearweek&quot;)),</span>
+
+  // `now`-like functions
+<span class="fc" id="L135">  NOW(FunctionName.of(&quot;now&quot;)),</span>
+<span class="fc" id="L136">  CURDATE(FunctionName.of(&quot;curdate&quot;)),</span>
+<span class="fc" id="L137">  CURRENT_DATE(FunctionName.of(&quot;current_date&quot;)),</span>
+<span class="fc" id="L138">  CURTIME(FunctionName.of(&quot;curtime&quot;)),</span>
+<span class="fc" id="L139">  CURRENT_TIME(FunctionName.of(&quot;current_time&quot;)),</span>
+<span class="fc" id="L140">  LOCALTIME(FunctionName.of(&quot;localtime&quot;)),</span>
+<span class="fc" id="L141">  CURRENT_TIMESTAMP(FunctionName.of(&quot;current_timestamp&quot;)),</span>
+<span class="fc" id="L142">  LOCALTIMESTAMP(FunctionName.of(&quot;localtimestamp&quot;)),</span>
+<span class="fc" id="L143">  SYSDATE(FunctionName.of(&quot;sysdate&quot;)),</span>
+
+  /** Text Functions. */
+<span class="fc" id="L146">  TOSTRING(FunctionName.of(&quot;tostring&quot;)),</span>
+
+  /** IP Functions. */
+<span class="fc" id="L149">  CIDRMATCH(FunctionName.of(&quot;cidrmatch&quot;)),</span>
+
+  /** Cryptographic Functions. */
+<span class="fc" id="L152">  MD5(FunctionName.of(&quot;md5&quot;)),</span>
+<span class="fc" id="L153">  SHA1(FunctionName.of(&quot;sha1&quot;)),</span>
+<span class="fc" id="L154">  SHA2(FunctionName.of(&quot;sha2&quot;)),</span>
+
+  /** Arithmetic Operators. */
+<span class="fc" id="L157">  ADD(FunctionName.of(&quot;+&quot;)),</span>
+<span class="fc" id="L158">  ADDFUNCTION(FunctionName.of(&quot;add&quot;)),</span>
+<span class="fc" id="L159">  DIVIDE(FunctionName.of(&quot;/&quot;)),</span>
+<span class="fc" id="L160">  DIVIDEFUNCTION(FunctionName.of(&quot;divide&quot;)),</span>
+<span class="fc" id="L161">  MOD(FunctionName.of(&quot;mod&quot;)),</span>
+<span class="fc" id="L162">  MODULUS(FunctionName.of(&quot;%&quot;)),</span>
+<span class="fc" id="L163">  MODULUSFUNCTION(FunctionName.of(&quot;modulus&quot;)),</span>
+<span class="fc" id="L164">  MULTIPLY(FunctionName.of(&quot;*&quot;)),</span>
+<span class="fc" id="L165">  MULTIPLYFUNCTION(FunctionName.of(&quot;multiply&quot;)),</span>
+<span class="fc" id="L166">  SUBTRACT(FunctionName.of(&quot;-&quot;)),</span>
+<span class="fc" id="L167">  SUBTRACTFUNCTION(FunctionName.of(&quot;subtract&quot;)),</span>
+
+  /** Boolean Operators. */
+<span class="fc" id="L170">  AND(FunctionName.of(&quot;and&quot;)),</span>
+<span class="fc" id="L171">  OR(FunctionName.of(&quot;or&quot;)),</span>
+<span class="fc" id="L172">  XOR(FunctionName.of(&quot;xor&quot;)),</span>
+<span class="fc" id="L173">  NOT(FunctionName.of(&quot;not&quot;)),</span>
+<span class="fc" id="L174">  EQUAL(FunctionName.of(&quot;=&quot;)),</span>
+<span class="fc" id="L175">  NOTEQUAL(FunctionName.of(&quot;!=&quot;)),</span>
+<span class="fc" id="L176">  LESS(FunctionName.of(&quot;&lt;&quot;)),</span>
+<span class="fc" id="L177">  LTE(FunctionName.of(&quot;&lt;=&quot;)),</span>
+<span class="fc" id="L178">  GREATER(FunctionName.of(&quot;&gt;&quot;)),</span>
+<span class="fc" id="L179">  GTE(FunctionName.of(&quot;&gt;=&quot;)),</span>
+<span class="fc" id="L180">  LIKE(FunctionName.of(&quot;like&quot;)),</span>
+<span class="fc" id="L181">  NOT_LIKE(FunctionName.of(&quot;not like&quot;)),</span>
+
+  /** Aggregation Function. */
+<span class="fc" id="L184">  AVG(FunctionName.of(&quot;avg&quot;)),</span>
+<span class="fc" id="L185">  SUM(FunctionName.of(&quot;sum&quot;)),</span>
+<span class="fc" id="L186">  COUNT(FunctionName.of(&quot;count&quot;)),</span>
+<span class="fc" id="L187">  MIN(FunctionName.of(&quot;min&quot;)),</span>
+<span class="fc" id="L188">  MAX(FunctionName.of(&quot;max&quot;)),</span>
+  // sample variance
+<span class="fc" id="L190">  VARSAMP(FunctionName.of(&quot;var_samp&quot;)),</span>
+  // population standard variance
+<span class="fc" id="L192">  VARPOP(FunctionName.of(&quot;var_pop&quot;)),</span>
+  // sample standard deviation.
+<span class="fc" id="L194">  STDDEV_SAMP(FunctionName.of(&quot;stddev_samp&quot;)),</span>
+  // population standard deviation.
+<span class="fc" id="L196">  STDDEV_POP(FunctionName.of(&quot;stddev_pop&quot;)),</span>
+  // take top documents from aggregation bucket.
+<span class="fc" id="L198">  TAKE(FunctionName.of(&quot;take&quot;)),</span>
+  // t-digest percentile which is used in OpenSearch core by default.
+<span class="fc" id="L200">  PERCENTILE_APPROX(FunctionName.of(&quot;percentile_approx&quot;)),</span>
+<span class="fc" id="L201">  EARLIEST(FunctionName.of(&quot;earliest&quot;)),</span>
+<span class="fc" id="L202">  LATEST(FunctionName.of(&quot;latest&quot;)),</span>
+<span class="fc" id="L203">  DISTINCT_COUNT_APPROX(FunctionName.of(&quot;distinct_count_approx&quot;)),</span>
+  // Not always an aggregation query
+<span class="fc" id="L205">  NESTED(FunctionName.of(&quot;nested&quot;)),</span>
+
+  /** Text Functions. */
+<span class="fc" id="L208">  ASCII(FunctionName.of(&quot;ascii&quot;)),</span>
+<span class="fc" id="L209">  CONCAT(FunctionName.of(&quot;concat&quot;)),</span>
+<span class="fc" id="L210">  CONCAT_WS(FunctionName.of(&quot;concat_ws&quot;)),</span>
+<span class="fc" id="L211">  LEFT(FunctionName.of(&quot;left&quot;)),</span>
+<span class="fc" id="L212">  LENGTH(FunctionName.of(&quot;length&quot;)),</span>
+<span class="fc" id="L213">  LOCATE(FunctionName.of(&quot;locate&quot;)),</span>
+<span class="fc" id="L214">  LOWER(FunctionName.of(&quot;lower&quot;)),</span>
+<span class="fc" id="L215">  LTRIM(FunctionName.of(&quot;ltrim&quot;)),</span>
+<span class="fc" id="L216">  POSITION(FunctionName.of(&quot;position&quot;)),</span>
+<span class="fc" id="L217">  REGEXP(FunctionName.of(&quot;regexp&quot;)),</span>
+<span class="fc" id="L218">  REGEX_MATCH(FunctionName.of(&quot;regex_match&quot;)),</span>
+<span class="fc" id="L219">  REPLACE(FunctionName.of(&quot;replace&quot;)),</span>
+<span class="fc" id="L220">  REVERSE(FunctionName.of(&quot;reverse&quot;)),</span>
+<span class="fc" id="L221">  RIGHT(FunctionName.of(&quot;right&quot;)),</span>
+<span class="fc" id="L222">  RTRIM(FunctionName.of(&quot;rtrim&quot;)),</span>
+<span class="fc" id="L223">  STRCMP(FunctionName.of(&quot;strcmp&quot;)),</span>
+<span class="fc" id="L224">  SUBSTR(FunctionName.of(&quot;substr&quot;)),</span>
+<span class="fc" id="L225">  SUBSTRING(FunctionName.of(&quot;substring&quot;)),</span>
+<span class="fc" id="L226">  TRIM(FunctionName.of(&quot;trim&quot;)),</span>
+<span class="fc" id="L227">  UPPER(FunctionName.of(&quot;upper&quot;)),</span>
+
+  /** Json Functions. */
+<span class="fc" id="L230">  JSON_VALID(FunctionName.of(&quot;json_valid&quot;)),</span>
+<span class="fc" id="L231">  JSON(FunctionName.of(&quot;json&quot;)),</span>
+<span class="fc" id="L232">  JSON_OBJECT(FunctionName.of(&quot;json_object&quot;)),</span>
+<span class="fc" id="L233">  JSON_ARRAY(FunctionName.of(&quot;json_array&quot;)),</span>
+<span class="fc" id="L234">  JSON_ARRAY_LENGTH(FunctionName.of(&quot;json_array_length&quot;)),</span>
+<span class="fc" id="L235">  JSON_EXTRACT(FunctionName.of(&quot;json_extract&quot;)),</span>
+<span class="fc" id="L236">  JSON_KEYS(FunctionName.of(&quot;json_keys&quot;)),</span>
+<span class="fc" id="L237">  JSON_SET(FunctionName.of(&quot;json_set&quot;)),</span>
+<span class="fc" id="L238">  JSON_DELETE(FunctionName.of(&quot;json_delete&quot;)),</span>
+<span class="fc" id="L239">  JSON_APPEND(FunctionName.of(&quot;json_append&quot;)),</span>
+<span class="fc" id="L240">  JSON_EXTEND(FunctionName.of(&quot;json_extend&quot;)),</span>
+
+  /** GEOSPATIAL Functions. */
+<span class="fc" id="L243">  GEOIP(FunctionName.of(&quot;geoip&quot;)),</span>
+
+  /** NULL Test. */
+<span class="fc" id="L246">  IS_NULL(FunctionName.of(&quot;is null&quot;)),</span>
+<span class="fc" id="L247">  IS_NOT_NULL(FunctionName.of(&quot;is not null&quot;)),</span>
+<span class="fc" id="L248">  IFNULL(FunctionName.of(&quot;ifnull&quot;)),</span>
+<span class="fc" id="L249">  IF(FunctionName.of(&quot;if&quot;)),</span>
+<span class="fc" id="L250">  NULLIF(FunctionName.of(&quot;nullif&quot;)),</span>
+<span class="fc" id="L251">  ISNULL(FunctionName.of(&quot;isnull&quot;)),</span>
+<span class="fc" id="L252">  COALESCE(FunctionName.of(&quot;coalesce&quot;)),</span>
+
+<span class="fc" id="L254">  IS_PRESENT(FunctionName.of(&quot;ispresent&quot;)),</span>
+<span class="fc" id="L255">  IS_EMPTY(FunctionName.of(&quot;isempty&quot;)),</span>
+<span class="fc" id="L256">  IS_BLANK(FunctionName.of(&quot;isblank&quot;)),</span>
+
+<span class="fc" id="L258">  ROW_NUMBER(FunctionName.of(&quot;row_number&quot;)),</span>
+<span class="fc" id="L259">  NTH_VALUE(FunctionName.of(&quot;nth_value&quot;)),</span>
+<span class="fc" id="L260">  RANK(FunctionName.of(&quot;rank&quot;)),</span>
+<span class="fc" id="L261">  DENSE_RANK(FunctionName.of(&quot;dense_rank&quot;)),</span>
+
+<span class="fc" id="L263">  BRAIN(FunctionName.of(&quot;brain&quot;)),</span>
+
+<span class="fc" id="L265">  INTERVAL(FunctionName.of(&quot;interval&quot;)),</span>
+
+  /** Data Type Convert Function. */
+<span class="fc" id="L268">  CAST_TO_STRING(FunctionName.of(&quot;cast_to_string&quot;)),</span>
+<span class="fc" id="L269">  CAST_TO_BYTE(FunctionName.of(&quot;cast_to_byte&quot;)),</span>
+<span class="fc" id="L270">  CAST_TO_SHORT(FunctionName.of(&quot;cast_to_short&quot;)),</span>
+<span class="fc" id="L271">  CAST_TO_INT(FunctionName.of(&quot;cast_to_int&quot;)),</span>
+<span class="fc" id="L272">  CAST_TO_LONG(FunctionName.of(&quot;cast_to_long&quot;)),</span>
+<span class="fc" id="L273">  CAST_TO_FLOAT(FunctionName.of(&quot;cast_to_float&quot;)),</span>
+<span class="fc" id="L274">  CAST_TO_DOUBLE(FunctionName.of(&quot;cast_to_double&quot;)),</span>
+<span class="fc" id="L275">  CAST_TO_BOOLEAN(FunctionName.of(&quot;cast_to_boolean&quot;)),</span>
+<span class="fc" id="L276">  CAST_TO_DATE(FunctionName.of(&quot;cast_to_date&quot;)),</span>
+<span class="fc" id="L277">  CAST_TO_TIME(FunctionName.of(&quot;cast_to_time&quot;)),</span>
+<span class="fc" id="L278">  CAST_TO_TIMESTAMP(FunctionName.of(&quot;cast_to_timestamp&quot;)),</span>
+<span class="fc" id="L279">  CAST_TO_DATETIME(FunctionName.of(&quot;cast_to_datetime&quot;)),</span>
+<span class="fc" id="L280">  CAST_TO_IP(FunctionName.of(&quot;cast_to_ip&quot;)),</span>
+<span class="fc" id="L281">  CAST_TO_JSON(FunctionName.of(&quot;cast_to_json&quot;)),</span>
+<span class="fc" id="L282">  TYPEOF(FunctionName.of(&quot;typeof&quot;)),</span>
+
+  /** Relevance Function. */
+<span class="fc" id="L285">  MATCH(FunctionName.of(&quot;match&quot;)),</span>
+<span class="fc" id="L286">  SIMPLE_QUERY_STRING(FunctionName.of(&quot;simple_query_string&quot;)),</span>
+<span class="fc" id="L287">  MATCH_PHRASE(FunctionName.of(&quot;match_phrase&quot;)),</span>
+<span class="fc" id="L288">  MATCHPHRASE(FunctionName.of(&quot;matchphrase&quot;)),</span>
+<span class="fc" id="L289">  MATCHPHRASEQUERY(FunctionName.of(&quot;matchphrasequery&quot;)),</span>
+<span class="fc" id="L290">  QUERY_STRING(FunctionName.of(&quot;query_string&quot;)),</span>
+<span class="fc" id="L291">  MATCH_BOOL_PREFIX(FunctionName.of(&quot;match_bool_prefix&quot;)),</span>
+<span class="fc" id="L292">  HIGHLIGHT(FunctionName.of(&quot;highlight&quot;)),</span>
+<span class="fc" id="L293">  MATCH_PHRASE_PREFIX(FunctionName.of(&quot;match_phrase_prefix&quot;)),</span>
+<span class="fc" id="L294">  SCORE(FunctionName.of(&quot;score&quot;)),</span>
+<span class="fc" id="L295">  SCOREQUERY(FunctionName.of(&quot;scorequery&quot;)),</span>
+<span class="fc" id="L296">  SCORE_QUERY(FunctionName.of(&quot;score_query&quot;)),</span>
+
+  /** Legacy Relevance Function. */
+<span class="fc" id="L299">  QUERY(FunctionName.of(&quot;query&quot;)),</span>
+<span class="fc" id="L300">  MATCH_QUERY(FunctionName.of(&quot;match_query&quot;)),</span>
+<span class="fc" id="L301">  MATCHQUERY(FunctionName.of(&quot;matchquery&quot;)),</span>
+<span class="fc" id="L302">  MULTI_MATCH(FunctionName.of(&quot;multi_match&quot;)),</span>
+<span class="fc" id="L303">  MULTIMATCH(FunctionName.of(&quot;multimatch&quot;)),</span>
+<span class="fc" id="L304">  MULTIMATCHQUERY(FunctionName.of(&quot;multimatchquery&quot;)),</span>
+<span class="fc" id="L305">  WILDCARDQUERY(FunctionName.of(&quot;wildcardquery&quot;)),</span>
+<span class="fc" id="L306">  WILDCARD_QUERY(FunctionName.of(&quot;wildcard_query&quot;)),</span>
+
+  /** Internal functions that are not exposed to customers. */
+<span class="fc" id="L309">  INTERNAL_ITEM(FunctionName.of(&quot;item&quot;), true),</span>
+<span class="fc" id="L310">  INTERNAL_PATTERN_PARSER(FunctionName.of(&quot;pattern_parser&quot;)),</span>
+<span class="fc" id="L311">  INTERNAL_PATTERN(FunctionName.of(&quot;pattern&quot;)),</span>
+<span class="fc" id="L312">  INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of(&quot;uncollect_patterns&quot;)),</span>
+<span class="fc" id="L313">  INTERNAL_REGEXP_EXTRACT(FunctionName.of(&quot;regexp_extract&quot;), true),</span>
+<span class="fc" id="L314">  INTERNAL_GROK(FunctionName.of(&quot;grok&quot;), true),</span>
+<span class="fc" id="L315">  INTERNAL_REGEXP_REPLACE_3(FunctionName.of(&quot;regexp_replace_3&quot;), true);</span>
+
+  private final FunctionName name;
+  private boolean isInternal;
+
+  private static final Map&lt;FunctionName, BuiltinFunctionName&gt; ALL_NATIVE_FUNCTIONS;
+
+  static {
+<span class="fc" id="L323">    ImmutableMap.Builder&lt;FunctionName, BuiltinFunctionName&gt; builder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">    for (BuiltinFunctionName func : BuiltinFunctionName.values()) {</span>
+<span class="fc" id="L325">      builder.put(func.getName(), func);</span>
+    }
+<span class="fc" id="L327">    ALL_NATIVE_FUNCTIONS = builder.build();</span>
+  }
+
+<span class="fc" id="L330">  private static final Map&lt;String, BuiltinFunctionName&gt; AGGREGATION_FUNC_MAPPING =</span>
+      new ImmutableMap.Builder&lt;String, BuiltinFunctionName&gt;()
+<span class="fc" id="L332">          .put(&quot;max&quot;, BuiltinFunctionName.MAX)</span>
+<span class="fc" id="L333">          .put(&quot;min&quot;, BuiltinFunctionName.MIN)</span>
+<span class="fc" id="L334">          .put(&quot;avg&quot;, BuiltinFunctionName.AVG)</span>
+<span class="fc" id="L335">          .put(&quot;count&quot;, BuiltinFunctionName.COUNT)</span>
+<span class="fc" id="L336">          .put(&quot;sum&quot;, BuiltinFunctionName.SUM)</span>
+<span class="fc" id="L337">          .put(&quot;var_pop&quot;, BuiltinFunctionName.VARPOP)</span>
+<span class="fc" id="L338">          .put(&quot;var_samp&quot;, BuiltinFunctionName.VARSAMP)</span>
+<span class="fc" id="L339">          .put(&quot;variance&quot;, BuiltinFunctionName.VARPOP)</span>
+<span class="fc" id="L340">          .put(&quot;std&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L341">          .put(&quot;stddev&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L342">          .put(&quot;stddev_pop&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L343">          .put(&quot;stddev_samp&quot;, BuiltinFunctionName.STDDEV_SAMP)</span>
+<span class="fc" id="L344">          .put(&quot;take&quot;, BuiltinFunctionName.TAKE)</span>
+<span class="fc" id="L345">          .put(&quot;percentile&quot;, BuiltinFunctionName.PERCENTILE_APPROX)</span>
+<span class="fc" id="L346">          .put(&quot;percentile_approx&quot;, BuiltinFunctionName.PERCENTILE_APPROX)</span>
+<span class="fc" id="L347">          .put(&quot;earliest&quot;, BuiltinFunctionName.EARLIEST)</span>
+<span class="fc" id="L348">          .put(&quot;latest&quot;, BuiltinFunctionName.LATEST)</span>
+<span class="fc" id="L349">          .put(&quot;distinct_count_approx&quot;, BuiltinFunctionName.DISTINCT_COUNT_APPROX)</span>
+<span class="fc" id="L350">          .put(&quot;pattern&quot;, BuiltinFunctionName.INTERNAL_PATTERN)</span>
+<span class="fc" id="L351">          .build();</span>
+
+<span class="fc" id="L353">  private static final Map&lt;String, BuiltinFunctionName&gt; WINDOW_FUNC_MAPPING =</span>
+      new ImmutableMap.Builder&lt;String, BuiltinFunctionName&gt;()
+<span class="fc" id="L355">          .put(&quot;max&quot;, BuiltinFunctionName.MAX)</span>
+<span class="fc" id="L356">          .put(&quot;min&quot;, BuiltinFunctionName.MIN)</span>
+<span class="fc" id="L357">          .put(&quot;avg&quot;, BuiltinFunctionName.AVG)</span>
+<span class="fc" id="L358">          .put(&quot;count&quot;, BuiltinFunctionName.COUNT)</span>
+<span class="fc" id="L359">          .put(&quot;sum&quot;, BuiltinFunctionName.SUM)</span>
+<span class="fc" id="L360">          .put(&quot;var_pop&quot;, BuiltinFunctionName.VARPOP)</span>
+<span class="fc" id="L361">          .put(&quot;var_samp&quot;, BuiltinFunctionName.VARSAMP)</span>
+<span class="fc" id="L362">          .put(&quot;variance&quot;, BuiltinFunctionName.VARPOP)</span>
+<span class="fc" id="L363">          .put(&quot;std&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L364">          .put(&quot;stddev&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L365">          .put(&quot;stddev_pop&quot;, BuiltinFunctionName.STDDEV_POP)</span>
+<span class="fc" id="L366">          .put(&quot;stddev_samp&quot;, BuiltinFunctionName.STDDEV_SAMP)</span>
+          // .put(&quot;earliest&quot;, BuiltinFunctionName.EARLIEST)
+          // .put(&quot;latest&quot;, BuiltinFunctionName.LATEST)
+<span class="fc" id="L369">          .put(&quot;distinct_count_approx&quot;, BuiltinFunctionName.DISTINCT_COUNT_APPROX)</span>
+<span class="fc" id="L370">          .put(&quot;dc&quot;, BuiltinFunctionName.DISTINCT_COUNT_APPROX)</span>
+<span class="fc" id="L371">          .put(&quot;distinct_count&quot;, BuiltinFunctionName.DISTINCT_COUNT_APPROX)</span>
+<span class="fc" id="L372">          .put(&quot;pattern&quot;, BuiltinFunctionName.INTERNAL_PATTERN)</span>
+<span class="fc" id="L373">          .build();</span>
+
+  public static Optional&lt;BuiltinFunctionName&gt; of(String str) {
+<span class="fc" id="L376">    return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));</span>
+  }
+
+  public static Optional&lt;BuiltinFunctionName&gt; ofAggregation(String functionName) {
+<span class="fc" id="L380">    return Optional.ofNullable(</span>
+<span class="fc" id="L381">        AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));</span>
+  }
+
+  public static Optional&lt;BuiltinFunctionName&gt; ofWindowFunction(String functionName) {
+<span class="nc" id="L385">    return Optional.ofNullable(</span>
+<span class="nc" id="L386">        WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));</span>
+  }
+
+<span class="fc" id="L389">  public static final Set&lt;BuiltinFunctionName&gt; COMPARATORS =</span>
+<span class="fc" id="L390">      Set.of(</span>
+          BuiltinFunctionName.EQUAL,
+          BuiltinFunctionName.NOTEQUAL,
+          BuiltinFunctionName.LESS,
+          BuiltinFunctionName.LTE,
+          BuiltinFunctionName.GREATER,
+          BuiltinFunctionName.GTE);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

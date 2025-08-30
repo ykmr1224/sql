@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VisualizationResponseFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">VisualizationResponseFormatter.java</span></div><h1>VisualizationResponseFormatter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import com.google.common.collect.ImmutableList;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.opensearch.response.error.ErrorMessage;
+import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+/**
+ * Visualization response formats the data in columns. For example:
+ *
+ * &lt;pre&gt;
+ *  {
+ *    &quot;data&quot;: {
+ *      &quot;name&quot;: [
+ *        &quot;John&quot;,
+ *        &quot;Amber&quot;
+ *      ],
+ *      &quot;age&quot;: [
+ *        26,
+ *        28
+ *      ]
+ *    },
+ *    &quot;metadata&quot;: {
+ *      &quot;fields&quot;: [
+ *        {
+ *          &quot;name&quot;: &quot;name&quot;,
+ *          &quot;type&quot;: &quot;string&quot;
+ *        },
+ *        {
+ *          &quot;name&quot;: &quot;age&quot;,
+ *          &quot;type&quot;: &quot;integer&quot;
+ *        }
+ *      ]
+ *    },
+ *    &quot;size&quot;: 2,
+ *    &quot;status&quot;: 200
+ *  }
+ * &lt;/pre&gt;
+ */
+public class VisualizationResponseFormatter extends JsonResponseFormatter&lt;QueryResult&gt; {
+  public VisualizationResponseFormatter(Style style) {
+<span class="fc" id="L58">    super(style);</span>
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  protected Object buildJsonObject(QueryResult response) {
+<span class="fc" id="L63">    return VisualizationResponse.builder()</span>
+<span class="fc" id="L64">        .data(fetchData(response))</span>
+<span class="fc" id="L65">        .metadata(constructMetadata(response))</span>
+<span class="fc" id="L66">        .size(response.size())</span>
+<span class="fc" id="L67">        .status(200)</span>
+<span class="fc" id="L68">        .build();</span>
+  }
+
+  @Override
+  public String format(Throwable t) {
+<span class="fc" id="L73">    int status = getStatus(t);</span>
+<span class="fc" id="L74">    ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);</span>
+<span class="fc" id="L75">    VisualizationResponseFormatter.Error error =</span>
+<span class="fc" id="L76">        new Error(message.getType(), message.getReason(), message.getDetails());</span>
+<span class="fc" id="L77">    return jsonify(new VisualizationErrorResponse(error, status));</span>
+  }
+
+  private int getStatus(Throwable t) {
+<span class="fc bfc" id="L81" title="All 4 branches covered.">    return (t instanceof SyntaxCheckException || t instanceof QueryEngineException) ? 400 : 503;</span>
+  }
+
+  private Map&lt;String, List&lt;Object&gt;&gt; fetchData(QueryResult response) {
+<span class="fc" id="L85">    Map&lt;String, List&lt;Object&gt;&gt; columnMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L86">    response</span>
+<span class="fc" id="L87">        .getSchema()</span>
+<span class="fc" id="L88">        .getColumns()</span>
+<span class="fc" id="L89">        .forEach(column -&gt; columnMap.put(column.getName(), new LinkedList&lt;&gt;()));</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    for (Object[] dataRow : response) {</span>
+<span class="fc" id="L92">      int column = 0;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      for (Map.Entry&lt;String, List&lt;Object&gt;&gt; entry : columnMap.entrySet()) {</span>
+<span class="fc" id="L94">        List&lt;Object&gt; dataColumn = entry.getValue();</span>
+<span class="fc" id="L95">        dataColumn.add(dataRow[column++]);</span>
+<span class="fc" id="L96">      }</span>
+<span class="fc" id="L97">    }</span>
+
+<span class="fc" id="L99">    return columnMap;</span>
+  }
+
+  private Metadata constructMetadata(QueryResult response) {
+<span class="fc" id="L103">    return new Metadata(fetchFields(response));</span>
+  }
+
+  private List&lt;Field&gt; fetchFields(QueryResult response) {
+<span class="fc" id="L107">    List&lt;ExecutionEngine.Schema.Column&gt; columns = response.getSchema().getColumns();</span>
+<span class="fc" id="L108">    ImmutableList.Builder&lt;Field&gt; fields = ImmutableList.builder();</span>
+<span class="fc" id="L109">    columns.forEach(</span>
+        column -&gt; {
+<span class="fc" id="L111">          Field field = new Field(column.getName(), convertToLegacyType(column.getExprType()));</span>
+<span class="fc" id="L112">          fields.add(field);</span>
+<span class="fc" id="L113">        });</span>
+<span class="fc" id="L114">    return fields.build();</span>
+  }
+
+  /**
+   * Convert type that exists in both legacy and new engine but has different name. Return old type
+   * name to avoid breaking impact on client-side.
+   */
+  private String convertToLegacyType(ExprType type) {
+<span class="fc" id="L122">    return type.legacyTypeName().toLowerCase();</span>
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class VisualizationErrorResponse {
+    private final Error error;
+    private final int status;
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class Error {
+    private final String type;
+    private final String reason;
+    private final String details;
+  }
+
+  @Builder
+  @Getter
+  public static class VisualizationResponse {
+    private final Map&lt;String, List&lt;Object&gt;&gt; data;
+    private final Metadata metadata;
+    private final long size;
+    private final int status;
+  }
+
+  @RequiredArgsConstructor
+  public static class Metadata {
+    private final List&lt;Field&gt; fields;
+  }
+
+  @RequiredArgsConstructor
+  public static class Field {
+    private final String name;
+    private final String type;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

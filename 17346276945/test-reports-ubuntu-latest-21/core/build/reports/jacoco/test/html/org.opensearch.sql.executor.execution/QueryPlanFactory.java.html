@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QueryPlanFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor.execution</a> &gt; <span class="el_source">QueryPlanFactory.java</span></div><h1>QueryPlanFactory.java</h1><pre class="source lang-java linenums">/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+package org.opensearch.sql.executor.execution;
+
+import static java.util.Objects.requireNonNull;
+
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.Query;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
+
+/** QueryExecution Factory. */
+@RequiredArgsConstructor
+public class QueryPlanFactory
+    extends AbstractNodeVisitor&lt;
+        AbstractPlan,
+        Pair&lt;
+            ResponseListener&lt;ExecutionEngine.QueryResponse&gt;,
+            ResponseListener&lt;ExecutionEngine.ExplainResponse&gt;&gt;&gt; {
+
+  /** Query Service. */
+  private final QueryService queryService;
+
+  /**
+   * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor parameter
+   * of {@link QueryPlan}.
+   */
+  public static final ResponseListener&lt;ExecutionEngine.QueryResponse&gt;
+<span class="fc" id="L47">      NO_CONSUMER_RESPONSE_LISTENER =</span>
+<span class="fc" id="L48">          new ResponseListener&lt;&gt;() {</span>
+            @Override
+            public void onResponse(ExecutionEngine.QueryResponse response) {
+<span class="fc" id="L51">              throw new IllegalStateException(</span>
+                  &quot;[BUG] query response should not sent to unexpected channel&quot;);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+<span class="fc" id="L57">              throw new IllegalStateException(</span>
+                  &quot;[BUG] exception response should not sent to unexpected channel&quot;);
+            }
+          };
+
+  /** Create QueryExecution from Statement. */
+  public AbstractPlan create(
+      Statement statement,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; queryListener,
+      ResponseListener&lt;ExecutionEngine.ExplainResponse&gt; explainListener) {
+<span class="fc" id="L67">    return statement.accept(this, Pair.of(queryListener, explainListener));</span>
+  }
+
+  /** Creates a QueryPlan from a cursor. */
+  public AbstractPlan create(
+      String cursor,
+      boolean isExplain,
+      QueryType queryType,
+      String format,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; queryResponseListener,
+      ResponseListener&lt;ExecutionEngine.ExplainResponse&gt; explainListener) {
+<span class="fc" id="L78">    QueryId queryId = QueryId.queryId();</span>
+<span class="fc" id="L79">    var plan =</span>
+        new QueryPlan(
+            queryId, queryType, new FetchCursor(cursor), queryService, queryResponseListener);
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    return isExplain</span>
+<span class="fc" id="L83">        ? new ExplainPlan(queryId, queryType, plan, Explain.format(format), explainListener)</span>
+<span class="fc" id="L84">        : plan;</span>
+  }
+
+  boolean canConvertToCursor(UnresolvedPlan plan) {
+<span class="fc" id="L88">    return plan.accept(new CanPaginateVisitor(), null);</span>
+  }
+
+  /** Creates a {@link CloseCursor} command on a cursor. */
+  public AbstractPlan createCloseCursor(
+      String cursor,
+      QueryType queryType,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; queryResponseListener) {
+<span class="fc" id="L96">    return new CommandPlan(</span>
+<span class="fc" id="L97">        QueryId.queryId(),</span>
+        queryType,
+<span class="fc" id="L99">        new CloseCursor().attach(new FetchCursor(cursor)),</span>
+        queryService,
+        queryResponseListener);
+  }
+
+  @Override
+  public AbstractPlan visitQuery(
+      Query node,
+      Pair&lt;
+              ResponseListener&lt;ExecutionEngine.QueryResponse&gt;,
+              ResponseListener&lt;ExecutionEngine.ExplainResponse&gt;&gt;
+          context) {
+<span class="fc" id="L111">    requireNonNull(context.getLeft(), &quot;[BUG] query listener must be not null&quot;);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (node.getFetchSize() &gt; 0) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (canConvertToCursor(node.getPlan())) {</span>
+<span class="fc" id="L114">        return new QueryPlan(</span>
+<span class="fc" id="L115">            QueryId.queryId(),</span>
+<span class="fc" id="L116">            node.getQueryType(),</span>
+<span class="fc" id="L117">            node.getPlan(),</span>
+<span class="fc" id="L118">            node.getFetchSize(),</span>
+            queryService,
+<span class="fc" id="L120">            context.getLeft());</span>
+      } else {
+        // This should be picked up by the legacy engine.
+<span class="fc" id="L123">        throw new UnsupportedCursorRequestException();</span>
+      }
+    } else {
+<span class="fc" id="L126">      return new QueryPlan(</span>
+<span class="fc" id="L127">          QueryId.queryId(), node.getQueryType(), node.getPlan(), queryService, context.getLeft());</span>
+    }
+  }
+
+  @Override
+  public AbstractPlan visitExplain(
+      Explain node,
+      Pair&lt;
+              ResponseListener&lt;ExecutionEngine.QueryResponse&gt;,
+              ResponseListener&lt;ExecutionEngine.ExplainResponse&gt;&gt;
+          context) {
+<span class="fc" id="L138">    requireNonNull(context.getRight(), &quot;[BUG] explain listener must be not null&quot;);</span>
+<span class="fc" id="L139">    return new ExplainPlan(</span>
+<span class="fc" id="L140">        QueryId.queryId(),</span>
+<span class="fc" id="L141">        node.getQueryType(),</span>
+<span class="fc" id="L142">        create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),</span>
+<span class="fc" id="L143">        node.getFormat(),</span>
+<span class="fc" id="L144">        context.getRight());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

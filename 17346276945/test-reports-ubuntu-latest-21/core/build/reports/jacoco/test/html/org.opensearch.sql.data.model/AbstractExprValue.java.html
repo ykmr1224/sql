@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractExprValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">AbstractExprValue.java</span></div><h1>AbstractExprValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+/** Abstract ExprValue. */
+<span class="fc" id="L11">public abstract class AbstractExprValue implements ExprValue {</span>
+  /** The customize compareTo logic. */
+  @Override
+  public int compareTo(ExprValue other) {
+<span class="fc bfc" id="L15" title="All 8 branches covered.">    if (this.isNull() || this.isMissing() || other.isNull() || other.isMissing()) {</span>
+<span class="fc" id="L16">      throw new IllegalStateException(</span>
+          &quot;[BUG] Unreachable, Comparing with NULL or MISSING is undefined&quot;);
+    }
+<span class="fc bfc" id="L19" title="All 4 branches covered.">    if ((this.isNumber() &amp;&amp; other.isNumber())</span>
+<span class="fc bfc" id="L20" title="All 4 branches covered.">        || (this.isDateTime() &amp;&amp; other.isDateTime())</span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">        || this.type().equals(other.type())) {</span>
+<span class="fc" id="L22">      return compare(other);</span>
+    } else {
+<span class="fc" id="L24">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L25">          String.format(</span>
+              &quot;compare expected value have same type, but with [%s, %s]&quot;,
+<span class="fc" id="L27">              this.type(), other.type()));</span>
+    }
+  }
+
+  /**
+   * The customize equals logic.&lt;br&gt;
+   * The table below list the NULL and MISSING handling logic.
+   *
+   * &lt;table&gt;
+   *   &lt;tr&gt;
+   *     &lt;th&gt;A&lt;/th&gt;
+   *     &lt;th&gt;B&lt;/th&gt;
+   *     &lt;th&gt;A == B&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+  @Override
+  public boolean equals(Object o) {
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (o == this) {</span>
+<span class="fc" id="L66">      return true;</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    } else if (!(o instanceof ExprValue)) {</span>
+<span class="fc" id="L68">      return false;</span>
+    }
+<span class="fc" id="L70">    ExprValue other = (ExprValue) o;</span>
+<span class="fc bfc" id="L71" title="All 4 branches covered.">    if (this.isNull() || this.isMissing()) {</span>
+<span class="fc" id="L72">      return equal(other);</span>
+<span class="fc bfc" id="L73" title="All 4 branches covered.">    } else if (other.isNull() || other.isMissing()) {</span>
+<span class="fc" id="L74">      return other.equals(this);</span>
+    } else {
+<span class="fc" id="L76">      return equal(other);</span>
+    }
+  }
+
+  /** The expression value compare. */
+  public abstract int compare(ExprValue other);
+
+  /** The expression value equal. */
+  public abstract boolean equal(ExprValue other);
+
+  @Override
+  public Object valueForCalcite() {
+<span class="nc" id="L88">    return value();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

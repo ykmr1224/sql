@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CaseClause.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.conditional.cases</a> &gt; <span class="el_source">CaseClause.java</span></div><h1>CaseClause.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.conditional.cases;
+
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.FunctionName;
+
+/**
+ * A CASE clause is very different from a regular function. Functions have well-defined signature,
+ * though CASE clause is more like a function implementation which requires type check &quot;manually&quot;.
+ */
+@EqualsAndHashCode(callSuper = false)
+@Getter
+@ToString
+public class CaseClause extends FunctionExpression {
+
+  /** List of WHEN clauses. */
+  private final List&lt;WhenClause&gt; whenClauses;
+
+  /** Default result if none of WHEN conditions match. */
+  private final Expression defaultResult;
+
+  /** Initialize case clause. */
+  public CaseClause(List&lt;WhenClause&gt; whenClauses, Expression defaultResult) {
+<span class="fc" id="L42">    super(FunctionName.of(&quot;case&quot;), concatArgs(whenClauses, defaultResult));</span>
+<span class="fc" id="L43">    this.whenClauses = whenClauses;</span>
+<span class="fc" id="L44">    this.defaultResult = defaultResult;</span>
+<span class="fc" id="L45">  }</span>
+
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    for (WhenClause when : whenClauses) {</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">      if (when.isTrue(valueEnv)) {</span>
+<span class="fc" id="L51">        return when.valueOf(valueEnv);</span>
+      }
+<span class="fc" id="L53">    }</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    return (defaultResult == null) ? ExprNullValue.of() : defaultResult.valueOf(valueEnv);</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L59">    List&lt;ExprType&gt; types = allResultTypes();</span>
+
+    // Return undefined if all WHEN/ELSE return NULL
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    return types.isEmpty() ? UNDEFINED : types.get(0);</span>
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L67">    return visitor.visitCase(this, context);</span>
+  }
+
+  /**
+   * Get types of each result in WHEN clause and ELSE clause. Exclude UNKNOWN type from NULL literal
+   * which means NULL in THEN or ELSE clause is not included in result.
+   *
+   * @return all result types. Use list so caller can generate friendly error message.
+   */
+  public List&lt;ExprType&gt; allResultTypes() {
+<span class="fc" id="L77">    List&lt;ExprType&gt; types = whenClauses.stream().map(WhenClause::type).collect(Collectors.toList());</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (defaultResult != null) {</span>
+<span class="fc" id="L79">      types.add(defaultResult.type());</span>
+    }
+
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    types.removeIf(type -&gt; (type == UNDEFINED));</span>
+<span class="fc" id="L83">    return types;</span>
+  }
+
+  private static List&lt;Expression&gt; concatArgs(
+      List&lt;WhenClause&gt; whenClauses, Expression defaultResult) {
+<span class="fc" id="L88">    ImmutableList.Builder&lt;Expression&gt; args = ImmutableList.builder();</span>
+<span class="fc" id="L89">    whenClauses.forEach(args::add);</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (defaultResult != null) {</span>
+<span class="fc" id="L92">      args.add(defaultResult);</span>
+    }
+<span class="fc" id="L94">    return args.build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

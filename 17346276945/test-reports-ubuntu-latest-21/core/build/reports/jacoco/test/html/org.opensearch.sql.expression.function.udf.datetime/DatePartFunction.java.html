@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatePartFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">DatePartFunction.java</span></div><h1>DatePartFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Implementations of date-part-related functions:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;YEAR
+ *   &lt;li&gt;QUARTER
+ *   &lt;li&gt;MONTH
+ *   &lt;li&gt;WEEK
+ *   &lt;li&gt;DAY
+ *   &lt;li&gt;DAYOFYEAR
+ *   &lt;li&gt;DAYOFMONTH
+ *   &lt;li&gt;DAYOFWEEK
+ *   &lt;li&gt;HOUR
+ *   &lt;li&gt;HOUROFDAY
+ *   &lt;li&gt;MINUTE
+ *   &lt;li&gt;MINUTEOFDAY
+ *   &lt;li&gt;MIBUTEOFHOUR
+ *   &lt;li&gt;SECOND
+ *   &lt;li&gt;MICROSECOND
+ * &lt;/ul&gt;
+ *
+ * Signatures:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Day-level extractions: DATE/TIMESTAMP/STRING -&gt; INTEGER
+ *   &lt;li&gt;Time-level extractions: TIME/TIMESTAMP/STRING -&gt; INTEGER
+ * &lt;/ul&gt;
+ */
+public class DatePartFunction extends ImplementorUDF {
+  public DatePartFunction(TimeUnit timeUnit) {
+<span class="fc" id="L65">    super(new DatePartImplementor(timeUnit), NullPolicy.ANY);</span>
+<span class="fc" id="L66">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L70">    return PPLReturnTypes.INTEGER_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L75">    return PPLOperandTypes.DATETIME_OR_STRING;</span>
+  }
+
+  @RequiredArgsConstructor
+  public static class DatePartImplementor implements NotNullImplementor {
+<span class="fc" id="L80">    static final Set&lt;String&gt; TIME_UNITS = Set.of(&quot;MICROSECOND&quot;, &quot;SECOND&quot;, &quot;MINUTE&quot;, &quot;HOUR&quot;);</span>
+    private final TimeUnit timeUnit;
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; operands) {
+
+<span class="nc" id="L87">      Expression unit = Expressions.constant(timeUnit.name());</span>
+<span class="nc" id="L88">      List&lt;Expression&gt; exprOperands = UserDefinedFunctionUtils.convertToExprValues(operands, call);</span>
+<span class="nc" id="L89">      List&lt;Expression&gt; exprOperandsWithProperties =</span>
+<span class="nc" id="L90">          UserDefinedFunctionUtils.prependFunctionProperties(exprOperands, translator);</span>
+<span class="nc" id="L91">      return Expressions.call(</span>
+          DatePartImplementor.class,
+          &quot;datePart&quot;,
+<span class="nc" id="L94">          exprOperandsWithProperties.get(0),</span>
+<span class="nc" id="L95">          exprOperandsWithProperties.get(1),</span>
+<span class="nc" id="L96">          Expressions.convert_(unit, String.class));</span>
+    }
+
+    public static int datePart(FunctionProperties properties, ExprValue datetime, String part) {
+
+      // This throws errors when date_part expects a date but gets a time, or vice versa.
+<span class="nc bnc" id="L102" title="All 2 branches missed.">      if (ExprCoreType.STRING.isCompatible(datetime.type())) {</span>
+<span class="nc" id="L103">        ensureDatetimeParsable(part, datetime.stringValue());</span>
+      }
+
+<span class="nc" id="L106">      ExprTimestampValue candidate =</span>
+<span class="nc" id="L107">          DateTimeConversionUtils.forceConvertToTimestampValue(datetime, properties);</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      if (datetime.type() == ExprCoreType.TIME) {</span>
+<span class="nc" id="L110">        return DateTimeFunctions.exprExtractForTime(</span>
+                properties, new ExprStringValue(part), candidate)
+<span class="nc" id="L112">            .integerValue();</span>
+      }
+<span class="nc" id="L114">      return DateTimeFunctions.formatExtractFunction(new ExprStringValue(part), candidate)</span>
+<span class="nc" id="L115">          .integerValue();</span>
+    }
+
+    private static void ensureDatetimeParsable(String part, String datetime) {
+<span class="nc" id="L119">      part = part.toUpperCase(Locale.ROOT);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">      if (TIME_UNITS.contains(part)) {</span>
+        // Ensure the input is parsable as a time value
+<span class="nc" id="L122">        fromObjectValue(datetime, ExprCoreType.TIME);</span>
+      } else {
+        // Ensure the input is parsable as a date value
+<span class="nc" id="L125">        fromObjectValue(datetime, ExprCoreType.DATE);</span>
+      }
+<span class="nc" id="L127">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

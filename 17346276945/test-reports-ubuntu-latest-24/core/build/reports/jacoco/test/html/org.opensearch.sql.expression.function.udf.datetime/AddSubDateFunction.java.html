@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AddSubDateFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">AddSubDateFunction.java</span></div><h1>AddSubDateFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
+
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
+import java.util.List;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Adds or sub an interval or a number of days to a date or time.
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;code&gt;adddate(date, INTERVAL expr unit)&lt;/code&gt;: Adds the specified interval to the date.
+ *   &lt;li&gt;&lt;code&gt;adddate(date, days)&lt;/code&gt;: Adds the specified number of days to the date.
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Return types:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;code&gt;(DATE/TIMESTAMP/TIME, INTERVAL) -&gt; TIMESTAMP&lt;/code&gt;
+ *   &lt;li&gt;&lt;code&gt;(DATE, LONG) -&gt; DATE&lt;/code&gt;
+ *   &lt;li&gt;&lt;code&gt;(TIMESTAMP/TIME, LONG) -&gt; TIMESTAMP&lt;/code&gt;
+ * &lt;/ul&gt;
+ */
+public class AddSubDateFunction extends ImplementorUDF {
+  public AddSubDateFunction(boolean isAdd) {
+<span class="fc" id="L58">    super(new AddSubDateImplementor(isAdd), NullPolicy.ANY);</span>
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L63">    return opBinding -&gt; {</span>
+<span class="nc" id="L64">      RelDataType temporalType = opBinding.getOperandType(0);</span>
+<span class="nc" id="L65">      RelDataType temporalDeltaType = opBinding.getOperandType(1);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">      if (OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType) == ExprCoreType.DATE</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">          &amp;&amp; SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {</span>
+<span class="nc" id="L68">        return NULLABLE_DATE_UDT;</span>
+      } else {
+<span class="nc" id="L70">        return NULLABLE_TIMESTAMP_UDT;</span>
+      }
+    };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L77">    return UDFOperandMetadata.wrap(</span>
+        (CompositeOperandTypeChecker)
+<span class="fc" id="L79">            OperandTypes.DATETIME_INTERVAL.or(</span>
+<span class="fc" id="L80">                OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));</span>
+  }
+
+  @RequiredArgsConstructor
+  public static class AddSubDateImplementor implements NotNullImplementor {
+    private final boolean isAdd;
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L90">      Expression temporal = translatedOperands.get(0);</span>
+<span class="nc" id="L91">      Expression temporalDelta = translatedOperands.get(1);</span>
+<span class="nc" id="L92">      RelDataType temporalType = call.getOperands().get(0).getType();</span>
+<span class="nc" id="L93">      RelDataType temporalDeltaType = call.getOperands().get(1).getType();</span>
+
+<span class="nc" id="L95">      Expression base =</span>
+<span class="nc" id="L96">          Expressions.call(</span>
+              ExprValueUtils.class,
+              &quot;fromObjectValue&quot;,
+              temporal,
+<span class="nc" id="L100">              Expressions.constant(</span>
+<span class="nc" id="L101">                  OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType)));</span>
+
+<span class="nc" id="L103">      Expression properties =</span>
+<span class="nc" id="L104">          Expressions.call(</span>
+<span class="nc" id="L105">              UserDefinedFunctionUtils.class, &quot;restoreFunctionProperties&quot;, translator.getRoot());</span>
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">      if (SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {</span>
+        String applyDaysFuncName;
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (ExprCoreType.DATE.equals(</span>
+<span class="nc" id="L110">            OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType))) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">          applyDaysFuncName = isAdd ? &quot;dateAddDaysOnDate&quot; : &quot;dateSubDaysOnDate&quot;;</span>
+        } else {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">          applyDaysFuncName = isAdd ? &quot;dateAddDaysOnTimestamp&quot; : &quot;dateSubDaysOnTimestamp&quot;;</span>
+        }
+<span class="nc" id="L115">        return Expressions.call(</span>
+            AddSubDateImplementor.class,
+            applyDaysFuncName,
+            properties,
+            base,
+<span class="nc" id="L120">            Expressions.convert_(temporalDelta, long.class));</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">      } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {</span>
+<span class="nc" id="L122">        Expression interval =</span>
+<span class="nc" id="L123">            Expressions.call(</span>
+                DateTimeConversionUtils.class,
+                &quot;convertToTemporalAmount&quot;,
+<span class="nc" id="L126">                Expressions.convert_(temporalDelta, long.class),</span>
+<span class="nc" id="L127">                Expressions.constant(</span>
+<span class="nc" id="L128">                    Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()));</span>
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        String applyIntervalFuncName = isAdd ? &quot;dateAddInterval&quot; : &quot;dateSubInterval&quot;;</span>
+<span class="nc" id="L131">        return Expressions.call(</span>
+            AddSubDateImplementor.class, applyIntervalFuncName, properties, base, interval);
+      } else {
+<span class="nc" id="L134">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L135">            String.format(</span>
+                &quot;The second argument of %s function must be a number or an interval&quot;,
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                isAdd ? &quot;date_add&quot; : &quot;date_sub&quot;));</span>
+      }
+    }
+
+    public static String dateAddDaysOnDate(
+        FunctionProperties ignored, ExprValue datetime, long days) {
+<span class="nc" id="L143">      return (String) new ExprDateValue(datetime.dateValue().plusDays(days)).valueForCalcite();</span>
+    }
+
+    public static String dateSubDaysOnDate(
+        FunctionProperties ignored, ExprValue datetime, long days) {
+<span class="nc" id="L148">      return (String) new ExprDateValue(datetime.dateValue().minusDays(days)).valueForCalcite();</span>
+    }
+
+    public static String dateAddDaysOnTimestamp(
+        FunctionProperties properties, ExprValue datetime, long days) {
+<span class="nc" id="L153">      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="nc" id="L154">      return (String) new ExprTimestampValue(dt.plusDays(days)).valueForCalcite();</span>
+    }
+
+    public static String dateSubDaysOnTimestamp(
+        FunctionProperties properties, ExprValue datetime, long days) {
+<span class="nc" id="L159">      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="nc" id="L160">      return (String) new ExprTimestampValue(dt.minusDays(days)).valueForCalcite();</span>
+    }
+
+    public static String dateAddInterval(
+        FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
+<span class="nc" id="L165">      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="nc" id="L166">      return (String) new ExprTimestampValue(dt.plus(interval)).valueForCalcite();</span>
+    }
+
+    public static String dateSubInterval(
+        FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
+<span class="nc" id="L171">      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="nc" id="L172">      return (String) new ExprTimestampValue(dt.minus(interval)).valueForCalcite();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

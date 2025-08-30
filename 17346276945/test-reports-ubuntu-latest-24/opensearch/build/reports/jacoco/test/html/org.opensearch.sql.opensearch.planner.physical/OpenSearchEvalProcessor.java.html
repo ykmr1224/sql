@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchEvalProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchEvalProcessor.java</span></div><h1>OpenSearchEvalProcessor.java</h1><pre class="source lang-java linenums">/*
+ *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.opensearch.geospatial.action.IpEnrichmentActionClient;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.transport.client.node.NodeClient;
+
+/** Class to centralise all OpenSearch specific eval operations. */
+<span class="nc" id="L28">public class OpenSearchEvalProcessor {</span>
+
+  /**
+   * Static method to read an incoming OpenSearchFunction evaluation instruction, process it
+   * accordingly with nodeClient and return the result.
+   *
+   * @param funcExpression Eval operation which is OpenSearch storage engine specific.
+   * @param env {@link Environment}
+   * @param nodeClient NodeClient for OpenSearch cluster RPC.
+   * @return evaluation result.
+   */
+  public static ExprValue process(
+      OpenSearchFunctions.OpenSearchExecutableFunction funcExpression,
+      Environment&lt;Expression, ExprValue&gt; env,
+      NodeClient nodeClient) {
+
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">    if (BuiltinFunctionName.GEOIP.getName().equals(funcExpression.getFunctionName())) {</span>
+<span class="fc" id="L45">      return fetchIpEnrichment(funcExpression.getArguments(), env, nodeClient);</span>
+    } else {
+<span class="nc" id="L47">      throw new IllegalArgumentException(&quot;Unsupported OpenSearch specific expression.&quot;);</span>
+    }
+  }
+
+  private static ExprValue fetchIpEnrichment(
+      List&lt;Expression&gt; arguments, Environment&lt;Expression, ExprValue&gt; env, NodeClient nodeClient) {
+<span class="fc" id="L53">    IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);</span>
+<span class="fc" id="L54">    String dataSource = StringUtils.unquoteText(arguments.get(0).toString());</span>
+<span class="fc" id="L55">    String ipAddress = arguments.get(1).valueOf(env).stringValue();</span>
+<span class="fc" id="L56">    final Set&lt;String&gt; options = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">    if (arguments.size() &gt; 2) {</span>
+<span class="nc" id="L58">      String option = StringUtils.unquoteText(arguments.get(2).toString());</span>
+      // Convert the option into a set.
+<span class="nc" id="L60">      options.addAll(</span>
+<span class="nc" id="L61">          Arrays.stream(option.split(&quot;,&quot;)).map(String::trim).collect(Collectors.toSet()));</span>
+    }
+    try {
+<span class="fc" id="L64">      Map&lt;String, Object&gt; geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);</span>
+<span class="fc" id="L65">      Map&lt;String, ExprValue&gt; enrichmentResult =</span>
+<span class="fc" id="L66">          geoLocationData.entrySet().stream()</span>
+<span class="pc bpc" id="L67" title="3 of 4 branches missed.">              .filter(entry -&gt; options.isEmpty() || options.contains(entry.getKey()))</span>
+<span class="fc" id="L68">              .collect(</span>
+<span class="fc" id="L69">                  Collectors.toMap(</span>
+<span class="fc" id="L70">                      Map.Entry::getKey, v -&gt; new ExprStringValue(v.getValue().toString())));</span>
+<span class="fc" id="L71">      return ExprTupleValue.fromExprValueMap(enrichmentResult);</span>
+<span class="nc" id="L72">    } catch (Exception e) {</span>
+<span class="nc" id="L73">      throw new RuntimeException(e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

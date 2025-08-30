@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectContent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.utils</a> &gt; <span class="el_source">ObjectContent.java</span></div><h1>ObjectContent.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.utils;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+
+/** The Implementation of Content to represent {@link Object}. */
+@RequiredArgsConstructor
+public class ObjectContent implements Content {
+
+  private final Object value;
+
+  /**
+   * The parse method parses the value as double value, since the key values histogram buckets are
+   * defaulted to double.
+   */
+  @Override
+  public Integer intValue() {
+<span class="fc" id="L29">    return parseNumberValue(value, v -&gt; Double.valueOf(v).intValue(), Number::intValue);</span>
+  }
+
+  @Override
+  public Long longValue() {
+<span class="fc" id="L34">    return parseNumberValue(value, v -&gt; Double.valueOf(v).longValue(), Number::longValue);</span>
+  }
+
+  @Override
+  public Short shortValue() {
+<span class="fc" id="L39">    return parseNumberValue(value, v -&gt; Double.valueOf(v).shortValue(), Number::shortValue);</span>
+  }
+
+  @Override
+  public Byte byteValue() {
+<span class="fc" id="L44">    return parseNumberValue(value, v -&gt; Double.valueOf(v).byteValue(), Number::byteValue);</span>
+  }
+
+  @Override
+  public Float floatValue() {
+<span class="fc" id="L49">    return parseNumberValue(value, Float::valueOf, Number::floatValue);</span>
+  }
+
+  @Override
+  public Double doubleValue() {
+<span class="fc" id="L54">    return parseNumberValue(value, Double::valueOf, Number::doubleValue);</span>
+  }
+
+  @Override
+  public String stringValue() {
+<span class="fc" id="L59">    return (String) value;</span>
+  }
+
+  @Override
+  public Boolean booleanValue() {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (value instanceof String) {</span>
+<span class="fc" id="L65">      return Boolean.valueOf((String) value);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    } else if (value instanceof Number) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      return ((Number) value).intValue() != 0;</span>
+    } else {
+<span class="fc" id="L69">      return (Boolean) value;</span>
+    }
+  }
+
+  @Override
+  public Object objectValue() {
+<span class="fc" id="L75">    return value;</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public Iterator&lt;Map.Entry&lt;String, Content&gt;&gt; map() {
+<span class="fc" id="L81">    return ((Map&lt;String, Object&gt;) value)</span>
+<span class="fc" id="L82">        .entrySet().stream()</span>
+<span class="fc" id="L83">            .map(</span>
+                entry -&gt;
+<span class="fc" id="L85">                    (Map.Entry&lt;String, Content&gt;)</span>
+                        new AbstractMap.SimpleEntry&lt;String, Content&gt;(
+<span class="fc" id="L87">                            entry.getKey(), new ObjectContent(entry.getValue())))</span>
+<span class="fc" id="L88">            .iterator();</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public Iterator&lt;? extends Content&gt; array() {
+<span class="fc" id="L94">    return ((List&lt;Object&gt;) value).stream().map(ObjectContent::new).iterator();</span>
+  }
+
+  @Override
+  public boolean isNull() {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    return value == null;</span>
+  }
+
+  @Override
+  public boolean isNumber() {
+<span class="fc" id="L104">    return value instanceof Number;</span>
+  }
+
+  @Override
+  public boolean isShort() {
+<span class="nc" id="L109">    return value instanceof Short;</span>
+  }
+
+  @Override
+  public boolean isByte() {
+<span class="nc" id="L114">    return value instanceof Byte;</span>
+  }
+
+  @Override
+  public boolean isInt() {
+<span class="nc" id="L119">    return value instanceof Integer;</span>
+  }
+
+  @Override
+  public boolean isFloat() {
+<span class="fc" id="L124">    return value instanceof Float;</span>
+  }
+
+  @Override
+  public boolean isDouble() {
+<span class="fc" id="L129">    return value instanceof Double;</span>
+  }
+
+  @Override
+  public boolean isLong() {
+<span class="fc" id="L134">    return value instanceof Long;</span>
+  }
+
+  @Override
+  public boolean isBoolean() {
+<span class="fc" id="L139">    return value instanceof Boolean;</span>
+  }
+
+  @Override
+  public boolean isArray() {
+<span class="fc" id="L144">    return value instanceof ArrayNode;</span>
+  }
+
+  @Override
+  public boolean isString() {
+<span class="fc" id="L149">    return value instanceof String;</span>
+  }
+
+  @Override
+  public Pair&lt;Double, Double&gt; geoValue() {
+<span class="fc" id="L154">    final String[] split = ((String) value).split(&quot;,&quot;);</span>
+<span class="fc" id="L155">    return Pair.of(Double.valueOf(split[0]), Double.valueOf(split[1]));</span>
+  }
+
+  private &lt;T&gt; T parseNumberValue(
+      Object value, Function&lt;String, T&gt; stringTFunction, Function&lt;Number, T&gt; numberTFunction) {
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (value instanceof String) {</span>
+<span class="fc" id="L161">      return stringTFunction.apply((String) value);</span>
+    } else {
+<span class="fc" id="L163">      return numberTFunction.apply((Number) value);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

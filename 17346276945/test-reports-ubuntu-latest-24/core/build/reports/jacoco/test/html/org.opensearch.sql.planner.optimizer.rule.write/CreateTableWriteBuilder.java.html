@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateTableWriteBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.optimizer.rule.write</a> &gt; <span class="el_source">CreateTableWriteBuilder.java</span></div><h1>CreateTableWriteBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.optimizer.rule.write;
+
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.writeTable;
+
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Captures;
+import com.facebook.presto.matching.Pattern;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalWrite;
+import org.opensearch.sql.planner.optimizer.Rule;
+import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
+
+/**
+ * Rule that replaces logical write operator with {@link TableWriteBuilder} for later optimization
+ * and transforming to physical operator.
+ */
+public class CreateTableWriteBuilder implements Rule&lt;LogicalWrite&gt; {
+
+  /** Capture the table inside matched logical relation operator. */
+  private final Capture&lt;Table&gt; capture;
+
+  /** Pattern that matches logical relation operator. */
+  @Accessors(fluent = true)
+  @Getter
+  private final Pattern&lt;LogicalWrite&gt; pattern;
+
+  /** Construct create table write builder rule. */
+<span class="fc" id="L36">  public CreateTableWriteBuilder() {</span>
+<span class="fc" id="L37">    this.capture = Capture.newCapture();</span>
+<span class="fc" id="L38">    this.pattern = Pattern.typeOf(LogicalWrite.class).with(writeTable().capturedAs(capture));</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public LogicalPlan apply(LogicalWrite plan, Captures captures) {
+<span class="fc" id="L43">    return captures.get(capture).createWriteBuilder(plan);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

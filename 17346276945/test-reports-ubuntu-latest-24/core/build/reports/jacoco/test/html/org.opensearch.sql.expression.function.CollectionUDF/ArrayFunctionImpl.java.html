@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ArrayFunctionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.CollectionUDF</a> &gt; <span class="el_source">ArrayFunctionImpl.java</span></div><h1>ArrayFunctionImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.CollectionUDF;
+
+import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+// TODO: Support array of mixture types.
+
+/**
+ * create an array with input values. We will infer a least restricted type, for example array(1,
+ * &quot;demo&quot;) -&gt; [&quot;1&quot;, &quot;demo&quot;]
+ */
+public class ArrayFunctionImpl extends ImplementorUDF {
+  public ArrayFunctionImpl() {
+<span class="fc" id="L38">    super(new ArrayImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L39">  }</span>
+
+  /**
+   * @return We wrap it here to accept null since the original return type inference will generate
+   *     non-nullable type
+   */
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L47">    return sqlOperatorBinding -&gt; {</span>
+<span class="nc" id="L48">      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();</span>
+      try {
+<span class="nc" id="L50">        RelDataType originalType =</span>
+<span class="nc" id="L51">            SqlLibraryOperators.ARRAY.getReturnTypeInference().inferReturnType(sqlOperatorBinding);</span>
+<span class="nc" id="L52">        RelDataType innerType = originalType.getComponentType();</span>
+<span class="nc" id="L53">        return createArrayType(</span>
+<span class="nc" id="L54">            typeFactory, typeFactory.createTypeWithNullability(innerType, true), true);</span>
+<span class="nc" id="L55">      } catch (Exception e) {</span>
+<span class="nc" id="L56">        throw new RuntimeException(&quot;fail to create array with fixed type: &quot; + e.getMessage());</span>
+      }
+    };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L63">    return null;</span>
+  }
+
+<span class="fc" id="L66">  public static class ArrayImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L70">      RelDataType realType = call.getType().getComponentType();</span>
+<span class="nc" id="L71">      List&lt;Expression&gt; newArgs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L72">      newArgs.add(</span>
+<span class="nc" id="L73">          Expressions.call(</span>
+<span class="nc" id="L74">              Types.lookupMethod(Arrays.class, &quot;asList&quot;, Object[].class), translatedOperands));</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">      assert realType != null;</span>
+<span class="nc" id="L76">      newArgs.add(Expressions.constant(realType.getSqlTypeName()));</span>
+<span class="nc" id="L77">      return Expressions.call(</span>
+<span class="nc" id="L78">          Types.lookupMethod(ArrayFunctionImpl.class, &quot;internalCast&quot;, Object[].class), newArgs);</span>
+    }
+  }
+
+  /**
+   * The asList will generate the List&lt;Object&gt;. We need to convert internally, otherwise, the
+   * calcite will directly cast like DOUBLE -&gt; INTEGER, which throw error
+   */
+  public static Object internalCast(Object... args) {
+<span class="nc" id="L87">    List&lt;Object&gt; originalList = (List&lt;Object&gt;) args[0];</span>
+<span class="nc" id="L88">    SqlTypeName targetType = (SqlTypeName) args[args.length - 1];</span>
+    List&lt;Object&gt; result;
+<span class="nc bnc" id="L90" title="All 5 branches missed.">    switch (targetType) {</span>
+      case DECIMAL:
+<span class="nc" id="L92">        result =</span>
+<span class="nc" id="L93">            originalList.stream()</span>
+<span class="nc" id="L94">                .map(</span>
+                    num -&gt; {
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                      if (num instanceof BigDecimal) {</span>
+<span class="nc" id="L97">                        return (BigDecimal) num;</span>
+                      } else {
+<span class="nc" id="L99">                        return BigDecimal.valueOf(((Number) num).doubleValue());</span>
+                      }
+                    })
+<span class="nc" id="L102">                .collect(Collectors.toList());</span>
+<span class="nc" id="L103">        break;</span>
+      case DOUBLE:
+<span class="nc" id="L105">        result =</span>
+<span class="nc" id="L106">            originalList.stream()</span>
+<span class="nc" id="L107">                .map(i -&gt; (Object) ((Number) i).doubleValue())</span>
+<span class="nc" id="L108">                .collect(Collectors.toList());</span>
+<span class="nc" id="L109">        break;</span>
+      case FLOAT:
+<span class="nc" id="L111">        result =</span>
+<span class="nc" id="L112">            originalList.stream()</span>
+<span class="nc" id="L113">                .map(i -&gt; (Object) ((Number) i).floatValue())</span>
+<span class="nc" id="L114">                .collect(Collectors.toList());</span>
+<span class="nc" id="L115">        break;</span>
+      case VARCHAR, CHAR:
+<span class="nc" id="L117">        result = originalList.stream().map(i -&gt; (Object) i.toString()).collect(Collectors.toList());</span>
+<span class="nc" id="L118">        break;</span>
+      default:
+<span class="nc" id="L120">        result = originalList;</span>
+    }
+<span class="nc" id="L122">    return result;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

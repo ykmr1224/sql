@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpressionScript.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.core</a> &gt; <span class="el_source">ExpressionScript.java</span></div><h1>ExpressionScript.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.core;
+
+import static java.util.stream.Collectors.toMap;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.time.chrono.ChronoZonedDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import lombok.EqualsAndHashCode;
+import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+
+/**
+ * Expression script executor that executes the expression on each document and determine if the
+ * document is supposed to be filtered out or not.
+ */
+@EqualsAndHashCode(callSuper = false)
+public class ExpressionScript {
+
+  /** Expression to execute. */
+  private final Expression expression;
+
+  /** ElasticsearchExprValueFactory. */
+  @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory valueFactory;
+
+  /** Reference Fields. */
+  @EqualsAndHashCode.Exclude private final Set&lt;ReferenceExpression&gt; fields;
+
+  /** Expression constructor. */
+<span class="fc" id="L51">  public ExpressionScript(Expression expression) {</span>
+<span class="fc" id="L52">    this.expression = expression;</span>
+<span class="fc" id="L53">    this.fields =</span>
+<span class="fc" id="L54">        AccessController.doPrivileged(</span>
+<span class="fc" id="L55">            (PrivilegedAction&lt;Set&lt;ReferenceExpression&gt;&gt;) () -&gt; extractFields(expression));</span>
+<span class="fc" id="L56">    this.valueFactory =</span>
+<span class="fc" id="L57">        AccessController.doPrivileged(</span>
+<span class="fc" id="L58">            (PrivilegedAction&lt;OpenSearchExprValueFactory&gt;) () -&gt; buildValueFactory(fields));</span>
+<span class="fc" id="L59">  }</span>
+
+  /**
+   * Evaluate on the doc generate by the doc provider.
+   *
+   * @param docProvider doc provider.
+   * @param evaluator evaluator
+   * @return expr value
+   */
+  public ExprValue execute(
+      Supplier&lt;Map&lt;String, ScriptDocValues&lt;?&gt;&gt;&gt; docProvider,
+      BiFunction&lt;Expression, Environment&lt;Expression, ExprValue&gt;, ExprValue&gt; evaluator) {
+<span class="fc" id="L71">    return AccessController.doPrivileged(</span>
+        (PrivilegedAction&lt;ExprValue&gt;)
+            () -&gt; {
+<span class="fc" id="L74">              Environment&lt;Expression, ExprValue&gt; valueEnv =</span>
+<span class="fc" id="L75">                  buildValueEnv(fields, valueFactory, docProvider);</span>
+<span class="fc" id="L76">              ExprValue result = evaluator.apply(expression, valueEnv);</span>
+<span class="fc" id="L77">              return result;</span>
+            });
+  }
+
+  public static Set&lt;ReferenceExpression&gt; extractFields(Expression expr) {
+<span class="fc" id="L82">    Set&lt;ReferenceExpression&gt; fields = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L83">    expr.accept(</span>
+<span class="fc" id="L84">        new ExpressionNodeVisitor&lt;Object, Set&lt;ReferenceExpression&gt;&gt;() {</span>
+          @Override
+          public Object visitReference(ReferenceExpression node, Set&lt;ReferenceExpression&gt; context) {
+<span class="fc" id="L87">            context.add(node);</span>
+<span class="fc" id="L88">            return null;</span>
+          }
+
+          @Override
+          public Object visitParse(ParseExpression node, Set&lt;ReferenceExpression&gt; context) {
+<span class="fc" id="L93">            node.getSourceField().accept(this, context);</span>
+<span class="fc" id="L94">            return null;</span>
+          }
+        },
+        fields);
+<span class="fc" id="L98">    return fields;</span>
+  }
+
+  private OpenSearchExprValueFactory buildValueFactory(Set&lt;ReferenceExpression&gt; fields) {
+<span class="fc" id="L102">    Map&lt;String, OpenSearchDataType&gt; typeEnv =</span>
+<span class="fc" id="L103">        fields.stream()</span>
+<span class="fc" id="L104">            .collect(toMap(ReferenceExpression::getAttr, e -&gt; OpenSearchDataType.of(e.type())));</span>
+<span class="fc" id="L105">    return new OpenSearchExprValueFactory(typeEnv, false);</span>
+  }
+
+  private Environment&lt;Expression, ExprValue&gt; buildValueEnv(
+      Set&lt;ReferenceExpression&gt; fields,
+      OpenSearchExprValueFactory valueFactory,
+      Supplier&lt;Map&lt;String, ScriptDocValues&lt;?&gt;&gt;&gt; docProvider) {
+
+<span class="fc" id="L113">    Map&lt;Expression, ExprValue&gt; valueEnv = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    for (ReferenceExpression field : fields) {</span>
+<span class="fc" id="L115">      String fieldName = field.getAttr();</span>
+<span class="fc" id="L116">      ExprValue exprValue =</span>
+<span class="fc" id="L117">          valueFactory.construct(fieldName, getDocValue(field, docProvider), false);</span>
+<span class="fc" id="L118">      valueEnv.put(field, exprValue);</span>
+<span class="fc" id="L119">    }</span>
+    // Encapsulate map data structure into anonymous Environment class
+<span class="fc" id="L121">    return valueEnv::get;</span>
+  }
+
+  private Object getDocValue(
+      ReferenceExpression field, Supplier&lt;Map&lt;String, ScriptDocValues&lt;?&gt;&gt;&gt; docProvider) {
+<span class="fc" id="L126">    String fieldName = OpenSearchTextType.convertTextToKeyword(field.getAttr(), field.type());</span>
+<span class="fc" id="L127">    ScriptDocValues&lt;?&gt; docValue = docProvider.get().get(fieldName);</span>
+<span class="fc bfc" id="L128" title="All 4 branches covered.">    if (docValue == null || docValue.isEmpty()) {</span>
+<span class="fc" id="L129">      return null; // No way to differentiate null and missing from doc value</span>
+    }
+
+<span class="fc" id="L132">    Object value = docValue.get(0);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (value instanceof ChronoZonedDateTime) {</span>
+<span class="fc" id="L134">      return ((ChronoZonedDateTime&lt;?&gt;) value).toInstant();</span>
+    }
+<span class="fc" id="L136">    return castNumberToFieldType(value, field.type());</span>
+  }
+
+  /**
+   * DocValue only support long and double so cast to integer and float if needed. The doc value
+   * must be Long and Double for expr type Long/Integer and Double/Float respectively. Otherwise
+   * there must be bugs in our engine that causes the mismatch.
+   */
+  private Object castNumberToFieldType(Object value, ExprType type) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L146">      return value;</span>
+    }
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (type == INTEGER) {</span>
+<span class="fc" id="L150">      return ((Long) value).intValue();</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    } else if (type == FLOAT) {</span>
+<span class="fc" id="L152">      return ((Double) value).floatValue();</span>
+    } else {
+<span class="fc" id="L154">      return value;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

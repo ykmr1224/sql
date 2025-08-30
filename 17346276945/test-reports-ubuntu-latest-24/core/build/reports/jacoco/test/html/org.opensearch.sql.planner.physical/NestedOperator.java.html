@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NestedOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">NestedOperator.java</span></div><h1>NestedOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
+import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.ReferenceExpression;
+
+/**
+ * The NestedOperator evaluates the {@link NestedOperator#fields} and generates {@link
+ * NestedOperator#nonNestedFields} to form the {@link NestedOperator#result} output. Resolve two
+ * nested fields with differing paths will result in a cartesian product(inner join).
+ */
+@EqualsAndHashCode(callSuper = false)
+public class NestedOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+  @Getter private final Set&lt;String&gt; fields; // Needs to be a Set to match legacy implementation
+  @Getter private final Map&lt;String, List&lt;String&gt;&gt; groupedPathsAndFields;
+<span class="fc" id="L39">  @EqualsAndHashCode.Exclude private List&lt;Map&lt;String, ExprValue&gt;&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L40">  @EqualsAndHashCode.Exclude private final List&lt;String&gt; nonNestedFields = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L42">  @EqualsAndHashCode.Exclude</span>
+<span class="fc" id="L43">  private ListIterator&lt;Map&lt;String, ExprValue&gt;&gt; flattenedResult = result.listIterator();</span>
+
+  /**
+   * Constructor for NestedOperator with list of map as arg.
+   *
+   * @param input : PhysicalPlan input.
+   * @param fields : List of all fields and paths for nested fields.
+   */
+<span class="fc" id="L51">  public NestedOperator(PhysicalPlan input, List&lt;Map&lt;String, ReferenceExpression&gt;&gt; fields) {</span>
+<span class="fc" id="L52">    this.input = input;</span>
+<span class="fc" id="L53">    this.fields = fields.stream().map(m -&gt; m.get(&quot;field&quot;).toString()).collect(Collectors.toSet());</span>
+<span class="fc" id="L54">    this.groupedPathsAndFields =</span>
+<span class="fc" id="L55">        fields.stream()</span>
+<span class="fc" id="L56">            .collect(</span>
+<span class="fc" id="L57">                Collectors.groupingBy(</span>
+<span class="fc" id="L58">                    m -&gt; m.get(&quot;path&quot;).toString(),</span>
+<span class="fc" id="L59">                    mapping(m -&gt; m.get(&quot;field&quot;).toString(), toList())));</span>
+<span class="fc" id="L60">  }</span>
+
+  /**
+   * Constructor for NestedOperator with Set of fields.
+   *
+   * @param input : PhysicalPlan input.
+   * @param fields : List of all fields for nested fields.
+   * @param groupedPathsAndFields : Map of fields grouped by their path.
+   */
+  public NestedOperator(
+<span class="fc" id="L70">      PhysicalPlan input, Set&lt;String&gt; fields, Map&lt;String, List&lt;String&gt;&gt; groupedPathsAndFields) {</span>
+<span class="fc" id="L71">    this.input = input;</span>
+<span class="fc" id="L72">    this.fields = fields;</span>
+<span class="fc" id="L73">    this.groupedPathsAndFields = groupedPathsAndFields;</span>
+<span class="fc" id="L74">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L78">    return visitor.visitNested(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L83">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc bfc" id="L88" title="All 4 branches covered.">    return input.hasNext() || flattenedResult.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (!flattenedResult.hasNext()) {</span>
+<span class="fc" id="L94">      result.clear();</span>
+<span class="fc" id="L95">      nonNestedFields.clear();</span>
+
+<span class="fc" id="L97">      ExprValue inputValue = input.next();</span>
+<span class="fc" id="L98">      generateNonNestedFieldsMap(inputValue);</span>
+      // Add all nested fields to result map
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      for (String field : fields) {</span>
+<span class="fc" id="L101">        result = flatten(field, inputValue, result);</span>
+<span class="fc" id="L102">      }</span>
+
+      // Add all non-nested fields to result map
+<span class="fc bfc" id="L105" title="All 2 branches covered.">      for (String nonNestedField : nonNestedFields) {</span>
+<span class="fc" id="L106">        result = flatten(nonNestedField, inputValue, result);</span>
+<span class="fc" id="L107">      }</span>
+
+<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (result.isEmpty()) {</span>
+<span class="fc" id="L110">        flattenedResult = result.listIterator();</span>
+<span class="fc" id="L111">        return new ExprTupleValue(new LinkedHashMap&lt;&gt;());</span>
+      }
+
+<span class="fc" id="L114">      flattenedResult = result.listIterator();</span>
+    }
+<span class="fc" id="L116">    return new ExprTupleValue(new LinkedHashMap&lt;&gt;(flattenedResult.next()));</span>
+  }
+
+  /**
+   * Generate list of non-nested fields that are in inputMap, but not in the member variable fields
+   * list.
+   *
+   * @param inputMap : Row to parse non-nested fields.
+   */
+  public void generateNonNestedFieldsMap(ExprValue inputMap) {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    for (Map.Entry&lt;String, ExprValue&gt; inputField : inputMap.tupleValue().entrySet()) {</span>
+<span class="fc" id="L127">      boolean foundNestedField =</span>
+<span class="fc" id="L128">          this.fields.stream()</span>
+<span class="fc" id="L129">              .anyMatch(field -&gt; field.split(&quot;\\.&quot;)[0].equalsIgnoreCase(inputField.getKey()));</span>
+
+<span class="fc bfc" id="L131" title="All 2 branches covered.">      if (!foundNestedField) {</span>
+<span class="fc" id="L132">        this.nonNestedFields.add(inputField.getKey());</span>
+      }
+<span class="fc" id="L134">    }</span>
+<span class="fc" id="L135">  }</span>
+
+  /**
+   * Simplifies the structure of row's source Map by flattening it, making the full path of an
+   * object the key and the Object it refers to the value.
+   *
+   * &lt;pre&gt;
+   * &lt;p&gt;Sample input:
+   * keys = ['comments.likes']
+   * row = comments: {
+   * likes: 2
+   * }
+   *
+   * &lt;p&gt;Return:
+   * flattenedRow = {comment.likes: 2}
+   * &lt;/pre&gt;
+   *
+   * @param nestedField : Field to query in row.
+   * @param row : Row returned from OS.
+   * @param prevList : List of previous nested calls.
+   * @return : List of nested select items or cartesian product of nested calls.
+   */
+  private List&lt;Map&lt;String, ExprValue&gt;&gt; flatten(
+      String nestedField, ExprValue row, List&lt;Map&lt;String, ExprValue&gt;&gt; prevList) {
+<span class="fc" id="L159">    List&lt;Map&lt;String, ExprValue&gt;&gt; copy = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L160">    List&lt;Map&lt;String, ExprValue&gt;&gt; newList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L162">    ExprValue nestedObj = null;</span>
+<span class="fc" id="L163">    getNested(nestedField, nestedField, row, copy, nestedObj);</span>
+
+    // Only one field in select statement
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (prevList.size() == 0) {</span>
+<span class="fc" id="L167">      return copy;</span>
+    }
+
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (containSamePath(copy.get(0))) {</span>
+<span class="fc" id="L171">      var resultIt = this.result.iterator();</span>
+<span class="fc" id="L172">      Map&lt;String, ExprValue&gt; resultVal = resultIt.next();</span>
+<span class="fc" id="L173">      var copyIt = copy.iterator();</span>
+<span class="fc" id="L174">      Map&lt;String, ExprValue&gt; copyVal = copyIt.next();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">      for (int i = 0; i &lt; this.result.size(); i++) {</span>
+<span class="fc" id="L176">        resultVal.putAll(copyVal);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (copyIt.hasNext()) {</span>
+<span class="fc" id="L178">          copyVal = copyIt.next();</span>
+        }
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (resultIt.hasNext()) {</span>
+<span class="fc" id="L181">          resultVal = resultIt.next();</span>
+        }
+      }
+<span class="fc" id="L184">      return this.result;</span>
+    } else {
+      // Generate cartesian product
+<span class="fc bfc" id="L187" title="All 2 branches covered.">      for (Map&lt;String, ExprValue&gt; prevMap : prevList) {</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        for (Map&lt;String, ExprValue&gt; newMap : copy) {</span>
+<span class="fc" id="L189">          newList.add(</span>
+<span class="fc" id="L190">              Stream.of(newMap, prevMap)</span>
+<span class="fc" id="L191">                  .flatMap(map -&gt; map.entrySet().stream())</span>
+<span class="fc" id="L192">                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));</span>
+<span class="fc" id="L193">        }</span>
+<span class="fc" id="L194">      }</span>
+<span class="fc" id="L195">      return newList;</span>
+    }
+  }
+
+  /**
+   * Check if newMap field has any sharing paths in prevMap.
+   *
+   * @param newMap : New map to add to result set.
+   * @return : true if there is already a field added to result set with same path.
+   */
+  boolean containSamePath(Map&lt;String, ExprValue&gt; newMap) {
+<span class="fc" id="L206">    String newKey = newMap.keySet().iterator().next();</span>
+<span class="fc" id="L207">    Map&lt;String, ExprValue&gt; resultMap = this.result.iterator().next();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    for (var entry : this.groupedPathsAndFields.entrySet()) {</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">      if (entry.getValue().contains(newKey)) {</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">        for (var map : resultMap.entrySet()) {</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">          if (entry.getValue().contains(map.getKey())) {</span>
+<span class="fc" id="L212">            return true;</span>
+          }
+<span class="fc" id="L214">        }</span>
+      }
+<span class="fc" id="L216">    }</span>
+<span class="fc" id="L217">    return false;</span>
+  }
+
+  /**
+   * Retrieve nested field(s) in row.
+   *
+   * @param field : Path for nested field.
+   * @param nestedField : Current level to nested field path.
+   * @param row : Row to resolve nested field.
+   * @param ret : List to add nested field to.
+   * @param nestedObj : Object at current nested level.
+   * @return : Object at current nested level.
+   */
+  private void getNested(
+      String field,
+      String nestedField,
+      ExprValue row,
+      List&lt;Map&lt;String, ExprValue&gt;&gt; ret,
+      ExprValue nestedObj) {
+<span class="fc bfc" id="L236" title="All 2 branches covered.">    ExprValue currentObj = (nestedObj == null) ? row : nestedObj;</span>
+<span class="fc" id="L237">    String[] splitKeys = nestedField.split(&quot;\\.&quot;);</span>
+
+<span class="fc bfc" id="L239" title="All 2 branches covered.">    if (currentObj instanceof ExprTupleValue) {</span>
+<span class="fc" id="L240">      ExprTupleValue currentMap = (ExprTupleValue) currentObj;</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">      if (currentMap.tupleValue().containsKey(splitKeys[0])) {</span>
+<span class="fc" id="L242">        currentObj = currentMap.tupleValue().get(splitKeys[0]);</span>
+      } else {
+<span class="fc" id="L244">        currentObj = null;</span>
+<span class="fc" id="L245">        ret.add(new LinkedHashMap&lt;&gt;(Map.of(field, ExprNullValue.of())));</span>
+      }
+<span class="fc bfc" id="L247" title="All 2 branches covered.">    } else if (currentObj instanceof ExprCollectionValue) {</span>
+<span class="fc" id="L248">      ExprValue arrayObj = currentObj;</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">      for (int x = 0; x &lt; arrayObj.collectionValue().size(); x++) {</span>
+<span class="fc" id="L250">        currentObj = arrayObj.collectionValue().get(x);</span>
+<span class="fc" id="L251">        getNested(field, nestedField, row, ret, currentObj);</span>
+<span class="fc" id="L252">        currentObj = null;</span>
+      }
+<span class="fc" id="L254">    } else {</span>
+<span class="fc" id="L255">      currentObj = null;</span>
+    }
+
+    // Return final nested result
+<span class="fc bfc" id="L259" title="All 2 branches covered.">    if (currentObj != null</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        &amp;&amp; (StringUtils.substringAfterLast(field, &quot;.&quot;).equals(nestedField)</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">            || !field.contains(&quot;.&quot;))) {</span>
+<span class="fc" id="L262">      ret.add(new LinkedHashMap&lt;&gt;(Map.of(field, currentObj)));</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">    } else if (currentObj != null) {</span>
+<span class="fc" id="L264">      getNested(field, nestedField.substring(nestedField.indexOf(&quot;.&quot;) + 1), row, ret, currentObj);</span>
+    }
+<span class="fc" id="L266">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

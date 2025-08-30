@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FunctionDSL.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">FunctionDSL.java</span></div><h1>FunctionDSL.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver.DefaultFunctionResolverBuilder;
+
+/** Function Define Utility. */
+@UtilityClass
+public class FunctionDSL {
+  /**
+   * Define overloaded function with implementation.
+   *
+   * @param functionName function name.
+   * @param functions a list of function implementation.
+   * @return FunctionResolver.
+   */
+  public static DefaultFunctionResolver define(
+      FunctionName functionName,
+      SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;... functions) {
+<span class="fc" id="L36">    return define(functionName, List.of(functions));</span>
+  }
+
+  /**
+   * Define overloaded function with implementation.
+   *
+   * @param functionName function name.
+   * @param functions a list of function implementation.
+   * @return FunctionResolver.
+   */
+  public static DefaultFunctionResolver define(
+      FunctionName functionName,
+      List&lt;SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+          functions) {
+
+<span class="fc" id="L51">    DefaultFunctionResolverBuilder builder = DefaultFunctionResolver.builder();</span>
+<span class="fc" id="L52">    builder.functionName(functionName);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">    for (Function&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; func : functions) {</span>
+<span class="fc" id="L54">      Pair&lt;FunctionSignature, FunctionBuilder&gt; functionBuilder = func.apply(functionName);</span>
+<span class="fc" id="L55">      builder.functionBundle(functionBuilder.getKey(), functionBuilder.getValue());</span>
+<span class="fc" id="L56">    }</span>
+<span class="fc" id="L57">    return builder.build();</span>
+  }
+
+  /**
+   * Implementation of no args function that uses FunctionProperties.
+   *
+   * @param function {@link ExprValue} based no args function.
+   * @param returnType function return type.
+   * @return no args function implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;
+      implWithProperties(
+          SerializableFunction&lt;FunctionProperties, ExprValue&gt; function, ExprType returnType) {
+<span class="fc" id="L70">    return functionName -&gt; {</span>
+<span class="fc" id="L71">      FunctionSignature functionSignature =</span>
+<span class="fc" id="L72">          new FunctionSignature(functionName, Collections.emptyList());</span>
+<span class="fc" id="L73">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L75">              new FunctionExpression(functionName, Collections.emptyList()) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L78">                  return function.apply(functionProperties);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L83">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L88">                  return String.format(&quot;%s()&quot;, functionName);</span>
+                }
+              };
+<span class="fc" id="L91">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /**
+   * Implementation of a function that takes one argument, returns a value, and requires
+   * FunctionProperties to complete.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param argsType argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;
+      implWithProperties(
+          SerializableBiFunction&lt;FunctionProperties, ExprValue, ExprValue&gt; function,
+          ExprType returnType,
+          ExprType argsType) {
+
+<span class="fc" id="L110">    return functionName -&gt; {</span>
+<span class="fc" id="L111">      FunctionSignature functionSignature =</span>
+<span class="fc" id="L112">          new FunctionSignature(functionName, Collections.singletonList(argsType));</span>
+<span class="fc" id="L113">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L115">              new FunctionExpression(functionName, arguments) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L118">                  ExprValue value = arguments.get(0).valueOf(valueEnv);</span>
+<span class="fc" id="L119">                  return function.apply(functionProperties, value);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L124">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L129">                  return String.format(</span>
+                      &quot;%s(%s)&quot;,
+                      functionName,
+<span class="fc" id="L132">                      arguments.stream().map(Object::toString).collect(Collectors.joining(&quot;, &quot;)));</span>
+                }
+              };
+<span class="fc" id="L135">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /**
+   * Implementation of a function that takes two arguments, returns a value, and requires
+   * FunctionProperties to complete.
+   *
+   * @param function {@link ExprValue} based Binary function.
+   * @param returnType return type.
+   * @param args1Type first argument type.
+   * @param args2Type second argument type.
+   * @return Binary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;
+      implWithProperties(
+          SerializableTriFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue&gt; function,
+          ExprType returnType,
+          ExprType args1Type,
+          ExprType args2Type) {
+
+<span class="fc" id="L156">    return functionName -&gt; {</span>
+<span class="fc" id="L157">      FunctionSignature functionSignature =</span>
+<span class="fc" id="L158">          new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));</span>
+<span class="fc" id="L159">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L161">              new FunctionExpression(functionName, arguments) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L164">                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);</span>
+<span class="fc" id="L165">                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);</span>
+<span class="fc" id="L166">                  return function.apply(functionProperties, arg1, arg2);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L171">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L176">                  return String.format(</span>
+                      &quot;%s(%s)&quot;,
+                      functionName,
+<span class="fc" id="L179">                      arguments.stream().map(Object::toString).collect(Collectors.joining(&quot;, &quot;)));</span>
+                }
+              };
+<span class="fc" id="L182">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /**
+   * Implementation of a function that takes three arguments, returns a value, and requires
+   * FunctionProperties to complete.
+   *
+   * @param function {@link ExprValue} based Binary function.
+   * @param returnType return type.
+   * @param args1Type first argument type.
+   * @param args2Type second argument type.
+   * @param args3Type third argument type.
+   * @return Binary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;
+      implWithProperties(
+          SerializableQuadFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue&gt;
+              function,
+          ExprType returnType,
+          ExprType args1Type,
+          ExprType args2Type,
+          ExprType args3Type) {
+
+<span class="fc" id="L206">    return functionName -&gt; {</span>
+<span class="fc" id="L207">      FunctionSignature functionSignature =</span>
+<span class="fc" id="L208">          new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));</span>
+<span class="fc" id="L209">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L211">              new FunctionExpression(functionName, arguments) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L214">                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);</span>
+<span class="fc" id="L215">                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);</span>
+<span class="fc" id="L216">                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);</span>
+<span class="fc" id="L217">                  return function.apply(functionProperties, arg1, arg2, arg3);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L222">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L227">                  return String.format(</span>
+                      &quot;%s(%s)&quot;,
+                      functionName,
+<span class="fc" id="L230">                      arguments.stream().map(Object::toString).collect(Collectors.joining(&quot;, &quot;)));</span>
+                }
+              };
+<span class="fc" id="L233">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /**
+   * No Arg Function Implementation.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; impl(
+      SerializableNoArgFunction&lt;ExprValue&gt; function, ExprType returnType) {
+<span class="fc" id="L246">    return implWithProperties(fp -&gt; function.get(), returnType);</span>
+  }
+
+  /**
+   * Unary Function Implementation.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param argsType argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; impl(
+      SerializableFunction&lt;ExprValue, ExprValue&gt; function, ExprType returnType, ExprType argsType) {
+
+<span class="fc" id="L260">    return implWithProperties((fp, arg) -&gt; function.apply(arg), returnType, argsType);</span>
+  }
+
+  /**
+   * Binary Function Implementation.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
+   * @return Binary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; impl(
+      SerializableBiFunction&lt;ExprValue, ExprValue, ExprValue&gt; function,
+      ExprType returnType,
+      ExprType args1Type,
+      ExprType args2Type) {
+
+<span class="fc" id="L278">    return implWithProperties(</span>
+<span class="fc" id="L279">        (fp, arg1, arg2) -&gt; function.apply(arg1, arg2), returnType, args1Type, args2Type);</span>
+  }
+
+  /**
+   * Triple Function Implementation.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
+   * @return Binary Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; impl(
+      SerializableTriFunction&lt;ExprValue, ExprValue, ExprValue, ExprValue&gt; function,
+      ExprType returnType,
+      ExprType args1Type,
+      ExprType args2Type,
+      ExprType args3Type) {
+
+<span class="fc" id="L298">    return functionName -&gt; {</span>
+<span class="fc" id="L299">      FunctionSignature functionSignature =</span>
+<span class="fc" id="L300">          new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));</span>
+<span class="fc" id="L301">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L303">              new FunctionExpression(functionName, arguments) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L306">                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);</span>
+<span class="fc" id="L307">                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);</span>
+<span class="fc" id="L308">                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);</span>
+<span class="fc" id="L309">                  return function.apply(arg1, arg2, arg3);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L314">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L319">                  return String.format(</span>
+                      &quot;%s(%s, %s, %s)&quot;,
+                      functionName,
+<span class="fc" id="L322">                      arguments.get(0).toString(),</span>
+<span class="fc" id="L323">                      arguments.get(1).toString(),</span>
+<span class="fc" id="L324">                      arguments.get(2).toString());</span>
+                }
+              };
+<span class="fc" id="L327">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /**
+   * Quadruple Function Implementation.
+   *
+   * @param function {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
+   * @param args3Type argument type.
+   * @return Quadruple Function Implementation.
+   */
+  public static SerializableFunction&lt;FunctionName, Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt; impl(
+      SerializableQuadFunction&lt;ExprValue, ExprValue, ExprValue, ExprValue, ExprValue&gt; function,
+      ExprType returnType,
+      ExprType args1Type,
+      ExprType args2Type,
+      ExprType args3Type,
+      ExprType args4Type) {
+
+<span class="fc" id="L349">    return functionName -&gt; {</span>
+<span class="fc" id="L350">      FunctionSignature functionSignature =</span>
+          new FunctionSignature(
+<span class="fc" id="L352">              functionName, Arrays.asList(args1Type, args2Type, args3Type, args4Type));</span>
+<span class="fc" id="L353">      FunctionBuilder functionBuilder =</span>
+          (functionProperties, arguments) -&gt;
+<span class="fc" id="L355">              new FunctionExpression(functionName, arguments) {</span>
+                @Override
+                public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L358">                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);</span>
+<span class="fc" id="L359">                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);</span>
+<span class="fc" id="L360">                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);</span>
+<span class="fc" id="L361">                  ExprValue arg4 = arguments.get(3).valueOf(valueEnv);</span>
+<span class="fc" id="L362">                  return function.apply(arg1, arg2, arg3, arg4);</span>
+                }
+
+                @Override
+                public ExprType type() {
+<span class="fc" id="L367">                  return returnType;</span>
+                }
+
+                @Override
+                public String toString() {
+<span class="fc" id="L372">                  return String.format(</span>
+                      &quot;%s(%s, %s, %s, %s)&quot;,
+                      functionName,
+<span class="fc" id="L375">                      arguments.get(0).toString(),</span>
+<span class="fc" id="L376">                      arguments.get(1).toString(),</span>
+<span class="fc" id="L377">                      arguments.get(2).toString(),</span>
+<span class="fc" id="L378">                      arguments.get(3).toString());</span>
+                }
+              };
+<span class="fc" id="L381">      return Pair.of(functionSignature, functionBuilder);</span>
+    };
+  }
+
+  /** Wrapper the unary ExprValue function with default NULL and MISSING handling. */
+  public static SerializableFunction&lt;ExprValue, ExprValue&gt; nullMissingHandling(
+      SerializableFunction&lt;ExprValue, ExprValue&gt; function) {
+<span class="fc" id="L388">    return value -&gt; {</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">      if (value.isMissing()) {</span>
+<span class="fc" id="L390">        return ExprValueUtils.missingValue();</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">      } else if (value.isNull()) {</span>
+<span class="fc" id="L392">        return ExprValueUtils.nullValue();</span>
+      } else {
+<span class="fc" id="L394">        return function.apply(value);</span>
+      }
+    };
+  }
+
+  /** Wrapper the binary ExprValue function with default NULL and MISSING handling. */
+  public static SerializableBiFunction&lt;ExprValue, ExprValue, ExprValue&gt; nullMissingHandling(
+      SerializableBiFunction&lt;ExprValue, ExprValue, ExprValue&gt; function) {
+<span class="fc" id="L402">    return (v1, v2) -&gt; {</span>
+<span class="fc bfc" id="L403" title="All 4 branches covered.">      if (v1.isMissing() || v2.isMissing()) {</span>
+<span class="fc" id="L404">        return ExprValueUtils.missingValue();</span>
+<span class="fc bfc" id="L405" title="All 4 branches covered.">      } else if (v1.isNull() || v2.isNull()) {</span>
+<span class="fc" id="L406">        return ExprValueUtils.nullValue();</span>
+      } else {
+<span class="fc" id="L408">        return function.apply(v1, v2);</span>
+      }
+    };
+  }
+
+  /** Wrapper the triple ExprValue function with default NULL and MISSING handling. */
+  public SerializableTriFunction&lt;ExprValue, ExprValue, ExprValue, ExprValue&gt; nullMissingHandling(
+      SerializableTriFunction&lt;ExprValue, ExprValue, ExprValue, ExprValue&gt; function) {
+<span class="fc" id="L416">    return (v1, v2, v3) -&gt; {</span>
+<span class="fc bfc" id="L417" title="All 6 branches covered.">      if (v1.isMissing() || v2.isMissing() || v3.isMissing()) {</span>
+<span class="fc" id="L418">        return ExprValueUtils.missingValue();</span>
+<span class="fc bfc" id="L419" title="All 6 branches covered.">      } else if (v1.isNull() || v2.isNull() || v3.isNull()) {</span>
+<span class="fc" id="L420">        return ExprValueUtils.nullValue();</span>
+      } else {
+<span class="fc" id="L422">        return function.apply(v1, v2, v3);</span>
+      }
+    };
+  }
+
+  /**
+   * Wrapper the unary ExprValue function that is aware of FunctionProperties, with default NULL and
+   * MISSING handling.
+   */
+  public static SerializableBiFunction&lt;FunctionProperties, ExprValue, ExprValue&gt;
+      nullMissingHandlingWithProperties(
+          SerializableBiFunction&lt;FunctionProperties, ExprValue, ExprValue&gt; implementation) {
+<span class="fc" id="L434">    return (functionProperties, v1) -&gt; {</span>
+<span class="fc bfc" id="L435" title="All 2 branches covered.">      if (v1.isMissing()) {</span>
+<span class="fc" id="L436">        return ExprValueUtils.missingValue();</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">      } else if (v1.isNull()) {</span>
+<span class="fc" id="L438">        return ExprValueUtils.nullValue();</span>
+      } else {
+<span class="fc" id="L440">        return implementation.apply(functionProperties, v1);</span>
+      }
+    };
+  }
+
+  /**
+   * Wrapper for the ExprValue function that takes 2 arguments and is aware of FunctionProperties,
+   * with default NULL and MISSING handling.
+   */
+  public static SerializableTriFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue&gt;
+      nullMissingHandlingWithProperties(
+          SerializableTriFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue&gt;
+              implementation) {
+<span class="fc" id="L453">    return (functionProperties, v1, v2) -&gt; {</span>
+<span class="fc bfc" id="L454" title="All 4 branches covered.">      if (v1.isMissing() || v2.isMissing()) {</span>
+<span class="fc" id="L455">        return ExprValueUtils.missingValue();</span>
+<span class="fc bfc" id="L456" title="All 4 branches covered.">      } else if (v1.isNull() || v2.isNull()) {</span>
+<span class="fc" id="L457">        return ExprValueUtils.nullValue();</span>
+      } else {
+<span class="fc" id="L459">        return implementation.apply(functionProperties, v1, v2);</span>
+      }
+    };
+  }
+
+  /**
+   * Wrapper for the ExprValue function that takes 3 arguments and is aware of FunctionProperties,
+   * with default NULL and MISSING handling.
+   */
+  public static SerializableQuadFunction&lt;
+          FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue&gt;
+      nullMissingHandlingWithProperties(
+          SerializableQuadFunction&lt;FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue&gt;
+              implementation) {
+<span class="fc" id="L473">    return (functionProperties, v1, v2, v3) -&gt; {</span>
+<span class="fc bfc" id="L474" title="All 6 branches covered.">      if (v1.isMissing() || v2.isMissing() || v3.isMissing()) {</span>
+<span class="fc" id="L475">        return ExprValueUtils.missingValue();</span>
+      }
+
+<span class="fc bfc" id="L478" title="All 6 branches covered.">      if (v1.isNull() || v2.isNull() || v3.isNull()) {</span>
+<span class="fc" id="L479">        return ExprValueUtils.nullValue();</span>
+      }
+
+<span class="fc" id="L482">      return implementation.apply(functionProperties, v1, v2, v3);</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

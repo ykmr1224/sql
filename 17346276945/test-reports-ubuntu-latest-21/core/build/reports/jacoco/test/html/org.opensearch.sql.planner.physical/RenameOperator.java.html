@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RenameOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">RenameOperator.java</span></div><h1>RenameOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/**
+ * Rename the binding name in {@link BindingTuple}. The mapping maintain the relation between source
+ * and target. it means BindingTuple.resolve(target) = BindingTuple.resolve(source).
+ */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+public class RenameOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+  @Getter private final Map&lt;ReferenceExpression, ReferenceExpression&gt; mapping;
+
+  /**
+   * Todo. This is the temporary solution that add the mapping between string and ref. because when
+   * rename the field from input, there we can only get the string field.
+   */
+  @ToString.Exclude @EqualsAndHashCode.Exclude
+  private final Map&lt;String, ReferenceExpression&gt; nameMapping;
+
+  /** Constructor of RenameOperator. */
+<span class="fc" id="L43">  public RenameOperator(PhysicalPlan input, Map&lt;ReferenceExpression, ReferenceExpression&gt; mapping) {</span>
+<span class="fc" id="L44">    this.input = input;</span>
+<span class="fc" id="L45">    this.mapping = mapping;</span>
+<span class="fc" id="L46">    this.nameMapping =</span>
+<span class="fc" id="L47">        mapping.entrySet().stream()</span>
+<span class="fc" id="L48">            .collect(</span>
+<span class="fc" id="L49">                Collectors.toMap(entry -&gt; entry.getKey().getAttr(), entry -&gt; entry.getValue()));</span>
+<span class="fc" id="L50">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L54">    return visitor.visitRename(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L59">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc" id="L64">    return input.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L69">    ExprValue inputValue = input.next();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (STRUCT == inputValue.type()) {</span>
+<span class="fc" id="L71">      Map&lt;String, ExprValue&gt; tupleValue = ExprValueUtils.getTupleValue(inputValue);</span>
+<span class="fc" id="L72">      ImmutableMap.Builder&lt;String, ExprValue&gt; mapBuilder = new Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">      for (String bindName : tupleValue.keySet()) {</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (nameMapping.containsKey(bindName)) {</span>
+<span class="fc" id="L75">          mapBuilder.put(nameMapping.get(bindName).getAttr(), tupleValue.get(bindName));</span>
+        } else {
+<span class="fc" id="L77">          mapBuilder.put(bindName, tupleValue.get(bindName));</span>
+        }
+<span class="fc" id="L79">      }</span>
+<span class="fc" id="L80">      return ExprTupleValue.fromExprValueMap(mapBuilder.build());</span>
+    } else {
+<span class="fc" id="L82">      return inputValue;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

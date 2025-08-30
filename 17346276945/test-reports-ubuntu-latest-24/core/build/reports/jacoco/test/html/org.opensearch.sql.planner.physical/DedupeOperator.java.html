@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DedupeOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">DedupeOperator.java</span></div><h1>DedupeOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/**
+ * Dedupe operator. Dedupe the input {@link ExprValue} by using the {@link
+ * DedupeOperator#dedupeList} The result order follow the input order.
+ */
+@Getter
+@EqualsAndHashCode(callSuper = false)
+public class DedupeOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+  @Getter private final List&lt;Expression&gt; dedupeList;
+  @Getter private final Integer allowedDuplication;
+  @Getter private final Boolean keepEmpty;
+  @Getter private final Boolean consecutive;
+
+  @EqualsAndHashCode.Exclude private final Deduper&lt;List&lt;ExprValue&gt;&gt; deduper;
+  @EqualsAndHashCode.Exclude private ExprValue next;
+
+<span class="fc" id="L39">  private static final Integer ALL_ONE_DUPLICATION = 1;</span>
+<span class="fc" id="L40">  private static final Boolean IGNORE_EMPTY = false;</span>
+<span class="fc" id="L41">  private static final Boolean NON_CONSECUTIVE = false;</span>
+<span class="fc bfc" id="L42" title="All 4 branches covered.">  private static final Predicate&lt;ExprValue&gt; NULL_OR_MISSING = v -&gt; v.isNull() || v.isMissing();</span>
+<span class="fc" id="L43">  private static final Integer SEEN_FIRST_TIME = 1;</span>
+
+  @NonNull
+  public DedupeOperator(PhysicalPlan input, List&lt;Expression&gt; dedupeList) {
+<span class="fc" id="L47">    this(input, dedupeList, ALL_ONE_DUPLICATION, IGNORE_EMPTY, NON_CONSECUTIVE);</span>
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * Dedup Constructor.
+   *
+   * @param input input {@link PhysicalPlan}
+   * @param dedupeList list of dedupe {@link Expression}
+   * @param allowedDuplication max allowed duplication
+   * @param keepEmpty keep empty
+   * @param consecutive consecutive mode
+   */
+  @NonNull
+  public DedupeOperator(
+      PhysicalPlan input,
+      List&lt;Expression&gt; dedupeList,
+      Integer allowedDuplication,
+      Boolean keepEmpty,
+<span class="fc" id="L65">      Boolean consecutive) {</span>
+<span class="fc" id="L66">    this.input = input;</span>
+<span class="fc" id="L67">    this.dedupeList = dedupeList;</span>
+<span class="fc" id="L68">    this.allowedDuplication = allowedDuplication;</span>
+<span class="fc" id="L69">    this.keepEmpty = keepEmpty;</span>
+<span class="fc" id="L70">    this.consecutive = consecutive;</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    this.deduper = this.consecutive ? Deduper.consecutiveDeduper() : Deduper.historicalDeduper();</span>
+<span class="fc" id="L72">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L76">    return visitor.visitDedupe(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L81">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    while (input.hasNext()) {</span>
+<span class="fc" id="L87">      ExprValue next = input.next();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">      if (keep(next)) {</span>
+<span class="fc" id="L89">        this.next = next;</span>
+<span class="fc" id="L90">        return true;</span>
+      }
+<span class="fc" id="L92">    }</span>
+<span class="fc" id="L93">    return false;</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L98">    return this.next;</span>
+  }
+
+  /**
+   * Test the {@link ExprValue} should be keep or ignore
+   *
+   * &lt;p&gt;If any value evaluted by {@link DedupeOperator#dedupeList} is NULL or MISSING, then the *
+   * return value is decided by keepEmpty option, default value is ignore.
+   *
+   * @param value {@link ExprValue}.
+   * @return true: keep, false: ignore
+   */
+  public boolean keep(ExprValue value) {
+<span class="fc" id="L111">    BindingTuple bindingTuple = value.bindingTuples();</span>
+<span class="fc" id="L112">    ImmutableList.Builder&lt;ExprValue&gt; dedupeKeyBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    for (Expression expression : dedupeList) {</span>
+<span class="fc" id="L114">      ExprValue exprValue = expression.valueOf(bindingTuple);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">      if (NULL_OR_MISSING.test(exprValue)) {</span>
+<span class="fc" id="L116">        return keepEmpty;</span>
+      }
+<span class="fc" id="L118">      dedupeKeyBuilder.add(exprValue);</span>
+<span class="fc" id="L119">    }</span>
+<span class="fc" id="L120">    List&lt;ExprValue&gt; dedupeKey = dedupeKeyBuilder.build();</span>
+<span class="fc" id="L121">    int seenTimes = deduper.seenTimes(dedupeKey);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    return seenTimes &lt;= allowedDuplication;</span>
+  }
+
+  /**
+   * Return how many times the dedupeKey has been seen before. The side effect is the seen times
+   * will add 1 times after calling this function.
+   *
+   * @param &lt;K&gt; dedupe key
+   */
+  @RequiredArgsConstructor
+  static class Deduper&lt;K&gt; {
+    private final BiFunction&lt;Map&lt;K, Integer&gt;, K, Integer&gt; seenFirstTime;
+    private final Map&lt;K, Integer&gt; seenMap = new ConcurrentHashMap&lt;&gt;();
+
+    /** The Historical Deduper monitor the duplicated element with all the seen value. */
+    public static &lt;K&gt; Deduper&lt;K&gt; historicalDeduper() {
+<span class="fc" id="L138">      return new Deduper&lt;&gt;(</span>
+          (map, key) -&gt; {
+<span class="fc" id="L140">            map.put(key, SEEN_FIRST_TIME);</span>
+<span class="fc" id="L141">            return SEEN_FIRST_TIME;</span>
+          });
+    }
+
+    /**
+     * The Consecutive Deduper monitor the duplicated element with consecutive seen value. It means
+     * only the consecutive duplicated value will be counted.
+     */
+    public static &lt;K&gt; Deduper&lt;K&gt; consecutiveDeduper() {
+<span class="fc" id="L150">      return new Deduper&lt;&gt;(</span>
+          (map, key) -&gt; {
+<span class="fc" id="L152">            map.clear();</span>
+<span class="fc" id="L153">            map.put(key, SEEN_FIRST_TIME);</span>
+<span class="fc" id="L154">            return SEEN_FIRST_TIME;</span>
+          });
+    }
+
+    public int seenTimes(K dedupeKey) {
+<span class="fc bfc" id="L159" title="All 2 branches covered.">      if (seenMap.containsKey(dedupeKey)) {</span>
+<span class="fc" id="L160">        return seenMap.computeIfPresent(dedupeKey, (k, v) -&gt; v + 1);</span>
+      } else {
+<span class="fc" id="L162">        return seenFirstTime.apply(seenMap, dedupeKey);</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

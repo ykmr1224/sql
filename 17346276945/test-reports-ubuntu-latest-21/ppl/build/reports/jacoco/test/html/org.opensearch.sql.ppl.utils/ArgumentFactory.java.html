@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ArgumentFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ppl</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.ppl.utils</a> &gt; <span class="el_source">ArgumentFactory.java</span></div><h1>ArgumentFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.utils;
+
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+
+/** Util class to get all arguments as a list from the PPL command. */
+<span class="fc" id="L35">public class ArgumentFactory {</span>
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx FieldsCommandContext instance
+   * @return the list of arguments fetched from the fields command
+   */
+  public static List&lt;Argument&gt; getArgumentList(FieldsCommandContext ctx) {
+<span class="fc" id="L44">    return Collections.singletonList(</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        ctx.fieldsCommandBody().MINUS() != null</span>
+<span class="fc" id="L46">            ? new Argument(&quot;exclude&quot;, new Literal(true, DataType.BOOLEAN))</span>
+<span class="fc" id="L47">            : new Argument(&quot;exclude&quot;, new Literal(false, DataType.BOOLEAN)));</span>
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx StatsCommandContext instance
+   * @return the list of arguments fetched from the stats command
+   */
+  public static List&lt;Argument&gt; getArgumentList(StatsCommandContext ctx) {
+<span class="fc" id="L57">    return Arrays.asList(</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        ctx.partitions != null</span>
+<span class="fc" id="L59">            ? new Argument(&quot;partitions&quot;, getArgumentValue(ctx.partitions))</span>
+<span class="fc" id="L60">            : new Argument(&quot;partitions&quot;, new Literal(1, DataType.INTEGER)),</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        ctx.allnum != null</span>
+<span class="fc" id="L62">            ? new Argument(&quot;allnum&quot;, getArgumentValue(ctx.allnum))</span>
+<span class="fc" id="L63">            : new Argument(&quot;allnum&quot;, new Literal(false, DataType.BOOLEAN)),</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        ctx.delim != null</span>
+<span class="fc" id="L65">            ? new Argument(&quot;delim&quot;, getArgumentValue(ctx.delim))</span>
+<span class="fc" id="L66">            : new Argument(&quot;delim&quot;, new Literal(&quot; &quot;, DataType.STRING)),</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        ctx.dedupsplit != null</span>
+<span class="fc" id="L68">            ? new Argument(&quot;dedupsplit&quot;, getArgumentValue(ctx.dedupsplit))</span>
+<span class="fc" id="L69">            : new Argument(&quot;dedupsplit&quot;, new Literal(false, DataType.BOOLEAN)));</span>
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx DedupCommandContext instance
+   * @return the list of arguments fetched from the dedup command
+   */
+  public static List&lt;Argument&gt; getArgumentList(DedupCommandContext ctx) {
+<span class="fc" id="L79">    return Arrays.asList(</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        ctx.number != null</span>
+<span class="fc" id="L81">            ? new Argument(&quot;number&quot;, getArgumentValue(ctx.number))</span>
+<span class="fc" id="L82">            : new Argument(&quot;number&quot;, new Literal(1, DataType.INTEGER)),</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        ctx.keepempty != null</span>
+<span class="fc" id="L84">            ? new Argument(&quot;keepempty&quot;, getArgumentValue(ctx.keepempty))</span>
+<span class="fc" id="L85">            : new Argument(&quot;keepempty&quot;, new Literal(false, DataType.BOOLEAN)),</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        ctx.consecutive != null</span>
+<span class="fc" id="L87">            ? new Argument(&quot;consecutive&quot;, getArgumentValue(ctx.consecutive))</span>
+<span class="fc" id="L88">            : new Argument(&quot;consecutive&quot;, new Literal(false, DataType.BOOLEAN)));</span>
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx SortFieldContext instance
+   * @return the list of arguments fetched from the sort field in sort command
+   */
+  public static List&lt;Argument&gt; getArgumentList(SortFieldContext ctx) {
+<span class="fc" id="L98">    return Arrays.asList(</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        ctx.MINUS() != null</span>
+<span class="fc" id="L100">            ? new Argument(&quot;asc&quot;, new Literal(false, DataType.BOOLEAN))</span>
+<span class="fc" id="L101">            : new Argument(&quot;asc&quot;, new Literal(true, DataType.BOOLEAN)),</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        ctx.sortFieldExpression().AUTO() != null</span>
+<span class="fc" id="L103">            ? new Argument(&quot;type&quot;, new Literal(&quot;auto&quot;, DataType.STRING))</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">            : ctx.sortFieldExpression().IP() != null</span>
+<span class="fc" id="L105">                ? new Argument(&quot;type&quot;, new Literal(&quot;ip&quot;, DataType.STRING))</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">                : ctx.sortFieldExpression().NUM() != null</span>
+<span class="fc" id="L107">                    ? new Argument(&quot;type&quot;, new Literal(&quot;num&quot;, DataType.STRING))</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                    : ctx.sortFieldExpression().STR() != null</span>
+<span class="fc" id="L109">                        ? new Argument(&quot;type&quot;, new Literal(&quot;str&quot;, DataType.STRING))</span>
+<span class="fc" id="L110">                        : new Argument(&quot;type&quot;, new Literal(null, DataType.NULL)));</span>
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx TopCommandContext instance
+   * @return the list of arguments fetched from the top command
+   */
+  public static List&lt;Argument&gt; getArgumentList(TopCommandContext ctx) {
+<span class="fc" id="L120">    return Arrays.asList(</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        ctx.number != null</span>
+<span class="fc" id="L122">            ? new Argument(&quot;noOfResults&quot;, getArgumentValue(ctx.number))</span>
+<span class="fc" id="L123">            : new Argument(&quot;noOfResults&quot;, new Literal(10, DataType.INTEGER)),</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        ctx.countfield != null</span>
+<span class="nc" id="L125">            ? new Argument(&quot;countField&quot;, getArgumentValue(ctx.countfield))</span>
+<span class="fc" id="L126">            : new Argument(&quot;countField&quot;, new Literal(&quot;count&quot;, DataType.STRING)),</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        ctx.showcount != null</span>
+<span class="nc" id="L128">            ? new Argument(&quot;showCount&quot;, getArgumentValue(ctx.showcount))</span>
+<span class="fc" id="L129">            : new Argument(&quot;showCount&quot;, new Literal(true, DataType.BOOLEAN)));</span>
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx RareCommandContext instance
+   * @return the list of argument with default number of results for the rare command
+   */
+  public static List&lt;Argument&gt; getArgumentList(RareCommandContext ctx) {
+<span class="fc" id="L139">    return Arrays.asList(</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">        ctx.number != null</span>
+<span class="nc" id="L141">            ? new Argument(&quot;noOfResults&quot;, getArgumentValue(ctx.number))</span>
+<span class="fc" id="L142">            : new Argument(&quot;noOfResults&quot;, new Literal(10, DataType.INTEGER)),</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        ctx.countfield != null</span>
+<span class="fc" id="L144">            ? new Argument(&quot;countField&quot;, getArgumentValue(ctx.countfield))</span>
+<span class="fc" id="L145">            : new Argument(&quot;countField&quot;, new Literal(&quot;count&quot;, DataType.STRING)),</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        ctx.showcount != null</span>
+<span class="fc" id="L147">            ? new Argument(&quot;showCount&quot;, getArgumentValue(ctx.showcount))</span>
+<span class="fc" id="L148">            : new Argument(&quot;showCount&quot;, new Literal(true, DataType.BOOLEAN)));</span>
+  }
+
+  /**
+   * parse argument value into Literal.
+   *
+   * @param ctx ParserRuleContext instance
+   * @return Literal
+   */
+  private static Literal getArgumentValue(ParserRuleContext ctx) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    return ctx instanceof IntegerLiteralContext</span>
+<span class="fc" id="L159">        ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        : ctx instanceof BooleanLiteralContext</span>
+<span class="fc" id="L161">            ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)</span>
+<span class="fc" id="L162">            : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParsingContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser.context</a> &gt; <span class="el_source">ParsingContext.java</span></div><h1>ParsingContext.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser.context;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+
+/**
+ * SQL parsing context that maintains stack of query specifications for nested queries. Currently
+ * this is just a thin wrapper by a stack.
+ */
+<span class="fc" id="L15">public class ParsingContext {</span>
+
+  /**
+   * Use stack rather than linked query specification because there is no need to look up through
+   * the stack.
+   */
+<span class="fc" id="L21">  private final Deque&lt;QuerySpecification&gt; contexts = new ArrayDeque&lt;&gt;();</span>
+
+  public void push() {
+<span class="fc" id="L24">    contexts.push(new QuerySpecification());</span>
+<span class="fc" id="L25">  }</span>
+
+  public QuerySpecification peek() {
+<span class="fc" id="L28">    return contexts.peek();</span>
+  }
+
+  /**
+   * Pop up query context.
+   *
+   * @return query context after popup.
+   */
+  public QuerySpecification pop() {
+<span class="fc" id="L37">    return contexts.pop();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

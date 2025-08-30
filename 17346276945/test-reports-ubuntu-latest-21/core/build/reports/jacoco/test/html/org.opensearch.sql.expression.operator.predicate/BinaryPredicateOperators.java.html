@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinaryPredicateOperators.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.operator.predicate</a> &gt; <span class="el_source">BinaryPredicateOperators.java</span></div><h1>BinaryPredicateOperators.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.operator.predicate;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
+import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.utils.OperatorUtils;
+
+/**
+ * The definition of binary predicate function&lt;br&gt;
+ * and, Accepts two Boolean values and produces a Boolean.&lt;br&gt;
+ * or, Accepts two Boolean values and produces a Boolean.&lt;br&gt;
+ * xor, Accepts two Boolean values and produces a Boolean.&lt;br&gt;
+ * equalTo, Compare the left expression and right expression and produces a Boolean.
+ */
+@UtilityClass
+public class BinaryPredicateOperators {
+  /**
+   * Register Binary Predicate Function.
+   *
+   * @param repository {@link BuiltinFunctionRepository}.
+   */
+  public static void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L46">    repository.register(and());</span>
+<span class="fc" id="L47">    repository.register(or());</span>
+<span class="fc" id="L48">    repository.register(xor());</span>
+<span class="fc" id="L49">    repository.register(equal());</span>
+<span class="fc" id="L50">    repository.register(notEqual());</span>
+<span class="fc" id="L51">    repository.register(less());</span>
+<span class="fc" id="L52">    repository.register(lte());</span>
+<span class="fc" id="L53">    repository.register(greater());</span>
+<span class="fc" id="L54">    repository.register(gte());</span>
+<span class="fc" id="L55">    repository.register(like());</span>
+<span class="fc" id="L56">    repository.register(notLike());</span>
+<span class="fc" id="L57">    repository.register(regexp());</span>
+<span class="fc" id="L58">  }</span>
+
+  /**
+   * The and logic.
+   *
+   * &lt;table&gt;
+   *   &lt;tr&gt;
+   *     &lt;th&gt;A&lt;/th&gt;
+   *     &lt;th&gt;B&lt;/th&gt;
+   *     &lt;th&gt;A AND B&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;NULL&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+<span class="fc" id="L121">  private static final Table&lt;ExprValue, ExprValue, ExprValue&gt; andTable =</span>
+      new ImmutableTable.Builder&lt;ExprValue, ExprValue, ExprValue&gt;()
+<span class="fc" id="L123">          .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)</span>
+<span class="fc" id="L124">          .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_FALSE)</span>
+<span class="fc" id="L125">          .put(LITERAL_TRUE, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L126">          .put(LITERAL_TRUE, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L127">          .put(LITERAL_FALSE, LITERAL_FALSE, LITERAL_FALSE)</span>
+<span class="fc" id="L128">          .put(LITERAL_FALSE, LITERAL_NULL, LITERAL_FALSE)</span>
+<span class="fc" id="L129">          .put(LITERAL_FALSE, LITERAL_MISSING, LITERAL_FALSE)</span>
+<span class="fc" id="L130">          .put(LITERAL_NULL, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L131">          .put(LITERAL_NULL, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L132">          .put(LITERAL_MISSING, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L133">          .build();</span>
+
+  /**
+   * The or logic.
+   *
+   * &lt;table&gt;
+   *   &lt;tr&gt;
+   *     &lt;th&gt;A&lt;/th&gt;
+   *     &lt;th&gt;B&lt;/th&gt;
+   *     &lt;th&gt;A OR B&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;NULL&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+<span class="fc" id="L196">  private static final Table&lt;ExprValue, ExprValue, ExprValue&gt; orTable =</span>
+      new ImmutableTable.Builder&lt;ExprValue, ExprValue, ExprValue&gt;()
+<span class="fc" id="L198">          .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)</span>
+<span class="fc" id="L199">          .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)</span>
+<span class="fc" id="L200">          .put(LITERAL_TRUE, LITERAL_NULL, LITERAL_TRUE)</span>
+<span class="fc" id="L201">          .put(LITERAL_TRUE, LITERAL_MISSING, LITERAL_TRUE)</span>
+<span class="fc" id="L202">          .put(LITERAL_FALSE, LITERAL_FALSE, LITERAL_FALSE)</span>
+<span class="fc" id="L203">          .put(LITERAL_FALSE, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L204">          .put(LITERAL_FALSE, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L205">          .put(LITERAL_NULL, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L206">          .put(LITERAL_NULL, LITERAL_MISSING, LITERAL_NULL)</span>
+<span class="fc" id="L207">          .put(LITERAL_MISSING, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L208">          .build();</span>
+
+  /**
+   * The xor logic.
+   *
+   * &lt;table&gt;
+   *   &lt;tr&gt;
+   *     &lt;th&gt;A&lt;/th&gt;
+   *     &lt;th&gt;B&lt;/th&gt;
+   *     &lt;th&gt;A XOR B&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;TRUE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;FALSE&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *     &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *     &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;NULL&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;NULL&lt;/td&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *       &lt;td&gt;MISSING&lt;/td&gt;
+   *   &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+<span class="fc" id="L271">  private static final Table&lt;ExprValue, ExprValue, ExprValue&gt; xorTable =</span>
+      new ImmutableTable.Builder&lt;ExprValue, ExprValue, ExprValue&gt;()
+<span class="fc" id="L273">          .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_FALSE)</span>
+<span class="fc" id="L274">          .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)</span>
+<span class="fc" id="L275">          .put(LITERAL_TRUE, LITERAL_NULL, LITERAL_TRUE)</span>
+<span class="fc" id="L276">          .put(LITERAL_TRUE, LITERAL_MISSING, LITERAL_TRUE)</span>
+<span class="fc" id="L277">          .put(LITERAL_FALSE, LITERAL_FALSE, LITERAL_FALSE)</span>
+<span class="fc" id="L278">          .put(LITERAL_FALSE, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L279">          .put(LITERAL_FALSE, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L280">          .put(LITERAL_NULL, LITERAL_NULL, LITERAL_NULL)</span>
+<span class="fc" id="L281">          .put(LITERAL_NULL, LITERAL_MISSING, LITERAL_NULL)</span>
+<span class="fc" id="L282">          .put(LITERAL_MISSING, LITERAL_MISSING, LITERAL_MISSING)</span>
+<span class="fc" id="L283">          .build();</span>
+
+  private static DefaultFunctionResolver and() {
+<span class="fc" id="L286">    return define(</span>
+<span class="fc" id="L287">        BuiltinFunctionName.AND.getName(),</span>
+<span class="fc" id="L288">        impl((v1, v2) -&gt; lookupTableFunction(v1, v2, andTable), BOOLEAN, BOOLEAN, BOOLEAN));</span>
+  }
+
+  private static DefaultFunctionResolver or() {
+<span class="fc" id="L292">    return define(</span>
+<span class="fc" id="L293">        BuiltinFunctionName.OR.getName(),</span>
+<span class="fc" id="L294">        impl((v1, v2) -&gt; lookupTableFunction(v1, v2, orTable), BOOLEAN, BOOLEAN, BOOLEAN));</span>
+  }
+
+  private static DefaultFunctionResolver xor() {
+<span class="fc" id="L298">    return define(</span>
+<span class="fc" id="L299">        BuiltinFunctionName.XOR.getName(),</span>
+<span class="fc" id="L300">        impl((v1, v2) -&gt; lookupTableFunction(v1, v2, xorTable), BOOLEAN, BOOLEAN, BOOLEAN));</span>
+  }
+
+  private static DefaultFunctionResolver equal() {
+<span class="fc" id="L304">    return define(</span>
+<span class="fc" id="L305">        BuiltinFunctionName.EQUAL.getName(),</span>
+<span class="fc" id="L306">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L307">            .map(</span>
+                type -&gt;
+<span class="fc" id="L309">                    impl(</span>
+<span class="fc" id="L310">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(v1.equals(v2))),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L314">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver notEqual() {
+<span class="fc" id="L318">    return define(</span>
+<span class="fc" id="L319">        BuiltinFunctionName.NOTEQUAL.getName(),</span>
+<span class="fc" id="L320">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L321">            .map(</span>
+                type -&gt;
+<span class="fc" id="L323">                    impl(</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(!v1.equals(v2))),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L328">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver less() {
+<span class="fc" id="L332">    return define(</span>
+<span class="fc" id="L333">        BuiltinFunctionName.LESS.getName(),</span>
+<span class="fc" id="L334">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L335">            .map(</span>
+                type -&gt;
+<span class="fc" id="L337">                    impl(</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(v1.compareTo(v2) &lt; 0)),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L342">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver lte() {
+<span class="fc" id="L346">    return define(</span>
+<span class="fc" id="L347">        BuiltinFunctionName.LTE.getName(),</span>
+<span class="fc" id="L348">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L349">            .map(</span>
+                type -&gt;
+<span class="fc" id="L351">                    impl(</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(v1.compareTo(v2) &lt;= 0)),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L356">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver greater() {
+<span class="fc" id="L360">    return define(</span>
+<span class="fc" id="L361">        BuiltinFunctionName.GREATER.getName(),</span>
+<span class="fc" id="L362">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L363">            .map(</span>
+                type -&gt;
+<span class="fc" id="L365">                    impl(</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(v1.compareTo(v2) &gt; 0)),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L370">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver gte() {
+<span class="fc" id="L374">    return define(</span>
+<span class="fc" id="L375">        BuiltinFunctionName.GTE.getName(),</span>
+<span class="fc" id="L376">        ExprCoreType.coreTypes().stream()</span>
+<span class="fc" id="L377">            .map(</span>
+                type -&gt;
+<span class="fc" id="L379">                    impl(</span>
+<span class="fc bfc" id="L380" title="All 2 branches covered.">                        nullMissingHandling((v1, v2) -&gt; ExprBooleanValue.of(v1.compareTo(v2) &gt;= 0)),</span>
+                        BOOLEAN,
+                        type,
+                        type))
+<span class="fc" id="L384">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver like() {
+<span class="fc" id="L388">    return define(</span>
+<span class="fc" id="L389">        BuiltinFunctionName.LIKE.getName(),</span>
+<span class="fc" id="L390">        impl(nullMissingHandling(OperatorUtils::matches), BOOLEAN, STRING, STRING));</span>
+  }
+
+  private static DefaultFunctionResolver regexp() {
+<span class="fc" id="L394">    return define(</span>
+<span class="fc" id="L395">        BuiltinFunctionName.REGEXP.getName(),</span>
+<span class="fc" id="L396">        impl(nullMissingHandling(OperatorUtils::matchesRegexp), INTEGER, STRING, STRING));</span>
+  }
+
+  private static DefaultFunctionResolver notLike() {
+<span class="fc" id="L400">    return define(</span>
+<span class="fc" id="L401">        BuiltinFunctionName.NOT_LIKE.getName(),</span>
+<span class="fc" id="L402">        impl(</span>
+<span class="fc" id="L403">            nullMissingHandling(</span>
+<span class="fc" id="L404">                (v1, v2) -&gt; UnaryPredicateOperators.not(OperatorUtils.matches(v1, v2))),</span>
+            BOOLEAN,
+            STRING,
+            STRING));
+  }
+
+  private static ExprValue lookupTableFunction(
+      ExprValue arg1, ExprValue arg2, Table&lt;ExprValue, ExprValue, ExprValue&gt; table) {
+<span class="fc bfc" id="L412" title="All 2 branches covered.">    if (table.contains(arg1, arg2)) {</span>
+<span class="fc" id="L413">      return table.get(arg1, arg2);</span>
+    } else {
+<span class="fc" id="L415">      return table.get(arg2, arg1);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

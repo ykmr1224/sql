@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.sql.PaginationBlackboxIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.sql.PaginationBlackboxIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.sql.html">org.opensearch.sql.sql</a> &gt; PaginationBlackboxIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">12</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.287s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">test_pagination_blackbox {index = ACCOUNT, page_size = 1000}</td>
+<td class="success">0.062s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = ACCOUNT, page_size = 100}</td>
+<td class="success">0.071s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = ACCOUNT, page_size = 10}</td>
+<td class="success">0.244s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = ACCOUNT, page_size = 5}</td>
+<td class="success">0.623s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BANK, page_size = 1000}</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BANK, page_size = 100}</td>
+<td class="success">0.007s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BANK, page_size = 10}</td>
+<td class="success">0.007s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BANK, page_size = 5}</td>
+<td class="success">0.052s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BEER, page_size = 1000}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BEER, page_size = 100}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BEER, page_size = 10}</td>
+<td class="success">0.142s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">test_pagination_blackbox {index = BEER, page_size = 5}</td>
+<td class="success">0.044s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T12:34:29,084][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 5] before test
+[2025-08-30T12:34:29,086][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] initializing REST clients against [http://[::1]:39731, http://127.0.0.1:36859]
+[2025-08-30T12:34:29,223][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || first response
+[2025-08-30T12:34:29,231][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 1/201
+[2025-08-30T12:34:29,235][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 2/201
+[2025-08-30T12:34:29,238][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 3/201
+[2025-08-30T12:34:29,241][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 4/201
+[2025-08-30T12:34:29,244][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 5/201
+[2025-08-30T12:34:29,246][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 6/201
+[2025-08-30T12:34:29,249][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 7/201
+[2025-08-30T12:34:29,252][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 8/201
+[2025-08-30T12:34:29,255][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 9/201
+[2025-08-30T12:34:29,257][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 10/201
+[2025-08-30T12:34:29,260][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 11/201
+[2025-08-30T12:34:29,263][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 12/201
+[2025-08-30T12:34:29,265][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 13/201
+[2025-08-30T12:34:29,268][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 14/201
+[2025-08-30T12:34:29,271][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 15/201
+[2025-08-30T12:34:29,274][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 16/201
+[2025-08-30T12:34:29,276][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 17/201
+[2025-08-30T12:34:29,279][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 18/201
+[2025-08-30T12:34:29,282][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 19/201
+[2025-08-30T12:34:29,284][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 20/201
+[2025-08-30T12:34:29,287][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 21/201
+[2025-08-30T12:34:29,289][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 22/201
+[2025-08-30T12:34:29,292][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 23/201
+[2025-08-30T12:34:29,294][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 24/201
+[2025-08-30T12:34:29,297][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 25/201
+[2025-08-30T12:34:29,299][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 26/201
+[2025-08-30T12:34:29,302][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 27/201
+[2025-08-30T12:34:29,304][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 28/201
+[2025-08-30T12:34:29,307][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 29/201
+[2025-08-30T12:34:29,309][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 30/201
+[2025-08-30T12:34:29,312][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 31/201
+[2025-08-30T12:34:29,314][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 32/201
+[2025-08-30T12:34:29,317][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 33/201
+[2025-08-30T12:34:29,319][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 34/201
+[2025-08-30T12:34:29,322][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 35/201
+[2025-08-30T12:34:29,325][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 36/201
+[2025-08-30T12:34:29,327][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 37/201
+[2025-08-30T12:34:29,330][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 38/201
+[2025-08-30T12:34:29,333][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 39/201
+[2025-08-30T12:34:29,335][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 40/201
+[2025-08-30T12:34:29,338][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 41/201
+[2025-08-30T12:34:29,340][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 42/201
+[2025-08-30T12:34:29,343][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 43/201
+[2025-08-30T12:34:29,346][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 44/201
+[2025-08-30T12:34:29,349][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 45/201
+[2025-08-30T12:34:29,351][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 46/201
+[2025-08-30T12:34:29,354][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 47/201
+[2025-08-30T12:34:29,356][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 48/201
+[2025-08-30T12:34:29,359][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 49/201
+[2025-08-30T12:34:29,362][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 50/201
+[2025-08-30T12:34:29,364][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 51/201
+[2025-08-30T12:34:29,367][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 52/201
+[2025-08-30T12:34:29,369][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 53/201
+[2025-08-30T12:34:29,372][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 54/201
+[2025-08-30T12:34:29,374][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 55/201
+[2025-08-30T12:34:29,377][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 56/201
+[2025-08-30T12:34:29,380][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 57/201
+[2025-08-30T12:34:29,382][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 58/201
+[2025-08-30T12:34:29,385][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 59/201
+[2025-08-30T12:34:29,387][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 60/201
+[2025-08-30T12:34:29,411][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 61/201
+[2025-08-30T12:34:29,418][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 62/201
+[2025-08-30T12:34:29,421][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 63/201
+[2025-08-30T12:34:29,423][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 64/201
+[2025-08-30T12:34:29,426][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 65/201
+[2025-08-30T12:34:29,428][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 66/201
+[2025-08-30T12:34:29,431][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 67/201
+[2025-08-30T12:34:29,433][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 68/201
+[2025-08-30T12:34:29,436][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 69/201
+[2025-08-30T12:34:29,438][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 70/201
+[2025-08-30T12:34:29,441][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 71/201
+[2025-08-30T12:34:29,443][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 72/201
+[2025-08-30T12:34:29,446][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 73/201
+[2025-08-30T12:34:29,448][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 74/201
+[2025-08-30T12:34:29,450][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 75/201
+[2025-08-30T12:34:29,452][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 76/201
+[2025-08-30T12:34:29,455][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 77/201
+[2025-08-30T12:34:29,461][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 78/201
+[2025-08-30T12:34:29,463][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 79/201
+[2025-08-30T12:34:29,466][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 80/201
+[2025-08-30T12:34:29,468][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 81/201
+[2025-08-30T12:34:29,471][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 82/201
+[2025-08-30T12:34:29,473][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 83/201
+[2025-08-30T12:34:29,475][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 84/201
+[2025-08-30T12:34:29,477][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 85/201
+[2025-08-30T12:34:29,479][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 86/201
+[2025-08-30T12:34:29,480][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 87/201
+[2025-08-30T12:34:29,482][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 88/201
+[2025-08-30T12:34:29,484][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 89/201
+[2025-08-30T12:34:29,486][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 90/201
+[2025-08-30T12:34:29,488][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 91/201
+[2025-08-30T12:34:29,490][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 92/201
+[2025-08-30T12:34:29,492][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 93/201
+[2025-08-30T12:34:29,494][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 94/201
+[2025-08-30T12:34:29,496][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 95/201
+[2025-08-30T12:34:29,498][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 96/201
+[2025-08-30T12:34:29,500][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 97/201
+[2025-08-30T12:34:29,502][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 98/201
+[2025-08-30T12:34:29,504][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 99/201
+[2025-08-30T12:34:29,506][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 100/201
+[2025-08-30T12:34:29,508][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 101/201
+[2025-08-30T12:34:29,510][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 102/201
+[2025-08-30T12:34:29,512][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 103/201
+[2025-08-30T12:34:29,514][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 104/201
+[2025-08-30T12:34:29,516][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 105/201
+[2025-08-30T12:34:29,518][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 106/201
+[2025-08-30T12:34:29,520][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 107/201
+[2025-08-30T12:34:29,523][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 108/201
+[2025-08-30T12:34:29,525][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 109/201
+[2025-08-30T12:34:29,527][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 110/201
+[2025-08-30T12:34:29,529][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 111/201
+[2025-08-30T12:34:29,531][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 112/201
+[2025-08-30T12:34:29,533][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 113/201
+[2025-08-30T12:34:29,536][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 114/201
+[2025-08-30T12:34:29,538][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 115/201
+[2025-08-30T12:34:29,540][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 116/201
+[2025-08-30T12:34:29,542][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 117/201
+[2025-08-30T12:34:29,544][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 118/201
+[2025-08-30T12:34:29,546][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 119/201
+[2025-08-30T12:34:29,548][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 120/201
+[2025-08-30T12:34:29,550][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 121/201
+[2025-08-30T12:34:29,552][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 122/201
+[2025-08-30T12:34:29,554][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 123/201
+[2025-08-30T12:34:29,556][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 124/201
+[2025-08-30T12:34:29,558][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 125/201
+[2025-08-30T12:34:29,560][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 126/201
+[2025-08-30T12:34:29,562][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 127/201
+[2025-08-30T12:34:29,564][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 128/201
+[2025-08-30T12:34:29,566][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 129/201
+[2025-08-30T12:34:29,569][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 130/201
+[2025-08-30T12:34:29,571][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 131/201
+[2025-08-30T12:34:29,573][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 132/201
+[2025-08-30T12:34:29,574][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 133/201
+[2025-08-30T12:34:29,576][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 134/201
+[2025-08-30T12:34:29,578][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 135/201
+[2025-08-30T12:34:29,580][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 136/201
+[2025-08-30T12:34:29,582][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 137/201
+[2025-08-30T12:34:29,584][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 138/201
+[2025-08-30T12:34:29,585][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 139/201
+[2025-08-30T12:34:29,587][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 140/201
+[2025-08-30T12:34:29,589][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 141/201
+[2025-08-30T12:34:29,591][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 142/201
+[2025-08-30T12:34:29,593][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 143/201
+[2025-08-30T12:34:29,595][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 144/201
+[2025-08-30T12:34:29,597][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 145/201
+[2025-08-30T12:34:29,599][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 146/201
+[2025-08-30T12:34:29,601][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 147/201
+[2025-08-30T12:34:29,603][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 148/201
+[2025-08-30T12:34:29,604][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 149/201
+[2025-08-30T12:34:29,606][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 150/201
+[2025-08-30T12:34:29,608][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 151/201
+[2025-08-30T12:34:29,610][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 152/201
+[2025-08-30T12:34:29,612][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 153/201
+[2025-08-30T12:34:29,614][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 154/201
+[2025-08-30T12:34:29,616][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 155/201
+[2025-08-30T12:34:29,618][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 156/201
+[2025-08-30T12:34:29,620][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 157/201
+[2025-08-30T12:34:29,622][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 158/201
+[2025-08-30T12:34:29,624][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 159/201
+[2025-08-30T12:34:29,626][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 160/201
+[2025-08-30T12:34:29,628][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 161/201
+[2025-08-30T12:34:29,630][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 162/201
+[2025-08-30T12:34:29,632][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 163/201
+[2025-08-30T12:34:29,634][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 164/201
+[2025-08-30T12:34:29,636][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 165/201
+[2025-08-30T12:34:29,638][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 166/201
+[2025-08-30T12:34:29,640][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 167/201
+[2025-08-30T12:34:29,642][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 168/201
+[2025-08-30T12:34:29,644][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 169/201
+[2025-08-30T12:34:29,646][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 170/201
+[2025-08-30T12:34:29,648][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 171/201
+[2025-08-30T12:34:29,650][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 172/201
+[2025-08-30T12:34:29,651][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 173/201
+[2025-08-30T12:34:29,654][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 174/201
+[2025-08-30T12:34:29,655][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 175/201
+[2025-08-30T12:34:29,657][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 176/201
+[2025-08-30T12:34:29,659][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 177/201
+[2025-08-30T12:34:29,661][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 178/201
+[2025-08-30T12:34:29,663][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 179/201
+[2025-08-30T12:34:29,665][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 180/201
+[2025-08-30T12:34:29,667][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 181/201
+[2025-08-30T12:34:29,669][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 182/201
+[2025-08-30T12:34:29,671][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 183/201
+[2025-08-30T12:34:29,673][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 184/201
+[2025-08-30T12:34:29,675][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 185/201
+[2025-08-30T12:34:29,676][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 186/201
+[2025-08-30T12:34:29,678][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 187/201
+[2025-08-30T12:34:29,680][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 188/201
+[2025-08-30T12:34:29,681][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 189/201
+[2025-08-30T12:34:29,683][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 190/201
+[2025-08-30T12:34:29,685][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 191/201
+[2025-08-30T12:34:29,687][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 192/201
+[2025-08-30T12:34:29,689][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 193/201
+[2025-08-30T12:34:29,691][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 194/201
+[2025-08-30T12:34:29,693][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 195/201
+[2025-08-30T12:34:29,695][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 196/201
+[2025-08-30T12:34:29,697][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 197/201
+[2025-08-30T12:34:29,699][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 198/201
+[2025-08-30T12:34:29,701][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 199/201
+[2025-08-30T12:34:29,703][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 200/201
+[2025-08-30T12:34:29,705][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 5 || subsequent response 201/201
+[2025-08-30T12:34:29,705][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 5] after test
+[2025-08-30T12:34:29,708][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 10] before test
+[2025-08-30T12:34:29,826][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || first response
+[2025-08-30T12:34:29,829][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 1/7
+[2025-08-30T12:34:29,833][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 2/7
+[2025-08-30T12:34:29,836][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 3/7
+[2025-08-30T12:34:29,840][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 4/7
+[2025-08-30T12:34:29,843][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 5/7
+[2025-08-30T12:34:29,846][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 6/7
+[2025-08-30T12:34:29,848][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 10 || subsequent response 7/7
+[2025-08-30T12:34:29,848][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 10] after test
+[2025-08-30T12:34:29,849][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 5] before test
+[2025-08-30T12:34:29,896][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 5 || first response
+[2025-08-30T12:34:29,898][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 5 || subsequent response 1/2
+[2025-08-30T12:34:29,900][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 5 || subsequent response 2/2
+[2025-08-30T12:34:29,900][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 5] after test
+[2025-08-30T12:34:29,902][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 5] before test
+[2025-08-30T12:34:29,910][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || first response
+[2025-08-30T12:34:29,913][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 1/13
+[2025-08-30T12:34:29,916][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 2/13
+[2025-08-30T12:34:29,918][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 3/13
+[2025-08-30T12:34:29,921][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 4/13
+[2025-08-30T12:34:29,923][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 5/13
+[2025-08-30T12:34:29,926][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 6/13
+[2025-08-30T12:34:29,929][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 7/13
+[2025-08-30T12:34:29,932][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 8/13
+[2025-08-30T12:34:29,934][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 9/13
+[2025-08-30T12:34:29,937][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 10/13
+[2025-08-30T12:34:29,939][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 11/13
+[2025-08-30T12:34:29,942][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 12/13
+[2025-08-30T12:34:29,944][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 5 || subsequent response 13/13
+[2025-08-30T12:34:29,944][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 5] after test
+[2025-08-30T12:34:29,945][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 100] before test
+[2025-08-30T12:34:29,949][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 100 || first response
+[2025-08-30T12:34:29,951][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 100 || subsequent response 1/1
+[2025-08-30T12:34:29,951][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 100] after test
+[2025-08-30T12:34:29,952][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 100] before test
+[2025-08-30T12:34:29,960][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 100 || first response
+[2025-08-30T12:34:29,966][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 100 || subsequent response 1/1
+[2025-08-30T12:34:29,966][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 100] after test
+[2025-08-30T12:34:29,968][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 1000] before test
+[2025-08-30T12:34:29,975][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 1000 || first response
+[2025-08-30T12:34:29,981][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_beer, page size: 1000 || subsequent response 1/1
+[2025-08-30T12:34:29,981][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BEER, page_size = 1000] after test
+[2025-08-30T12:34:29,982][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 1000] before test
+[2025-08-30T12:34:29,985][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 1000 || first response
+[2025-08-30T12:34:29,986][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 1000 || subsequent response 1/1
+[2025-08-30T12:34:29,986][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 1000] after test
+[2025-08-30T12:34:29,988][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 1000] before test
+[2025-08-30T12:34:30,013][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 1000 || first response
+[2025-08-30T12:34:30,045][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 1000 || subsequent response 1/2
+[2025-08-30T12:34:30,048][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 1000 || subsequent response 2/2
+[2025-08-30T12:34:30,048][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 1000] after test
+[2025-08-30T12:34:30,050][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 10] before test
+[2025-08-30T12:34:30,081][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || first response
+[2025-08-30T12:34:30,084][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 1/101
+[2025-08-30T12:34:30,087][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 2/101
+[2025-08-30T12:34:30,089][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 3/101
+[2025-08-30T12:34:30,091][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 4/101
+[2025-08-30T12:34:30,093][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 5/101
+[2025-08-30T12:34:30,095][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 6/101
+[2025-08-30T12:34:30,097][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 7/101
+[2025-08-30T12:34:30,099][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 8/101
+[2025-08-30T12:34:30,101][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 9/101
+[2025-08-30T12:34:30,104][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 10/101
+[2025-08-30T12:34:30,106][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 11/101
+[2025-08-30T12:34:30,108][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 12/101
+[2025-08-30T12:34:30,110][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 13/101
+[2025-08-30T12:34:30,112][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 14/101
+[2025-08-30T12:34:30,114][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 15/101
+[2025-08-30T12:34:30,116][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 16/101
+[2025-08-30T12:34:30,119][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 17/101
+[2025-08-30T12:34:30,121][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 18/101
+[2025-08-30T12:34:30,123][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 19/101
+[2025-08-30T12:34:30,125][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 20/101
+[2025-08-30T12:34:30,127][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 21/101
+[2025-08-30T12:34:30,130][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 22/101
+[2025-08-30T12:34:30,132][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 23/101
+[2025-08-30T12:34:30,135][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 24/101
+[2025-08-30T12:34:30,137][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 25/101
+[2025-08-30T12:34:30,139][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 26/101
+[2025-08-30T12:34:30,142][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 27/101
+[2025-08-30T12:34:30,144][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 28/101
+[2025-08-30T12:34:30,146][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 29/101
+[2025-08-30T12:34:30,148][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 30/101
+[2025-08-30T12:34:30,151][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 31/101
+[2025-08-30T12:34:30,153][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 32/101
+[2025-08-30T12:34:30,155][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 33/101
+[2025-08-30T12:34:30,157][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 34/101
+[2025-08-30T12:34:30,160][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 35/101
+[2025-08-30T12:34:30,162][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 36/101
+[2025-08-30T12:34:30,164][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 37/101
+[2025-08-30T12:34:30,166][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 38/101
+[2025-08-30T12:34:30,168][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 39/101
+[2025-08-30T12:34:30,171][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 40/101
+[2025-08-30T12:34:30,173][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 41/101
+[2025-08-30T12:34:30,175][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 42/101
+[2025-08-30T12:34:30,177][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 43/101
+[2025-08-30T12:34:30,179][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 44/101
+[2025-08-30T12:34:30,180][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 45/101
+[2025-08-30T12:34:30,182][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 46/101
+[2025-08-30T12:34:30,184][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 47/101
+[2025-08-30T12:34:30,186][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 48/101
+[2025-08-30T12:34:30,188][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 49/101
+[2025-08-30T12:34:30,190][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 50/101
+[2025-08-30T12:34:30,192][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 51/101
+[2025-08-30T12:34:30,194][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 52/101
+[2025-08-30T12:34:30,196][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 53/101
+[2025-08-30T12:34:30,198][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 54/101
+[2025-08-30T12:34:30,200][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 55/101
+[2025-08-30T12:34:30,202][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 56/101
+[2025-08-30T12:34:30,204][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 57/101
+[2025-08-30T12:34:30,206][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 58/101
+[2025-08-30T12:34:30,208][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 59/101
+[2025-08-30T12:34:30,210][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 60/101
+[2025-08-30T12:34:30,212][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 61/101
+[2025-08-30T12:34:30,213][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 62/101
+[2025-08-30T12:34:30,215][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 63/101
+[2025-08-30T12:34:30,217][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 64/101
+[2025-08-30T12:34:30,219][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 65/101
+[2025-08-30T12:34:30,221][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 66/101
+[2025-08-30T12:34:30,224][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 67/101
+[2025-08-30T12:34:30,226][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 68/101
+[2025-08-30T12:34:30,228][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 69/101
+[2025-08-30T12:34:30,230][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 70/101
+[2025-08-30T12:34:30,232][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 71/101
+[2025-08-30T12:34:30,234][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 72/101
+[2025-08-30T12:34:30,237][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 73/101
+[2025-08-30T12:34:30,239][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 74/101
+[2025-08-30T12:34:30,241][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 75/101
+[2025-08-30T12:34:30,243][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 76/101
+[2025-08-30T12:34:30,245][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 77/101
+[2025-08-30T12:34:30,247][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 78/101
+[2025-08-30T12:34:30,249][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 79/101
+[2025-08-30T12:34:30,251][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 80/101
+[2025-08-30T12:34:30,253][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 81/101
+[2025-08-30T12:34:30,255][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 82/101
+[2025-08-30T12:34:30,257][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 83/101
+[2025-08-30T12:34:30,259][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 84/101
+[2025-08-30T12:34:30,261][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 85/101
+[2025-08-30T12:34:30,264][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 86/101
+[2025-08-30T12:34:30,266][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 87/101
+[2025-08-30T12:34:30,268][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 88/101
+[2025-08-30T12:34:30,270][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 89/101
+[2025-08-30T12:34:30,272][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 90/101
+[2025-08-30T12:34:30,274][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 91/101
+[2025-08-30T12:34:30,276][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 92/101
+[2025-08-30T12:34:30,278][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 93/101
+[2025-08-30T12:34:30,279][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 94/101
+[2025-08-30T12:34:30,281][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 95/101
+[2025-08-30T12:34:30,283][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 96/101
+[2025-08-30T12:34:30,285][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 97/101
+[2025-08-30T12:34:30,287][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 98/101
+[2025-08-30T12:34:30,289][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 99/101
+[2025-08-30T12:34:30,290][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 100/101
+[2025-08-30T12:34:30,292][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 10 || subsequent response 101/101
+[2025-08-30T12:34:30,292][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 10] after test
+[2025-08-30T12:34:30,294][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 100] before test
+[2025-08-30T12:34:30,323][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || first response
+[2025-08-30T12:34:30,327][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 1/11
+[2025-08-30T12:34:30,331][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 2/11
+[2025-08-30T12:34:30,335][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 3/11
+[2025-08-30T12:34:30,339][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 4/11
+[2025-08-30T12:34:30,343][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 5/11
+[2025-08-30T12:34:30,346][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 6/11
+[2025-08-30T12:34:30,350][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 7/11
+[2025-08-30T12:34:30,354][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 8/11
+[2025-08-30T12:34:30,358][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 9/11
+[2025-08-30T12:34:30,361][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 10/11
+[2025-08-30T12:34:30,363][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_account, page size: 100 || subsequent response 11/11
+[2025-08-30T12:34:30,363][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = ACCOUNT, page_size = 100] after test
+[2025-08-30T12:34:30,365][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 10] before test
+[2025-08-30T12:34:30,368][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 10 || first response
+[2025-08-30T12:34:30,370][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] index: opensearch-sql_test_index_bank, page size: 10 || subsequent response 1/1
+[2025-08-30T12:34:30,370][INFO ][o.o.s.s.PaginationBlackboxIT] [test_pagination_blackbox] [index = BANK, page_size = 10] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:34:41 PM</p>
+</div>
+</div>
+</body>
+</html>

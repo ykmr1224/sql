@@ -1,0 +1,105 @@
+[2025-08-30T17:30:16,042][WARN ][stderr                   ] [remoteCluster-0] Aug 30, 2025 5:30:16 PM org.opensearch.javaagent.bootstrap.AgentPolicy setPolicy
+[2025-08-30T17:30:16,049][WARN ][stderr                   ] [remoteCluster-0] INFO: Policy attached successfully: org.opensearch.bootstrap.OpenSearchPolicy@72fd8a3c
+[2025-08-30T17:30:16,092][INFO ][o.o.n.Node               ] [remoteCluster-0] version[3.2.0-SNAPSHOT], pid[2950], build[tar/6adc0bf476e1624190564d7fbe4aba00ccf49ad8/2025-08-14T03:26:35.788749688Z], OS[Linux/6.11.0-1018-azure/amd64], JVM[Eclipse Adoptium/OpenJDK 64-Bit Server VM/21.0.8/21.0.8+9-LTS]
+[2025-08-30T17:30:16,093][INFO ][o.o.n.Node               ] [remoteCluster-0] JVM home [/__t/Java_Temurin-Hotspot_jdk/21.0.8-9.0.LTS/x64], using bundled JDK/JRE [false]
+[2025-08-30T17:30:16,093][INFO ][o.o.n.Node               ] [remoteCluster-0] JVM arguments [-Xshare:auto, -Dopensearch.networkaddress.cache.ttl=60, -Dopensearch.networkaddress.cache.negative.ttl=10, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -XX:-OmitStackTraceInFastThrow, -XX:+ShowCodeDetailsInExceptionMessages, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dio.netty.allocator.numDirectArenas=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Djava.locale.providers=SPI,CLDR, -Xms1g, -Xmx1g, -XX:+UseG1GC, -XX:G1ReservePercent=25, -XX:InitiatingHeapOccupancyPercent=30, -Djava.io.tmpdir=/__w/sql/sql/integ-test/build/testclusters/remoteCluster-0/tmp, -XX:+HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath=logs, -XX:ErrorFile=logs/hs_err_pid%p.log, -Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m, --add-modules=jdk.incubator.vector, -javaagent:agent/opensearch-agent.jar, --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED, -Xms512m, -Xmx512m, -ea, -esa, -XX:MaxDirectMemorySize=268435456, -Dopensearch.path.home=/__w/sql/sql/integ-test/build/testclusters/remoteCluster-0/distro/3.2.0-ARCHIVE, -Dopensearch.path.conf=/__w/sql/sql/integ-test/build/testclusters/remoteCluster-0/config, -Dopensearch.distribution.type=tar, -Dopensearch.bundled_jdk=true]
+[2025-08-30T17:30:16,094][WARN ][o.o.n.Node               ] [remoteCluster-0] version [3.2.0-SNAPSHOT] is a pre-release version of OpenSearch and is not suitable for production
+[2025-08-30T17:30:16,378][WARN ][stderr                   ] [remoteCluster-0] Aug 30, 2025 5:30:16 PM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+[2025-08-30T17:30:16,379][WARN ][stderr                   ] [remoteCluster-0] INFO: Java vector incubator API enabled; uses preferredBitSize=256; FMA enabled
+[2025-08-30T17:30:17,228][INFO ][o.o.i.r.ReindexModulePlugin] [remoteCluster-0] ReindexPlugin reloadSPI called
+[2025-08-30T17:30:17,229][INFO ][o.o.i.r.ReindexModulePlugin] [remoteCluster-0] Unable to find any implementation for RemoteReindexExtension
+[2025-08-30T17:30:17,237][INFO ][o.o.j.JobSchedulerPlugin ] [remoteCluster-0] Loaded scheduler extension: scheduler_geospatial_ip2geo_datasource, index: .scheduler-geospatial-ip2geo-datasource
+[2025-08-30T17:30:17,240][INFO ][o.o.j.JobSchedulerPlugin ] [remoteCluster-0] Loaded scheduler extension: async-query-scheduler, index: .async-query-scheduler
+[2025-08-30T17:30:17,244][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [aggs-matrix-stats]
+[2025-08-30T17:30:17,244][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [analysis-common]
+[2025-08-30T17:30:17,244][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [cache-common]
+[2025-08-30T17:30:17,244][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [geo]
+[2025-08-30T17:30:17,245][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [ingest-common]
+[2025-08-30T17:30:17,245][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [ingest-geoip]
+[2025-08-30T17:30:17,246][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [ingest-user-agent]
+[2025-08-30T17:30:17,246][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [lang-expression]
+[2025-08-30T17:30:17,247][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [lang-mustache]
+[2025-08-30T17:30:17,247][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [lang-painless]
+[2025-08-30T17:30:17,247][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [mapper-extras]
+[2025-08-30T17:30:17,247][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [opensearch-dashboards]
+[2025-08-30T17:30:17,248][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [parent-join]
+[2025-08-30T17:30:17,248][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [percolator]
+[2025-08-30T17:30:17,248][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [rank-eval]
+[2025-08-30T17:30:17,248][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [reindex]
+[2025-08-30T17:30:17,249][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [repository-url]
+[2025-08-30T17:30:17,249][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [rule-framework]
+[2025-08-30T17:30:17,249][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [search-pipeline-common]
+[2025-08-30T17:30:17,249][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [systemd]
+[2025-08-30T17:30:17,250][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [test-delayed-aggs]
+[2025-08-30T17:30:17,250][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [transport-grpc]
+[2025-08-30T17:30:17,250][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded module [transport-netty4]
+[2025-08-30T17:30:17,251][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded plugin [opensearch-geospatial]
+[2025-08-30T17:30:17,251][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded plugin [opensearch-job-scheduler]
+[2025-08-30T17:30:17,251][INFO ][o.o.p.PluginsService     ] [remoteCluster-0] loaded plugin [opensearch-sql]
+[2025-08-30T17:30:17,299][WARN ][stderr                   ] [remoteCluster-0] WARNING: A restricted method in java.lang.foreign.Linker has been called
+[2025-08-30T17:30:17,300][WARN ][stderr                   ] [remoteCluster-0] WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+[2025-08-30T17:30:17,300][WARN ][stderr                   ] [remoteCluster-0] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+[2025-08-30T17:30:17,449][INFO ][o.o.e.NodeEnvironment    ] [remoteCluster-0] using [1] data paths, mounts [[/__w (/dev/root)]], net usable_space [11.3gb], net total_space [71.6gb], types [ext4]
+[2025-08-30T17:30:17,449][INFO ][o.o.e.NodeEnvironment    ] [remoteCluster-0] heap size [512mb], compressed ordinary object pointers [true]
+[2025-08-30T17:30:17,501][INFO ][o.o.n.Node               ] [remoteCluster-0] node name [remoteCluster-0], node ID [OaaCtA4MSiOTUgbXenqk_A], cluster name [remoteCluster], roles [ingest, remote_cluster_client, data, cluster_manager]
+[2025-08-30T17:30:17,546][INFO ][o.o.e.ExtensionsManager  ] [remoteCluster-0] ExtensionsManager initialized
+[2025-08-30T17:30:19,744][WARN ][stderr                   ] [remoteCluster-0] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[2025-08-30T17:30:19,744][WARN ][stderr                   ] [remoteCluster-0] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[2025-08-30T17:30:19,744][WARN ][stderr                   ] [remoteCluster-0] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[2025-08-30T17:30:21,818][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [remoteCluster-0] Registered 4 built-in query converters
+[2025-08-30T17:30:21,818][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [remoteCluster-0] Loaded 0 external query converters (0 failed)
+[2025-08-30T17:30:21,914][WARN ][o.o.s.p.SQLPlugin        ] [remoteCluster-0] Master key is a required config for using create and update datasource APIs. Please set plugins.query.datasources.encryption.masterkey config in opensearch.yml in all the cluster nodes. More details can be found here: https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/admin/datasources.rst#master-key-config-for-encrypting-credential-information
+[2025-08-30T17:30:22,126][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: COALESCE. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: array. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: forall. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: exists. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: filter. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: transform. Will skip its type checking
+[2025-08-30T17:30:22,127][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: reduce. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T17:30:22,128][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T17:30:22,129][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T17:30:22,132][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: INTERNAL_PATTERN. Will skip its type checking
+[2025-08-30T17:30:22,133][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: COUNT. Will skip its type checking
+[2025-08-30T17:30:22,133][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: EARLIEST. Will skip its type checking
+[2025-08-30T17:30:22,134][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: LATEST. Will skip its type checking
+[2025-08-30T17:30:22,134][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,135][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,136][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,136][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,190][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,191][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,191][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,191][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,490][INFO ][o.o.t.NettyAllocator     ] [remoteCluster-0] creating NettyAllocator with the following configs: [name=unpooled, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_unpooled_allocator=null, g1gc_enabled=true, g1gc_region_size=1mb, heap_size=512mb}]
+[2025-08-30T17:30:22,553][INFO ][o.o.d.DiscoveryModule    ] [remoteCluster-0] using discovery type [zen] and seed hosts providers [settings, file]
+[2025-08-30T17:30:22,816][WARN ][o.o.g.DanglingIndicesState] [remoteCluster-0] gateway.auto_import_dangling_indices is disabled, dangling indices will not be automatically detected or imported and must be managed manually
+[2025-08-30T17:30:22,836][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,836][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,836][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,836][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,837][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,837][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:22,837][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:22,837][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteCluster-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:23,076][INFO ][o.o.n.Node               ] [remoteCluster-0] initialized
+[2025-08-30T17:30:23,076][INFO ][o.o.n.Node               ] [remoteCluster-0] starting ...
+[2025-08-30T17:30:23,190][INFO ][o.o.t.TransportService   ] [remoteCluster-0] publish_address {127.0.0.1:43723}, bound_addresses {[::1]:34805}, {127.0.0.1:43723}
+[2025-08-30T17:30:23,192][INFO ][o.o.t.TransportService   ] [remoteCluster-0] Remote clusters initialized successfully.
+[2025-08-30T17:30:23,368][WARN ][o.o.d.FileBasedSeedHostsProvider] [remoteCluster-0] expected, but did not find, a dynamic hosts list at [/__w/sql/sql/integ-test/build/testclusters/remoteCluster-0/config/unicast_hosts.txt]
+[2025-08-30T17:30:23,369][INFO ][o.o.c.c.Coordinator      ] [remoteCluster-0] setting initial configuration to VotingConfiguration{OaaCtA4MSiOTUgbXenqk_A}
+[2025-08-30T17:30:23,423][INFO ][o.o.h.AbstractHttpServerTransport] [remoteCluster-0] publish_address {127.0.0.1:35289}, bound_addresses {[::1]:39805}, {127.0.0.1:35289}
+[2025-08-30T17:30:23,425][INFO ][o.o.n.Node               ] [remoteCluster-0] started
+[2025-08-30T17:30:23,446][INFO ][o.o.c.s.ClusterManagerService] [remoteCluster-0] Tasks batched with key: org.opensearch.cluster.coordination.JoinHelper, count:3 and sample tasks: elected-as-cluster-manager ([1] nodes joined)[{remoteCluster-0}{OaaCtA4MSiOTUgbXenqk_A}{-FZ5MPM4T8yIfC3oEownlw}{127.0.0.1}{127.0.0.1:43723}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} elect leader, _BECOME_CLUSTER_MANAGER_TASK_, _FINISH_ELECTION_], term: 1, version: 1, delta: cluster-manager node changed {previous [], current [{remoteCluster-0}{OaaCtA4MSiOTUgbXenqk_A}{-FZ5MPM4T8yIfC3oEownlw}{127.0.0.1}{127.0.0.1:43723}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}
+[2025-08-30T17:30:23,473][INFO ][o.o.c.c.CoordinationState] [remoteCluster-0] cluster UUID set to [6RgybocOSiuQ48Nr4uDUKw]
+[2025-08-30T17:30:23,494][INFO ][o.o.c.s.ClusterApplierService] [remoteCluster-0] cluster-manager node changed {previous [], current [{remoteCluster-0}{OaaCtA4MSiOTUgbXenqk_A}{-FZ5MPM4T8yIfC3oEownlw}{127.0.0.1}{127.0.0.1:43723}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, term: 1, version: 1, reason: Publication{term=1, version=1}
+[2025-08-30T17:30:23,507][INFO ][o.o.d.PeerFinder         ] [remoteCluster-0] setting findPeersInterval to [1s] as node commission status = [true] for local node [{remoteCluster-0}{OaaCtA4MSiOTUgbXenqk_A}{-FZ5MPM4T8yIfC3oEownlw}{127.0.0.1}{127.0.0.1:43723}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T17:30:23,525][INFO ][o.o.g.GatewayService     ] [remoteCluster-0] recovered [0] indices into cluster_state
+[2025-08-30T17:30:53,509][WARN ][o.o.c.InternalClusterInfoService] [remoteCluster-0] No resource usage stats available for node: remoteCluster-0
+[2025-08-30T17:31:23,514][WARN ][o.o.c.InternalClusterInfoService] [remoteCluster-0] No resource usage stats available for node: remoteCluster-0
+[2025-08-30T17:31:53,515][WARN ][o.o.c.InternalClusterInfoService] [remoteCluster-0] No resource usage stats available for node: remoteCluster-0
+[2025-08-30T17:35:23,364][INFO ][o.o.j.s.JobSweeper       ] [remoteCluster-0] Running full sweep

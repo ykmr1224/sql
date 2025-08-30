@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultExpressionSerializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.serde</a> &gt; <span class="el_source">DefaultExpressionSerializer.java</span></div><h1>DefaultExpressionSerializer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.serde;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Base64;
+import org.opensearch.sql.expression.Expression;
+
+/** Default serializer that (de-)serialize expressions by JDK serialization. */
+<span class="fc" id="L17">public class DefaultExpressionSerializer implements ExpressionSerializer {</span>
+
+  @Override
+  public String serialize(Expression expr) {
+    try {
+<span class="fc" id="L22">      ByteArrayOutputStream output = new ByteArrayOutputStream();</span>
+<span class="fc" id="L23">      ObjectOutputStream objectOutput = new ObjectOutputStream(output);</span>
+<span class="fc" id="L24">      objectOutput.writeObject(expr);</span>
+<span class="fc" id="L25">      objectOutput.flush();</span>
+<span class="fc" id="L26">      return Base64.getEncoder().encodeToString(output.toByteArray());</span>
+<span class="fc" id="L27">    } catch (IOException e) {</span>
+<span class="fc" id="L28">      throw new IllegalStateException(&quot;Failed to serialize expression: &quot; + expr, e);</span>
+    }
+  }
+
+  @Override
+  public Expression deserialize(String code) {
+    try {
+<span class="fc" id="L35">      ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(code));</span>
+<span class="fc" id="L36">      ObjectInputStream objectInput = new ObjectInputStream(input);</span>
+<span class="fc" id="L37">      return (Expression) objectInput.readObject();</span>
+<span class="fc" id="L38">    } catch (Exception e) {</span>
+<span class="fc" id="L39">      throw new IllegalStateException(&quot;Failed to deserialize expression code: &quot; + code, e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

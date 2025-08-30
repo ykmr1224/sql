@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SysdateFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">SysdateFunction.java</span></div><h1>SysdateFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Returns the timestamp at which it &lt;b&gt;executes&lt;/b&gt;. It differs from the behavior for NOW(), which
+ * returns a constant time that indicates the time at which the statement began to execute. If an
+ * argument is given, it specifies a fractional seconds precision from 0 to 6, the return value
+ * includes a fractional seconds part of that many digits.
+ *
+ * &lt;p&gt;Signatures:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;() -&gt; TIMESTAMP
+ *   &lt;li&gt;(INTEGER) -&gt; TIMESTAMP
+ * &lt;/ul&gt;
+ */
+public class SysdateFunction extends ImplementorUDF {
+
+  public SysdateFunction() {
+<span class="fc" id="L42">    super(new SysdateImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L47">    return PPLOperandTypes.OPTIONAL_INTEGER;</span>
+  }
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L52">    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;</span>
+  }
+
+<span class="fc" id="L55">  public static class SysdateImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L59">      List&lt;Expression&gt; operandsWithProperties =</span>
+<span class="nc" id="L60">          prependFunctionProperties(translatedOperands, translator);</span>
+<span class="nc" id="L61">      return Expressions.call(SysdateImplementor.class, &quot;sysdate&quot;, operandsWithProperties);</span>
+    }
+
+    public static String sysdate(FunctionProperties properties) {
+<span class="nc" id="L65">      var localDateTime = DateTimeFunctions.formatNow(properties.getSystemClock(), 0);</span>
+<span class="nc" id="L66">      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();</span>
+    }
+
+    public static String sysdate(FunctionProperties properties, int precision) {
+<span class="nc" id="L70">      var localDateTime = DateTimeFunctions.formatNow(properties.getSystemClock(), precision);</span>
+<span class="nc" id="L71">      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

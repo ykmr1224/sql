@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PatternsExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.parse</a> &gt; <span class="el_source">PatternsExpression.java</span></div><h1>PatternsExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.parse;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Pattern;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.Expression;
+
+/** PatternsExpression with regex filter. */
+@EqualsAndHashCode(callSuper = true)
+@ToString
+public class PatternsExpression extends ParseExpression {
+  /** Default name of the derived field. */
+  public static final String DEFAULT_NEW_FIELD = &quot;patterns_field&quot;;
+
+<span class="fc" id="L27">  private static final ImmutableSet&lt;Character&gt; DEFAULT_IGNORED_CHARS =</span>
+<span class="fc" id="L28">      ImmutableSet.copyOf(</span>
+          &quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&quot;
+<span class="fc" id="L30">              .chars()</span>
+<span class="fc" id="L31">              .mapToObj(c -&gt; (char) c)</span>
+<span class="fc" id="L32">              .toArray(Character[]::new));</span>
+  private final boolean useCustomPattern;
+  @EqualsAndHashCode.Exclude private Pattern pattern;
+
+  /**
+   * PatternsExpression.
+   *
+   * @param sourceField source text field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
+   */
+  public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L44">    super(&quot;patterns&quot;, sourceField, pattern, identifier);</span>
+<span class="fc" id="L45">    String patternStr = pattern.valueOf().stringValue();</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    useCustomPattern = !patternStr.isEmpty();</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    if (useCustomPattern) {</span>
+<span class="fc" id="L48">      this.pattern = Pattern.compile(patternStr);</span>
+    }
+<span class="fc" id="L50">  }</span>
+
+  @Override
+  public ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+<span class="fc bfc" id="L54" title="All 4 branches covered.">    String rawString = value.isNull() || value.isMissing() ? &quot;&quot; : value.stringValue();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (useCustomPattern) {</span>
+<span class="fc" id="L56">      return new ExprStringValue(pattern.matcher(rawString).replaceAll(&quot;&quot;));</span>
+    }
+
+<span class="fc" id="L59">    char[] chars = rawString.toCharArray();</span>
+<span class="fc" id="L60">    int pos = 0;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    for (int i = 0; i &lt; chars.length; i++) {</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">      if (!DEFAULT_IGNORED_CHARS.contains(chars[i])) {</span>
+<span class="fc" id="L63">        chars[pos++] = chars[i];</span>
+      }
+    }
+<span class="fc" id="L66">    return new ExprStringValue(new String(chars, 0, pos));</span>
+  }
+
+  /**
+   * Get list of derived fields.
+   *
+   * @param identifier identifier used to generate the field name
+   * @return list of names of the derived fields
+   */
+  public static List&lt;String&gt; getNamedGroupCandidates(String identifier) {
+<span class="fc" id="L76">    return ImmutableList.of(Objects.requireNonNullElse(identifier, DEFAULT_NEW_FIELD));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

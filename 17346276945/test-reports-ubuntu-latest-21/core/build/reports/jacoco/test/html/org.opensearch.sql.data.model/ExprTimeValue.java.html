@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprTimeValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprTimeValue.java</span></div><h1>ExprTimeValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.utils.DateTimeFormatters;
+
+/** Expression Time Value. */
+@RequiredArgsConstructor
+public class ExprTimeValue extends AbstractExprValue {
+
+  private final LocalTime time;
+
+  /**
+   * Constructor with time string.
+   *
+   * @param time a time or timestamp string (does not accept date string)
+   */
+<span class="fc" id="L35">  public ExprTimeValue(String time) {</span>
+    try {
+<span class="fc" id="L37">      this.time = LocalTime.parse(time, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);</span>
+<span class="fc" id="L38">    } catch (DateTimeParseException e) {</span>
+<span class="fc" id="L39">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L40">          String.format(&quot;time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'&quot;, time));</span>
+<span class="fc" id="L41">    }</span>
+<span class="fc" id="L42">  }</span>
+
+  @Override
+  public String value() {
+<span class="fc" id="L46">    return ISO_LOCAL_TIME.format(time);</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L51">    return ExprCoreType.TIME;</span>
+  }
+
+  @Override
+  public LocalTime timeValue() {
+<span class="fc" id="L56">    return time;</span>
+  }
+
+  public LocalDate dateValue(FunctionProperties functionProperties) {
+<span class="fc" id="L60">    return LocalDate.now(functionProperties.getQueryStartClock());</span>
+  }
+
+  public Instant timestampValue(FunctionProperties functionProperties) {
+<span class="fc" id="L64">    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), ZoneOffset.UTC).toInstant();</span>
+  }
+
+  @Override
+  public boolean isDateTime() {
+<span class="fc" id="L69">    return true;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L74">    return String.format(&quot;TIME '%s'&quot;, value());</span>
+  }
+
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L79">    return time.compareTo(other.timeValue());</span>
+  }
+
+  @Override
+  public boolean equal(ExprValue other) {
+<span class="fc" id="L84">    return time.equals(other.timeValue());</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L89">    return Objects.hashCode(time);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

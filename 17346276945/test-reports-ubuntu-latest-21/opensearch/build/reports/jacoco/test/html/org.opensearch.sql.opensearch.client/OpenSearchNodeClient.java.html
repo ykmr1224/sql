@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchNodeClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.client</a> &gt; <span class="el_source">OpenSearchNodeClient.java</span></div><h1>OpenSearchNodeClient.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.client;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.search.*;
+import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.transport.client.node.NodeClient;
+
+/** OpenSearch connection by node client. */
+public class OpenSearchNodeClient implements OpenSearchClient {
+
+<span class="fc" id="L41">  public static final Function&lt;String, Predicate&lt;String&gt;&gt; ALL_FIELDS =</span>
+<span class="fc" id="L42">      (anyIndex -&gt; (anyField -&gt; true));</span>
+
+  /** Node client provided by OpenSearch container. */
+  private final NodeClient client;
+
+  /** Constructor of OpenSearchNodeClient. */
+<span class="fc" id="L48">  public OpenSearchNodeClient(NodeClient client) {</span>
+<span class="fc" id="L49">    this.client = client;</span>
+<span class="fc" id="L50">  }</span>
+
+  @Override
+  public boolean exists(String indexName) {
+    try {
+<span class="fc" id="L55">      IndicesExistsResponse checkExistResponse =</span>
+<span class="fc" id="L56">          client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet();</span>
+<span class="fc" id="L57">      return checkExistResponse.isExists();</span>
+<span class="nc" id="L58">    } catch (OpenSearchSecurityException e) {</span>
+<span class="nc" id="L59">      throw e;</span>
+<span class="fc" id="L60">    } catch (Exception e) {</span>
+<span class="fc" id="L61">      throw new IllegalStateException(&quot;Failed to check if index [&quot; + indexName + &quot;] exists&quot;, e);</span>
+    }
+  }
+
+  @Override
+  public void createIndex(String indexName, Map&lt;String, Object&gt; mappings) {
+    try {
+      // TODO: 1.pass index settings (the number of primary shards, etc); 2.check response?
+<span class="fc" id="L69">      CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).mapping(mappings);</span>
+<span class="fc" id="L70">      client.admin().indices().create(createIndexRequest).actionGet();</span>
+<span class="fc" id="L71">    } catch (Exception e) {</span>
+<span class="fc" id="L72">      throw new IllegalStateException(&quot;Failed to create index [&quot; + indexName + &quot;]&quot;, e);</span>
+<span class="fc" id="L73">    }</span>
+<span class="fc" id="L74">  }</span>
+
+  /**
+   * Get field mappings of index by an index expression. Majority is copied from legacy
+   * LocalClusterState.
+   *
+   * &lt;p&gt;For simplicity, removed type (deprecated) and field filter in argument list. Also removed
+   * mapping cache, cluster state listener (mainly for performance and debugging).
+   *
+   * @param indexExpression index name expression
+   * @return index mapping(s) in our class to isolate OpenSearch API. IndexNotFoundException is
+   *     thrown if no index matched.
+   */
+  @Override
+  public Map&lt;String, IndexMapping&gt; getIndexMappings(String... indexExpression) {
+    try {
+<span class="fc" id="L90">      GetMappingsResponse mappingsResponse =</span>
+<span class="fc" id="L91">          client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();</span>
+<span class="fc" id="L92">      return mappingsResponse.mappings().entrySet().stream()</span>
+<span class="fc" id="L93">          .collect(</span>
+<span class="fc" id="L94">              Collectors.toUnmodifiableMap(</span>
+<span class="fc" id="L95">                  Map.Entry::getKey, cursor -&gt; new IndexMapping(cursor.getValue())));</span>
+<span class="fc" id="L96">    } catch (IndexNotFoundException | OpenSearchSecurityException e) {</span>
+      // Re-throw directly to be treated as client error finally
+<span class="fc" id="L98">      throw e;</span>
+<span class="fc" id="L99">    } catch (Exception e) {</span>
+<span class="fc" id="L100">      throw new IllegalStateException(</span>
+          &quot;Failed to read mapping for index pattern [&quot; + indexExpression + &quot;]&quot;, e);
+    }
+  }
+
+  /**
+   * Fetch index.max_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max result window
+   */
+  @Override
+  public Map&lt;String, Integer&gt; getIndexMaxResultWindows(String... indexExpression) {
+    try {
+<span class="fc" id="L114">      GetSettingsResponse settingsResponse =</span>
+<span class="fc" id="L115">          client.admin().indices().prepareGetSettings(indexExpression).setLocal(true).get();</span>
+<span class="fc" id="L116">      ImmutableMap.Builder&lt;String, Integer&gt; result = ImmutableMap.builder();</span>
+      for (Map.Entry&lt;String, Settings&gt; indexToSetting :
+<span class="fc bfc" id="L118" title="All 2 branches covered.">          settingsResponse.getIndexToSettings().entrySet()) {</span>
+<span class="fc" id="L119">        Settings settings = indexToSetting.getValue();</span>
+<span class="fc" id="L120">        result.put(</span>
+<span class="fc" id="L121">            indexToSetting.getKey(),</span>
+<span class="fc" id="L122">            settings.getAsInt(</span>
+<span class="fc" id="L123">                IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),</span>
+<span class="fc" id="L124">                IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings)));</span>
+<span class="fc" id="L125">      }</span>
+<span class="fc" id="L126">      return result.build();</span>
+<span class="nc" id="L127">    } catch (OpenSearchSecurityException e) {</span>
+<span class="nc" id="L128">      throw e;</span>
+<span class="fc" id="L129">    } catch (Exception e) {</span>
+<span class="fc" id="L130">      throw new IllegalStateException(</span>
+          &quot;Failed to read setting for index pattern [&quot; + indexExpression + &quot;]&quot;, e);
+    }
+  }
+
+  /** TODO: Scroll doesn't work for aggregation. Support aggregation later. */
+  @Override
+  public OpenSearchResponse search(OpenSearchRequest request) {
+<span class="fc" id="L138">    return request.search(</span>
+<span class="fc" id="L139">        req -&gt; client.search(req).actionGet(), req -&gt; client.searchScroll(req).actionGet());</span>
+  }
+
+  /**
+   * Get the combination of the indices and the alias.
+   *
+   * @return the combination of the indices and the alias
+   */
+  @Override
+  public List&lt;String&gt; indices() {
+<span class="fc" id="L149">    final GetIndexResponse indexResponse =</span>
+<span class="fc" id="L150">        client.admin().indices().prepareGetIndex().setLocal(true).get();</span>
+<span class="fc" id="L151">    final Stream&lt;String&gt; aliasStream =</span>
+<span class="fc" id="L152">        ImmutableList.copyOf(indexResponse.aliases().values()).stream()</span>
+<span class="fc" id="L153">            .flatMap(Collection::stream)</span>
+<span class="fc" id="L154">            .map(AliasMetadata::alias);</span>
+
+<span class="fc" id="L156">    return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)</span>
+<span class="fc" id="L157">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Get meta info of the cluster.
+   *
+   * @return meta info of the cluster.
+   */
+  @Override
+  public Map&lt;String, String&gt; meta() {
+<span class="fc" id="L167">    return ImmutableMap.of(</span>
+        META_CLUSTER_NAME,
+<span class="fc" id="L169">        client.settings().get(&quot;cluster.name&quot;, &quot;opensearch&quot;),</span>
+        &quot;plugins.sql.pagination.api&quot;,
+<span class="fc" id="L171">        client.settings().get(&quot;plugins.sql.pagination.api&quot;, &quot;true&quot;));</span>
+  }
+
+  @Override
+  public void cleanup(OpenSearchRequest request) {
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (request instanceof OpenSearchScrollRequest) {</span>
+<span class="fc" id="L177">      request.clean(</span>
+          scrollId -&gt; {
+            try {
+<span class="fc" id="L180">              client.prepareClearScroll().addScrollId(scrollId).get();</span>
+<span class="fc" id="L181">            } catch (Exception e) {</span>
+<span class="fc" id="L182">              throw new IllegalStateException(</span>
+                  &quot;Failed to clean up resources for search request &quot; + request, e);
+<span class="fc" id="L184">            }</span>
+<span class="fc" id="L185">          });</span>
+    } else {
+<span class="fc" id="L187">      request.clean(</span>
+          pitId -&gt; {
+<span class="fc" id="L189">            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);</span>
+<span class="fc" id="L190">            deletePit(deletePitRequest);</span>
+<span class="fc" id="L191">          });</span>
+    }
+<span class="fc" id="L193">  }</span>
+
+  @Override
+  public void schedule(Runnable task) {
+    // at that time, task already running the sql-worker ThreadPool.
+<span class="fc" id="L198">    task.run();</span>
+<span class="fc" id="L199">  }</span>
+
+  @Override
+  public NodeClient getNodeClient() {
+<span class="fc" id="L203">    return client;</span>
+  }
+
+  @Override
+  public String createPit(CreatePitRequest createPitRequest) {
+<span class="fc" id="L208">    ActionFuture&lt;CreatePitResponse&gt; execute =</span>
+<span class="fc" id="L209">        this.client.execute(CreatePitAction.INSTANCE, createPitRequest);</span>
+    try {
+<span class="fc" id="L211">      CreatePitResponse pitResponse = execute.get();</span>
+<span class="fc" id="L212">      return pitResponse.getId();</span>
+<span class="fc" id="L213">    } catch (ExecutionException e) {</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">      if (e.getCause() instanceof OpenSearchSecurityException) {</span>
+<span class="nc" id="L215">        throw (OpenSearchSecurityException) e.getCause();</span>
+      }
+<span class="fc" id="L217">      throw new RuntimeException(</span>
+          &quot;Error occurred while creating PIT for internal plugin operation&quot;, e);
+<span class="nc" id="L219">    } catch (InterruptedException e) {</span>
+<span class="nc" id="L220">      throw new RuntimeException(</span>
+          &quot;Error occurred while creating PIT for internal plugin operation&quot;, e);
+    }
+  }
+
+  @Override
+  public void deletePit(DeletePitRequest deletePitRequest) {
+<span class="fc" id="L227">    ActionFuture&lt;DeletePitResponse&gt; execute =</span>
+<span class="fc" id="L228">        this.client.execute(DeletePitAction.INSTANCE, deletePitRequest);</span>
+    try {
+<span class="fc" id="L230">      execute.get();</span>
+<span class="fc" id="L231">    } catch (ExecutionException e) {</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">      if (e.getCause() instanceof OpenSearchSecurityException) {</span>
+<span class="nc" id="L233">        throw (OpenSearchSecurityException) e.getCause();</span>
+      }
+<span class="fc" id="L235">      throw new RuntimeException(</span>
+          &quot;Error occurred while deleting PIT for internal plugin operation&quot;, e);
+<span class="nc" id="L237">    } catch (InterruptedException e) {</span>
+<span class="nc" id="L238">      throw new RuntimeException(</span>
+          &quot;Error occurred while deleting PIT for internal plugin operation&quot;, e);
+<span class="fc" id="L240">    }</span>
+<span class="fc" id="L241">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

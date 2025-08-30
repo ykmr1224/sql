@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregationOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">AggregationOperator.java</span></div><h1>AggregationOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.planner.physical.collector.Collector;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/**
+ * Group the all the input {@link BindingTuple} by {@link AggregationOperator#groupByExprList},
+ * calculate the aggregation result by using {@link AggregationOperator#aggregatorList}.
+ */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+public class AggregationOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+  @Getter private final List&lt;NamedAggregator&gt; aggregatorList;
+  @Getter private final List&lt;NamedExpression&gt; groupByExprList;
+
+  /** {@link BindingTuple} Collector. */
+  @EqualsAndHashCode.Exclude private final Collector collector;
+
+  @EqualsAndHashCode.Exclude private Iterator&lt;ExprValue&gt; iterator;
+
+  /**
+   * AggregationOperator Constructor.
+   *
+   * @param input Input {@link PhysicalPlan}
+   * @param aggregatorList List of {@link Aggregator}
+   * @param groupByExprList List of group by {@link Expression}
+   */
+  public AggregationOperator(
+      PhysicalPlan input,
+      List&lt;NamedAggregator&gt; aggregatorList,
+<span class="fc" id="L48">      List&lt;NamedExpression&gt; groupByExprList) {</span>
+<span class="fc" id="L49">    this.input = input;</span>
+<span class="fc" id="L50">    this.aggregatorList = aggregatorList;</span>
+<span class="fc" id="L51">    this.groupByExprList = groupByExprList;</span>
+<span class="fc" id="L52">    this.collector = Collector.Builder.build(groupByExprList, this.aggregatorList);</span>
+<span class="fc" id="L53">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L57">    return visitor.visitAggregation(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L62">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc" id="L67">    return iterator.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L72">    return iterator.next();</span>
+  }
+
+  @Override
+  public void open() {
+<span class="fc" id="L77">    super.open();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    while (input.hasNext()) {</span>
+<span class="fc" id="L79">      collector.collect(input.next().bindingTuples());</span>
+    }
+<span class="fc" id="L81">    iterator = collector.results().iterator();</span>
+<span class="fc" id="L82">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Patterns.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.optimizer.pattern</a> &gt; <span class="el_source">Patterns.java</span></div><h1>Patterns.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.optimizer.pattern;
+
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Pattern;
+import com.facebook.presto.matching.Property;
+import com.facebook.presto.matching.PropertyPattern;
+import java.util.Optional;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalWrite;
+import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+
+/** Pattern helper class. */
+@UtilityClass
+public class Patterns {
+
+  /** Logical filter with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalFilter&gt; filter(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L34">    return Pattern.typeOf(LogicalFilter.class).with(source(pattern));</span>
+  }
+
+  /** Logical aggregate operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalAggregation&gt; aggregate(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L39">    return Pattern.typeOf(LogicalAggregation.class).with(source(pattern));</span>
+  }
+
+  /** Logical sort operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalSort&gt; sort(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L44">    return Pattern.typeOf(LogicalSort.class).with(source(pattern));</span>
+  }
+
+  /** Logical limit operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalLimit&gt; limit(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L49">    return Pattern.typeOf(LogicalLimit.class).with(source(pattern));</span>
+  }
+
+  /** Logical highlight operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalHighlight&gt; highlight(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L54">    return Pattern.typeOf(LogicalHighlight.class).with(source(pattern));</span>
+  }
+
+  /** Logical nested operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalNested&gt; nested(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L59">    return Pattern.typeOf(LogicalNested.class).with(source(pattern));</span>
+  }
+
+  /** Logical project operator with a given pattern on inner field. */
+  public static &lt;T extends LogicalPlan&gt; Pattern&lt;LogicalProject&gt; project(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L64">    return Pattern.typeOf(LogicalProject.class).with(source(pattern));</span>
+  }
+
+  public static Pattern&lt;LogicalEval&gt; evalCapture() {
+<span class="fc" id="L68">    return Pattern.typeOf(LogicalEval.class).capturedAs(Capture.newCapture());</span>
+  }
+
+  /** Pattern for {@link TableScanBuilder} and capture it meanwhile. */
+  public static Pattern&lt;TableScanBuilder&gt; scanBuilder() {
+<span class="fc" id="L73">    return Pattern.typeOf(TableScanBuilder.class).capturedAs(Capture.newCapture());</span>
+  }
+
+  /** LogicalPlan source {@link Property}. */
+  public static Property&lt;LogicalPlan, LogicalPlan&gt; source() {
+<span class="fc" id="L78">    return Property.optionalProperty(</span>
+        &quot;source&quot;,
+        plan -&gt;
+<span class="fc bfc" id="L81" title="All 2 branches covered.">            plan.getChild().size() == 1 ? Optional.of(plan.getChild().get(0)) : Optional.empty());</span>
+  }
+
+  /** Source (children field) with a given pattern. */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public static &lt;T extends LogicalPlan&gt; PropertyPattern&lt;LogicalPlan, T&gt; source(Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L87">    Property&lt;LogicalPlan, T&gt; property =</span>
+<span class="fc" id="L88">        Property.optionalProperty(</span>
+            &quot;source&quot;,
+            plan -&gt;
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                plan.getChild().size() == 1</span>
+<span class="fc" id="L92">                    ? Optional.of((T) plan.getChild().get(0))</span>
+<span class="fc" id="L93">                    : Optional.empty());</span>
+
+<span class="fc" id="L95">    return property.matching(pattern);</span>
+  }
+
+  /** Logical relation with table field. */
+  public static Property&lt;LogicalPlan, Table&gt; table() {
+<span class="fc" id="L100">    return Property.optionalProperty(</span>
+        &quot;table&quot;,
+        plan -&gt;
+<span class="fc bfc" id="L103" title="All 2 branches covered.">            plan instanceof LogicalRelation</span>
+<span class="fc" id="L104">                ? Optional.of(((LogicalRelation) plan).getTable())</span>
+<span class="fc" id="L105">                : Optional.empty());</span>
+  }
+
+  /** Logical write with table field. */
+  public static Property&lt;LogicalPlan, Table&gt; writeTable() {
+<span class="fc" id="L110">    return Property.optionalProperty(</span>
+        &quot;table&quot;,
+        plan -&gt;
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            plan instanceof LogicalWrite</span>
+<span class="fc" id="L114">                ? Optional.of(((LogicalWrite) plan).getTable())</span>
+<span class="fc" id="L115">                : Optional.empty());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

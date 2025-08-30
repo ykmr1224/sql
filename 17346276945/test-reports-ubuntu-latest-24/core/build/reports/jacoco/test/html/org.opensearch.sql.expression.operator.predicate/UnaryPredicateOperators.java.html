@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UnaryPredicateOperators.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.operator.predicate</a> &gt; <span class="el_source">UnaryPredicateOperators.java</span></div><h1>UnaryPredicateOperators.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.operator.predicate;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionDSL;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableFunction;
+
+/**
+ * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.
+ */
+@UtilityClass
+public class UnaryPredicateOperators {
+
+  /** Register Unary Predicate Function. */
+  public static void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L37">    repository.register(not());</span>
+<span class="fc" id="L38">    repository.register(isNotNull());</span>
+<span class="fc" id="L39">    repository.register(ifNull());</span>
+<span class="fc" id="L40">    repository.register(nullIf());</span>
+<span class="fc" id="L41">    repository.register(isNull(BuiltinFunctionName.IS_NULL));</span>
+<span class="fc" id="L42">    repository.register(isNull(BuiltinFunctionName.ISNULL));</span>
+<span class="fc" id="L43">    repository.register(ifFunction());</span>
+<span class="fc" id="L44">  }</span>
+
+  private static DefaultFunctionResolver not() {
+<span class="fc" id="L47">    return FunctionDSL.define(</span>
+<span class="fc" id="L48">        BuiltinFunctionName.NOT.getName(),</span>
+<span class="fc" id="L49">        FunctionDSL.impl(UnaryPredicateOperators::not, BOOLEAN, BOOLEAN));</span>
+  }
+
+  /**
+   * The not logic.
+   *
+   * &lt;table&gt;
+   *     &lt;tr&gt;
+   *         &lt;th&gt;A&lt;/th&gt;
+   *         &lt;th&gt;NOT A&lt;/th&gt;
+   *     &lt;/tr&gt;
+   *     &lt;tr&gt;
+   *         &lt;th&gt;TRUE&lt;/th&gt;
+   *         &lt;th&gt;FALSE&lt;/th&gt;
+   *     &lt;/tr&gt;
+   *     &lt;tr&gt;
+   *         &lt;th&gt;FALSE&lt;/th&gt;
+   *         &lt;th&gt;TRUE&lt;/th&gt;
+   *     &lt;/tr&gt;
+   *     &lt;tr&gt;
+   *         &lt;th&gt;NULL&lt;/th&gt;
+   *         &lt;th&gt;NULL&lt;/th&gt;
+   *     &lt;/tr&gt;
+   *     &lt;tr&gt;
+   *         &lt;th&gt;MISSING&lt;/th&gt;
+   *         &lt;th&gt;MISSING&lt;/th&gt;
+   *     &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+  public ExprValue not(ExprValue v) {
+<span class="fc bfc" id="L79" title="All 4 branches covered.">    if (v.isMissing() || v.isNull()) {</span>
+<span class="fc" id="L80">      return v;</span>
+    } else {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">      return ExprBooleanValue.of(!v.booleanValue());</span>
+    }
+  }
+
+  private static DefaultFunctionResolver isNull(BuiltinFunctionName funcName) {
+<span class="fc" id="L87">    return FunctionDSL.define(</span>
+<span class="fc" id="L88">        funcName.getName(),</span>
+<span class="fc" id="L89">        Arrays.stream(ExprCoreType.values())</span>
+<span class="fc" id="L90">            .map(type -&gt; FunctionDSL.impl((v) -&gt; ExprBooleanValue.of(v.isNull()), BOOLEAN, type))</span>
+<span class="fc" id="L91">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver isNotNull() {
+<span class="fc" id="L95">    return FunctionDSL.define(</span>
+<span class="fc" id="L96">        BuiltinFunctionName.IS_NOT_NULL.getName(),</span>
+<span class="fc" id="L97">        Arrays.stream(ExprCoreType.values())</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            .map(type -&gt; FunctionDSL.impl((v) -&gt; ExprBooleanValue.of(!v.isNull()), BOOLEAN, type))</span>
+<span class="fc" id="L99">            .collect(Collectors.toList()));</span>
+  }
+
+  private static DefaultFunctionResolver ifFunction() {
+<span class="fc" id="L103">    FunctionName functionName = BuiltinFunctionName.IF.getName();</span>
+<span class="fc" id="L104">    List&lt;ExprCoreType&gt; typeList = ExprCoreType.coreTypes();</span>
+
+    List&lt;
+            SerializableFunction&lt;
+                FunctionName,
+                org.apache.commons.lang3.tuple.Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+<span class="fc" id="L110">        functionsOne =</span>
+<span class="fc" id="L111">            typeList.stream()</span>
+<span class="fc" id="L112">                .map(v -&gt; impl((UnaryPredicateOperators::exprIf), v, BOOLEAN, v, v))</span>
+<span class="fc" id="L113">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L115">    return FunctionDSL.define(functionName, functionsOne);</span>
+  }
+
+  private static DefaultFunctionResolver ifNull() {
+<span class="fc" id="L119">    FunctionName functionName = BuiltinFunctionName.IFNULL.getName();</span>
+<span class="fc" id="L120">    List&lt;ExprCoreType&gt; typeList = ExprCoreType.coreTypes();</span>
+
+    List&lt;
+            SerializableFunction&lt;
+                FunctionName,
+                org.apache.commons.lang3.tuple.Pair&lt;FunctionSignature, FunctionBuilder&gt;&gt;&gt;
+<span class="fc" id="L126">        functionsOne =</span>
+<span class="fc" id="L127">            typeList.stream()</span>
+<span class="fc" id="L128">                .map(v -&gt; impl((UnaryPredicateOperators::exprIfNull), v, v, v))</span>
+<span class="fc" id="L129">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L131">    return FunctionDSL.define(functionName, functionsOne);</span>
+  }
+
+  private static DefaultFunctionResolver nullIf() {
+<span class="fc" id="L135">    FunctionName functionName = BuiltinFunctionName.NULLIF.getName();</span>
+<span class="fc" id="L136">    List&lt;ExprCoreType&gt; typeList = ExprCoreType.coreTypes();</span>
+
+<span class="fc" id="L138">    return FunctionDSL.define(</span>
+        functionName,
+<span class="fc" id="L140">        typeList.stream()</span>
+<span class="fc" id="L141">            .map(v -&gt; impl((UnaryPredicateOperators::exprNullIf), v, v, v))</span>
+<span class="fc" id="L142">            .collect(Collectors.toList()));</span>
+  }
+
+  /**
+   * v2 if v1 is null.
+   *
+   * @param v1 variable 1
+   * @param v2 variable 2
+   * @return v2 if v1 is null
+   */
+  public static ExprValue exprIfNull(ExprValue v1, ExprValue v2) {
+<span class="fc bfc" id="L153" title="All 4 branches covered.">    return (v1.isNull() || v1.isMissing()) ? v2 : v1;</span>
+  }
+
+  /**
+   * return null if v1 equals to v2.
+   *
+   * @param v1 variable 1
+   * @param v2 variable 2
+   * @return null if v1 equals to v2
+   */
+  public static ExprValue exprNullIf(ExprValue v1, ExprValue v2) {
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    return v1.equals(v2) ? LITERAL_NULL : v1;</span>
+  }
+
+  public static ExprValue exprIf(ExprValue v1, ExprValue v2, ExprValue v3) {
+<span class="fc bfc" id="L168" title="All 6 branches covered.">    return !v1.isNull() &amp;&amp; !v1.isMissing() &amp;&amp; LITERAL_TRUE.equals(v1) ? v2 : v3;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

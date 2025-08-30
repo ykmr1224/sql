@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateTimeFormatterUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.datetime</a> &gt; <span class="el_source">DateTimeFormatterUtil.java</span></div><h1>DateTimeFormatterUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.datetime;
+
+import com.google.common.collect.ImmutableMap;
+import java.text.ParsePosition;
+import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
+
+/**
+ * This class converts a SQL style DATE_FORMAT format specifier and converts it to a Java
+ * SimpleDateTime format.
+ */
+public class DateTimeFormatterUtil {
+  private static final int SUFFIX_SPECIAL_START_TH = 11;
+  private static final int SUFFIX_SPECIAL_END_TH = 13;
+  private static final String SUFFIX_SPECIAL_TH = &quot;th&quot;;
+
+  private static final String NANO_SEC_FORMAT = &quot;'%06d'&quot;;
+
+  private static final Map&lt;Integer, String&gt; SUFFIX_CONVERTER =
+<span class="fc" id="L43">      ImmutableMap.&lt;Integer, String&gt;builder().put(1, &quot;st&quot;).put(2, &quot;nd&quot;).put(3, &quot;rd&quot;).build();</span>
+
+  // The following have special cases that need handling outside of the format options provided
+  // by the DateTimeFormatter class.
+  interface DateTimeFormatHandler {
+    String getFormat(LocalDateTime date);
+  }
+
+  public static final Map&lt;String, DateTimeFormatHandler&gt; DATE_HANDLERS =
+<span class="fc" id="L52">      ImmutableMap.&lt;String, DateTimeFormatHandler&gt;builder()</span>
+<span class="fc" id="L53">          .put(&quot;%a&quot;, (date) -&gt; &quot;EEE&quot;) // %a =&gt; EEE - Abbreviated weekday name (Sun..Sat)</span>
+<span class="fc" id="L54">          .put(&quot;%b&quot;, (date) -&gt; &quot;LLL&quot;) // %b =&gt; LLL - Abbreviated month name (Jan..Dec)</span>
+<span class="fc" id="L55">          .put(&quot;%c&quot;, (date) -&gt; &quot;MM&quot;) // %c =&gt; MM - Month, numeric (0..12)</span>
+<span class="fc" id="L56">          .put(&quot;%d&quot;, (date) -&gt; &quot;dd&quot;) // %d =&gt; dd - Day of the month, numeric (00..31)</span>
+<span class="fc" id="L57">          .put(&quot;%e&quot;, (date) -&gt; &quot;d&quot;) // %e =&gt; d - Day of the month, numeric (0..31)</span>
+<span class="fc" id="L58">          .put(&quot;%H&quot;, (date) -&gt; &quot;HH&quot;) // %H =&gt; HH - (00..23)</span>
+<span class="fc" id="L59">          .put(&quot;%h&quot;, (date) -&gt; &quot;hh&quot;) // %h =&gt; hh - (01..12)</span>
+<span class="fc" id="L60">          .put(&quot;%I&quot;, (date) -&gt; &quot;hh&quot;) // %I =&gt; hh - (01..12)</span>
+<span class="fc" id="L61">          .put(&quot;%i&quot;, (date) -&gt; &quot;mm&quot;) // %i =&gt; mm - Minutes, numeric (00..59)</span>
+<span class="fc" id="L62">          .put(&quot;%j&quot;, (date) -&gt; &quot;DDD&quot;) // %j =&gt; DDD - (001..366)</span>
+<span class="fc" id="L63">          .put(&quot;%k&quot;, (date) -&gt; &quot;H&quot;) // %k =&gt; H - (0..23)</span>
+<span class="fc" id="L64">          .put(&quot;%l&quot;, (date) -&gt; &quot;h&quot;) // %l =&gt; h - (1..12)</span>
+<span class="fc" id="L65">          .put(&quot;%p&quot;, (date) -&gt; &quot;a&quot;) // %p =&gt; a - AM or PM</span>
+<span class="fc" id="L66">          .put(&quot;%M&quot;, (date) -&gt; &quot;LLLL&quot;) // %M =&gt; LLLL - Month name (January..December)</span>
+<span class="fc" id="L67">          .put(&quot;%m&quot;, (date) -&gt; &quot;MM&quot;) // %m =&gt; MM - Month, numeric (00..12)</span>
+<span class="fc" id="L68">          .put(&quot;%r&quot;, (date) -&gt; &quot;hh:mm:ss a&quot;) // %r =&gt; hh:mm:ss a - hh:mm:ss followed by AM or PM</span>
+<span class="fc" id="L69">          .put(&quot;%S&quot;, (date) -&gt; &quot;ss&quot;) // %S =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L70">          .put(&quot;%s&quot;, (date) -&gt; &quot;ss&quot;) // %s =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L71">          .put(&quot;%T&quot;, (date) -&gt; &quot;HH:mm:ss&quot;) // %T =&gt; HH:mm:ss</span>
+<span class="fc" id="L72">          .put(&quot;%W&quot;, (date) -&gt; &quot;EEEE&quot;) // %W =&gt; EEEE - Weekday name (Sunday..Saturday)</span>
+<span class="fc" id="L73">          .put(&quot;%Y&quot;, (date) -&gt; &quot;yyyy&quot;) // %Y =&gt; yyyy - Year, numeric, 4 digits</span>
+<span class="fc" id="L74">          .put(&quot;%y&quot;, (date) -&gt; &quot;yy&quot;) // %y =&gt; yy - Year, numeric, 2 digits</span>
+          // The following are not directly supported by DateTimeFormatter.
+<span class="fc" id="L76">          .put(</span>
+              &quot;%D&quot;,
+              (date) -&gt; // %w - Day of month with English suffix
+<span class="fc" id="L79">              String.format(</span>
+<span class="fc" id="L80">                      Locale.ROOT, &quot;'%d%s'&quot;, date.getDayOfMonth(), getSuffix(date.getDayOfMonth())))</span>
+<span class="fc" id="L81">          .put(</span>
+              &quot;%f&quot;,
+              (date) -&gt; // %f - Microseconds
+<span class="fc" id="L84">              String.format(Locale.ROOT, NANO_SEC_FORMAT, (date.getNano() / 1000)))</span>
+<span class="fc" id="L85">          .put(</span>
+              &quot;%w&quot;,
+              (date) -&gt; // %w - Day of week (0 indexed)
+<span class="fc" id="L88">              String.format(Locale.ROOT, &quot;'%d'&quot;, date.getDayOfWeek().getValue()))</span>
+<span class="fc" id="L89">          .put(</span>
+              &quot;%U&quot;,
+              (date) -&gt; // %U Week where Sunday is the first day - WEEK() mode 0
+<span class="fc" id="L92">              String.format(</span>
+<span class="fc" id="L93">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getWeekNumber(0, date.toLocalDate())))</span>
+<span class="fc" id="L94">          .put(</span>
+              &quot;%u&quot;,
+              (date) -&gt; // %u Week where Monday is the first day - WEEK() mode 1
+<span class="fc" id="L97">              String.format(</span>
+<span class="fc" id="L98">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getWeekNumber(1, date.toLocalDate())))</span>
+<span class="fc" id="L99">          .put(</span>
+              &quot;%V&quot;,
+              (date) -&gt; // %V Week where Sunday is the first day - WEEK() mode 2 used with %X
+<span class="fc" id="L102">              String.format(</span>
+<span class="fc" id="L103">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getWeekNumber(2, date.toLocalDate())))</span>
+<span class="fc" id="L104">          .put(</span>
+              &quot;%v&quot;,
+              (date) -&gt; // %v Week where Monday is the first day - WEEK() mode 3 used with %x
+<span class="fc" id="L107">              String.format(</span>
+<span class="fc" id="L108">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getWeekNumber(3, date.toLocalDate())))</span>
+<span class="fc" id="L109">          .put(</span>
+              &quot;%X&quot;,
+              (date) -&gt; // %X Year for week where Sunday is the first day, 4 digits used with %V
+<span class="fc" id="L112">              String.format(</span>
+<span class="fc" id="L113">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getYearNumber(2, date.toLocalDate())))</span>
+<span class="fc" id="L114">          .put(</span>
+              &quot;%x&quot;,
+              (date) -&gt; // %x Year for week where Monday is the first day, 4 digits used with %v
+<span class="fc" id="L117">              String.format(</span>
+<span class="fc" id="L118">                      Locale.ROOT, &quot;'%d'&quot;, CalendarLookup.getYearNumber(3, date.toLocalDate())))</span>
+<span class="fc" id="L119">          .build();</span>
+
+  // Handlers for the time_format function.
+  // Some format specifiers return 0 or null to align with MySQL.
+  // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_time-format
+  private static final Map&lt;String, DateTimeFormatHandler&gt; TIME_HANDLERS =
+<span class="fc" id="L125">      ImmutableMap.&lt;String, DateTimeFormatHandler&gt;builder()</span>
+<span class="fc" id="L126">          .put(&quot;%a&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L127">          .put(&quot;%b&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L128">          .put(&quot;%c&quot;, (date) -&gt; &quot;0&quot;)</span>
+<span class="fc" id="L129">          .put(&quot;%d&quot;, (date) -&gt; &quot;00&quot;)</span>
+<span class="fc" id="L130">          .put(&quot;%e&quot;, (date) -&gt; &quot;0&quot;)</span>
+<span class="fc" id="L131">          .put(&quot;%H&quot;, (date) -&gt; &quot;HH&quot;) // %H =&gt; HH - (00..23)</span>
+<span class="fc" id="L132">          .put(&quot;%h&quot;, (date) -&gt; &quot;hh&quot;) // %h =&gt; hh - (01..12)</span>
+<span class="fc" id="L133">          .put(&quot;%I&quot;, (date) -&gt; &quot;hh&quot;) // %I =&gt; hh - (01..12)</span>
+<span class="fc" id="L134">          .put(&quot;%i&quot;, (date) -&gt; &quot;mm&quot;) // %i =&gt; mm - Minutes, numeric (00..59)</span>
+<span class="fc" id="L135">          .put(&quot;%j&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L136">          .put(&quot;%k&quot;, (date) -&gt; &quot;H&quot;) // %k =&gt; H - (0..23)</span>
+<span class="fc" id="L137">          .put(&quot;%l&quot;, (date) -&gt; &quot;h&quot;) // %l =&gt; h - (1..12)</span>
+<span class="fc" id="L138">          .put(&quot;%p&quot;, (date) -&gt; &quot;a&quot;) // %p =&gt; a - AM or PM</span>
+<span class="fc" id="L139">          .put(&quot;%M&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L140">          .put(&quot;%m&quot;, (date) -&gt; &quot;00&quot;)</span>
+<span class="fc" id="L141">          .put(&quot;%r&quot;, (date) -&gt; &quot;hh:mm:ss a&quot;) // %r =&gt; hh:mm:ss a - hh:mm:ss followed by AM or PM</span>
+<span class="fc" id="L142">          .put(&quot;%S&quot;, (date) -&gt; &quot;ss&quot;) // %S =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L143">          .put(&quot;%s&quot;, (date) -&gt; &quot;ss&quot;) // %s =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L144">          .put(&quot;%T&quot;, (date) -&gt; &quot;HH:mm:ss&quot;) // %T =&gt; HH:mm:ss</span>
+<span class="fc" id="L145">          .put(&quot;%W&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L146">          .put(&quot;%Y&quot;, (date) -&gt; &quot;0000&quot;)</span>
+<span class="fc" id="L147">          .put(&quot;%y&quot;, (date) -&gt; &quot;00&quot;)</span>
+<span class="fc" id="L148">          .put(&quot;%D&quot;, (date) -&gt; null)</span>
+          // %f - Microseconds
+<span class="fc" id="L150">          .put(&quot;%f&quot;, (date) -&gt; String.format(Locale.ROOT, NANO_SEC_FORMAT, (date.getNano() / 1000)))</span>
+<span class="fc" id="L151">          .put(&quot;%w&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L152">          .put(&quot;%U&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L153">          .put(&quot;%u&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L154">          .put(&quot;%V&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L155">          .put(&quot;%v&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L156">          .put(&quot;%X&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L157">          .put(&quot;%x&quot;, (date) -&gt; null)</span>
+<span class="fc" id="L158">          .build();</span>
+
+  private static final Map&lt;String, String&gt; STR_TO_DATE_FORMATS =
+<span class="fc" id="L161">      ImmutableMap.&lt;String, String&gt;builder()</span>
+<span class="fc" id="L162">          .put(&quot;%a&quot;, &quot;EEE&quot;) // %a =&gt; EEE - Abbreviated weekday name (Sun..Sat)</span>
+<span class="fc" id="L163">          .put(&quot;%b&quot;, &quot;LLL&quot;) // %b =&gt; LLL - Abbreviated month name (Jan..Dec)</span>
+<span class="fc" id="L164">          .put(&quot;%c&quot;, &quot;M&quot;) // %c =&gt; MM - Month, numeric (0..12)</span>
+<span class="fc" id="L165">          .put(&quot;%d&quot;, &quot;d&quot;) // %d =&gt; dd - Day of the month, numeric (00..31)</span>
+<span class="fc" id="L166">          .put(&quot;%e&quot;, &quot;d&quot;) // %e =&gt; d - Day of the month, numeric (0..31)</span>
+<span class="fc" id="L167">          .put(&quot;%H&quot;, &quot;H&quot;) // %H =&gt; HH - (00..23)</span>
+<span class="fc" id="L168">          .put(&quot;%h&quot;, &quot;H&quot;) // %h =&gt; hh - (01..12)</span>
+<span class="fc" id="L169">          .put(&quot;%I&quot;, &quot;h&quot;) // %I =&gt; hh - (01..12)</span>
+<span class="fc" id="L170">          .put(&quot;%i&quot;, &quot;m&quot;) // %i =&gt; mm - Minutes, numeric (00..59)</span>
+<span class="fc" id="L171">          .put(&quot;%j&quot;, &quot;DDD&quot;) // %j =&gt; DDD - (001..366)</span>
+<span class="fc" id="L172">          .put(&quot;%k&quot;, &quot;H&quot;) // %k =&gt; H - (0..23)</span>
+<span class="fc" id="L173">          .put(&quot;%l&quot;, &quot;h&quot;) // %l =&gt; h - (1..12)</span>
+<span class="fc" id="L174">          .put(&quot;%p&quot;, &quot;a&quot;) // %p =&gt; a - AM or PM</span>
+<span class="fc" id="L175">          .put(&quot;%M&quot;, &quot;LLLL&quot;) // %M =&gt; LLLL - Month name (January..December)</span>
+<span class="fc" id="L176">          .put(&quot;%m&quot;, &quot;M&quot;) // %m =&gt; MM - Month, numeric (00..12)</span>
+<span class="fc" id="L177">          .put(&quot;%r&quot;, &quot;hh:mm:ss a&quot;) // %r =&gt; hh:mm:ss a - hh:mm:ss followed by AM or PM</span>
+<span class="fc" id="L178">          .put(&quot;%S&quot;, &quot;s&quot;) // %S =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L179">          .put(&quot;%s&quot;, &quot;s&quot;) // %s =&gt; ss - Seconds (00..59)</span>
+<span class="fc" id="L180">          .put(&quot;%T&quot;, &quot;HH:mm:ss&quot;) // %T =&gt; HH:mm:ss</span>
+<span class="fc" id="L181">          .put(&quot;%W&quot;, &quot;EEEE&quot;) // %W =&gt; EEEE - Weekday name (Sunday..Saturday)</span>
+<span class="fc" id="L182">          .put(&quot;%Y&quot;, &quot;u&quot;) // %Y =&gt; yyyy - Year, numeric, 4 digits</span>
+<span class="fc" id="L183">          .put(&quot;%y&quot;, &quot;uu&quot;) // %y =&gt; yy - Year, numeric, 2 digits</span>
+<span class="fc" id="L184">          .put(&quot;%f&quot;, &quot;n&quot;) // %f =&gt; n - Nanoseconds</span>
+          // The following have been implemented but cannot be aligned with
+          // MySQL due to the limitations of the DatetimeFormatter
+<span class="fc" id="L187">          .put(&quot;%D&quot;, &quot;d&quot;) // %w - Day of month with English suffix</span>
+<span class="fc" id="L188">          .put(&quot;%w&quot;, &quot;e&quot;) // %w - Day of week (0 indexed)</span>
+<span class="fc" id="L189">          .put(&quot;%U&quot;, &quot;w&quot;) // %U Week where Sunday is the first day - WEEK() mode 0</span>
+<span class="fc" id="L190">          .put(&quot;%u&quot;, &quot;w&quot;) // %u Week where Monday is the first day - WEEK() mode 1</span>
+<span class="fc" id="L191">          .put(&quot;%V&quot;, &quot;w&quot;) // %V Week where Sunday is the first day - WEEK() mode 2</span>
+<span class="fc" id="L192">          .put(&quot;%v&quot;, &quot;w&quot;) // %v Week where Monday is the first day - WEEK() mode 3</span>
+<span class="fc" id="L193">          .put(&quot;%X&quot;, &quot;u&quot;) // %X Year for week where Sunday is the first day</span>
+<span class="fc" id="L194">          .put(&quot;%x&quot;, &quot;u&quot;) // %x Year for week where Monday is the first day</span>
+<span class="fc" id="L195">          .build();</span>
+
+<span class="fc" id="L197">  private static final Pattern pattern = Pattern.compile(&quot;%.&quot;);</span>
+<span class="fc" id="L198">  private static final Pattern CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN =</span>
+<span class="fc" id="L199">      Pattern.compile(&quot;(?&lt;!%)[a-zA-Z&amp;&amp;[^aydmshiHIMYDSEL]]+&quot;);</span>
+  private static final String MOD_LITERAL = &quot;%&quot;;
+
+  private DateTimeFormatterUtil() {}
+
+  static StringBuffer getCleanFormat(ExprValue formatExpr) {
+<span class="fc" id="L205">    return getCleanFormat(formatExpr.stringValue());</span>
+  }
+
+  /**
+   * Cleans the given format string by wrapping characters that are not preceded by a '%' and are
+   * not part of the allowed date/time format specifiers in single quotes. This ensures that these
+   * characters are treated as literals in the date/time format.
+   *
+   * @param formatStr the format string to be cleaned
+   * @return a StringBuffer containing the cleaned format string
+   */
+  public static StringBuffer getCleanFormat(String formatStr) {
+<span class="fc" id="L217">    final StringBuffer cleanFormat = new StringBuffer();</span>
+<span class="fc" id="L218">    final Matcher m = CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatStr);</span>
+
+<span class="fc bfc" id="L220" title="All 2 branches covered.">    while (m.find()) {</span>
+<span class="fc" id="L221">      m.appendReplacement(cleanFormat, String.format(&quot;'%s'&quot;, m.group()));</span>
+    }
+<span class="fc" id="L223">    m.appendTail(cleanFormat);</span>
+
+<span class="fc" id="L225">    return cleanFormat;</span>
+  }
+
+  /**
+   * Helper function to format a DATETIME according to a provided handler and matcher.
+   *
+   * @param formatExpr ExprValue containing the format expression
+   * @param handler Map of character patterns to their associated datetime format
+   * @param datetime The datetime argument being formatted
+   * @return A formatted string expression
+   */
+  public static ExprValue getFormattedString(
+      ExprValue formatExpr, Map&lt;String, DateTimeFormatHandler&gt; handler, LocalDateTime datetime) {
+<span class="fc" id="L238">    StringBuffer cleanFormat = getCleanFormat(formatExpr);</span>
+
+<span class="fc" id="L240">    final Matcher matcher = pattern.matcher(cleanFormat.toString());</span>
+<span class="fc" id="L241">    final StringBuffer format = new StringBuffer();</span>
+    try {
+<span class="fc bfc" id="L243" title="All 2 branches covered.">      while (matcher.find()) {</span>
+<span class="fc" id="L244">        matcher.appendReplacement(</span>
+            format,
+            handler
+<span class="fc" id="L247">                .getOrDefault(</span>
+<span class="fc" id="L248">                    matcher.group(),</span>
+<span class="fc" id="L249">                    (d) -&gt; String.format(&quot;'%s'&quot;, matcher.group().replaceFirst(MOD_LITERAL, &quot;&quot;)))</span>
+<span class="fc" id="L250">                .getFormat(datetime));</span>
+      }
+<span class="fc" id="L252">    } catch (Exception e) {</span>
+<span class="fc" id="L253">      return ExprNullValue.of();</span>
+<span class="fc" id="L254">    }</span>
+<span class="fc" id="L255">    matcher.appendTail(format);</span>
+
+    // English Locale matches SQL requirements.
+    // 'AM'/'PM' instead of 'a.m.'/'p.m.'
+    // 'Sat' instead of 'Sat.' etc
+<span class="fc" id="L260">    return new ExprStringValue(</span>
+<span class="fc" id="L261">        datetime.format(DateTimeFormatter.ofPattern(format.toString(), Locale.ENGLISH)));</span>
+  }
+
+  /**
+   * Format the datetime using the date format String.
+   *
+   * @param datetime the datetime to be formated
+   * @param formatStr the format of String type.
+   * @return Date formatted using format and returned as a String.
+   */
+  public static String getFormattedDatetime(LocalDateTime datetime, String formatStr) {
+<span class="nc" id="L272">    return getFormattedString(new ExprStringValue(formatStr), DATE_HANDLERS, datetime)</span>
+<span class="nc" id="L273">        .stringValue();</span>
+  }
+
+  /**
+   * Format the date using the date format String.
+   *
+   * @param dateExpr the date ExprValue of Date/Timestamp/String type.
+   * @param formatExpr the format ExprValue of String type.
+   * @return Date formatted using format and returned as a String.
+   */
+  public static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
+<span class="fc" id="L284">    final LocalDateTime date = dateExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();</span>
+<span class="fc" id="L285">    return getFormattedString(formatExpr, DATE_HANDLERS, date);</span>
+  }
+
+  public static ExprValue getFormattedDateOfToday(
+      ExprValue formatExpr, ExprValue time, Clock current) {
+<span class="fc" id="L290">    final LocalDateTime date = LocalDateTime.of(LocalDate.now(current), time.timeValue());</span>
+
+<span class="fc" id="L292">    return getFormattedString(formatExpr, DATE_HANDLERS, date);</span>
+  }
+
+  /**
+   * Format the date using the date format String.
+   *
+   * @param timeExpr the date ExprValue of Date/Datetime/Timestamp/String type.
+   * @param formatExpr the format ExprValue of String type.
+   * @return Date formatted using format and returned as a String.
+   */
+  public static ExprValue getFormattedTime(ExprValue timeExpr, ExprValue formatExpr) {
+    // Initializes DateTime with LocalDate.now(). This is safe because the date is ignored.
+    // The time_format function will only return 0 or null for invalid string format specifiers.
+<span class="fc" id="L305">    final LocalDateTime time = LocalDateTime.of(LocalDate.now(), timeExpr.timeValue());</span>
+
+<span class="fc" id="L307">    return getFormattedString(formatExpr, TIME_HANDLERS, time);</span>
+  }
+
+  private static boolean canGetDate(TemporalAccessor ta) {
+<span class="fc bfc" id="L311" title="All 2 branches covered.">    return (ta.isSupported(ChronoField.YEAR)</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">        &amp;&amp; ta.isSupported(ChronoField.MONTH_OF_YEAR)</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">        &amp;&amp; ta.isSupported(ChronoField.DAY_OF_MONTH));</span>
+  }
+
+  private static boolean canGetTime(TemporalAccessor ta) {
+<span class="fc bfc" id="L317" title="All 2 branches covered.">    return (ta.isSupported(ChronoField.HOUR_OF_DAY)</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        &amp;&amp; ta.isSupported(ChronoField.MINUTE_OF_HOUR)</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">        &amp;&amp; ta.isSupported(ChronoField.SECOND_OF_MINUTE));</span>
+  }
+
+  static ExprValue parseStringWithDateOrTime(
+      FunctionProperties fp, ExprValue datetimeStringExpr, ExprValue formatExpr) {
+
+    // Replace patterns with % for Java DateTimeFormatter
+<span class="fc" id="L326">    StringBuffer cleanFormat = getCleanFormat(formatExpr);</span>
+<span class="fc" id="L327">    final Matcher matcher = pattern.matcher(cleanFormat.toString());</span>
+<span class="fc" id="L328">    final StringBuffer format = new StringBuffer();</span>
+
+<span class="fc bfc" id="L330" title="All 2 branches covered.">    while (matcher.find()) {</span>
+<span class="fc" id="L331">      matcher.appendReplacement(</span>
+          format,
+<span class="fc" id="L333">          STR_TO_DATE_FORMATS.getOrDefault(</span>
+<span class="fc" id="L334">              matcher.group(),</span>
+<span class="fc" id="L335">              String.format(&quot;'%s'&quot;, matcher.group().replaceFirst(MOD_LITERAL, &quot;&quot;))));</span>
+    }
+<span class="fc" id="L337">    matcher.appendTail(format);</span>
+
+    TemporalAccessor taWithMissingFields;
+    // Return NULL for invalid parse in string to align with MySQL
+    try {
+      // Get Temporal Accessor to initially parse string without default values
+<span class="fc" id="L343">      taWithMissingFields =</span>
+          new DateTimeFormatterBuilder()
+<span class="fc" id="L345">              .appendPattern(format.toString())</span>
+<span class="fc" id="L346">              .toFormatter()</span>
+<span class="fc" id="L347">              .withResolverStyle(ResolverStyle.STRICT)</span>
+<span class="fc" id="L348">              .parseUnresolved(datetimeStringExpr.stringValue(), new ParsePosition(0));</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">      if (taWithMissingFields == null) {</span>
+<span class="fc" id="L350">        throw new DateTimeException(&quot;Input string could not be parsed properly.&quot;);</span>
+      }
+<span class="fc bfc" id="L352" title="All 4 branches covered.">      if (!canGetDate(taWithMissingFields) &amp;&amp; !canGetTime(taWithMissingFields)) {</span>
+<span class="fc" id="L353">        throw new DateTimeException(&quot;Not enough data to build a valid Date, Time, or Datetime.&quot;);</span>
+      }
+<span class="fc" id="L355">    } catch (DateTimeException e) {</span>
+<span class="fc" id="L356">      return ExprNullValue.of();</span>
+<span class="fc" id="L357">    }</span>
+
+    int year =
+<span class="fc bfc" id="L360" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.YEAR)</span>
+<span class="fc" id="L361">            ? taWithMissingFields.get(ChronoField.YEAR)</span>
+<span class="fc" id="L362">            : 2000;</span>
+
+    int month =
+<span class="fc bfc" id="L365" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.MONTH_OF_YEAR)</span>
+<span class="fc" id="L366">            ? taWithMissingFields.get(ChronoField.MONTH_OF_YEAR)</span>
+<span class="fc" id="L367">            : 1;</span>
+
+    int day =
+<span class="fc bfc" id="L370" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.DAY_OF_MONTH)</span>
+<span class="fc" id="L371">            ? taWithMissingFields.get(ChronoField.DAY_OF_MONTH)</span>
+<span class="fc" id="L372">            : 1;</span>
+
+    int hour =
+<span class="fc bfc" id="L375" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.HOUR_OF_DAY)</span>
+<span class="fc" id="L376">            ? taWithMissingFields.get(ChronoField.HOUR_OF_DAY)</span>
+<span class="fc" id="L377">            : 0;</span>
+
+    int minute =
+<span class="fc bfc" id="L380" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.MINUTE_OF_HOUR)</span>
+<span class="fc" id="L381">            ? taWithMissingFields.get(ChronoField.MINUTE_OF_HOUR)</span>
+<span class="fc" id="L382">            : 0;</span>
+
+    int second =
+<span class="fc bfc" id="L385" title="All 2 branches covered.">        taWithMissingFields.isSupported(ChronoField.SECOND_OF_MINUTE)</span>
+<span class="fc" id="L386">            ? taWithMissingFields.get(ChronoField.SECOND_OF_MINUTE)</span>
+<span class="fc" id="L387">            : 0;</span>
+
+    // Fill returned datetime with current date if only Time information was parsed
+    LocalDateTime output;
+<span class="fc bfc" id="L391" title="All 2 branches covered.">    if (!canGetDate(taWithMissingFields)) {</span>
+<span class="fc" id="L392">      output =</span>
+<span class="fc" id="L393">          LocalDateTime.of(</span>
+<span class="fc" id="L394">              LocalDate.now(fp.getQueryStartClock()), LocalTime.of(hour, minute, second));</span>
+    } else {
+<span class="fc" id="L396">      output = LocalDateTime.of(year, month, day, hour, minute, second);</span>
+    }
+
+<span class="fc" id="L399">    return new ExprTimestampValue(output);</span>
+  }
+
+  /**
+   * Returns English suffix of incoming value.
+   *
+   * @param val Incoming value.
+   * @return English suffix as String (st, nd, rd, th)
+   */
+  private static String getSuffix(int val) {
+    // The numbers 11, 12, and 13 do not follow general suffix rules.
+<span class="fc bfc" id="L410" title="All 4 branches covered.">    if ((SUFFIX_SPECIAL_START_TH &lt;= val) &amp;&amp; (val &lt;= SUFFIX_SPECIAL_END_TH)) {</span>
+<span class="fc" id="L411">      return SUFFIX_SPECIAL_TH;</span>
+    }
+<span class="fc" id="L413">    return SUFFIX_CONVERTER.getOrDefault(val % 10, SUFFIX_SPECIAL_TH);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

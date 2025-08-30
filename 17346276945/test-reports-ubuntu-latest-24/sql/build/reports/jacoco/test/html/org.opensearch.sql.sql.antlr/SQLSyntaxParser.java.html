@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQLSyntaxParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.antlr</a> &gt; <span class="el_source">SQLSyntaxParser.java</span></div><h1>SQLSyntaxParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.antlr;
+
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
+import org.opensearch.sql.common.antlr.Parser;
+import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
+
+/** SQL syntax parser which encapsulates an ANTLR parser. */
+<span class="fc" id="L19">public class SQLSyntaxParser implements Parser {</span>
+<span class="fc" id="L20">  private static final Logger LOG = LogManager.getLogger(SQLSyntaxParser.class);</span>
+
+  /**
+   * Parse a SQL query by ANTLR parser.
+   *
+   * @param query a SQL query
+   * @return parse tree root
+   */
+  @Override
+  public ParseTree parse(String query) {
+<span class="fc" id="L30">    AnonymizerListener anonymizer = new AnonymizerListener();</span>
+
+<span class="fc" id="L32">    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));</span>
+<span class="fc" id="L33">    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));</span>
+<span class="fc" id="L34">    parser.addErrorListener(new SyntaxAnalysisErrorListener());</span>
+<span class="fc" id="L35">    parser.addParseListener(anonymizer);</span>
+
+<span class="fc" id="L37">    ParseTree parseTree = parser.root();</span>
+<span class="fc" id="L38">    LOG.info(&quot;New Engine Request Query: {}&quot;, anonymizer.getAnonymizedQueryString());</span>
+
+<span class="fc" id="L40">    return parseTree;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

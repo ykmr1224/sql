@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpanExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.span</a> &gt; <span class="el_source">SpanExpression.java</span></div><h1>SpanExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.span;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.planner.physical.collector.Rounding;
+
+@Getter
+@ToString
+@EqualsAndHashCode
+public class SpanExpression implements Expression {
+  private final Expression field;
+  private final Expression value;
+  private final SpanUnit unit;
+
+  /** Construct a span expression by field and span interval expression. */
+<span class="fc" id="L28">  public SpanExpression(Expression field, Expression value, SpanUnit unit) {</span>
+<span class="fc" id="L29">    this.field = field;</span>
+<span class="fc" id="L30">    this.value = value;</span>
+<span class="fc" id="L31">    this.unit = unit;</span>
+<span class="fc" id="L32">  }</span>
+
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L36">    Rounding&lt;?&gt; rounding =</span>
+<span class="fc" id="L37">        Rounding.createRounding(this); // TODO: will integrate with WindowAssigner</span>
+<span class="fc" id="L38">    return rounding.round(field.valueOf(valueEnv));</span>
+  }
+
+  /**
+   * Return type follows the following table.
+   *
+   * &lt;table&gt;
+   *   &lt;tr&gt;
+   *     &lt;th&gt;FIELD&lt;/th&gt;
+   *     &lt;th&gt;VALUE&lt;/th&gt;
+   *     &lt;th&gt;RETURN_TYPE&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;th&gt;int/long&lt;/th&gt;
+   *       &lt;th&gt;integer&lt;/th&gt;
+   *       &lt;th&gt;int/long (field type)&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;th&gt;int/long&lt;/th&gt;
+   *       &lt;th&gt;double&lt;/th&gt;
+   *       &lt;th&gt;double&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;th&gt;float/double&lt;/th&gt;
+   *       &lt;th&gt;integer&lt;/th&gt;
+   *       &lt;th&gt;float/double (field type)&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;th&gt;float/double&lt;/th&gt;
+   *       &lt;th&gt;double&lt;/th&gt;
+   *       &lt;th&gt;float/double (field type)&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *   &lt;tr&gt;
+   *       &lt;th&gt;other&lt;/th&gt;
+   *       &lt;th&gt;any&lt;/th&gt;
+   *       &lt;th&gt;field type&lt;/th&gt;
+   *   &lt;/tr&gt;
+   *  &lt;/table&gt;
+   */
+  @Override
+  public ExprType type() {
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (field.type().isCompatible(value.type())) {</span>
+<span class="fc" id="L80">      return field.type();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    } else if (value.type().isCompatible(field.type())) {</span>
+<span class="fc" id="L82">      return value.type();</span>
+    } else {
+<span class="fc" id="L84">      return field.type();</span>
+    }
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L90">    return visitor.visitNode(this, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

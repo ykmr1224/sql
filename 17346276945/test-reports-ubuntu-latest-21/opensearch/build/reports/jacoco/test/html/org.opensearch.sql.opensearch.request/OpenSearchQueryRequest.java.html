@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchQueryRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">OpenSearchQueryRequest.java</span></div><h1>OpenSearchQueryRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request;
+
+import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.action.search.*;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.SearchModule;
+import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+
+/**
+ * OpenSearch search request. This has to be stateful because it needs to:
+ *
+ * &lt;p&gt;1) Accumulate search source builder when visiting logical plan to push down operation. 2)
+ * Indicate the search already done.
+ */
+@EqualsAndHashCode
+@Getter
+@ToString
+public class OpenSearchQueryRequest implements OpenSearchRequest {
+
+  /** {@link OpenSearchRequest.IndexName}. */
+  private final IndexName indexName;
+
+  /** Search request source builder. */
+  private SearchSourceBuilder sourceBuilder;
+
+  /** OpenSearchExprValueFactory. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude
+  private final OpenSearchExprValueFactory exprValueFactory;
+
+  /** List of includes expected in the response. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final List&lt;String&gt; includes;
+
+<span class="fc" id="L63">  @EqualsAndHashCode.Exclude private boolean needClean = true;</span>
+
+  /** Indicate the search already done. */
+<span class="fc" id="L66">  private boolean searchDone = false;</span>
+
+  private String pitId;
+
+  private TimeValue cursorKeepAlive;
+
+  private Object[] searchAfter;
+
+<span class="fc" id="L74">  private SearchResponse searchResponse = null;</span>
+
+  /** Constructor of OpenSearchQueryRequest. */
+  public OpenSearchQueryRequest(
+      String indexName, int size, OpenSearchExprValueFactory factory, List&lt;String&gt; includes) {
+<span class="fc" id="L79">    this(new IndexName(indexName), size, factory, includes);</span>
+<span class="fc" id="L80">  }</span>
+
+  /** Constructor of OpenSearchQueryRequest. */
+  public OpenSearchQueryRequest(
+<span class="fc" id="L84">      IndexName indexName, int size, OpenSearchExprValueFactory factory, List&lt;String&gt; includes) {</span>
+<span class="fc" id="L85">    this.indexName = indexName;</span>
+<span class="fc" id="L86">    this.sourceBuilder = new SearchSourceBuilder();</span>
+<span class="fc" id="L87">    sourceBuilder.from(0);</span>
+<span class="fc" id="L88">    sourceBuilder.size(size);</span>
+<span class="fc" id="L89">    sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);</span>
+<span class="fc" id="L90">    this.exprValueFactory = factory;</span>
+<span class="fc" id="L91">    this.includes = includes;</span>
+<span class="fc" id="L92">  }</span>
+
+  /** Constructor of OpenSearchQueryRequest. */
+  public OpenSearchQueryRequest(
+      IndexName indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+<span class="fc" id="L99">      List&lt;String&gt; includes) {</span>
+<span class="fc" id="L100">    this.indexName = indexName;</span>
+<span class="fc" id="L101">    this.sourceBuilder = sourceBuilder;</span>
+<span class="fc" id="L102">    this.exprValueFactory = factory;</span>
+<span class="fc" id="L103">    this.includes = includes;</span>
+<span class="fc" id="L104">  }</span>
+
+  /** Constructor of OpenSearchQueryRequest with PIT support. */
+  public OpenSearchQueryRequest(
+      IndexName indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+      List&lt;String&gt; includes,
+      TimeValue cursorKeepAlive,
+<span class="fc" id="L113">      String pitId) {</span>
+<span class="fc" id="L114">    this.indexName = indexName;</span>
+<span class="fc" id="L115">    this.sourceBuilder = sourceBuilder;</span>
+<span class="fc" id="L116">    this.exprValueFactory = factory;</span>
+<span class="fc" id="L117">    this.includes = includes;</span>
+<span class="fc" id="L118">    this.cursorKeepAlive = cursorKeepAlive;</span>
+<span class="fc" id="L119">    this.pitId = pitId;</span>
+<span class="fc" id="L120">  }</span>
+
+  /**
+   * Constructs OpenSearchQueryRequest from serialized representation.
+   *
+   * @param in stream to read data from.
+   * @param engine OpenSearchSqlEngine to get node-specific context.
+   * @throws IOException thrown if reading from input {@code in} fails.
+   */
+<span class="fc" id="L129">  public OpenSearchQueryRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {</span>
+    // Deserialize the SearchSourceBuilder from the string representation
+<span class="fc" id="L131">    String sourceBuilderString = in.readString();</span>
+
+<span class="fc" id="L133">    NamedXContentRegistry xContentRegistry =</span>
+        new NamedXContentRegistry(
+<span class="fc" id="L135">            new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedXContents());</span>
+<span class="fc" id="L136">    XContentParser parser =</span>
+        XContentType.JSON
+<span class="fc" id="L138">            .xContent()</span>
+<span class="fc" id="L139">            .createParser(xContentRegistry, IGNORE_DEPRECATIONS, sourceBuilderString);</span>
+<span class="fc" id="L140">    this.sourceBuilder = SearchSourceBuilder.fromXContent(parser);</span>
+
+<span class="fc" id="L142">    cursorKeepAlive = in.readTimeValue();</span>
+<span class="fc" id="L143">    pitId = in.readString();</span>
+<span class="fc" id="L144">    includes = in.readStringList();</span>
+<span class="fc" id="L145">    indexName = new IndexName(in);</span>
+
+<span class="fc" id="L147">    int length = in.readVInt();</span>
+<span class="fc" id="L148">    this.searchAfter = new Object[length];</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    for (int i = 0; i &lt; length; i++) {</span>
+<span class="fc" id="L150">      this.searchAfter[i] = in.readGenericValue();</span>
+    }
+
+<span class="fc" id="L153">    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());</span>
+<span class="fc" id="L154">    exprValueFactory =</span>
+        new OpenSearchExprValueFactory(
+<span class="fc" id="L156">            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());</span>
+<span class="fc" id="L157">  }</span>
+
+  @Override
+  public OpenSearchResponse search(
+      Function&lt;SearchRequest, SearchResponse&gt; searchAction,
+      Function&lt;SearchScrollRequest, SearchResponse&gt; scrollAction) {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (this.pitId == null) {</span>
+      // When SearchRequest doesn't contain PitId, fetch single page request
+<span class="fc bfc" id="L165" title="All 2 branches covered.">      if (searchDone) {</span>
+<span class="fc" id="L166">        return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);</span>
+      } else {
+<span class="fc" id="L168">        searchDone = true;</span>
+<span class="fc" id="L169">        return new OpenSearchResponse(</span>
+<span class="fc" id="L170">            searchAction.apply(</span>
+<span class="fc" id="L171">                new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),</span>
+            exprValueFactory,
+            includes);
+      }
+    } else {
+      // Search with PIT instead of scroll API
+<span class="fc" id="L177">      return searchWithPIT(searchAction);</span>
+    }
+  }
+
+  public OpenSearchResponse searchWithPIT(Function&lt;SearchRequest, SearchResponse&gt; searchAction) {
+    OpenSearchResponse openSearchResponse;
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (searchDone) {</span>
+<span class="fc" id="L184">      openSearchResponse = new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);</span>
+    } else {
+<span class="fc" id="L186">      this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));</span>
+<span class="fc" id="L187">      this.sourceBuilder.timeout(cursorKeepAlive);</span>
+      // check for search after
+<span class="fc bfc" id="L189" title="All 2 branches covered.">      if (searchAfter != null) {</span>
+<span class="fc" id="L190">        this.sourceBuilder.searchAfter(searchAfter);</span>
+      }
+      // Set sort field for search_after
+<span class="fc bfc" id="L193" title="All 2 branches covered.">      if (this.sourceBuilder.sorts() == null) {</span>
+<span class="fc" id="L194">        this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);</span>
+        // Workaround to preserve sort location more exactly,
+        // see https://github.com/opensearch-project/sql/pull/3061
+<span class="fc" id="L197">        this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);</span>
+      }
+<span class="fc" id="L199">      SearchRequest searchRequest =</span>
+<span class="fc" id="L200">          new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);</span>
+<span class="fc" id="L201">      this.searchResponse = searchAction.apply(searchRequest);</span>
+
+<span class="fc" id="L203">      openSearchResponse = new OpenSearchResponse(this.searchResponse, exprValueFactory, includes);</span>
+
+<span class="fc" id="L205">      needClean = openSearchResponse.isEmpty();</span>
+<span class="fc" id="L206">      searchDone = openSearchResponse.isEmpty();</span>
+<span class="fc" id="L207">      SearchHit[] searchHits = this.searchResponse.getHits().getHits();</span>
+<span class="fc bfc" id="L208" title="All 4 branches covered.">      if (searchHits != null &amp;&amp; searchHits.length &gt; 0) {</span>
+<span class="fc" id="L209">        searchAfter = searchHits[searchHits.length - 1].getSortValues();</span>
+<span class="fc" id="L210">        this.sourceBuilder.searchAfter(searchAfter);</span>
+      }
+    }
+<span class="fc" id="L213">    return openSearchResponse;</span>
+  }
+
+  @Override
+  public void clean(Consumer&lt;String&gt; cleanAction) {
+    try {
+      // clean on the last page only, to prevent deleting the PitId in the middle of paging.
+<span class="fc bfc" id="L220" title="All 4 branches covered.">      if (this.pitId != null &amp;&amp; needClean) {</span>
+<span class="fc" id="L221">        cleanAction.accept(this.pitId);</span>
+<span class="fc" id="L222">        searchDone = true;</span>
+      }
+    } finally {
+<span class="fc" id="L225">      this.pitId = null;</span>
+    }
+<span class="fc" id="L227">  }</span>
+
+  @Override
+  public boolean hasAnotherBatch() {
+<span class="fc bfc" id="L231" title="All 2 branches covered.">    if (this.pitId != null) {</span>
+<span class="fc bfc" id="L232" title="All 2 branches covered.">      return !needClean;</span>
+    }
+<span class="fc" id="L234">    return false;</span>
+  }
+
+  @Override
+  public void writeTo(StreamOutput out) throws IOException {
+<span class="fc bfc" id="L239" title="All 2 branches covered.">    if (this.pitId != null) {</span>
+      // Convert SearchSourceBuilder to XContent and write it as a string
+<span class="fc" id="L241">      out.writeString(sourceBuilder.toString());</span>
+
+<span class="fc" id="L243">      out.writeTimeValue(sourceBuilder.timeout());</span>
+<span class="fc" id="L244">      out.writeString(sourceBuilder.pointInTimeBuilder().getId());</span>
+<span class="fc" id="L245">      out.writeStringCollection(includes);</span>
+<span class="fc" id="L246">      indexName.writeTo(out);</span>
+
+      // Serialize the searchAfter array
+<span class="fc bfc" id="L249" title="All 2 branches covered.">      if (searchAfter != null) {</span>
+<span class="fc" id="L250">        out.writeVInt(searchAfter.length);</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        for (Object obj : searchAfter) {</span>
+<span class="fc" id="L252">          out.writeGenericValue(obj);</span>
+        }
+      }
+    } else {
+      // OpenSearch Query request without PIT for single page requests
+<span class="fc" id="L257">      throw new UnsupportedOperationException(</span>
+          &quot;OpenSearchQueryRequest serialization is not implemented.&quot;);
+    }
+<span class="fc" id="L260">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

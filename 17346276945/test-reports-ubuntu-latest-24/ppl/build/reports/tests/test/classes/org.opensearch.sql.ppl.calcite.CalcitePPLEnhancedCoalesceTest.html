@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.calcite.CalcitePPLEnhancedCoalesceTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.calcite.CalcitePPLEnhancedCoalesceTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.calcite.html">org.opensearch.sql.ppl.calcite</a> &gt; CalcitePPLEnhancedCoalesceTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">12</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.245s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testCoalesceBasic</td>
+<td class="success">0.050s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceInWhere</td>
+<td class="success">0.016s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceNested</td>
+<td class="success">0.037s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceTypeInferenceWithNonNullableOperands</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithAllNonExistentFields</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithEmptyString</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithLiterals</td>
+<td class="success">0.020s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithMixedTypes</td>
+<td class="success">0.021s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithMultipleFields</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithMultipleNonExistentFields</td>
+<td class="success">0.024s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithNonExistentField</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCoalesceWithSpaceString</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>LogicalSort(fetch=[1])
+  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1, 'fallback':VARCHAR)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[3])
+  LogicalProject(EMPNO=[$0], COMM=[$6], result=[COALESCE($6, $0, 'fallback':VARCHAR)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[1])
+  LogicalProject(EMPNO=[$0], result=[COALESCE($6, 123, 'unknown':VARCHAR)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[2])
+  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], result1=[COALESCE($6, 0)], result2=[COALESCE(COALESCE($6, 0), $5)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[3])
+  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], result=[COALESCE($6, $5, 0)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalFilter(condition=[=(COALESCE($1, 'UNKNOWN':VARCHAR), 'SMITH')])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[2])
+  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], result=[COALESCE($6, $5, 999)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[2])
+  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[1])
+  LogicalProject(EMPNO=[$0], result=[COALESCE('':VARCHAR, $1)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[2])
+  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], MGR=[$3], result=[COALESCE($6, $5, $3, $0)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[1])
+  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, null:VARCHAR)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalSort(fetch=[1])
+  LogicalProject(EMPNO=[$0], result=[COALESCE(' ', $1)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:36:04 PM</p>
+</div>
+</div>
+</body>
+</html>

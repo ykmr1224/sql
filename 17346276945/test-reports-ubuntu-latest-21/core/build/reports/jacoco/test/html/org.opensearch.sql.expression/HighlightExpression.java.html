@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HighlightExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression</a> &gt; <span class="el_source">HighlightExpression.java</span></div><h1>HighlightExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/** Highlight Expression. */
+@Getter
+public class HighlightExpression extends FunctionExpression {
+  private final Expression highlightField;
+  private final ExprType type;
+
+  /**
+   * HighlightExpression Constructor.
+   *
+   * @param highlightField : Highlight field for expression.
+   */
+  public HighlightExpression(Expression highlightField) {
+<span class="fc" id="L35">    super(BuiltinFunctionName.HIGHLIGHT.getName(), List.of(highlightField));</span>
+<span class="fc" id="L36">    this.highlightField = highlightField;</span>
+<span class="fc" id="L37">    this.type =</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        this.highlightField.toString().contains(&quot;*&quot;) ? ExprCoreType.STRUCT : ExprCoreType.ARRAY;</span>
+<span class="fc" id="L39">  }</span>
+
+  /**
+   * Return collection value matching highlight field.
+   *
+   * @param valueEnv : Dataset to parse value from.
+   * @return : collection value of highlight fields.
+   */
+  @Override
+  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L49">    String refName = &quot;_highlight&quot;;</span>
+    // Not a wilcard expression
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    if (this.type == ExprCoreType.ARRAY) {</span>
+<span class="fc" id="L52">      refName += &quot;.&quot; + StringUtils.unquoteText(getHighlightField().toString());</span>
+    }
+<span class="fc" id="L54">    ExprValue value = valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));</span>
+
+    // In the event of multiple returned highlights and wildcard being
+    // used in conjunction with other highlight calls, we need to ensure
+    // only wildcard regex matching is mapped to wildcard call.
+<span class="fc bfc" id="L59" title="All 4 branches covered.">    if (this.type == ExprCoreType.STRUCT &amp;&amp; value.type() == ExprCoreType.STRUCT) {</span>
+<span class="fc" id="L60">      value =</span>
+          new ExprTupleValue(
+              new LinkedHashMap&lt;String, ExprValue&gt;(
+<span class="fc" id="L63">                  value.tupleValue().entrySet().stream()</span>
+<span class="fc" id="L64">                      .filter(</span>
+                          s -&gt;
+<span class="fc" id="L66">                              matchesHighlightRegex(</span>
+<span class="fc" id="L67">                                  s.getKey(), StringUtils.unquoteText(highlightField.toString())))</span>
+<span class="fc" id="L68">                      .collect(Collectors.toMap(e -&gt; e.getKey(), e -&gt; e.getValue()))));</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (value.tupleValue().isEmpty()) {</span>
+<span class="fc" id="L70">        value = ExprValueUtils.missingValue();</span>
+      }
+    }
+
+<span class="fc" id="L74">    return value;</span>
+  }
+
+  /**
+   * Get type for HighlightExpression.
+   *
+   * @return : Expression type.
+   */
+  @Override
+  public ExprType type() {
+<span class="fc" id="L84">    return this.type;</span>
+  }
+
+  @Override
+  public &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context) {
+<span class="fc" id="L89">    return visitor.visitHighlight(this, context);</span>
+  }
+
+  /**
+   * Check if field matches the wildcard pattern used in highlight query.
+   *
+   * @param field Highlight selected field for query
+   * @param pattern Wildcard regex to match field against
+   * @return True if field matches wildcard pattern
+   */
+  private boolean matchesHighlightRegex(String field, String pattern) {
+<span class="fc" id="L100">    Pattern p = Pattern.compile(pattern.replace(&quot;*&quot;, &quot;.*&quot;));</span>
+<span class="fc" id="L101">    Matcher matcher = p.matcher(field);</span>
+<span class="fc" id="L102">    return matcher.matches();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

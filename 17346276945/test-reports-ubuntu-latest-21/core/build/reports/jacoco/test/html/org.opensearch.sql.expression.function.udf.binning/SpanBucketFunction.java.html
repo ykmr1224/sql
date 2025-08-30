@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpanBucketFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.binning</a> &gt; <span class="el_source">SpanBucketFunction.java</span></div><h1>SpanBucketFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.binning;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * SPAN_BUCKET(field_value, span_value) - Fixed-width span bucketing function.
+ *
+ * &lt;p&gt;This function creates fixed-width bins based on a specified span value. Each bin has exactly
+ * the specified width.
+ *
+ * &lt;p&gt;Parameters:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;field_value - The numeric value to bin
+ *   &lt;li&gt;span_value - The width of each bin
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Implements the same binning logic as BinCalculatorFunction for 'span' type.
+ */
+public class SpanBucketFunction extends ImplementorUDF {
+
+  public SpanBucketFunction() {
+<span class="fc" id="L39">    super(new SpanBucketImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L44">    return ReturnTypes.VARCHAR_2000;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L49">    return PPLOperandTypes.NUMERIC_NUMERIC;</span>
+  }
+
+<span class="fc" id="L52">  public static class SpanBucketImplementor implements NotNullImplementor {</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L57">      Expression fieldValue = translatedOperands.get(0);</span>
+<span class="nc" id="L58">      Expression spanValue = translatedOperands.get(1);</span>
+
+<span class="nc" id="L60">      return Expressions.call(</span>
+          SpanBucketImplementor.class,
+          &quot;calculateSpanBucket&quot;,
+<span class="nc" id="L63">          Expressions.convert_(fieldValue, Number.class),</span>
+<span class="nc" id="L64">          Expressions.convert_(spanValue, Number.class));</span>
+    }
+
+    /** Span bucket calculation. */
+    public static String calculateSpanBucket(Number fieldValue, Number spanParam) {
+<span class="nc bnc" id="L69" title="All 4 branches missed.">      if (fieldValue == null || spanParam == null) {</span>
+<span class="nc" id="L70">        return null;</span>
+      }
+
+<span class="nc" id="L73">      double value = fieldValue.doubleValue();</span>
+<span class="nc" id="L74">      double span = spanParam.doubleValue();</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">      if (span &lt;= 0) {</span>
+<span class="nc" id="L76">        return null;</span>
+      }
+
+<span class="nc" id="L79">      double binStart = Math.floor(value / span) * span;</span>
+<span class="nc" id="L80">      double binEnd = binStart + span;</span>
+
+<span class="nc" id="L82">      return formatRange(binStart, binEnd, span);</span>
+    }
+
+    /** Format range string with appropriate precision. */
+    private static String formatRange(double binStart, double binEnd, double span) {
+<span class="nc bnc" id="L87" title="All 6 branches missed.">      if (isIntegerSpan(span) &amp;&amp; isIntegerValue(binStart) &amp;&amp; isIntegerValue(binEnd)) {</span>
+<span class="nc" id="L88">        return String.format(&quot;%d-%d&quot;, (long) binStart, (long) binEnd);</span>
+      } else {
+<span class="nc" id="L90">        return formatFloatingPointRange(binStart, binEnd, span);</span>
+      }
+    }
+
+    /** Checks if the span represents an integer value. */
+    private static boolean isIntegerSpan(double span) {
+<span class="nc bnc" id="L96" title="All 4 branches missed.">      return span == Math.floor(span) &amp;&amp; !Double.isInfinite(span);</span>
+    }
+
+    /** Checks if a value is effectively an integer. */
+    private static boolean isIntegerValue(double value) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">      return Math.abs(value - Math.round(value)) &lt; 1e-10;</span>
+    }
+
+    /** Formats floating-point ranges with appropriate precision. */
+    private static String formatFloatingPointRange(double binStart, double binEnd, double span) {
+<span class="nc" id="L106">      int decimalPlaces = getAppropriateDecimalPlaces(span);</span>
+<span class="nc" id="L107">      String format = String.format(&quot;%%.%df-%%.%df&quot;, decimalPlaces, decimalPlaces);</span>
+<span class="nc" id="L108">      return String.format(format, binStart, binEnd);</span>
+    }
+
+    /** Determines appropriate decimal places for formatting based on span size. */
+    private static int getAppropriateDecimalPlaces(double span) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (span &gt;= 1.0) {</span>
+<span class="nc" id="L114">        return 1;</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">      } else if (span &gt;= 0.1) {</span>
+<span class="nc" id="L116">        return 2;</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">      } else if (span &gt;= 0.01) {</span>
+<span class="nc" id="L118">        return 3;</span>
+      } else {
+<span class="nc" id="L120">        return 4;</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
