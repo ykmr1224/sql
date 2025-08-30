@@ -34,7 +34,6 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-    # Download all the artifacts from the previous jobs
     - name: Download HTML Report Artifacts
       uses: actions/download-artifact@v4
       with:
@@ -42,15 +41,13 @@ jobs:
         path: downloaded-artifacts
         merge-multiple: false
 
-    # Collect all HTML reports from artifacts and workspace
     - name: Collect artifacts
       run: |
         mkdir -p site
         cp -r downloaded-artifacts/* site/
         echo "Collected all artifacts into 'site' directory."
 
-    # Generate index.html listing all matching HTML files
-    - name: Generate HTML reports index
+    - name: Generate index
       run: |
         file=site/index.html
         pattern="${{ inputs.filename-pattern }}"
@@ -71,7 +68,6 @@ jobs:
         
         echo "Generated index with pattern='$pattern' at: $file"
 
-    # Publish to gh-pages using the industry-standard action
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
@@ -81,7 +77,6 @@ jobs:
         destination_dir: ${{ inputs.destination-dir }}
         keep_files: ${{ inputs.keep-files }}
 
-    # Add a clickable link in the run summary
     - name: Summary
       run: |
         SHORT_COMMIT="${{ github.sha }}"
@@ -89,10 +84,7 @@ jobs:
         URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ inputs.destination-dir }}/"
         
         {
-          echo "### 📊 HTML Reports Published"
-          echo ""
           echo "- **📋 Dashboard:** [$URL]($URL)"
           echo "- **🔍 Revision:** ${SHORT_COMMIT}"
           echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
-          echo "- **📅 Generated:** $(date -u)"
         } >> "$GITHUB_STEP_SUMMARY"
