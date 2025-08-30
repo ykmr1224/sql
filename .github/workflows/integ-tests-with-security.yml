@@ -96,5 +96,5 @@ jobs:
     uses: ./.github/workflows/publish-html-reports.yml
     with:
       artifact-pattern: 'test-reports-*'
-      destination-dir: '${{ github.run_number }}-${{ github.sha }}'
+      destination-dir: '${{ github.run_number }}-security-tests-${{ github.sha }}'
       keep-files: true

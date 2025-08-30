@@ -200,5 +200,5 @@ jobs:
     uses: ./.github/workflows/publish-html-reports.yml
     with:
       artifact-pattern: 'html-reports-*'
-      destination-dir: 'revision-${{ github.sha }}'
+      destination-dir: '${{ github.run_number }}-test-reports-${{ github.sha }}'
       keep-files: true
