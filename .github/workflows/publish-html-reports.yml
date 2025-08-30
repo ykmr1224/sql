@@ -55,7 +55,7 @@ jobs:
         file=site/index.html
         filename_pattern="${{ inputs.filename-pattern }}"
         template="<li><a href=\"%s\">%s</a></li>"
-        links=$(cd site && find . -type f -name "$filename_pattern" | sort | awk '{ printf "$template", $0, $0 }')
+        links=$(cd site && find . -type f -name "$filename_pattern" | sort | awk -v tmpl="$template" '{ printf tmpl, $0, $0 }')
         
         cat > $file << EOF
         <!DOCTYPE html>
