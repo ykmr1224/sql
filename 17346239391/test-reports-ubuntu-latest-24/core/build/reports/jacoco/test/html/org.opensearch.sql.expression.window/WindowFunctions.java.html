@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WindowFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.window</a> &gt; <span class="el_source">WindowFunctions.java</span></div><h1>WindowFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.window;
+
+import static java.util.Collections.emptyList;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.function.Supplier;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.window.patterns.BufferPatternWindowFunction;
+import org.opensearch.sql.expression.window.ranking.DenseRankFunction;
+import org.opensearch.sql.expression.window.ranking.RankFunction;
+import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
+import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+
+/** Window functions that register all window functions in function repository. */
+@UtilityClass
+public class WindowFunctions {
+
+  /**
+   * Register all window functions to function repository.
+   *
+   * @param repository function repository
+   */
+  public void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L39">    repository.register(rowNumber());</span>
+<span class="fc" id="L40">    repository.register(rank());</span>
+<span class="fc" id="L41">    repository.register(denseRank());</span>
+<span class="fc" id="L42">    repository.register(brain());</span>
+<span class="fc" id="L43">  }</span>
+
+  private DefaultFunctionResolver rowNumber() {
+<span class="fc" id="L46">    return rankingFunction(BuiltinFunctionName.ROW_NUMBER.getName(), RowNumberFunction::new);</span>
+  }
+
+  private DefaultFunctionResolver rank() {
+<span class="fc" id="L50">    return rankingFunction(BuiltinFunctionName.RANK.getName(), RankFunction::new);</span>
+  }
+
+  private DefaultFunctionResolver denseRank() {
+<span class="fc" id="L54">    return rankingFunction(BuiltinFunctionName.DENSE_RANK.getName(), DenseRankFunction::new);</span>
+  }
+
+  private DefaultFunctionResolver brain() {
+<span class="fc" id="L58">    FunctionName functionName = BuiltinFunctionName.BRAIN.getName();</span>
+<span class="fc" id="L59">    FunctionBuilder functionBuilder =</span>
+<span class="fc" id="L60">        (functionProperties, arguments) -&gt; new BufferPatternWindowFunction(arguments);</span>
+<span class="fc" id="L61">    return new DefaultFunctionResolver(</span>
+        functionName,
+<span class="fc" id="L63">        ImmutableMap.of(</span>
+<span class="fc" id="L64">            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,</span>
+<span class="fc" id="L65">            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,</span>
+<span class="fc" id="L66">            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)), functionBuilder,</span>
+<span class="fc" id="L67">            new FunctionSignature(functionName, ImmutableList.of(STRING, DOUBLE)), functionBuilder,</span>
+<span class="fc" id="L68">            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER)),</span>
+                functionBuilder,
+<span class="fc" id="L70">            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, DOUBLE)),</span>
+                functionBuilder,
+<span class="fc" id="L72">            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, DOUBLE)),</span>
+                functionBuilder,
+<span class="fc" id="L74">            new FunctionSignature(functionName, ImmutableList.of(STRING, DOUBLE, INTEGER)),</span>
+                functionBuilder,
+<span class="fc" id="L76">            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER, DOUBLE)),</span>
+                functionBuilder,
+<span class="fc" id="L78">            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, DOUBLE, INTEGER)),</span>
+                functionBuilder));
+  }
+
+  private DefaultFunctionResolver rankingFunction(
+      FunctionName functionName, Supplier&lt;RankingWindowFunction&gt; constructor) {
+<span class="fc" id="L84">    FunctionSignature functionSignature = new FunctionSignature(functionName, emptyList());</span>
+<span class="fc" id="L85">    FunctionBuilder functionBuilder = (functionProperties, arguments) -&gt; constructor.get();</span>
+<span class="fc" id="L86">    return new DefaultFunctionResolver(</span>
+<span class="fc" id="L87">        functionName, ImmutableMap.of(functionSignature, functionBuilder));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

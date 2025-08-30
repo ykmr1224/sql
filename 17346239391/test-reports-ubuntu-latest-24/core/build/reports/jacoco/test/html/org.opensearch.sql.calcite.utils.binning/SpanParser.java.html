@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpanParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning</a> &gt; <span class="el_source">SpanParser.java</span></div><h1>SpanParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning;
+
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/** Parser for span strings to determine type and extract parameters. */
+<span class="nc" id="L15">public class SpanParser {</span>
+
+<span class="fc" id="L17">  private static final Pattern LOG_PATTERN = Pattern.compile(&quot;^(\\d*\\.?\\d*)?log(\\d+\\.?\\d*)$&quot;);</span>
+
+  // Map for normalizing time units to standard forms
+<span class="fc" id="L20">  private static final Map&lt;String, String&gt; NORMALIZED_UNITS = new HashMap&lt;&gt;();</span>
+
+  // Direct lookup map for time units (lowercase -&gt; original)
+<span class="fc" id="L23">  private static final Map&lt;String, String&gt; UNIT_LOOKUP = new HashMap&lt;&gt;();</span>
+
+  static {
+    // Define normalized units mapping using Map.ofEntries
+<span class="fc" id="L27">    NORMALIZED_UNITS.putAll(</span>
+<span class="fc" id="L28">        Map.ofEntries(</span>
+            // Seconds variations
+<span class="fc" id="L30">            Map.entry(&quot;seconds&quot;, &quot;s&quot;),</span>
+<span class="fc" id="L31">            Map.entry(&quot;second&quot;, &quot;s&quot;),</span>
+<span class="fc" id="L32">            Map.entry(&quot;secs&quot;, &quot;s&quot;),</span>
+<span class="fc" id="L33">            Map.entry(&quot;sec&quot;, &quot;s&quot;),</span>
+<span class="fc" id="L34">            Map.entry(&quot;s&quot;, &quot;s&quot;),</span>
+            // Minutes variations
+<span class="fc" id="L36">            Map.entry(&quot;minutes&quot;, &quot;m&quot;),</span>
+<span class="fc" id="L37">            Map.entry(&quot;minute&quot;, &quot;m&quot;),</span>
+<span class="fc" id="L38">            Map.entry(&quot;mins&quot;, &quot;m&quot;),</span>
+<span class="fc" id="L39">            Map.entry(&quot;min&quot;, &quot;m&quot;),</span>
+<span class="fc" id="L40">            Map.entry(&quot;m&quot;, &quot;m&quot;),</span>
+            // Hours variations
+<span class="fc" id="L42">            Map.entry(&quot;hours&quot;, &quot;h&quot;),</span>
+<span class="fc" id="L43">            Map.entry(&quot;hour&quot;, &quot;h&quot;),</span>
+<span class="fc" id="L44">            Map.entry(&quot;hrs&quot;, &quot;h&quot;),</span>
+<span class="fc" id="L45">            Map.entry(&quot;hr&quot;, &quot;h&quot;),</span>
+<span class="fc" id="L46">            Map.entry(&quot;h&quot;, &quot;h&quot;),</span>
+            // Days variations
+<span class="fc" id="L48">            Map.entry(&quot;days&quot;, &quot;d&quot;),</span>
+<span class="fc" id="L49">            Map.entry(&quot;day&quot;, &quot;d&quot;),</span>
+<span class="fc" id="L50">            Map.entry(&quot;d&quot;, &quot;d&quot;),</span>
+            // Months variations
+<span class="fc" id="L52">            Map.entry(&quot;months&quot;, &quot;months&quot;),</span>
+<span class="fc" id="L53">            Map.entry(&quot;month&quot;, &quot;months&quot;),</span>
+<span class="fc" id="L54">            Map.entry(&quot;mon&quot;, &quot;months&quot;),</span>
+            // Milliseconds
+<span class="fc" id="L56">            Map.entry(&quot;ms&quot;, &quot;ms&quot;),</span>
+            // Microseconds
+<span class="fc" id="L58">            Map.entry(&quot;us&quot;, &quot;us&quot;),</span>
+            // Centiseconds
+<span class="fc" id="L60">            Map.entry(&quot;cs&quot;, &quot;cs&quot;),</span>
+            // Deciseconds
+<span class="fc" id="L62">            Map.entry(&quot;ds&quot;, &quot;ds&quot;)));</span>
+
+    // Build direct lookup map for efficient unit detection
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    for (String unit : NORMALIZED_UNITS.keySet()) {</span>
+<span class="fc" id="L66">      UNIT_LOOKUP.put(unit.toLowerCase(Locale.ROOT), unit);</span>
+<span class="fc" id="L67">    }</span>
+<span class="fc" id="L68">  }</span>
+
+  /** Parses a span string and returns span information. */
+  public static SpanInfo parse(String spanStr) {
+<span class="fc" id="L72">    String lowerSpanStr = spanStr.toLowerCase(Locale.ROOT).trim();</span>
+
+    // Special handling for common log spans
+<span class="pc bpc" id="L75" title="2 of 4 branches missed.">    switch (lowerSpanStr) {</span>
+      case &quot;log10&quot;:
+<span class="fc" id="L77">        return new SpanInfo(SpanType.LOG, 1.0, 10.0);</span>
+      case &quot;log2&quot;:
+<span class="nc" id="L79">        return new SpanInfo(SpanType.LOG, 1.0, 2.0);</span>
+      case &quot;loge&quot;:
+      case &quot;ln&quot;:
+<span class="nc" id="L82">        return new SpanInfo(SpanType.LOG, 1.0, Math.E);</span>
+    }
+
+    // Check for logarithmic pattern
+<span class="fc" id="L86">    Matcher logMatcher = LOG_PATTERN.matcher(lowerSpanStr);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (logMatcher.matches()) {</span>
+<span class="fc" id="L88">      return parseLogSpan(logMatcher);</span>
+    }
+
+    // Check for time-based span
+<span class="fc" id="L92">    String timeUnit = extractTimeUnit(spanStr);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (timeUnit != null) {</span>
+<span class="fc" id="L94">      return parseTimeSpan(spanStr, timeUnit);</span>
+    }
+
+    // Numeric span (fallback)
+<span class="fc" id="L98">    return parseNumericSpan(spanStr);</span>
+  }
+
+  private static SpanInfo parseLogSpan(Matcher logMatcher) {
+<span class="fc" id="L102">    String coeffStr = logMatcher.group(1);</span>
+<span class="fc" id="L103">    String baseStr = logMatcher.group(2);</span>
+
+    double coefficient =
+<span class="pc bpc" id="L106" title="1 of 4 branches missed.">        (coeffStr == null || coeffStr.isEmpty()) ? 1.0 : Double.parseDouble(coeffStr);</span>
+<span class="fc" id="L107">    double base = Double.parseDouble(baseStr);</span>
+
+    // Validate log span parameters
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    if (base &lt;= 1.0) {</span>
+<span class="nc" id="L111">      throw new IllegalArgumentException(&quot;Log base must be &gt; 1.0, got: &quot; + base);</span>
+    }
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    if (coefficient &lt;= 0.0) {</span>
+<span class="nc" id="L114">      throw new IllegalArgumentException(</span>
+          &quot;Log coefficient must be &gt; 0.0, got coefficient=&quot; + coefficient + &quot;, base=&quot; + base);
+    }
+
+<span class="fc" id="L118">    return new SpanInfo(SpanType.LOG, coefficient, base);</span>
+  }
+
+  private static SpanInfo parseTimeSpan(String spanStr, String timeUnit) {
+<span class="fc" id="L122">    String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());</span>
+<span class="fc" id="L123">    double value = Double.parseDouble(valueStr);</span>
+<span class="fc" id="L124">    return new SpanInfo(SpanType.TIME, value, timeUnit);</span>
+  }
+
+  private static SpanInfo parseNumericSpan(String spanStr) {
+    try {
+<span class="fc" id="L129">      double value = Double.parseDouble(spanStr);</span>
+<span class="fc" id="L130">      return new SpanInfo(SpanType.NUMERIC, value, null);</span>
+<span class="nc" id="L131">    } catch (NumberFormatException e) {</span>
+<span class="nc" id="L132">      throw new IllegalArgumentException(&quot;Invalid span format: &quot; + spanStr);</span>
+    }
+  }
+
+  /** Extracts time unit from span string (returns original matched unit, not normalized). */
+  public static String extractTimeUnit(String spanStr) {
+<span class="fc" id="L138">    String lowerSpanStr = spanStr.toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L139">    String longestMatch = null;</span>
+
+    // Find the longest unit that matches as a suffix
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    for (String unit : UNIT_LOOKUP.keySet()) {</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">      if (lowerSpanStr.endsWith(unit)) {</span>
+        // Ensure this is a word boundary (not part of a larger word)
+<span class="fc" id="L145">        int unitStartPos = lowerSpanStr.length() - unit.length();</span>
+<span class="pc bpc" id="L146" title="1 of 4 branches missed.">        if (unitStartPos == 0 || !Character.isLetter(lowerSpanStr.charAt(unitStartPos - 1))) {</span>
+          // Keep the longest match
+<span class="pc bpc" id="L148" title="3 of 4 branches missed.">          if (longestMatch == null || unit.length() &gt; longestMatch.length()) {</span>
+<span class="fc" id="L149">            longestMatch = unit;</span>
+          }
+        }
+      }
+<span class="fc" id="L153">    }</span>
+
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    return longestMatch != null ? UNIT_LOOKUP.get(longestMatch) : null;</span>
+  }
+
+  /** Returns the normalized form of a time unit. */
+  public static String getNormalizedUnit(String unit) {
+<span class="nc" id="L160">    return NORMALIZED_UNITS.getOrDefault(unit, unit);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

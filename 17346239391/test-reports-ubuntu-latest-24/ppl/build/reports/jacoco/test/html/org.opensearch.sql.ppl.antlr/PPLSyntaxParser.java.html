@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLSyntaxParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ppl</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.ppl.antlr</a> &gt; <span class="el_source">PPLSyntaxParser.java</span></div><h1>PPLSyntaxParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.antlr;
+
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
+import org.opensearch.sql.common.antlr.Parser;
+import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+
+/** PPL Syntax Parser. */
+<span class="fc" id="L18">public class PPLSyntaxParser implements Parser {</span>
+  /** Analyze the query syntax. */
+  @Override
+  public ParseTree parse(String query) {
+<span class="fc" id="L22">    OpenSearchPPLParser parser = createParser(createLexer(query));</span>
+<span class="fc" id="L23">    parser.addErrorListener(new SyntaxAnalysisErrorListener());</span>
+<span class="fc" id="L24">    return parser.root();</span>
+  }
+
+  private OpenSearchPPLParser createParser(Lexer lexer) {
+<span class="fc" id="L28">    return new OpenSearchPPLParser(new CommonTokenStream(lexer));</span>
+  }
+
+  private OpenSearchPPLLexer createLexer(String query) {
+<span class="fc" id="L32">    return new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SortHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">SortHelper.java</span></div><h1>SortHelper.java</h1><pre class="source lang-java linenums">package org.opensearch.sql.planner.physical;
+
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
+
+import com.google.common.collect.Ordering;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.utils.ExprValueOrdering;
+import org.opensearch.sql.expression.Expression;
+
+public interface SortHelper {
+
+  /**
+   * Construct an expr comparator for sorting on ExprValue.
+   *
+   * @param sortList list of sort fields and their related sort options.
+   * @return A comparator for ExprValue
+   */
+  static Comparator&lt;ExprValue&gt; constructExprComparator(
+      List&lt;Pair&lt;SortOption, Expression&gt;&gt; sortList) {
+<span class="fc" id="L26">    return (o1, o2) -&gt; compareWithExpressions(o1, o2, constructComparator(sortList));</span>
+  }
+
+  /**
+   * Construct an expr ordering for efficiently taking the top-k elements on ExprValue.
+   *
+   * @param sortList list of sort fields and their related sort options.
+   * @return An guava ordering for ExprValue
+   */
+  static Ordering&lt;ExprValue&gt; constructExprOrdering(List&lt;Pair&lt;SortOption, Expression&gt;&gt; sortList) {
+<span class="fc" id="L36">    return Ordering.from(constructExprComparator(sortList));</span>
+  }
+
+  private static List&lt;Pair&lt;Expression, Comparator&lt;ExprValue&gt;&gt;&gt; constructComparator(
+      List&lt;Pair&lt;SortOption, Expression&gt;&gt; sortList) {
+<span class="fc" id="L41">    List&lt;Pair&lt;Expression, Comparator&lt;ExprValue&gt;&gt;&gt; comparators = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">    for (Pair&lt;SortOption, Expression&gt; pair : sortList) {</span>
+<span class="fc" id="L43">      SortOption option = pair.getLeft();</span>
+      ExprValueOrdering ordering =
+<span class="fc bfc" id="L45" title="All 2 branches covered.">          ASC.equals(option.getSortOrder())</span>
+<span class="fc" id="L46">              ? ExprValueOrdering.natural()</span>
+<span class="fc" id="L47">              : ExprValueOrdering.natural().reverse();</span>
+      ordering =
+<span class="fc bfc" id="L49" title="All 2 branches covered.">          NULL_FIRST.equals(option.getNullOrder()) ? ordering.nullsFirst() : ordering.nullsLast();</span>
+<span class="fc" id="L50">      comparators.add(Pair.of(pair.getRight(), ordering));</span>
+<span class="fc" id="L51">    }</span>
+<span class="fc" id="L52">    return comparators;</span>
+  }
+
+  private static int compareWithExpressions(
+      ExprValue o1, ExprValue o2, List&lt;Pair&lt;Expression, Comparator&lt;ExprValue&gt;&gt;&gt; comparators) {
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    for (Pair&lt;Expression, Comparator&lt;ExprValue&gt;&gt; comparator : comparators) {</span>
+<span class="fc" id="L58">      Expression expression = comparator.getKey();</span>
+<span class="fc" id="L59">      int result =</span>
+          comparator
+<span class="fc" id="L61">              .getValue()</span>
+<span class="fc" id="L62">              .compare(</span>
+<span class="fc" id="L63">                  expression.valueOf(o1.bindingTuples()), expression.valueOf(o2.bindingTuples()));</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">      if (result != 0) {</span>
+<span class="fc" id="L65">        return result;</span>
+      }
+<span class="fc" id="L67">    }</span>
+<span class="fc" id="L68">    return 0;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

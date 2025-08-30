@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractExprRelDataType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.type</a> &gt; <span class="el_source">AbstractExprRelDataType.java</span></div><h1>AbstractExprRelDataType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.type;
+
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.util.Map;
+import lombok.Getter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl.JavaType;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.type.ExprType;
+
+@Getter
+public abstract class AbstractExprRelDataType&lt;T extends RelDataType&gt; extends RelDataTypeImpl {
+
+  protected final ExprUDT udt;
+
+  protected final T relType;
+
+<span class="fc" id="L30">  protected AbstractExprRelDataType(ExprUDT udt, T relType) {</span>
+<span class="fc" id="L31">    this.udt = udt;</span>
+<span class="fc" id="L32">    this.relType = relType;</span>
+<span class="fc" id="L33">    computeDigest();</span>
+<span class="fc" id="L34">  }</span>
+
+  public ExprType getExprType() {
+<span class="nc" id="L37">    return udt.getExprCoreType();</span>
+  }
+
+  public abstract Type getJavaType();
+
+  public abstract RelDataType createWithNullability(
+      OpenSearchTypeFactory typeFactory, boolean nullable);
+
+  public abstract RelDataType createWithCharsetAndCollation(
+      OpenSearchTypeFactory typeFactory, Charset charset, SqlCollation collation);
+
+  /** Show udt name and hide the details */
+  @Override
+  public String toString() {
+<span class="nc" id="L51">    return udt.toString();</span>
+  }
+
+  @Override
+  public boolean isNullable() {
+<span class="fc" id="L56">    return relType.isNullable();</span>
+  }
+
+  @Override
+  protected abstract void generateTypeString(StringBuilder sb, boolean withDetail);
+
+  @Override
+  public RelDataTypeFamily getFamily() {
+<span class="fc" id="L64">    return relType.getFamily();</span>
+  }
+
+  @Override
+  public @Nullable RelDataType getComponentType() {
+<span class="nc" id="L69">    return relType.getComponentType();</span>
+  }
+
+  /**
+   * For {@link JavaType} created with {@link Map} class, we cannot get the key type. Use ANY as key
+   * type.
+   */
+  @Override
+  public @Nullable RelDataType getKeyType() {
+<span class="nc" id="L78">    return relType.getKeyType();</span>
+  }
+
+  /**
+   * For {@link JavaType} created with {@link Map} class, we cannot get the value type. Use ANY as
+   * value type.
+   */
+  @Override
+  public @Nullable RelDataType getValueType() {
+<span class="nc" id="L87">    return relType.getValueType();</span>
+  }
+
+  @Override
+  public @Nullable Charset getCharset() {
+<span class="fc" id="L92">    return relType.getCharset();</span>
+  }
+
+  @Override
+  public @Nullable SqlCollation getCollation() {
+<span class="fc" id="L97">    return relType.getCollation();</span>
+  }
+
+  @Override
+  public SqlTypeName getSqlTypeName() {
+<span class="nc" id="L102">    return relType.getSqlTypeName();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

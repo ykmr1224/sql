@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.DateTimeComparisonIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.DateTimeComparisonIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.html">org.opensearch.sql.ppl</a> &gt; DateTimeComparisonIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">191</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">2.249s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testCompare {DATE('1961-04-11') &gt;= TIMESTAMP('1961-04-12 00:00:00') =&gt; false}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') != DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') != DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &lt; DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &lt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &lt;= DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &lt;= DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &gt; TIMESTAMP('1961-04-12 00:00:00') =&gt; false}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1961-04-12') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &lt; DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &gt; DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &gt; DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &gt;= DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &gt;= DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('1984-12-15') &gt;= DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != TIME('09:07:00') =&gt; true #2}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != TIME('09:07:00') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true #2}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt; TIMESTAMP('3077-04-12 09:07:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = TIME('09:07:00') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = TIME('09:07:00') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.093s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt; TIMESTAMP('1961-04-12 09:07:00') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt; TIMESTAMP('2020-09-15 22:15:07') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false}</td>
+<td class="success">0.037s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2025-08-30') != TIME('00:00:00') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2025-08-30') != TIME('00:00:00') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2025-08-30') = TIME('00:00:00') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2025-08-30') = TIME('00:00:00') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('2077-04-12') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &lt; TIME('00:00:00') =&gt; false}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &lt; TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &lt;= TIME('00:00:00') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &lt;= TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &gt; TIME('00:00:00') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &gt; TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.022s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &gt;= TIME('00:00:00') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {DATE('3077-04-12') &gt;= TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') != DATE('2025-08-30') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') != DATE('2025-08-30') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &lt; DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &lt; DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &lt;= DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &lt;= DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') = DATE('2025-08-30') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') = DATE('2025-08-30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &gt; DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &gt; DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &gt;= DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('00:00:00') &gt;= DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('04:12:42') != TIME('04:12:42') =&gt; false}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('04:12:42') != TIME('12:15:22') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('04:12:42') &lt; TIME('12:15:22') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('04:12:42') &lt;= TIME('04:12:42') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('04:12:42') &lt;= TIME('12:15:22') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') != DATE('2025-08-30') =&gt; true #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') != DATE('2025-08-30') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true #2}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true #2}</td>
+<td class="success">0.023s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &lt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') = DATE('2025-08-30') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') = DATE('2025-08-30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt; TIMESTAMP('3077-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:07:00') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:16:37') != TIME('12:15:22') =&gt; true}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:16:37') = TIME('04:12:42') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('09:16:37') = TIME('09:16:37') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true #2}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('10:20:30') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('12:15:22') &gt; TIME('04:12:42') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('12:15:22') &gt; TIME('19:16:03') =&gt; false}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('12:15:22') &gt;= TIME('04:12:42') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('12:15:22') &gt;= TIME('12:15:22') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('12:15:22') &gt;= TIME('19:16:03') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('14:12:38') &lt; TIME('12:15:22') =&gt; false}</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('19:16:03') &lt;= TIME('04:12:42') =&gt; false}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('20:50:40') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('20:50:40') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('20:50:40') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('20:50:40') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.024s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIME('22:15:07') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') != TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &lt; DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &lt; TIMESTAMP('1984-12-15 09:07:00') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &lt;= DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &gt; DATE('1984-12-15') =&gt; false}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1961-04-12 09:07:00') &gt;= DATE('1984-12-15') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1977-07-08 10:20:30') &gt;= TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') &lt; TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') &lt;= TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') = TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') &gt; TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 10:20:30') &gt;= TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.008s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1984-12-15 22:15:08') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1961-04-12 22:15:07') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:06') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('2020-09-16 10:20:30') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.008s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('2020-09-16 10:20:30') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('1984-12-15 22:15:08') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true #2}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') != TIME('09:07:00') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('2077-04-12') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt; TIME('09:07:00') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('2077-04-12') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') = TIME('09:07:00') =&gt; false}</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('2020-09-16 10:20:30') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('2077-04-12') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('1961-04-12') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('2077-04-12') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false #2}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') &lt; TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') &lt;= TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true #2}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') &gt; TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 10:20:30') &gt;= TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 20:50:42') &lt; TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 20:50:42') &lt;= TIME('10:20:30') =&gt; false}</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 20:50:42') &gt; TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2025-08-30 20:50:42') &gt;= TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2077-04-12 09:07:00') &lt; DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2077-04-12 09:07:00') &lt;= DATE('2020-09-16') =&gt; false}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2077-04-12 09:07:00') &gt; DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('2077-04-12 09:07:00') &gt;= DATE('2020-09-16') =&gt; true}</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('3077-07-08 20:20:30') &gt; TIME('10:20:30') =&gt; true}</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCompare {TIMESTAMP('3077-09-16 10:20:30') &lt;= TIME('09:07:00') =&gt; false}</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T17:29:08,443][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:08,447][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] initializing REST clients against [http://[::1]:38089, http://127.0.0.1:35875]
+[2025-08-30T17:29:08,535][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:08,537][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') = TIME('00:00:00') =&gt; true] before test
+[2025-08-30T17:29:08,547][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') = TIME('00:00:00') =&gt; true] after test
+[2025-08-30T17:29:08,549][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true] before test
+[2025-08-30T17:29:08,558][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true] after test
+[2025-08-30T17:29:08,560][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:08,569][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:08,571][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIME('09:07:00') =&gt; false] before test
+[2025-08-30T17:29:08,581][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIME('09:07:00') =&gt; false] after test
+[2025-08-30T17:29:08,582][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') = DATE('2025-08-30') =&gt; true] before test
+[2025-08-30T17:29:08,592][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') = DATE('2025-08-30') =&gt; true] after test
+[2025-08-30T17:29:08,594][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15') =&gt; false] before test
+[2025-08-30T17:29:08,602][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15') =&gt; false] after test
+[2025-08-30T17:29:08,604][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = DATE('2025-08-30') =&gt; false] before test
+[2025-08-30T17:29:08,613][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = DATE('2025-08-30') =&gt; false] after test
+[2025-08-30T17:29:08,627][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:08,636][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:08,638][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') = DATE('2025-08-30') =&gt; true #2] before test
+[2025-08-30T17:29:08,646][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') = DATE('2025-08-30') =&gt; true #2] after test
+[2025-08-30T17:29:08,649][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:08,660][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:08,661][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:08,672][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:08,673][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = DATE('2025-08-30') =&gt; false #2] before test
+[2025-08-30T17:29:08,683][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = DATE('2025-08-30') =&gt; false #2] after test
+[2025-08-30T17:29:08,685][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') = TIME('00:00:00') =&gt; true #2] before test
+[2025-08-30T17:29:08,694][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') = TIME('00:00:00') =&gt; true #2] after test
+[2025-08-30T17:29:08,696][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') = TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:08,706][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') = TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:08,708][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIME('09:07:00') =&gt; false #2] before test
+[2025-08-30T17:29:08,718][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIME('09:07:00') =&gt; false #2] after test
+[2025-08-30T17:29:08,719][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:08,730][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:08,732][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true #2] before test
+[2025-08-30T17:29:08,745][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') = TIME('10:20:30') =&gt; true #2] after test
+[2025-08-30T17:29:08,747][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true #2] before test
+[2025-08-30T17:29:08,759][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16') =&gt; true #2] after test
+[2025-08-30T17:29:08,762][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] before test
+[2025-08-30T17:29:08,774][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] after test
+[2025-08-30T17:29:08,776][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIME('09:07:00') =&gt; false] before test
+[2025-08-30T17:29:08,787][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIME('09:07:00') =&gt; false] after test
+[2025-08-30T17:29:08,790][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true #2] before test
+[2025-08-30T17:29:08,799][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') = TIMESTAMP('2025-08-30 10:20:30') =&gt; true #2] after test
+[2025-08-30T17:29:08,800][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:08,809][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:08,810][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:08,818][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') = TIMESTAMP('1984-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:08,820][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false] before test
+[2025-08-30T17:29:08,829][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false] after test
+[2025-08-30T17:29:08,832][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt; TIME('00:00:00') =&gt; true] before test
+[2025-08-30T17:29:08,842][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt; TIME('00:00:00') =&gt; true] after test
+[2025-08-30T17:29:08,844][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('1961-04-12 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:08,854][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('1961-04-12 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:08,856][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &gt; DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:08,868][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &gt; DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:08,870][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false] before test
+[2025-08-30T17:29:08,881][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false] after test
+[2025-08-30T17:29:08,883][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt; DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:08,894][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt; DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:08,896][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &gt; DATE('1984-12-15') =&gt; false] before test
+[2025-08-30T17:29:08,906][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &gt; DATE('1984-12-15') =&gt; false] after test
+[2025-08-30T17:29:08,908][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false] before test
+[2025-08-30T17:29:08,918][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false] after test
+[2025-08-30T17:29:08,920][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:08,929][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:08,931][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt; DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:08,941][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt; DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:08,942][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:08,952][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:08,954][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &gt; TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:08,964][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &gt; TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:08,966][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false #2] before test
+[2025-08-30T17:29:08,975][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; DATE('3077-04-12') =&gt; false #2] after test
+[2025-08-30T17:29:08,977][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt; TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:08,998][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt; TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,000][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &gt; TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,010][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &gt; TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,012][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false #2] before test
+[2025-08-30T17:29:09,022][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIME('09:07:00') =&gt; false #2] after test
+[2025-08-30T17:29:09,024][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('2077-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,034][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('2077-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,035][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('3077-07-08 20:20:30') &gt; TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,045][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('3077-07-08 20:20:30') &gt; TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,047][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,056][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt; DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,058][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('2020-09-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:09,067][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt; TIMESTAMP('2020-09-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:09,069][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &gt; TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,078][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &gt; TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,080][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,090][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &gt; TIMESTAMP('2025-08-30 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,092][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &gt; TIMESTAMP('1961-04-12 00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,103][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &gt; TIMESTAMP('1961-04-12 00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,106][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; TIMESTAMP('3077-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:09,116][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt; TIMESTAMP('3077-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:09,118][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:09,128][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:09,130][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt;= TIME('00:00:00') =&gt; true] before test
+[2025-08-30T17:29:09,140][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt;= TIME('00:00:00') =&gt; true] after test
+[2025-08-30T17:29:09,141][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true] before test
+[2025-08-30T17:29:09,151][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true] after test
+[2025-08-30T17:29:09,152][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &gt;= DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:09,162][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &gt;= DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:09,164][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false] before test
+[2025-08-30T17:29:09,199][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false] after test
+[2025-08-30T17:29:09,201][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt;= DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:09,211][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt;= DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:09,213][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &gt;= DATE('1984-12-15') =&gt; false] before test
+[2025-08-30T17:29:09,222][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &gt;= DATE('1984-12-15') =&gt; false] after test
+[2025-08-30T17:29:09,223][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,232][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,233][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:09,243][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:09,244][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt;= DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,253][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &gt;= DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,255][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,265][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,266][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &gt;= TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,276][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &gt;= TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,277][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false #2] before test
+[2025-08-30T17:29:09,286][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= DATE('3077-04-12') =&gt; false #2] after test
+[2025-08-30T17:29:09,288][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt;= TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,297][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &gt;= TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,299][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &gt;= TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,307][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &gt;= TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,308][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false #2] before test
+[2025-08-30T17:29:09,317][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIME('09:07:00') =&gt; false #2] after test
+[2025-08-30T17:29:09,318][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('2077-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,326][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('2077-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,328][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &gt;= TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,336][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &gt;= TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,337][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,346][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &gt;= DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,348][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] before test
+[2025-08-30T17:29:09,356][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &gt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] after test
+[2025-08-30T17:29:09,357][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1977-07-08 10:20:30') &gt;= TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,365][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1977-07-08 10:20:30') &gt;= TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,367][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,377][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &gt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,379][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-11') &gt;= TIMESTAMP('1961-04-12 00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,389][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-11') &gt;= TIMESTAMP('1961-04-12 00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,391][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:09,399][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &gt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:09,401][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,410][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,412][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,420][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,422][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('3077-04-12 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,431][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('3077-04-12 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,433][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt; DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:09,445][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt; DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:09,447][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt; TIME('00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,458][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt; TIME('00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,461][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,471][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,473][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &lt; DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:09,482][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &lt; DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:09,484][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt; DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:09,494][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt; DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:09,495][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,503][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,504][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true #2] before test
+[2025-08-30T17:29:09,512][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; DATE('3077-04-12') =&gt; true #2] after test
+[2025-08-30T17:29:09,513][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:09,523][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:09,525][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &lt; TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,534][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &lt; TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,535][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt; DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,543][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt; DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,544][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true #2] before test
+[2025-08-30T17:29:09,551][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIME('09:07:00') =&gt; true #2] after test
+[2025-08-30T17:29:09,553][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &lt; TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,561][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &lt; TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,562][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt; TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,571][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt; TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,572][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,580][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,582][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; TIME('09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,591][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; TIME('09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,593][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('2077-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,600][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt; DATE('2077-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,603][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:09,611][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt; TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:09,612][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &lt; TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,621][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &lt; TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,623][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:09,636][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt; TIMESTAMP('3077-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:09,637][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2] before test
+[2025-08-30T17:29:09,647][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt; TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2] after test
+[2025-08-30T17:29:09,649][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,659][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &lt; TIMESTAMP('2025-08-30 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,660][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:09,669][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:09,671][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,680][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,681][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true] before test
+[2025-08-30T17:29:09,690][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true] after test
+[2025-08-30T17:29:09,692][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:09,700][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:09,702][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt;= TIME('00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,712][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt;= TIME('00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,713][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,723][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,725][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &lt;= DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:09,735][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2077-04-12 09:07:00') &lt;= DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:09,737][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt;= DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:09,746][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt;= DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:09,748][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:09,758][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:09,760][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true #2] before test
+[2025-08-30T17:29:09,781][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= DATE('3077-04-12') =&gt; true #2] after test
+[2025-08-30T17:29:09,783][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,792][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,794][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &lt;= TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,803][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') &lt;= TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,805][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt;= DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,813][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') &lt;= DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,815][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true #2] before test
+[2025-08-30T17:29:09,823][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIME('09:07:00') =&gt; true #2] after test
+[2025-08-30T17:29:09,825][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &lt;= TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,833][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 20:50:42') &lt;= TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,835][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt;= TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,842][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('3077-04-12') &lt;= TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,844][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:09,852][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:09,854][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &lt;= TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:09,862][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') &lt;= TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:09,864][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('2077-04-12') =&gt; true] before test
+[2025-08-30T17:29:09,872][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= DATE('2077-04-12') =&gt; true] after test
+[2025-08-30T17:29:09,874][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] before test
+[2025-08-30T17:29:09,882][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= TIMESTAMP('2020-09-16 00:00:00') =&gt; true #2] after test
+[2025-08-30T17:29:09,883][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('3077-09-16 10:20:30') &lt;= TIME('09:07:00') =&gt; false] before test
+[2025-08-30T17:29:09,892][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('3077-09-16 10:20:30') &lt;= TIME('09:07:00') =&gt; false] after test
+[2025-08-30T17:29:09,893][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:09,902][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') &lt;= TIMESTAMP('3077-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:09,904][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2077-04-12') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false] before test
+[2025-08-30T17:29:09,913][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2077-04-12') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; false] after test
+[2025-08-30T17:29:09,915][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:09,923][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('20:50:40') &lt;= TIMESTAMP('2025-08-30 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:09,925][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,933][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,935][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIME('09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,943][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIME('09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,944][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:09,952][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:09,953][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:09,961][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:09,962][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') != TIME('00:00:00') =&gt; false] before test
+[2025-08-30T17:29:09,970][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') != TIME('00:00:00') =&gt; false] after test
+[2025-08-30T17:29:09,972][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != DATE('2025-08-30') =&gt; true] before test
+[2025-08-30T17:29:09,980][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != DATE('2025-08-30') =&gt; true] after test
+[2025-08-30T17:29:09,981][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:09,989][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:09,991][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') != DATE('2025-08-30') =&gt; false] before test
+[2025-08-30T17:29:09,999][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') != DATE('2025-08-30') =&gt; false] after test
+[2025-08-30T17:29:10,001][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:10,009][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:10,011][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != DATE('2025-08-30') =&gt; true #2] before test
+[2025-08-30T17:29:10,020][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != DATE('2025-08-30') =&gt; true #2] after test
+[2025-08-30T17:29:10,022][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,030][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,032][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30') =&gt; true] before test
+[2025-08-30T17:29:10,039][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30') =&gt; true] after test
+[2025-08-30T17:29:10,041][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') != DATE('2025-08-30') =&gt; false #2] before test
+[2025-08-30T17:29:10,049][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('00:00:00') != DATE('2025-08-30') =&gt; false #2] after test
+[2025-08-30T17:29:10,051][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIME('09:07:00') =&gt; true #2] before test
+[2025-08-30T17:29:10,059][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIME('09:07:00') =&gt; true #2] after test
+[2025-08-30T17:29:10,061][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false] before test
+[2025-08-30T17:29:10,069][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false] after test
+[2025-08-30T17:29:10,071][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') != TIME('00:00:00') =&gt; false #2] before test
+[2025-08-30T17:29:10,080][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2025-08-30') != TIME('00:00:00') =&gt; false #2] after test
+[2025-08-30T17:29:10,082][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false #2] before test
+[2025-08-30T17:29:10,090][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16') =&gt; false #2] after test
+[2025-08-30T17:29:10,092][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != TIME('09:07:00') =&gt; true] before test
+[2025-08-30T17:29:10,100][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != TIME('09:07:00') =&gt; true] after test
+[2025-08-30T17:29:10,101][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:10,110][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:10,111][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,120][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,122][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false #2] before test
+[2025-08-30T17:29:10,131][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2025-08-30 10:20:30') != TIME('10:20:30') =&gt; false #2] after test
+[2025-08-30T17:29:10,133][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,141][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:07:00') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,143][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2] before test
+[2025-08-30T17:29:10,150][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00') =&gt; false #2] after test
+[2025-08-30T17:29:10,152][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false #2] before test
+[2025-08-30T17:29:10,162][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('10:20:30') != TIMESTAMP('2025-08-30 10:20:30') =&gt; false #2] after test
+[2025-08-30T17:29:10,163][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:10,173][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:10,175][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:10,185][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') != DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:10,187][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt; DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:10,196][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt; DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:10,198][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:10,208][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:10,209][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &lt; DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:10,218][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &lt; DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:10,220][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt; DATE('2020-09-16') =&gt; false] before test
+[2025-08-30T17:29:10,229][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt; DATE('2020-09-16') =&gt; false] after test
+[2025-08-30T17:29:10,231][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt; DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:10,240][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt; DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:10,242][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:10,252][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:10,254][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = DATE('2020-09-16') =&gt; true] before test
+[2025-08-30T17:29:10,266][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = DATE('2020-09-16') =&gt; true] after test
+[2025-08-30T17:29:10,268][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:10,277][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1984-12-15') &gt;= DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:10,279][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt;= DATE('1961-04-12') =&gt; true] before test
+[2025-08-30T17:29:10,288][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt;= DATE('1961-04-12') =&gt; true] after test
+[2025-08-30T17:29:10,290][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:10,299][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') = DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:10,301][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= DATE('1961-04-12') =&gt; false] before test
+[2025-08-30T17:29:10,310][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('2020-09-16') &lt;= DATE('1961-04-12') =&gt; false] after test
+[2025-08-30T17:29:10,311][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:10,320][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') != DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:10,322][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt;= DATE('1984-12-15') =&gt; true] before test
+[2025-08-30T17:29:10,331][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [DATE('1961-04-12') &lt;= DATE('1984-12-15') =&gt; true] after test
+[2025-08-30T17:29:10,332][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('19:16:03') =&gt; false] before test
+[2025-08-30T17:29:10,342][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('19:16:03') =&gt; false] after test
+[2025-08-30T17:29:10,345][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') != TIME('12:15:22') =&gt; true] before test
+[2025-08-30T17:29:10,357][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') != TIME('12:15:22') =&gt; true] after test
+[2025-08-30T17:29:10,360][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt; TIME('04:12:42') =&gt; true] before test
+[2025-08-30T17:29:10,371][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt; TIME('04:12:42') =&gt; true] after test
+[2025-08-30T17:29:10,374][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('12:15:22') =&gt; true] before test
+[2025-08-30T17:29:10,386][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('12:15:22') =&gt; true] after test
+[2025-08-30T17:29:10,388][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('14:12:38') &lt; TIME('12:15:22') =&gt; false] before test
+[2025-08-30T17:29:10,400][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('14:12:38') &lt; TIME('12:15:22') =&gt; false] after test
+[2025-08-30T17:29:10,403][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt; TIME('19:16:03') =&gt; false] before test
+[2025-08-30T17:29:10,415][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt; TIME('19:16:03') =&gt; false] after test
+[2025-08-30T17:29:10,417][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt; TIME('12:15:22') =&gt; true] before test
+[2025-08-30T17:29:10,429][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt; TIME('12:15:22') =&gt; true] after test
+[2025-08-30T17:29:10,431][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') != TIME('04:12:42') =&gt; false] before test
+[2025-08-30T17:29:10,443][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') != TIME('04:12:42') =&gt; false] after test
+[2025-08-30T17:29:10,446][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') = TIME('09:16:37') =&gt; true] before test
+[2025-08-30T17:29:10,457][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') = TIME('09:16:37') =&gt; true] after test
+[2025-08-30T17:29:10,459][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('04:12:42') =&gt; true] before test
+[2025-08-30T17:29:10,471][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('12:15:22') &gt;= TIME('04:12:42') =&gt; true] after test
+[2025-08-30T17:29:10,473][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt;= TIME('04:12:42') =&gt; true] before test
+[2025-08-30T17:29:10,485][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt;= TIME('04:12:42') =&gt; true] after test
+[2025-08-30T17:29:10,487][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') = TIME('04:12:42') =&gt; false] before test
+[2025-08-30T17:29:10,496][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('09:16:37') = TIME('04:12:42') =&gt; false] after test
+[2025-08-30T17:29:10,498][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('19:16:03') &lt;= TIME('04:12:42') =&gt; false] before test
+[2025-08-30T17:29:10,509][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('19:16:03') &lt;= TIME('04:12:42') =&gt; false] after test
+[2025-08-30T17:29:10,512][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') != TIME('12:15:22') =&gt; true] before test
+[2025-08-30T17:29:10,523][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') != TIME('12:15:22') =&gt; true] after test
+[2025-08-30T17:29:10,525][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt;= TIME('12:15:22') =&gt; true] before test
+[2025-08-30T17:29:10,534][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIME('04:12:42') &lt;= TIME('12:15:22') =&gt; true] after test
+[2025-08-30T17:29:10,536][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt; TIMESTAMP('1984-12-15 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:10,546][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt; TIMESTAMP('1984-12-15 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:10,549][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('2020-09-16 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:10,558][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('2020-09-16 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:10,560][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1961-04-12 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,569][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1961-04-12 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,570][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:10,578][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:10,580][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:10,590][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:10,592][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('2020-09-16 10:20:30') =&gt; true] before test
+[2025-08-30T17:29:10,601][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') = TIMESTAMP('2020-09-16 10:20:30') =&gt; true] after test
+[2025-08-30T17:29:10,604][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') != TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:10,613][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') != TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:10,615][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true] before test
+[2025-08-30T17:29:10,624][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; true] after test
+[2025-08-30T17:29:10,626][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('2020-09-16 10:20:30') =&gt; false] before test
+[2025-08-30T17:29:10,635][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('2020-09-16 10:20:30') =&gt; false] after test
+[2025-08-30T17:29:10,637][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,644][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,645][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:06') =&gt; true] before test
+[2025-08-30T17:29:10,653][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &gt; TIMESTAMP('1984-12-15 22:15:06') =&gt; true] after test
+[2025-08-30T17:29:10,654][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:08') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,661][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:08') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,663][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:10,670][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+[2025-08-30T17:29:10,671][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1984-12-15 22:15:08') =&gt; true] before test
+[2025-08-30T17:29:10,679][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1984-12-15 22:15:07') &lt; TIMESTAMP('1984-12-15 22:15:08') =&gt; true] after test
+[2025-08-30T17:29:10,680][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,688][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') != TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,690][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true] before test
+[2025-08-30T17:29:10,698][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('1961-04-12 09:07:00') &lt;= TIMESTAMP('1984-12-15 22:15:07') =&gt; true] after test
+[2025-08-30T17:29:10,699][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] before test
+[2025-08-30T17:29:10,707][INFO ][o.o.s.p.DateTimeComparisonIT] [testCompare] [TIMESTAMP('2020-09-16 10:20:30') &lt;= TIMESTAMP('1961-04-12 09:07:00') =&gt; false] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:30:23 PM</p>
+</div>
+</div>
+</body>
+</html>

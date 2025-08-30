@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.calcite.remote.CalciteDedupCommandIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.calcite.remote.CalciteDedupCommandIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.calcite.remote.html">org.opensearch.sql.calcite.remote</a> &gt; CalciteDedupCommandIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">8</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.788s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testAllowMoreDuplicates</td>
+<td class="success">0.229s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testAllowMoreDuplicates</td>
+<td class="success">0.161s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testConsecutiveDedup</td>
+<td class="success">0.058s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testConsecutiveDedup</td>
+<td class="success">0.109s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedup</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedup</td>
+<td class="success">0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testKeepEmptyDedup</td>
+<td class="success">0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testKeepEmptyDedup</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-31T05:23:28,967][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] before test
+[2025-08-31T05:23:28,971][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] initializing REST clients against [http://[::1]:43357, http://127.0.0.1:43599]
+[2025-08-31T05:23:29,003][INFO ][o.o.s.p.PPLIntegTestCase ] [testAllowMoreDuplicates] Updating plugins.calcite.pushdown.enabled to false
+[2025-08-31T05:23:29,194][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] after test
+[2025-08-31T05:23:29,196][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testKeepEmptyDedup] before test
+[2025-08-31T05:23:29,266][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testKeepEmptyDedup] after test
+[2025-08-31T05:23:29,268][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testDedup] before test
+[2025-08-31T05:23:29,338][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testDedup] after test
+[2025-08-31T05:23:29,340][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testConsecutiveDedup] before test
+[2025-08-31T05:23:29,374][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Need fallback to v2 due to https://github.com/opensearch-project/sql/issues/3415
+[2025-08-31T05:23:29,392][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Set CALCITE_FALLBACK_ALLOWED to enabled and run the test
+[2025-08-31T05:23:29,446][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Reset CALCITE_FALLBACK_ALLOWED back to disabled
+[2025-08-31T05:23:29,447][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testConsecutiveDedup] after test
+[2025-08-31T05:26:08,293][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] before test
+[2025-08-31T05:26:08,293][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] initializing REST clients against [http://[::1]:43357, http://127.0.0.1:43599]
+[2025-08-31T05:26:08,453][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testAllowMoreDuplicates] after test
+[2025-08-31T05:26:08,455][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testKeepEmptyDedup] before test
+[2025-08-31T05:26:08,495][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testKeepEmptyDedup] after test
+[2025-08-31T05:26:08,496][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testDedup] before test
+[2025-08-31T05:26:08,540][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testDedup] after test
+[2025-08-31T05:26:08,542][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testConsecutiveDedup] before test
+[2025-08-31T05:26:08,569][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Need fallback to v2 due to https://github.com/opensearch-project/sql/issues/3415
+[2025-08-31T05:26:08,584][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Set CALCITE_FALLBACK_ALLOWED to enabled and run the test
+[2025-08-31T05:26:08,598][INFO ][o.o.s.p.PPLIntegTestCase ] [testConsecutiveDedup] Reset CALCITE_FALLBACK_ALLOWED back to disabled
+[2025-08-31T05:26:08,598][INFO ][o.o.s.c.r.CalciteDedupCommandIT] [testConsecutiveDedup] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:30:33 PM</p>
+</div>
+</div>
+</body>
+</html>

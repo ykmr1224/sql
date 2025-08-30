@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchExprGeoPointValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.value</a> &gt; <span class="el_source">OpenSearchExprGeoPointValue.java</span></div><h1>OpenSearchExprGeoPointValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.value;
+
+import java.util.Objects;
+import lombok.Data;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Point;
+import org.opensearch.sql.data.model.AbstractExprValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
+import org.opensearch.sql.opensearch.data.utils.GeometryUtils;
+
+/**
+ * OpenSearch GeoPointValue.&lt;br&gt;
+ * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
+ */
+public class OpenSearchExprGeoPointValue extends AbstractExprValue {
+
+  private final GeoPoint geoPoint;
+
+<span class="fc" id="L26">  public OpenSearchExprGeoPointValue(Double lat, Double lon) {</span>
+<span class="fc" id="L27">    this.geoPoint = new GeoPoint(lat, lon);</span>
+<span class="fc" id="L28">  }</span>
+
+  @Override
+  public Object value() {
+<span class="fc" id="L32">    return geoPoint;</span>
+  }
+
+  @Override
+  public Point valueForCalcite() {
+    // Usually put longitude on x, latitude on y for a Geometry point.
+<span class="nc" id="L38">    return GeometryUtils.defaultFactory.createPoint(</span>
+<span class="nc" id="L39">        new Coordinate(this.geoPoint.lon, this.geoPoint.lat));</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L44">    return OpenSearchGeoPointType.of();</span>
+  }
+
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L49">    return geoPoint</span>
+<span class="fc" id="L50">        .toString()</span>
+<span class="fc" id="L51">        .compareTo((((OpenSearchExprGeoPointValue) other).geoPoint).toString());</span>
+  }
+
+  @Override
+  public boolean equal(ExprValue other) {
+<span class="fc" id="L56">    return geoPoint.equals(((OpenSearchExprGeoPointValue) other).geoPoint);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L61">    return Objects.hashCode(geoPoint);</span>
+  }
+
+  @Data
+  public static class GeoPoint {
+
+    private final Double lat;
+
+    private final Double lon;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

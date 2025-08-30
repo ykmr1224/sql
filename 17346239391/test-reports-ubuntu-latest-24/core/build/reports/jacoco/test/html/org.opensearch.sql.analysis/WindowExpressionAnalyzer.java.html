@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WindowExpressionAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">WindowExpressionAnalyzer.java</span></div><h1>WindowExpressionAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
+import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalWindow;
+
+/**
+ * Window expression analyzer that analyzes window function expression in expression list in project
+ * operator.
+ */
+@RequiredArgsConstructor
+public class WindowExpressionAnalyzer extends AbstractNodeVisitor&lt;LogicalPlan, AnalysisContext&gt; {
+
+  /** Expression analyzer. */
+  private final ExpressionAnalyzer expressionAnalyzer;
+
+  /** Child node to be wrapped by a new window operator. */
+  private final LogicalPlan child;
+
+  /**
+   * Analyze the given project item and return window operator (with child node inside) if the given
+   * project item is a window function.
+   *
+   * @param projectItem project item
+   * @param context analysis context
+   * @return window operator or original child if not windowed
+   */
+  public LogicalPlan analyze(UnresolvedExpression projectItem, AnalysisContext context) {
+<span class="fc" id="L52">    LogicalPlan window = projectItem.accept(this, context);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">    return (window == null) ? child : window;</span>
+  }
+
+  @Override
+  public LogicalPlan visitAlias(Alias node, AnalysisContext context) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (!(node.getDelegated() instanceof WindowFunction)) {</span>
+<span class="fc" id="L59">      return null;</span>
+    }
+
+<span class="fc" id="L62">    WindowFunction unresolved = (WindowFunction) node.getDelegated();</span>
+<span class="fc" id="L63">    Expression windowFunction = expressionAnalyzer.analyze(unresolved, context);</span>
+<span class="fc" id="L64">    List&lt;Expression&gt; partitionByList = analyzePartitionList(unresolved, context);</span>
+<span class="fc" id="L65">    List&lt;Pair&lt;SortOption, Expression&gt;&gt; sortList = analyzeSortList(unresolved, context);</span>
+
+<span class="fc" id="L67">    WindowDefinition windowDefinition = new WindowDefinition(partitionByList, sortList);</span>
+<span class="fc" id="L68">    NamedExpression namedWindowFunction =</span>
+<span class="fc" id="L69">        new NamedExpression(node.getName(), windowFunction, node.getAlias());</span>
+<span class="fc" id="L70">    List&lt;Pair&lt;SortOption, Expression&gt;&gt; allSortItems = windowDefinition.getAllSortItems();</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (allSortItems.isEmpty()) {</span>
+<span class="fc" id="L73">      return new LogicalWindow(child, namedWindowFunction, windowDefinition);</span>
+    }
+<span class="fc" id="L75">    return new LogicalWindow(</span>
+        new LogicalSort(child, allSortItems), namedWindowFunction, windowDefinition);
+  }
+
+  private List&lt;Expression&gt; analyzePartitionList(WindowFunction node, AnalysisContext context) {
+<span class="fc" id="L80">    return node.getPartitionByList().stream()</span>
+<span class="fc" id="L81">        .map(expr -&gt; expressionAnalyzer.analyze(expr, context))</span>
+<span class="fc" id="L82">        .collect(Collectors.toList());</span>
+  }
+
+  private List&lt;Pair&lt;SortOption, Expression&gt;&gt; analyzeSortList(
+      WindowFunction node, AnalysisContext context) {
+<span class="fc" id="L87">    return node.getSortList().stream()</span>
+<span class="fc" id="L88">        .map(</span>
+            pair -&gt;
+<span class="fc" id="L90">                ImmutablePair.of(</span>
+<span class="fc" id="L91">                    analyzeSortOption(pair.getLeft()),</span>
+<span class="fc" id="L92">                    expressionAnalyzer.analyze(pair.getRight(), context)))</span>
+<span class="fc" id="L93">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Frontend creates sort option from query directly which means sort or null order may be null.
+   * The final and default value for each is determined here during expression analysis.
+   */
+  private SortOption analyzeSortOption(SortOption option) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (option.getNullOrder() == null) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      return (option.getSortOrder() == DESC) ? DEFAULT_DESC : DEFAULT_ASC;</span>
+    }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    return new SortOption((option.getSortOrder() == DESC) ? DESC : ASC, option.getNullOrder());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

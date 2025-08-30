@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteLogicalIndexScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.scan</a> &gt; <span class="el_source">CalciteLogicalIndexScan.java</span></div><h1>CalciteLogicalIndexScan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
+import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+
+/** The logical relational operator representing a scan of an OpenSearchIndex type. */
+@Getter
+public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
+<span class="nc" id="L55">  private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);</span>
+
+  public CalciteLogicalIndexScan(
+      RelOptCluster cluster, RelOptTable table, OpenSearchIndex osIndex) {
+<span class="nc" id="L59">    this(</span>
+        cluster,
+<span class="nc" id="L61">        cluster.traitSetOf(Convention.NONE),</span>
+<span class="nc" id="L62">        ImmutableList.of(),</span>
+        table,
+        osIndex,
+<span class="nc" id="L65">        table.getRowType(),</span>
+        new PushDownContext());
+<span class="nc" id="L67">  }</span>
+
+  protected CalciteLogicalIndexScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+<span class="nc" id="L77">    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);</span>
+<span class="nc" id="L78">  }</span>
+
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+<span class="nc" id="L89">    return new CalciteLogicalIndexScan(</span>
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  public CalciteLogicalIndexScan copyWithNewSchema(RelDataType schema) {
+    // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
+    // optimization process won't affect each other.
+<span class="nc" id="L96">    return new CalciteLogicalIndexScan(</span>
+<span class="nc" id="L97">        getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());</span>
+  }
+
+  @Override
+  public void register(RelOptPlanner planner) {
+<span class="nc" id="L102">    super.register(planner);</span>
+<span class="nc" id="L103">    planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {</span>
+<span class="nc" id="L106">        planner.addRule(rule);</span>
+<span class="nc" id="L107">      }</span>
+    }
+<span class="nc" id="L109">  }</span>
+
+  public AbstractRelNode pushDownFilter(Filter filter) {
+    try {
+<span class="nc" id="L113">      RelDataType rowType = filter.getRowType();</span>
+<span class="nc" id="L114">      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());</span>
+<span class="nc" id="L115">      List&lt;String&gt; schema = this.getRowType().getFieldNames();</span>
+<span class="nc" id="L116">      Map&lt;String, ExprType&gt; fieldTypes =</span>
+<span class="nc" id="L117">          this.osIndex.getFieldTypes().entrySet().stream()</span>
+<span class="nc" id="L118">              .filter(entry -&gt; schema.contains(entry.getKey()))</span>
+<span class="nc" id="L119">              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));</span>
+<span class="nc" id="L120">      QueryExpression queryExpression =</span>
+<span class="nc" id="L121">          PredicateAnalyzer.analyzeExpression(</span>
+<span class="nc" id="L122">              filter.getCondition(), schema, fieldTypes, rowType, getCluster());</span>
+      // TODO: handle the case where condition contains a score function
+<span class="nc" id="L124">      newScan.pushDownContext.add(</span>
+<span class="nc" id="L125">          PushDownAction.of(</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">              QueryExpression.containsScript(queryExpression)</span>
+<span class="nc" id="L127">                  ? PushDownType.SCRIPT</span>
+<span class="nc" id="L128">                  : PushDownType.FILTER,</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">              queryExpression.isPartial()</span>
+<span class="nc" id="L130">                  ? constructCondition(</span>
+<span class="nc" id="L131">                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())</span>
+<span class="nc" id="L132">                  : filter.getCondition(),</span>
+<span class="nc" id="L133">              requestBuilder -&gt; requestBuilder.pushDownFilter(queryExpression.builder())));</span>
+
+      // If the query expression is partial, we need to replace the input of the filter with the
+      // partial pushed scan and the filter condition with non-pushed-down conditions.
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      if (queryExpression.isPartial()) {</span>
+        // Only CompoundQueryExpression could be partial.
+<span class="nc" id="L139">        List&lt;RexNode&gt; conditions = queryExpression.getUnAnalyzableNodes();</span>
+<span class="nc" id="L140">        RexNode newCondition = constructCondition(conditions, getCluster().getRexBuilder());</span>
+<span class="nc" id="L141">        return filter.copy(filter.getTraitSet(), newScan, newCondition);</span>
+      }
+<span class="nc" id="L143">      return newScan;</span>
+<span class="nc" id="L144">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L146">        LOG.debug(&quot;Cannot pushdown the filter condition.&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L149">    return null;</span>
+  }
+
+  private static RexNode constructCondition(List&lt;RexNode&gt; conditions, RexBuilder rexBuilder) {
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    return conditions.size() &gt; 1</span>
+<span class="nc" id="L154">        ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)</span>
+<span class="nc" id="L155">        : conditions.get(0);</span>
+  }
+
+  public CalciteLogicalIndexScan pushDownCollapse(Project finalOutput, String fieldName) {
+<span class="nc" id="L159">    ExprType fieldType = osIndex.getFieldTypes().get(fieldName);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    if (fieldType == null) {</span>
+      // the fieldName must be one of index fields
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L163">        LOG.debug(&quot;Cannot pushdown the dedup '{}' due to it is not a index field&quot;, fieldName);</span>
+      }
+<span class="nc" id="L165">      return null;</span>
+    }
+<span class="nc" id="L167">    ExprType originalExprType = fieldType.getOriginalExprType();</span>
+<span class="nc" id="L168">    String originalFieldName = originalExprType.getOriginalPath().orElse(fieldName);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">    if (!ExprCoreType.numberTypes().contains(originalExprType)</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">        &amp;&amp; !originalExprType.legacyTypeName().equals(&quot;KEYWORD&quot;)</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        &amp;&amp; !originalExprType.legacyTypeName().equals(&quot;TEXT&quot;)) {</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L173">        LOG.debug(</span>
+            &quot;Cannot pushdown the dedup '{}' due to only keyword and number type are accepted, but&quot;
+                + &quot; its type is {}&quot;,
+            originalFieldName,
+<span class="nc" id="L177">            originalExprType.legacyTypeName());</span>
+      }
+<span class="nc" id="L179">      return null;</span>
+    }
+    // For text, use its subfield if exists.
+<span class="nc" id="L182">    String field = OpenSearchTextType.toKeywordSubField(originalFieldName, fieldType);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">    if (field == null) {</span>
+<span class="nc" id="L184">      LOG.debug(&quot;Cannot pushdown the dedup due to no keyword subfield for {}.&quot;, fieldName);</span>
+<span class="nc" id="L185">      return null;</span>
+    }
+<span class="nc" id="L187">    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(finalOutput.getRowType());</span>
+<span class="nc" id="L188">    newScan.pushDownContext.add(</span>
+<span class="nc" id="L189">        PushDownAction.of(</span>
+            PushDownType.COLLAPSE,
+            fieldName,
+<span class="nc" id="L192">            requestBuilder -&gt; requestBuilder.pushDownCollapse(field)));</span>
+<span class="nc" id="L193">    return newScan;</span>
+  }
+
+  /**
+   * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
+   * schema since we cannot override getRowType() which is defined to be final.
+   */
+  public CalciteLogicalIndexScan pushDownProject(List&lt;Integer&gt; selectedColumns) {
+<span class="nc" id="L201">    final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();</span>
+<span class="nc" id="L202">    final List&lt;RelDataTypeField&gt; fieldList = this.getRowType().getFieldList();</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    for (int project : selectedColumns) {</span>
+<span class="nc" id="L204">      builder.add(fieldList.get(project));</span>
+<span class="nc" id="L205">    }</span>
+<span class="nc" id="L206">    RelDataType newSchema = builder.build();</span>
+
+    // Projection may alter indicies in the collations.
+    // E.g. When sorting age
+    // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become
+    // `TableScan(schema=[age], collation=[$0 ASC])` after pushing down project.
+<span class="nc" id="L212">    RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(selectedColumns);</span>
+
+<span class="nc" id="L214">    CalciteLogicalIndexScan newScan =</span>
+        new CalciteLogicalIndexScan(
+<span class="nc" id="L216">            getCluster(),</span>
+            traitSetWithReIndexedCollations,
+            hints,
+            table,
+            osIndex,
+            newSchema,
+<span class="nc" id="L222">            pushDownContext.clone());</span>
+
+<span class="nc" id="L224">    Map&lt;String, String&gt; aliasMapping = this.osIndex.getAliasMapping();</span>
+    // For alias types, we need to push down its original path instead of the alias name.
+<span class="nc" id="L226">    List&lt;String&gt; projectedFields =</span>
+<span class="nc" id="L227">        newSchema.getFieldNames().stream()</span>
+<span class="nc" id="L228">            .map(fieldName -&gt; aliasMapping.getOrDefault(fieldName, fieldName))</span>
+<span class="nc" id="L229">            .toList();</span>
+
+<span class="nc" id="L231">    newScan.pushDownContext.add(</span>
+<span class="nc" id="L232">        PushDownAction.of(</span>
+            PushDownType.PROJECT,
+<span class="nc" id="L234">            newSchema.getFieldNames(),</span>
+<span class="nc" id="L235">            requestBuilder -&gt; requestBuilder.pushDownProjectStream(projectedFields.stream())));</span>
+<span class="nc" id="L236">    return newScan;</span>
+  }
+
+  private RelTraitSet reIndexCollations(List&lt;Integer&gt; selectedColumns) {
+    RelTraitSet newTraitSet;
+<span class="nc" id="L241">    RelCollation relCollation = getTraitSet().getCollation();</span>
+<span class="nc bnc" id="L242" title="All 4 branches missed.">    if (!Objects.isNull(relCollation) &amp;&amp; !relCollation.getFieldCollations().isEmpty()) {</span>
+<span class="nc" id="L243">      List&lt;RelFieldCollation&gt; newCollations =</span>
+<span class="nc" id="L244">          relCollation.getFieldCollations().stream()</span>
+<span class="nc" id="L245">              .filter(collation -&gt; selectedColumns.contains(collation.getFieldIndex()))</span>
+<span class="nc" id="L246">              .map(</span>
+                  collation -&gt;
+<span class="nc" id="L248">                      collation.withFieldIndex(selectedColumns.indexOf(collation.getFieldIndex())))</span>
+<span class="nc" id="L249">              .collect(Collectors.toList());</span>
+<span class="nc" id="L250">      newTraitSet = getTraitSet().plus(RelCollations.of(newCollations));</span>
+<span class="nc" id="L251">    } else {</span>
+<span class="nc" id="L252">      newTraitSet = getTraitSet();</span>
+    }
+<span class="nc" id="L254">    return newTraitSet;</span>
+  }
+
+  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
+    try {
+<span class="nc" id="L259">      CalciteLogicalIndexScan newScan =</span>
+          new CalciteLogicalIndexScan(
+<span class="nc" id="L261">              getCluster(),</span>
+              traitSet,
+              hints,
+              table,
+              osIndex,
+<span class="nc" id="L266">              aggregate.getRowType(),</span>
+              // Aggregation will eliminate all collations.
+<span class="nc" id="L268">              cloneWithoutSort(pushDownContext));</span>
+<span class="nc" id="L269">      Map&lt;String, ExprType&gt; fieldTypes = this.osIndex.getFieldTypes();</span>
+<span class="nc" id="L270">      List&lt;String&gt; outputFields = aggregate.getRowType().getFieldNames();</span>
+<span class="nc" id="L271">      final Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; aggregationBuilder =</span>
+<span class="nc" id="L272">          AggregateAnalyzer.analyze(</span>
+<span class="nc" id="L273">              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());</span>
+<span class="nc" id="L274">      Map&lt;String, OpenSearchDataType&gt; extendedTypeMapping =</span>
+<span class="nc" id="L275">          aggregate.getRowType().getFieldList().stream()</span>
+<span class="nc" id="L276">              .collect(</span>
+<span class="nc" id="L277">                  Collectors.toMap(</span>
+                      RelDataTypeField::getName,
+                      field -&gt;
+<span class="nc" id="L280">                          OpenSearchDataType.of(</span>
+<span class="nc" id="L281">                              OpenSearchTypeFactory.convertRelDataTypeToExprType(</span>
+<span class="nc" id="L282">                                  field.getType()))));</span>
+<span class="nc" id="L283">      AggPushDownAction action = new AggPushDownAction(aggregationBuilder, extendedTypeMapping);</span>
+<span class="nc" id="L284">      newScan.pushDownContext.add(PushDownAction.of(PushDownType.AGGREGATION, aggregate, action));</span>
+<span class="nc" id="L285">      return newScan;</span>
+<span class="nc" id="L286">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L288">        LOG.debug(&quot;Cannot pushdown the aggregate {}&quot;, aggregate, e);</span>
+      }
+    }
+<span class="nc" id="L291">    return null;</span>
+  }
+
+  public CalciteLogicalIndexScan pushDownLimit(Integer limit, Integer offset) {
+    try {
+<span class="nc" id="L296">      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());</span>
+<span class="nc" id="L297">      newScan.pushDownContext.add(</span>
+<span class="nc" id="L298">          PushDownAction.of(</span>
+              PushDownType.LIMIT,
+              limit,
+<span class="nc" id="L301">              requestBuilder -&gt; requestBuilder.pushDownLimit(limit, offset)));</span>
+<span class="nc" id="L302">      return newScan;</span>
+<span class="nc" id="L303">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L304" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L305">        LOG.debug(&quot;Cannot pushdown limit {} with offset {}&quot;, limit, offset, e);</span>
+      }
+    }
+<span class="nc" id="L308">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteScript.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.core</a> &gt; <span class="el_source">CalciteScript.java</span></div><h1>CalciteScript.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.core;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Map;
+import lombok.EqualsAndHashCode;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.function.Function1;
+import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ScriptDataContext;
+
+/**
+ * Calcite script executor that executes the generated code on each document and determine if the
+ * document is supposed to be filtered out or not.
+ */
+@EqualsAndHashCode(callSuper = false)
+public class CalciteScript {
+
+  /** Function to execute. */
+  private final Function1&lt;DataContext, Object[]&gt; function;
+
+  private final Map&lt;String, Object&gt; params;
+
+  /** Expression constructor. */
+<span class="nc" id="L31">  public CalciteScript(Function1&lt;DataContext, Object[]&gt; function, Map&lt;String, Object&gt; params) {</span>
+<span class="nc" id="L32">    this.function = function;</span>
+<span class="nc" id="L33">    this.params = params;</span>
+<span class="nc" id="L34">  }</span>
+
+  /**
+   * Evaluate on the doc generate by the doc provider.
+   *
+   * @param docProvider doc look up
+   * @param sourceLookup source look up
+   * @return expr value
+   */
+  public Object[] execute(Map&lt;String, ScriptDocValues&lt;?&gt;&gt; docProvider, SourceLookup sourceLookup) {
+<span class="nc" id="L44">    return AccessController.doPrivileged(</span>
+        (PrivilegedAction&lt;Object[]&gt;)
+<span class="nc" id="L46">            () -&gt; function.apply(new ScriptDataContext(docProvider, sourceLookup, params)));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

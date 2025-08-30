@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchExecutionProtector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.executor.protector</a> &gt; <span class="el_source">OpenSearchExecutionProtector.java</span></div><h1>OpenSearchExecutionProtector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.executor.protector;
+
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.planner.physical.ADOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
+import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.DedupeOperator;
+import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.NestedOperator;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.RareTopNOperator;
+import org.opensearch.sql.planner.physical.RemoveOperator;
+import org.opensearch.sql.planner.physical.RenameOperator;
+import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
+import org.opensearch.sql.planner.physical.WindowOperator;
+import org.opensearch.sql.storage.TableScanOperator;
+
+/** OpenSearch Execution Protector. */
+@RequiredArgsConstructor
+public class OpenSearchExecutionProtector extends ExecutionProtector {
+
+  /** OpenSearch resource monitor. */
+  private final ResourceMonitor resourceMonitor;
+
+  public PhysicalPlan protect(PhysicalPlan physicalPlan) {
+<span class="fc" id="L41">    return physicalPlan.accept(this, null);</span>
+  }
+
+  /**
+   * Don't protect {@link CursorCloseOperator} and entire nested tree, because {@link
+   * CursorCloseOperator} as designed as no-op.
+   */
+  @Override
+  public PhysicalPlan visitCursorClose(CursorCloseOperator node, Object context) {
+<span class="fc" id="L50">    return node;</span>
+  }
+
+  @Override
+  public PhysicalPlan visitFilter(FilterOperator node, Object context) {
+<span class="fc" id="L55">    return new FilterOperator(visitInput(node.getInput(), context), node.getConditions());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitAggregation(AggregationOperator node, Object context) {
+<span class="fc" id="L60">    return new AggregationOperator(</span>
+<span class="fc" id="L61">        visitInput(node.getInput(), context), node.getAggregatorList(), node.getGroupByExprList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRareTopN(RareTopNOperator node, Object context) {
+<span class="fc" id="L66">    return new RareTopNOperator(</span>
+<span class="fc" id="L67">        visitInput(node.getInput(), context),</span>
+<span class="fc" id="L68">        node.getCommandType(),</span>
+<span class="fc" id="L69">        node.getNoOfResults(),</span>
+<span class="fc" id="L70">        node.getFieldExprList(),</span>
+<span class="fc" id="L71">        node.getGroupByExprList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRename(RenameOperator node, Object context) {
+<span class="fc" id="L76">    return new RenameOperator(visitInput(node.getInput(), context), node.getMapping());</span>
+  }
+
+  /** Decorate with {@link ResourceMonitorPlan}. */
+  @Override
+  public PhysicalPlan visitTableScan(TableScanOperator node, Object context) {
+<span class="fc" id="L82">    return doProtect(node);</span>
+  }
+
+  @Override
+  public PhysicalPlan visitProject(ProjectOperator node, Object context) {
+<span class="fc" id="L87">    return new ProjectOperator(</span>
+<span class="fc" id="L88">        visitInput(node.getInput(), context),</span>
+<span class="fc" id="L89">        node.getProjectList(),</span>
+<span class="fc" id="L90">        node.getNamedParseExpressions());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitRemove(RemoveOperator node, Object context) {
+<span class="fc" id="L95">    return new RemoveOperator(visitInput(node.getInput(), context), node.getRemoveList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitEval(EvalOperator node, Object context) {
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (node instanceof OpenSearchEvalOperator evalOperator) {</span>
+<span class="fc" id="L101">      return doProtect(</span>
+          new OpenSearchEvalOperator(
+<span class="fc" id="L103">              visitInput(evalOperator.getInput(), context),</span>
+<span class="fc" id="L104">              evalOperator.getExpressionList(),</span>
+<span class="fc" id="L105">              evalOperator.getNodeClient()));</span>
+    }
+<span class="fc" id="L107">    return new EvalOperator(visitInput(node.getInput(), context), node.getExpressionList());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitNested(NestedOperator node, Object context) {
+<span class="fc" id="L112">    return doProtect(</span>
+        new NestedOperator(
+<span class="fc" id="L114">            visitInput(node.getInput(), context),</span>
+<span class="fc" id="L115">            node.getFields(),</span>
+<span class="fc" id="L116">            node.getGroupedPathsAndFields()));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitDedupe(DedupeOperator node, Object context) {
+<span class="fc" id="L121">    return new DedupeOperator(</span>
+<span class="fc" id="L122">        visitInput(node.getInput(), context),</span>
+<span class="fc" id="L123">        node.getDedupeList(),</span>
+<span class="fc" id="L124">        node.getAllowedDuplication(),</span>
+<span class="fc" id="L125">        node.getKeepEmpty(),</span>
+<span class="fc" id="L126">        node.getConsecutive());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitWindow(WindowOperator node, Object context) {
+<span class="fc" id="L131">    return new WindowOperator(</span>
+<span class="fc" id="L132">        doProtect(visitInput(node.getInput(), context)),</span>
+<span class="fc" id="L133">        node.getWindowFunction(),</span>
+<span class="fc" id="L134">        node.getWindowDefinition());</span>
+  }
+
+  /** Decorate with {@link ResourceMonitorPlan}. */
+  @Override
+  public PhysicalPlan visitSort(SortOperator node, Object context) {
+<span class="fc" id="L140">    return doProtect(new SortOperator(visitInput(node.getInput(), context), node.getSortList()));</span>
+  }
+
+  /** Decorate with {@link ResourceMonitorPlan}. */
+  @Override
+  public PhysicalPlan visitTakeOrdered(TakeOrderedOperator node, Object context) {
+<span class="fc" id="L146">    return doProtect(</span>
+        new TakeOrderedOperator(
+<span class="fc" id="L148">            visitInput(node.getInput(), context),</span>
+<span class="fc" id="L149">            node.getLimit(),</span>
+<span class="fc" id="L150">            node.getOffset(),</span>
+<span class="fc" id="L151">            node.getSortList()));</span>
+  }
+
+  /**
+   * Values are a sequence of rows of literal value in memory which doesn't need memory protection.
+   */
+  @Override
+  public PhysicalPlan visitValues(ValuesOperator node, Object context) {
+<span class="fc" id="L159">    return node;</span>
+  }
+
+  @Override
+  public PhysicalPlan visitLimit(LimitOperator node, Object context) {
+<span class="fc" id="L164">    return new LimitOperator(</span>
+<span class="fc" id="L165">        visitInput(node.getInput(), context), node.getLimit(), node.getOffset());</span>
+  }
+
+  @Override
+  public PhysicalPlan visitMLCommons(PhysicalPlan node, Object context) {
+<span class="fc" id="L170">    MLCommonsOperator mlCommonsOperator = (MLCommonsOperator) node;</span>
+<span class="fc" id="L171">    return doProtect(</span>
+        new MLCommonsOperator(
+<span class="fc" id="L173">            visitInput(mlCommonsOperator.getInput(), context),</span>
+<span class="fc" id="L174">            mlCommonsOperator.getAlgorithm(),</span>
+<span class="fc" id="L175">            mlCommonsOperator.getArguments(),</span>
+<span class="fc" id="L176">            mlCommonsOperator.getNodeClient()));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitAD(PhysicalPlan node, Object context) {
+<span class="fc" id="L181">    ADOperator adOperator = (ADOperator) node;</span>
+<span class="fc" id="L182">    return doProtect(</span>
+        new ADOperator(
+<span class="fc" id="L184">            visitInput(adOperator.getInput(), context),</span>
+<span class="fc" id="L185">            adOperator.getArguments(),</span>
+<span class="fc" id="L186">            adOperator.getNodeClient()));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitML(PhysicalPlan node, Object context) {
+<span class="fc" id="L191">    MLOperator mlOperator = (MLOperator) node;</span>
+<span class="fc" id="L192">    return doProtect(</span>
+        new MLOperator(
+<span class="fc" id="L194">            visitInput(mlOperator.getInput(), context),</span>
+<span class="fc" id="L195">            mlOperator.getArguments(),</span>
+<span class="fc" id="L196">            mlOperator.getNodeClient()));</span>
+  }
+
+  @Override
+  public PhysicalPlan visitTrendline(TrendlineOperator node, Object context) {
+<span class="fc" id="L201">    return doProtect(</span>
+<span class="fc" id="L202">        new TrendlineOperator(visitInput(node.getInput(), context), node.getComputations()));</span>
+  }
+
+  PhysicalPlan visitInput(PhysicalPlan node, Object context) {
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (null == node) {</span>
+<span class="fc" id="L207">      return node;</span>
+    } else {
+<span class="fc" id="L209">      return node.accept(this, context);</span>
+    }
+  }
+
+  protected PhysicalPlan doProtect(PhysicalPlan node) {
+<span class="fc bfc" id="L214" title="All 2 branches covered.">    if (isProtected(node)) {</span>
+<span class="fc" id="L215">      return node;</span>
+    }
+<span class="fc" id="L217">    return new ResourceMonitorPlan(node, resourceMonitor);</span>
+  }
+
+  private boolean isProtected(PhysicalPlan node) {
+<span class="fc" id="L221">    return (node instanceof ResourceMonitorPlan);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WindowFrame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.window.frame</a> &gt; <span class="el_source">WindowFrame.java</span></div><h1>WindowFrame.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.window.frame;
+
+import com.google.common.collect.PeekingIterator;
+import java.util.Iterator;
+import java.util.List;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.env.Environment;
+
+/**
+ * Window frame that represents a subset of a window which is all data accessible to the window
+ * function when calculation. Basically there are 3 types of window frame:
+ *
+ * &lt;ol&gt;
+ *   &lt;li&gt;Entire window frame that holds all data of the window
+ *   &lt;li&gt;Cumulative window frame that accumulates one row by another
+ *   &lt;li&gt;Sliding window frame that maintains a sliding window of fixed size
+ * &lt;/ol&gt;
+ *
+ * Note that which type of window frame is used is determined by both window function itself and
+ * frame definition in a window definition.
+ */
+public interface WindowFrame extends Environment&lt;Expression, ExprValue&gt;, Iterator&lt;List&lt;ExprValue&gt;&gt; {
+
+  @Override
+  default ExprValue resolve(Expression var) {
+<span class="fc" id="L32">    return var.valueOf(current().bindingTuples());</span>
+  }
+
+  /**
+   * Check is current row the beginning of a new partition according to window definition.
+   *
+   * @return true if a new partition begins here, otherwise false.
+   */
+  boolean isNewPartition();
+
+  /**
+   * Load one or more rows as window function calculation needed.
+   *
+   * @param iterator peeking iterator that can peek next element without moving iterator
+   */
+  void load(PeekingIterator&lt;ExprValue&gt; iterator);
+
+  /**
+   * Get current data row for giving window operator chance to get rows preloaded into frame.
+   *
+   * @return data row
+   */
+  ExprValue current();
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SystemFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.system</a> &gt; <span class="el_source">SystemFunctions.java</span></div><h1>SystemFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.system;
+
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+
+import java.util.Locale;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
+
+@UtilityClass
+public class SystemFunctions {
+  /** Register TypeOf Operator. */
+  public static void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L32">    repository.register(typeof());</span>
+<span class="fc" id="L33">  }</span>
+
+  // Auxiliary function useful for debugging
+  private static FunctionResolver typeof() {
+<span class="fc" id="L37">    return new FunctionResolver() {</span>
+      @Override
+      public Pair&lt;FunctionSignature, FunctionBuilder&gt; resolve(
+          FunctionSignature unresolvedSignature) {
+<span class="fc" id="L41">        return Pair.of(</span>
+            unresolvedSignature,
+            (functionProperties, arguments) -&gt;
+<span class="fc" id="L44">                new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {</span>
+                  @Override
+                  public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L47">                    ExprType type = getArguments().get(0).type();</span>
+<span class="fc" id="L48">                    return new ExprStringValue(</span>
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">                        (functionProperties.getQueryType() == QueryType.PPL</span>
+<span class="nc" id="L50">                                ? PPL_SPEC.typeName(type)</span>
+<span class="fc" id="L51">                                : type.legacyTypeName())</span>
+<span class="fc" id="L52">                            .toUpperCase(Locale.ROOT));</span>
+                  }
+
+                  @Override
+                  public ExprType type() {
+<span class="fc" id="L57">                    return STRING;</span>
+                  }
+                });
+      }
+
+      @Override
+      public FunctionName getFunctionName() {
+<span class="fc" id="L64">        return BuiltinFunctionName.TYPEOF.getName();</span>
+      }
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,384 @@
+[2025-08-30T17:30:26.429654314Z] [BUILD] Configuring custom cluster specific distro directory: /__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE
+[2025-08-30T17:30:26.786938304Z] [BUILD] Copying additional config files from distro [/__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE/config/opensearch.yml, /__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE/config/log4j2.properties, /__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE/config/fips_java.security, /__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE/config/jvm.options.d, /__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE/config/jvm.options]
+[2025-08-30T17:30:26.788825010Z] [BUILD] installing 3 plugins in a single transaction
+[2025-08-30T17:30:29.381854624Z] [BUILD] installed plugins
+[2025-08-30T17:30:29.381974328Z] [BUILD] Creating opensearch keystore with password set to []
+[2025-08-30T17:30:30.351357340Z] [BUILD] Starting OpenSearch process
+[2025-08-30T17:30:34,629][WARN ][stderr                   ] [yamlRestTest-0] Aug 30, 2025 5:30:34 PM org.opensearch.javaagent.bootstrap.AgentPolicy setPolicy
+[2025-08-30T17:30:34,633][WARN ][stderr                   ] [yamlRestTest-0] INFO: Policy attached successfully: org.opensearch.bootstrap.OpenSearchPolicy@ae2db25
+[2025-08-30T17:30:34,651][INFO ][o.o.n.Node               ] [yamlRestTest-0] version[3.2.0-SNAPSHOT], pid[7244], build[tar/6adc0bf476e1624190564d7fbe4aba00ccf49ad8/2025-08-14T03:26:35.788749688Z], OS[Linux/6.11.0-1018-azure/amd64], JVM[Eclipse Adoptium/OpenJDK 64-Bit Server VM/21.0.8/21.0.8+9-LTS]
+[2025-08-30T17:30:34,652][INFO ][o.o.n.Node               ] [yamlRestTest-0] JVM home [/__t/Java_Temurin-Hotspot_jdk/21.0.8-9.0.LTS/x64], using bundled JDK/JRE [false]
+[2025-08-30T17:30:34,652][INFO ][o.o.n.Node               ] [yamlRestTest-0] JVM arguments [-Xshare:auto, -Dopensearch.networkaddress.cache.ttl=60, -Dopensearch.networkaddress.cache.negative.ttl=10, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -XX:-OmitStackTraceInFastThrow, -XX:+ShowCodeDetailsInExceptionMessages, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dio.netty.allocator.numDirectArenas=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Djava.locale.providers=SPI,CLDR, -Xms1g, -Xmx1g, -XX:+UseG1GC, -XX:G1ReservePercent=25, -XX:InitiatingHeapOccupancyPercent=30, -Djava.io.tmpdir=/__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/tmp, -XX:+HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath=logs, -XX:ErrorFile=logs/hs_err_pid%p.log, -Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m, --add-modules=jdk.incubator.vector, -javaagent:agent/opensearch-agent.jar, --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED, -Xms512m, -Xmx512m, -ea, -esa, -XX:MaxDirectMemorySize=268435456, -Dopensearch.path.home=/__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/distro/3.2.0-ARCHIVE, -Dopensearch.path.conf=/__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/config, -Dopensearch.distribution.type=tar, -Dopensearch.bundled_jdk=true]
+[2025-08-30T17:30:34,653][WARN ][o.o.n.Node               ] [yamlRestTest-0] version [3.2.0-SNAPSHOT] is a pre-release version of OpenSearch and is not suitable for production
+[2025-08-30T17:30:34,872][WARN ][stderr                   ] [yamlRestTest-0] Aug 30, 2025 5:30:34 PM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+[2025-08-30T17:30:34,873][WARN ][stderr                   ] [yamlRestTest-0] INFO: Java vector incubator API enabled; uses preferredBitSize=256; FMA enabled
+[2025-08-30T17:30:35,649][INFO ][o.o.i.r.ReindexModulePlugin] [yamlRestTest-0] ReindexPlugin reloadSPI called
+[2025-08-30T17:30:35,650][INFO ][o.o.i.r.ReindexModulePlugin] [yamlRestTest-0] Unable to find any implementation for RemoteReindexExtension
+[2025-08-30T17:30:35,659][INFO ][o.o.j.JobSchedulerPlugin ] [yamlRestTest-0] Loaded scheduler extension: scheduler_geospatial_ip2geo_datasource, index: .scheduler-geospatial-ip2geo-datasource
+[2025-08-30T17:30:35,661][INFO ][o.o.j.JobSchedulerPlugin ] [yamlRestTest-0] Loaded scheduler extension: async-query-scheduler, index: .async-query-scheduler
+[2025-08-30T17:30:35,664][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [aggs-matrix-stats]
+[2025-08-30T17:30:35,665][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [analysis-common]
+[2025-08-30T17:30:35,665][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [cache-common]
+[2025-08-30T17:30:35,665][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [geo]
+[2025-08-30T17:30:35,665][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [ingest-common]
+[2025-08-30T17:30:35,665][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [ingest-geoip]
+[2025-08-30T17:30:35,666][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [ingest-user-agent]
+[2025-08-30T17:30:35,666][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [lang-expression]
+[2025-08-30T17:30:35,666][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [lang-mustache]
+[2025-08-30T17:30:35,666][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [lang-painless]
+[2025-08-30T17:30:35,667][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [mapper-extras]
+[2025-08-30T17:30:35,667][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [opensearch-dashboards]
+[2025-08-30T17:30:35,667][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [parent-join]
+[2025-08-30T17:30:35,667][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [percolator]
+[2025-08-30T17:30:35,667][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [rank-eval]
+[2025-08-30T17:30:35,668][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [reindex]
+[2025-08-30T17:30:35,668][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [repository-url]
+[2025-08-30T17:30:35,668][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [rule-framework]
+[2025-08-30T17:30:35,668][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [search-pipeline-common]
+[2025-08-30T17:30:35,668][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [systemd]
+[2025-08-30T17:30:35,669][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [test-delayed-aggs]
+[2025-08-30T17:30:35,669][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [transport-grpc]
+[2025-08-30T17:30:35,669][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded module [transport-netty4]
+[2025-08-30T17:30:35,669][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded plugin [opensearch-geospatial]
+[2025-08-30T17:30:35,670][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded plugin [opensearch-job-scheduler]
+[2025-08-30T17:30:35,670][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] loaded plugin [opensearch-sql]
+[2025-08-30T17:30:35,713][WARN ][stderr                   ] [yamlRestTest-0] WARNING: A restricted method in java.lang.foreign.Linker has been called
+[2025-08-30T17:30:35,713][WARN ][stderr                   ] [yamlRestTest-0] WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+[2025-08-30T17:30:35,714][WARN ][stderr                   ] [yamlRestTest-0] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+[2025-08-30T17:30:35,828][INFO ][o.o.e.NodeEnvironment    ] [yamlRestTest-0] using [1] data paths, mounts [[/__w (/dev/root)]], net usable_space [11gb], net total_space [71.6gb], types [ext4]
+[2025-08-30T17:30:35,829][INFO ][o.o.e.NodeEnvironment    ] [yamlRestTest-0] heap size [512mb], compressed ordinary object pointers [true]
+[2025-08-30T17:30:35,869][INFO ][o.o.n.Node               ] [yamlRestTest-0] node name [yamlRestTest-0], node ID [Kh80xeoMR5WKQEc7ytcZxg], cluster name [yamlRestTest], roles [ingest, remote_cluster_client, data, cluster_manager]
+[2025-08-30T17:30:35,905][INFO ][o.o.e.ExtensionsManager  ] [yamlRestTest-0] ExtensionsManager initialized
+[2025-08-30T17:30:37,486][WARN ][stderr                   ] [yamlRestTest-0] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[2025-08-30T17:30:37,487][WARN ][stderr                   ] [yamlRestTest-0] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[2025-08-30T17:30:37,487][WARN ][stderr                   ] [yamlRestTest-0] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[2025-08-30T17:30:39,552][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [yamlRestTest-0] Registered 4 built-in query converters
+[2025-08-30T17:30:39,553][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [yamlRestTest-0] Loaded 0 external query converters (0 failed)
+[2025-08-30T17:30:39,856][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: COALESCE. Will skip its type checking
+[2025-08-30T17:30:39,857][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: array. Will skip its type checking
+[2025-08-30T17:30:39,858][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: forall. Will skip its type checking
+[2025-08-30T17:30:39,858][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: exists. Will skip its type checking
+[2025-08-30T17:30:39,858][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: filter. Will skip its type checking
+[2025-08-30T17:30:39,858][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: transform. Will skip its type checking
+[2025-08-30T17:30:39,858][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: reduce. Will skip its type checking
+[2025-08-30T17:30:39,859][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T17:30:39,859][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T17:30:39,860][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T17:30:39,860][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T17:30:39,860][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T17:30:39,860][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T17:30:39,860][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T17:30:39,866][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: INTERNAL_PATTERN. Will skip its type checking
+[2025-08-30T17:30:39,866][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: COUNT. Will skip its type checking
+[2025-08-30T17:30:39,867][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: EARLIEST. Will skip its type checking
+[2025-08-30T17:30:39,867][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: LATEST. Will skip its type checking
+[2025-08-30T17:30:39,868][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:39,870][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:39,871][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:39,871][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:39,922][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:39,922][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:39,922][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:39,923][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:40,230][INFO ][o.o.t.NettyAllocator     ] [yamlRestTest-0] creating NettyAllocator with the following configs: [name=unpooled, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_unpooled_allocator=null, g1gc_enabled=true, g1gc_region_size=1mb, heap_size=512mb}]
+[2025-08-30T17:30:40,295][INFO ][o.o.d.DiscoveryModule    ] [yamlRestTest-0] using discovery type [zen] and seed hosts providers [settings, file]
+[2025-08-30T17:30:40,583][WARN ][o.o.g.DanglingIndicesState] [yamlRestTest-0] gateway.auto_import_dangling_indices is disabled, dangling indices will not be automatically detected or imported and must be managed manually
+[2025-08-30T17:30:40,604][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:40,605][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:40,605][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:40,605][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:40,606][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:40,606][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:40,606][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T17:30:40,607][INFO ][o.o.s.e.f.PPLFuncImpTable] [yamlRestTest-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T17:30:40,846][INFO ][o.o.n.Node               ] [yamlRestTest-0] initialized
+[2025-08-30T17:30:40,847][INFO ][o.o.n.Node               ] [yamlRestTest-0] starting ...
+[2025-08-30T17:30:40,965][INFO ][o.o.t.TransportService   ] [yamlRestTest-0] publish_address {127.0.0.1:44071}, bound_addresses {[::1]:45059}, {127.0.0.1:44071}
+[2025-08-30T17:30:40,967][INFO ][o.o.t.TransportService   ] [yamlRestTest-0] Remote clusters initialized successfully.
+[2025-08-30T17:30:41,124][WARN ][o.o.d.FileBasedSeedHostsProvider] [yamlRestTest-0] expected, but did not find, a dynamic hosts list at [/__w/sql/sql/integ-test/build/testclusters/yamlRestTest-0/config/unicast_hosts.txt]
+[2025-08-30T17:30:41,125][INFO ][o.o.c.c.Coordinator      ] [yamlRestTest-0] setting initial configuration to VotingConfiguration{Kh80xeoMR5WKQEc7ytcZxg}
+[2025-08-30T17:30:41,180][INFO ][o.o.h.AbstractHttpServerTransport] [yamlRestTest-0] publish_address {127.0.0.1:37745}, bound_addresses {[::1]:45841}, {127.0.0.1:37745}
+[2025-08-30T17:30:41,182][INFO ][o.o.n.Node               ] [yamlRestTest-0] started
+[2025-08-30T17:30:41,296][INFO ][o.o.c.s.ClusterManagerService] [yamlRestTest-0] Tasks batched with key: org.opensearch.cluster.coordination.JoinHelper, count:3 and sample tasks: elected-as-cluster-manager ([1] nodes joined)[{yamlRestTest-0}{Kh80xeoMR5WKQEc7ytcZxg}{Y_blc3JhTtuRPlQqCga4Tg}{127.0.0.1}{127.0.0.1:44071}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} elect leader, _BECOME_CLUSTER_MANAGER_TASK_, _FINISH_ELECTION_], term: 1, version: 1, delta: cluster-manager node changed {previous [], current [{yamlRestTest-0}{Kh80xeoMR5WKQEc7ytcZxg}{Y_blc3JhTtuRPlQqCga4Tg}{127.0.0.1}{127.0.0.1:44071}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}
+[2025-08-30T17:30:41,321][INFO ][o.o.c.c.CoordinationState] [yamlRestTest-0] cluster UUID set to [_SntoU40Rcyrw_tN-FB6gA]
+[2025-08-30T17:30:41,340][INFO ][o.o.c.s.ClusterApplierService] [yamlRestTest-0] cluster-manager node changed {previous [], current [{yamlRestTest-0}{Kh80xeoMR5WKQEc7ytcZxg}{Y_blc3JhTtuRPlQqCga4Tg}{127.0.0.1}{127.0.0.1:44071}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, term: 1, version: 1, reason: Publication{term=1, version=1}
+[2025-08-30T17:30:41,354][INFO ][o.o.d.PeerFinder         ] [yamlRestTest-0] setting findPeersInterval to [1s] as node commission status = [true] for local node [{yamlRestTest-0}{Kh80xeoMR5WKQEc7ytcZxg}{Y_blc3JhTtuRPlQqCga4Tg}{127.0.0.1}{127.0.0.1:44071}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T17:30:41,370][INFO ][o.o.g.GatewayService     ] [yamlRestTest-0] recovered [0] indices into cluster_state
+[2025-08-30T17:30:45,217][INFO ][o.o.c.s.ClusterManagerTaskThrottler] [yamlRestTest-0] Starting cluster manager throttling as all nodes are higher than or equal to 2.5.0
+[2025-08-30T17:30:45,240][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/-BUf3cJJTkCssHc1pnTGnA]
+[2025-08-30T17:30:45,399][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:45,445][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/-BUf3cJJTkCssHc1pnTGnA]
+[2025-08-30T17:30:45,617][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:45,683][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:45,683][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:45,683][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:46,196][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [5847fcaa-c358-42b1-90af-810400c32438] Incoming request source=test | where message_alias = *** | fields + message_alias,time_alias
+[2025-08-30T17:30:47,409][INFO ][o.o.s.o.m.GCedMemoryUsage] [yamlRestTest-0] G1 Concurrent GC listener registered for memory usage monitor.
+[2025-08-30T17:30:47,410][INFO ][o.o.s.o.m.GCedMemoryUsage] [yamlRestTest-0] G1 Old Generation listener registered for memory usage monitor.
+[2025-08-30T17:30:47,586][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:47,589][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:47,589][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:47,647][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/-BUf3cJJTkCssHc1pnTGnA] deleting index
+[2025-08-30T17:30:47,848][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:47,849][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:47,849][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:47,868][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/92YiZJ2wQBOiEi6WiJhyDw]
+[2025-08-30T17:30:47,872][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [hdfs_logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:47,898][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/92YiZJ2wQBOiEi6WiJhyDw]
+[2025-08-30T17:30:47,971][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/92YiZJ2wQBOiEi6WiJhyDw]
+[2025-08-30T17:30:47,981][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [hdfs_logs/92YiZJ2wQBOiEi6WiJhyDw] create_mapping
+[2025-08-30T17:30:48,062][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [102bbce6-bd94-463f-ac63-294a9a5cb66d] Incoming request source=hdfs_logs | patterns content method=SIMPLE_PATTERN mode=AGGREGATION max_sample_count=*** buffer_limit=*** new_field=patterns_field | sort patterns_field | fields + patterns_field,pattern_count
+[2025-08-30T17:30:48,632][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,633][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,633][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,656][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [hdfs_logs/92YiZJ2wQBOiEi6WiJhyDw] deleting index
+[2025-08-30T17:30:48,736][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:48,737][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:48,737][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:48,750][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[tmp/Zy4HvC0BQPmnNQlx0Jy1xw]
+[2025-08-30T17:30:48,757][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [tmp] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:48,777][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[tmp/Zy4HvC0BQPmnNQlx0Jy1xw]
+[2025-08-30T17:30:48,807][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[tmp][0]]]).
+[2025-08-30T17:30:48,849][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [b98bde77-9854-41bd-93cb-86bc2c5d530c] Incoming request source=tmp | stats sum(demo)
+[2025-08-30T17:30:48,916][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,916][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [false] to [true]
+[2025-08-30T17:30:48,916][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,916][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [false] to [true]
+[2025-08-30T17:30:48,917][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:48,917][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [false] to [true]
+[2025-08-30T17:30:48,940][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [tmp/Zy4HvC0BQPmnNQlx0Jy1xw] deleting index
+[2025-08-30T17:30:48,983][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [true] to [false]
+[2025-08-30T17:30:48,983][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [true] to [false]
+[2025-08-30T17:30:48,983][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.fallback.allowed] from [true] to [false]
+[2025-08-30T17:30:49,020][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,021][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,021][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,038][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/Gg1ou-8ARqGLg_eMvp5wdA]
+[2025-08-30T17:30:49,046][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:49,076][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/Gg1ou-8ARqGLg_eMvp5wdA]
+[2025-08-30T17:30:49,109][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:49,195][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [488514bd-2b52-4d9c-bad7-defd43259fa1] Incoming request source=test | parse body 'HTTP/1.1" (?<httpstatus>\d+)' | eval status2xx=if(httpstatus >= *** and httpstatus < ***,***,***) status3xx=if(httpstatus >= *** and httpstatus < ***,***,***) status4xx=if(httpstatus >= *** and httpstatus < ***,***,***) status5xx=if(httpstatus >= *** and httpstatus < ***,***,***) statusOther=if(httpstatus >= ***,***,***) | stats count(),sum(status2xx),sum(status3xx),sum(status4xx),sum(status5xx),sum(statusOther)
+[2025-08-30T17:30:49,379][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,379][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,379][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,399][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/Gg1ou-8ARqGLg_eMvp5wdA] deleting index
+[2025-08-30T17:30:49,472][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,473][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,473][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:49,482][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/lOW2CRZoTqKzgNvGIKGZiw]
+[2025-08-30T17:30:49,484][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:49,501][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/lOW2CRZoTqKzgNvGIKGZiw]
+[2025-08-30T17:30:49,552][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/lOW2CRZoTqKzgNvGIKGZiw]
+[2025-08-30T17:30:49,555][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/lOW2CRZoTqKzgNvGIKGZiw] create_mapping
+[2025-08-30T17:30:49,620][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [7ae19de1-cb04-42f2-99dd-ca7957cdfdfe] Incoming request source=test | where a = *** or a = *** or is null(a) | sort a
+[2025-08-30T17:30:49,708][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [6de2ae31-8584-4505-ab69-0c9e6208e01f] Incoming request source=test | where a = *** or a = *** and is not null(a) | sort a
+[2025-08-30T17:30:49,822][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,822][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,823][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:49,845][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/lOW2CRZoTqKzgNvGIKGZiw] deleting index
+[2025-08-30T17:30:49,904][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/8P1lJZOxS1KqSe5yANv3ew]
+[2025-08-30T17:30:49,913][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:49,931][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/8P1lJZOxS1KqSe5yANv3ew]
+[2025-08-30T17:30:49,964][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:50,008][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [79b5226f-5fc9-41a5-a06f-5b2de58424c9] Incoming request source=test | sort id | fields + body | head 1
+[2025-08-30T17:30:50,057][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [428c2ce8-faea-4df7-b3af-db94799e60d5] Incoming request source=test | where match_phrase(null,***) | fields + body
+[2025-08-30T17:30:50,164][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/8P1lJZOxS1KqSe5yANv3ew] deleting index
+[2025-08-30T17:30:50,229][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,229][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,230][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,238][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/5bcoCmj0RRW-nPrAOhhW8Q]
+[2025-08-30T17:30:50,240][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [hdfs_logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:50,255][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/5bcoCmj0RRW-nPrAOhhW8Q]
+[2025-08-30T17:30:50,300][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/5bcoCmj0RRW-nPrAOhhW8Q]
+[2025-08-30T17:30:50,305][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [hdfs_logs/5bcoCmj0RRW-nPrAOhhW8Q] create_mapping
+[2025-08-30T17:30:50,352][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [3afce4e0-c3fa-4058-93e6-630c3dd51eb0] Incoming request source=hdfs_logs | patterns content method=SIMPLE_PATTERN mode=LABEL max_sample_count=*** buffer_limit=*** new_field=patterns_field | head 1 | fields + content,patterns_field,tokens
+[2025-08-30T17:30:50,414][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,414][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,414][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,432][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [hdfs_logs/5bcoCmj0RRW-nPrAOhhW8Q] deleting index
+[2025-08-30T17:30:50,497][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,498][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,498][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,505][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/IzlYgGYeRS2kJUfBOT6tmA]
+[2025-08-30T17:30:50,507][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:50,523][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/IzlYgGYeRS2kJUfBOT6tmA]
+[2025-08-30T17:30:50,570][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/IzlYgGYeRS2kJUfBOT6tmA]
+[2025-08-30T17:30:50,573][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/IzlYgGYeRS2kJUfBOT6tmA] create_mapping
+[2025-08-30T17:30:50,623][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [4f49f48f-8304-4356-a229-9e017a983908] Incoming request source=test | where log.url.message = ***
+[2025-08-30T17:30:50,662][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,662][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,663][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:50,683][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/IzlYgGYeRS2kJUfBOT6tmA] deleting index
+[2025-08-30T17:30:50,739][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/xsawrPbSQZC3lqIT2rXT5A]
+[2025-08-30T17:30:50,743][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:50,762][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/xsawrPbSQZC3lqIT2rXT5A]
+[2025-08-30T17:30:50,797][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:50,886][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,886][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,886][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:50,910][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [5b178a5b-048f-4dcf-8faf-e0d4500b9ea9] Incoming request source=test | sort id | fields + body | head 1
+[2025-08-30T17:30:50,961][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [a0d28799-c94d-4382-8915-fd8d81273809] Incoming request source=test | where like(body,***) | fields + body
+[2025-08-30T17:30:51,000][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,000][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,000][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,014][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/xsawrPbSQZC3lqIT2rXT5A] deleting index
+[2025-08-30T17:30:51,062][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/To7NRCUfS-ytQvHg88swuQ]
+[2025-08-30T17:30:51,067][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:51,079][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/To7NRCUfS-ytQvHg88swuQ]
+[2025-08-30T17:30:51,103][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:51,126][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,126][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,126][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,151][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [1fa79612-ea44-4ea7-a786-58ad45ab1c63] Incoming request source=test | fields + timestamp
+[2025-08-30T17:30:51,181][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,181][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,182][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,210][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/To7NRCUfS-ytQvHg88swuQ] deleting index
+[2025-08-30T17:30:51,272][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/JjcuOw2RQ6yjUdoHqe66ng]
+[2025-08-30T17:30:51,277][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:51,293][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/JjcuOw2RQ6yjUdoHqe66ng]
+[2025-08-30T17:30:51,324][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:51,351][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,351][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,351][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,386][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [5a186ab3-3d62-424a-96b4-4620a24a8ec1] Incoming request source=test
+[2025-08-30T17:30:51,410][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,410][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,411][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,428][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/JjcuOw2RQ6yjUdoHqe66ng] deleting index
+[2025-08-30T17:30:51,493][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/Yon1Cn_HSeq3keikSpqVoQ]
+[2025-08-30T17:30:51,495][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T17:30:51,513][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/Yon1Cn_HSeq3keikSpqVoQ]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [200]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [200]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,570][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [200]
+[2025-08-30T17:30:51,577][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/OakcDHZSSW2JRFD_e3LRjA]
+[2025-08-30T17:30:51,579][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:51,594][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/OakcDHZSSW2JRFD_e3LRjA]
+[2025-08-30T17:30:51,641][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/OakcDHZSSW2JRFD_e3LRjA]
+[2025-08-30T17:30:51,644][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [logs/OakcDHZSSW2JRFD_e3LRjA] create_mapping
+[2025-08-30T17:30:51,679][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [062ee1b5-c7e5-4012-a922-19e903770ecc] Incoming request source=logs | stats count()
+[2025-08-30T17:30:51,702][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,702][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,702][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,719][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [logs/OakcDHZSSW2JRFD_e3LRjA] deleting index
+[2025-08-30T17:30:51,719][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/Yon1Cn_HSeq3keikSpqVoQ] deleting index
+[2025-08-30T17:30:51,756][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [200] to [10000]
+[2025-08-30T17:30:51,756][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [200] to [10000]
+[2025-08-30T17:30:51,756][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [200] to [10000]
+[2025-08-30T17:30:51,775][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,776][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,776][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:51,786][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/U24XSkAmQs-IPgnDqNdEnw]
+[2025-08-30T17:30:51,789][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[0]
+[2025-08-30T17:30:51,804][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/U24XSkAmQs-IPgnDqNdEnw]
+[2025-08-30T17:30:51,829][INFO ][o.o.c.r.a.AllocationService] [yamlRestTest-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[test][0]]]).
+[2025-08-30T17:30:51,850][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/U24XSkAmQs-IPgnDqNdEnw]
+[2025-08-30T17:30:51,854][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/U24XSkAmQs-IPgnDqNdEnw] update_mapping [_doc]
+[2025-08-30T17:30:51,899][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [022eb118-0665-41d7-873e-14e5468c93e4] Incoming request source=test | stats count() by title | sort title
+[2025-08-30T17:30:51,945][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,946][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,946][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:51,968][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/U24XSkAmQs-IPgnDqNdEnw] deleting index
+[2025-08-30T17:30:52,028][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,029][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,029][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,037][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/1xTxMPfkQ3ejxIBe8DCIsw]
+[2025-08-30T17:30:52,039][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [hdfs_logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:52,055][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/1xTxMPfkQ3ejxIBe8DCIsw]
+[2025-08-30T17:30:52,095][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/1xTxMPfkQ3ejxIBe8DCIsw]
+[2025-08-30T17:30:52,100][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [hdfs_logs/1xTxMPfkQ3ejxIBe8DCIsw] create_mapping
+[2025-08-30T17:30:52,146][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [69bd4921-ee92-43d3-be5f-8835b800d876] Incoming request source=hdfs_logs | patterns content method=BRAIN mode=LABEL max_sample_count=*** buffer_limit=*** new_field=patterns_field | head 1 | fields + content,patterns_field,tokens
+[2025-08-30T17:30:52,260][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,260][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,260][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,276][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [hdfs_logs/1xTxMPfkQ3ejxIBe8DCIsw] deleting index
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [1]
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [1]
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,326][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [10000] to [1]
+[2025-08-30T17:30:52,333][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[region_info/yPfNi-QHRaC_iWcQikLxzQ]
+[2025-08-30T17:30:52,334][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [region_info] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:52,346][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[region_info/yPfNi-QHRaC_iWcQikLxzQ]
+[2025-08-30T17:30:52,354][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/LaX3NHTBT-uAXlFaHcZL0A]
+[2025-08-30T17:30:52,369][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:52,387][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/LaX3NHTBT-uAXlFaHcZL0A]
+[2025-08-30T17:30:52,435][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[region_info/yPfNi-QHRaC_iWcQikLxzQ]
+[2025-08-30T17:30:52,438][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [region_info/yPfNi-QHRaC_iWcQikLxzQ] create_mapping
+[2025-08-30T17:30:52,454][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/LaX3NHTBT-uAXlFaHcZL0A]
+[2025-08-30T17:30:52,458][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [logs/LaX3NHTBT-uAXlFaHcZL0A] create_mapping
+[2025-08-30T17:30:52,482][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[logs/LaX3NHTBT-uAXlFaHcZL0A]
+[2025-08-30T17:30:52,512][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [8a7c3445-f7a1-40b8-8079-a1dd010c4d8e] Incoming request source=logs | lookup region_info regionId
+[2025-08-30T17:30:52,580][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,581][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,581][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,598][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [logs/LaX3NHTBT-uAXlFaHcZL0A] deleting index
+[2025-08-30T17:30:52,598][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [region_info/yPfNi-QHRaC_iWcQikLxzQ] deleting index
+[2025-08-30T17:30:52,639][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [1] to [10000]
+[2025-08-30T17:30:52,639][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [1] to [10000]
+[2025-08-30T17:30:52,640][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.query.size_limit] from [1] to [10000]
+[2025-08-30T17:30:52,669][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,670][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,670][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:52,683][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/idHWGCaHQguc-o29Yh39kA]
+[2025-08-30T17:30:52,684][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:52,699][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/idHWGCaHQguc-o29Yh39kA]
+[2025-08-30T17:30:52,741][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/idHWGCaHQguc-o29Yh39kA]
+[2025-08-30T17:30:52,744][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/idHWGCaHQguc-o29Yh39kA] create_mapping
+[2025-08-30T17:30:52,774][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [8ccf67d8-6e4f-480f-9816-6b8d74e4d639] Incoming request source=test
+[2025-08-30T17:30:52,796][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [654b330c-fc30-433d-b667-8abdd6f13342] Incoming request source=test | fields + log,log.json,log.json.status,log.json.time
+[2025-08-30T17:30:52,820][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,820][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,820][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:52,838][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/idHWGCaHQguc-o29Yh39kA] deleting index
+[2025-08-30T17:30:52,898][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/i1xfHaKAQ5qUU3pk5s6tkQ]
+[2025-08-30T17:30:52,900][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T17:30:52,916][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/i1xfHaKAQ5qUU3pk5s6tkQ]
+[2025-08-30T17:30:52,959][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/i1xfHaKAQ5qUU3pk5s6tkQ]
+[2025-08-30T17:30:52,961][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/i1xfHaKAQ5qUU3pk5s6tkQ] create_mapping
+[2025-08-30T17:30:52,993][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [d2ae2a4c-c5b6-4dc8-98f3-664e335b1fba] Incoming request source=test | head 1
+[2025-08-30T17:30:52,994][INFO ][o.o.s.o.s.s.OpenSearchIndexScanQueryBuilder] [yamlRestTest-0] Cannot pushdown limit 1 with offset 1
+[2025-08-30T17:30:53,007][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [698cd52b-8540-4ea5-acc1-563c463e6b92] Incoming request source=test | head 2 | head 1
+[2025-08-30T17:30:53,008][INFO ][o.o.s.o.s.s.OpenSearchIndexScanQueryBuilder] [yamlRestTest-0] Cannot pushdown limit 1 with offset 1
+[2025-08-30T17:30:53,025][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/i1xfHaKAQ5qUU3pk5s6tkQ] deleting index
+[2025-08-30T17:30:53,063][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,063][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,063][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,070][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/dFnUqEczR6GPraJG3-vtdA]
+[2025-08-30T17:30:53,072][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [hdfs_logs] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:53,085][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/dFnUqEczR6GPraJG3-vtdA]
+[2025-08-30T17:30:53,123][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[hdfs_logs/dFnUqEczR6GPraJG3-vtdA]
+[2025-08-30T17:30:53,127][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [hdfs_logs/dFnUqEczR6GPraJG3-vtdA] create_mapping
+[2025-08-30T17:30:53,169][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [39a45b2b-e8c9-4634-8f67-fa75911eb902] Incoming request source=hdfs_logs | patterns content method=BRAIN mode=AGGREGATION max_sample_count=*** buffer_limit=*** new_field=patterns_field | fields + patterns_field,pattern_count
+[2025-08-30T17:30:53,294][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,295][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,295][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,310][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [hdfs_logs/dFnUqEczR6GPraJG3-vtdA] deleting index
+[2025-08-30T17:30:53,364][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,364][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,364][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [false] to [true]
+[2025-08-30T17:30:53,369][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/vsIu514-QVCiVoETQGP03w]
+[2025-08-30T17:30:53,371][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:53,385][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/vsIu514-QVCiVoETQGP03w]
+[2025-08-30T17:30:53,424][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/vsIu514-QVCiVoETQGP03w]
+[2025-08-30T17:30:53,425][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/vsIu514-QVCiVoETQGP03w] create_mapping
+[2025-08-30T17:30:53,454][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [70bba2c6-3cc8-4480-8a48-4ffded822322] Incoming request source=test | where balance >= *** | stats avg(balance)
+[2025-08-30T17:30:53,498][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [079f83b9-9f24-4f56-ba12-eb033f8d3b77] Incoming request source=test | where balance in (***) | stats avg(balance)
+[2025-08-30T17:30:53,534][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,534][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,534][INFO ][o.o.c.s.ClusterSettings  ] [yamlRestTest-0] updating [plugins.calcite.enabled] from [true] to [false]
+[2025-08-30T17:30:53,547][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/vsIu514-QVCiVoETQGP03w] deleting index
+[2025-08-30T17:30:53,585][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/WIVkyEwpS0SLBwW3xf3YeA]
+[2025-08-30T17:30:53,587][INFO ][o.o.c.m.MetadataCreateIndexService] [yamlRestTest-0] [test] creating index, cause [auto(bulk api)], templates [], shards [1]/[1]
+[2025-08-30T17:30:53,598][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/WIVkyEwpS0SLBwW3xf3YeA]
+[2025-08-30T17:30:53,639][INFO ][o.o.p.PluginsService     ] [yamlRestTest-0] PluginService:onIndexModule index:[test/WIVkyEwpS0SLBwW3xf3YeA]
+[2025-08-30T17:30:53,641][INFO ][o.o.c.m.MetadataMappingService] [yamlRestTest-0] [test/WIVkyEwpS0SLBwW3xf3YeA] create_mapping
+[2025-08-30T17:30:53,672][INFO ][o.o.s.p.PPLService       ] [yamlRestTest-0] [dddf6f9b-78a1-48a2-afef-8d92f1ef62ed] Incoming request source=test | where is not null(log)
+[2025-08-30T17:30:53,678][INFO ][o.o.s.o.s.s.OpenSearchIndexScanQueryBuilder] [yamlRestTest-0] Cannot pushdown the filter condition.
+[2025-08-30T17:30:53,696][INFO ][o.o.c.m.MetadataDeleteIndexService] [yamlRestTest-0] [test/WIVkyEwpS0SLBwW3xf3YeA] deleting index
+[2025-08-30T17:30:53.830481159Z] [BUILD] Stopping node

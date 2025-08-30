@@ -1,0 +1,739 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLQueryDataAnonymizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ppl</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.ppl.utils</a> &gt; <span class="el_source">PPLQueryDataAnonymizer.java</span></div><h1>PPLQueryDataAnonymizer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.utils;
+
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.Query;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
+import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
+import org.opensearch.sql.ast.tree.DescribeRelation;
+import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
+import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
+import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
+import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalDedupe;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRareTopN;
+import org.opensearch.sql.planner.logical.LogicalRemove;
+import org.opensearch.sql.planner.logical.LogicalRename;
+import org.opensearch.sql.planner.logical.LogicalSort;
+
+/** Utility class to mask sensitive information in incoming PPL queries. */
+public class PPLQueryDataAnonymizer extends AbstractNodeVisitor&lt;String, String&gt; {
+
+  private static final String MASK_LITERAL = &quot;***&quot;;
+
+  private final AnonymizerExpressionAnalyzer expressionAnalyzer;
+  private final Settings settings;
+
+<span class="fc" id="L105">  public PPLQueryDataAnonymizer(Settings settings) {</span>
+<span class="fc" id="L106">    this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);</span>
+<span class="fc" id="L107">    this.settings = settings;</span>
+<span class="fc" id="L108">  }</span>
+
+  /**
+   * This method is used to anonymize sensitive data in PPL query. Sensitive data includes user
+   * data.
+   *
+   * @return ppl query string with all user data replace with &quot;***&quot;
+   */
+  public String anonymizeData(UnresolvedPlan plan) {
+<span class="fc" id="L117">    return plan.accept(this, null);</span>
+  }
+
+  public String anonymizeStatement(Statement plan) {
+<span class="fc" id="L121">    return plan.accept(this, null);</span>
+  }
+
+  /** Handle Query Statement. */
+  @Override
+  public String visitQuery(Query node, String context) {
+<span class="fc" id="L127">    return node.getPlan().accept(this, null);</span>
+  }
+
+  @Override
+  public String visitExplain(Explain node, String context) {
+<span class="fc" id="L132">    return StringUtils.format(</span>
+        &quot;explain %s %s&quot;,
+<span class="fc" id="L134">        node.getFormat().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));</span>
+  }
+
+  @Override
+  public String visitRelation(Relation node, String context) {
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (node instanceof DescribeRelation) {</span>
+      // remove the system table suffix
+<span class="fc" id="L141">      String systemTable = node.getTableQualifiedName().toString();</span>
+<span class="fc" id="L142">      return StringUtils.format(</span>
+<span class="fc" id="L143">          &quot;describe %s&quot;, systemTable.substring(0, systemTable.lastIndexOf('.')));</span>
+    }
+<span class="fc" id="L145">    return StringUtils.format(&quot;source=%s&quot;, node.getTableQualifiedName().toString());</span>
+  }
+
+  @Override
+  public String visitJoin(Join node, String context) {
+<span class="fc" id="L150">    String left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L151">    String rightTableOrSubquery = node.getRight().accept(this, context);</span>
+    String right =
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        rightTableOrSubquery.startsWith(&quot;source=&quot;)</span>
+<span class="fc" id="L154">            ? rightTableOrSubquery.substring(&quot;source=&quot;.length())</span>
+<span class="fc" id="L155">            : rightTableOrSubquery;</span>
+<span class="fc" id="L156">    String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L157">    String leftAlias = node.getLeftAlias().map(l -&gt; &quot; left = &quot; + l).orElse(&quot;&quot;);</span>
+<span class="fc" id="L158">    String rightAlias = node.getRightAlias().map(r -&gt; &quot; right = &quot; + r).orElse(&quot;&quot;);</span>
+<span class="fc" id="L159">    String condition =</span>
+<span class="fc" id="L160">        node.getJoinCondition().map(c -&gt; expressionAnalyzer.analyze(c, context)).orElse(&quot;true&quot;);</span>
+<span class="fc" id="L161">    return StringUtils.format(</span>
+        &quot;%s | %s join%s%s on %s %s&quot;, left, joinType, leftAlias, rightAlias, condition, right);
+  }
+
+  @Override
+  public String visitLookup(Lookup node, String context) {
+<span class="fc" id="L167">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L168">    String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();</span>
+<span class="fc" id="L169">    String mappingFields = formatFieldAlias(node.getMappingAliasMap());</span>
+    String strategy =
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        node.getOutputAliasMap().isEmpty()</span>
+<span class="fc" id="L172">            ? &quot;&quot;</span>
+<span class="fc" id="L173">            : String.format(&quot; %s &quot;, node.getOutputStrategy().toString().toLowerCase());</span>
+<span class="fc" id="L174">    String outputFields = formatFieldAlias(node.getOutputAliasMap());</span>
+<span class="fc" id="L175">    return StringUtils.format(</span>
+        &quot;%s | lookup %s %s%s%s&quot;, child, lookupTable, mappingFields, strategy, outputFields);
+  }
+
+  private String formatFieldAlias(java.util.Map&lt;String, String&gt; fieldMap) {
+<span class="fc" id="L180">    return fieldMap.entrySet().stream()</span>
+<span class="fc" id="L181">        .map(</span>
+            entry -&gt;
+<span class="fc bfc" id="L183" title="All 2 branches covered.">                Objects.equals(entry.getKey(), entry.getValue())</span>
+<span class="fc" id="L184">                    ? entry.getKey()</span>
+<span class="fc" id="L185">                    : StringUtils.format(&quot;%s as %s&quot;, entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L186">        .collect(Collectors.joining(&quot;, &quot;));</span>
+  }
+
+  @Override
+  public String visitSubqueryAlias(SubqueryAlias node, String context) {
+<span class="fc" id="L191">    Node childNode = node.getChild().get(0);</span>
+<span class="fc" id="L192">    String child = childNode.accept(this, context);</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">    if (childNode instanceof Project project</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        &amp;&amp; project.getProjectList().get(0) instanceof AllFields) {</span>
+<span class="fc" id="L195">      childNode = childNode.getChild().get(0);</span>
+    }
+    // add &quot;[]&quot; only if its child is not a root
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    String format = childNode.getChild().isEmpty() ? &quot;%s as %s&quot; : &quot;[ %s ] as %s&quot;;</span>
+<span class="fc" id="L199">    return StringUtils.format(format, child, node.getAlias());</span>
+  }
+
+  @Override
+  public String visitTableFunction(TableFunction node, String context) {
+<span class="fc" id="L204">    String arguments =</span>
+<span class="fc" id="L205">        node.getArguments().stream()</span>
+<span class="fc" id="L206">            .map(</span>
+                unresolvedExpression -&gt;
+<span class="fc" id="L208">                    this.expressionAnalyzer.analyze(unresolvedExpression, context))</span>
+<span class="fc" id="L209">            .collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="fc" id="L210">    return StringUtils.format(&quot;source=%s(%s)&quot;, node.getFunctionName().toString(), arguments);</span>
+  }
+
+  @Override
+  public String visitFilter(Filter node, String context) {
+<span class="fc" id="L215">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L216">    String condition = visitExpression(node.getCondition());</span>
+<span class="fc" id="L217">    return StringUtils.format(&quot;%s | where %s&quot;, child, condition);</span>
+  }
+
+  /** Build {@link LogicalRename}. */
+  @Override
+  public String visitRename(Rename node, String context) {
+<span class="fc" id="L223">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L224">    ImmutableMap.Builder&lt;String, String&gt; renameMapBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">    for (Map renameMap : node.getRenameList()) {</span>
+<span class="fc" id="L226">      renameMapBuilder.put(</span>
+<span class="fc" id="L227">          visitExpression(renameMap.getOrigin()),</span>
+<span class="fc" id="L228">          ((Field) renameMap.getTarget()).getField().toString());</span>
+<span class="fc" id="L229">    }</span>
+<span class="fc" id="L230">    String renames =</span>
+<span class="fc" id="L231">        renameMapBuilder.build().entrySet().stream()</span>
+<span class="fc" id="L232">            .map(entry -&gt; StringUtils.format(&quot;%s as %s&quot;, entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L233">            .collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="fc" id="L234">    return StringUtils.format(&quot;%s | rename %s&quot;, child, renames);</span>
+  }
+
+  /** Build {@link LogicalAggregation}. */
+  @Override
+  public String visitAggregation(Aggregation node, String context) {
+<span class="fc" id="L240">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L241">    UnresolvedExpression span = node.getSpan();</span>
+<span class="fc" id="L242">    List&lt;UnresolvedExpression&gt; groupByExprList = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">    if (!Objects.isNull(span)) {</span>
+<span class="fc" id="L244">      groupByExprList.add(span);</span>
+    }
+<span class="fc" id="L246">    groupByExprList.addAll(node.getGroupExprList());</span>
+<span class="fc" id="L247">    final String group = visitExpressionList(groupByExprList);</span>
+<span class="fc" id="L248">    return StringUtils.format(</span>
+        &quot;%s | stats %s&quot;,
+<span class="fc" id="L250">        child, String.join(&quot; &quot;, visitExpressionList(node.getAggExprList()), groupBy(group)).trim());</span>
+  }
+
+  @Override
+  public String visitBin(Bin node, String context) {
+<span class="fc" id="L255">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L256">    StringBuilder binCommand = new StringBuilder();</span>
+<span class="fc" id="L257">    binCommand.append(&quot; | bin &quot;).append(visitExpression(node.getField()));</span>
+
+    // Use instanceof for type-safe dispatch to access subclass-specific properties
+<span class="fc bfc" id="L260" title="All 2 branches covered.">    if (node instanceof SpanBin) {</span>
+<span class="fc" id="L261">      SpanBin spanBin = (SpanBin) node;</span>
+<span class="fc" id="L262">      binCommand.append(&quot; span=&quot;).append(visitExpression(spanBin.getSpan()));</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">      if (spanBin.getAligntime() != null) {</span>
+<span class="fc" id="L264">        binCommand.append(&quot; aligntime=&quot;).append(visitExpression(spanBin.getAligntime()));</span>
+      }
+<span class="fc bfc" id="L266" title="All 2 branches covered.">    } else if (node instanceof MinSpanBin) {</span>
+<span class="fc" id="L267">      MinSpanBin minSpanBin = (MinSpanBin) node;</span>
+<span class="fc" id="L268">      binCommand.append(&quot; minspan=&quot;).append(visitExpression(minSpanBin.getMinspan()));</span>
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">      if (minSpanBin.getStart() != null) {</span>
+<span class="fc" id="L270">        binCommand.append(&quot; start=&quot;).append(visitExpression(minSpanBin.getStart()));</span>
+      }
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">      if (minSpanBin.getEnd() != null) {</span>
+<span class="fc" id="L273">        binCommand.append(&quot; end=&quot;).append(visitExpression(minSpanBin.getEnd()));</span>
+      }
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">    } else if (node instanceof CountBin) {</span>
+<span class="fc" id="L276">      CountBin countBin = (CountBin) node;</span>
+<span class="fc" id="L277">      binCommand.append(&quot; bins=&quot;).append(MASK_LITERAL);</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">      if (countBin.getStart() != null) {</span>
+<span class="fc" id="L279">        binCommand.append(&quot; start=&quot;).append(visitExpression(countBin.getStart()));</span>
+      }
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">      if (countBin.getEnd() != null) {</span>
+<span class="fc" id="L282">        binCommand.append(&quot; end=&quot;).append(visitExpression(countBin.getEnd()));</span>
+      }
+<span class="pc bnc" id="L284" title="All 2 branches missed.">    } else if (node instanceof RangeBin) {</span>
+<span class="nc" id="L285">      RangeBin rangeBin = (RangeBin) node;</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">      if (rangeBin.getStart() != null) {</span>
+<span class="nc" id="L287">        binCommand.append(&quot; start=&quot;).append(visitExpression(rangeBin.getStart()));</span>
+      }
+<span class="nc bnc" id="L289" title="All 2 branches missed.">      if (rangeBin.getEnd() != null) {</span>
+<span class="nc" id="L290">        binCommand.append(&quot; end=&quot;).append(visitExpression(rangeBin.getEnd()));</span>
+      }
+<span class="nc bnc" id="L292" title="All 2 branches missed.">    } else if (node instanceof DefaultBin) {</span>
+      // DefaultBin has no additional parameters
+    }
+
+<span class="fc bfc" id="L296" title="All 2 branches covered.">    if (node.getAlias() != null) {</span>
+<span class="fc" id="L297">      binCommand.append(&quot; as &quot;).append(node.getAlias());</span>
+    }
+
+<span class="fc" id="L300">    return StringUtils.format(&quot;%s%s&quot;, child, binCommand.toString());</span>
+  }
+
+  @Override
+  public String visitWindow(Window node, String context) {
+<span class="fc" id="L305">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L306">    return StringUtils.format(</span>
+        &quot;%s | eventstats %s&quot;,
+<span class="fc" id="L308">        child, String.join(&quot; &quot;, visitExpressionList(node.getWindowFunctionList())).trim());</span>
+  }
+
+  /** Build {@link LogicalRareTopN}. */
+  @Override
+  public String visitRareTopN(RareTopN node, String context) {
+<span class="fc" id="L314">    final String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L315">    ArgumentMap arguments = ArgumentMap.of(node.getArguments());</span>
+<span class="fc" id="L316">    Integer noOfResults = (Integer) arguments.get(&quot;noOfResults&quot;).getValue();</span>
+<span class="fc" id="L317">    String countField = (String) arguments.get(&quot;countField&quot;).getValue();</span>
+<span class="fc" id="L318">    Boolean showCount = (Boolean) arguments.get(&quot;showCount&quot;).getValue();</span>
+<span class="fc" id="L319">    String fields = visitFieldList(node.getFields());</span>
+<span class="fc" id="L320">    String group = visitExpressionList(node.getGroupExprList());</span>
+    String options =
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        isCalciteEnabled(settings)</span>
+<span class="fc" id="L323">            ? StringUtils.format(&quot;countield='%s' showcount=%s &quot;, countField, showCount)</span>
+<span class="fc" id="L324">            : &quot;&quot;;</span>
+<span class="fc" id="L325">    return StringUtils.format(</span>
+        &quot;%s | %s %d %s%s&quot;,
+        child,
+<span class="fc" id="L328">        node.getCommandType().name().toLowerCase(),</span>
+        noOfResults,
+        options,
+<span class="fc" id="L331">        String.join(&quot; &quot;, fields, groupBy(group)).trim());</span>
+  }
+
+  /** Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}. */
+  @Override
+  public String visitProject(Project node, String context) {
+<span class="fc" id="L337">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L338">    String arg = &quot;+&quot;;</span>
+<span class="fc" id="L339">    String fields = visitExpressionList(node.getProjectList());</span>
+
+<span class="fc bfc" id="L341" title="All 2 branches covered.">    if (Strings.isNullOrEmpty(fields)) {</span>
+<span class="fc" id="L342">      return child;</span>
+    }
+
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    if (node.hasArgument()) {</span>
+<span class="fc" id="L346">      Argument argument = node.getArgExprList().get(0);</span>
+<span class="fc" id="L347">      Boolean exclude = (Boolean) argument.getValue().getValue();</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">      if (exclude) {</span>
+<span class="fc" id="L349">        arg = &quot;-&quot;;</span>
+      }
+    }
+<span class="fc" id="L352">    return StringUtils.format(&quot;%s | fields %s %s&quot;, child, arg, fields);</span>
+  }
+
+  /** Build {@link LogicalEval}. */
+  @Override
+  public String visitEval(Eval node, String context) {
+<span class="fc" id="L358">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L359">    ImmutableList.Builder&lt;Pair&lt;String, String&gt;&gt; expressionsBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">    for (Let let : node.getExpressionList()) {</span>
+<span class="fc" id="L361">      String expression = visitExpression(let.getExpression());</span>
+<span class="fc" id="L362">      String target = let.getVar().getField().toString();</span>
+<span class="fc" id="L363">      expressionsBuilder.add(ImmutablePair.of(target, expression));</span>
+<span class="fc" id="L364">    }</span>
+<span class="fc" id="L365">    String expressions =</span>
+<span class="fc" id="L366">        expressionsBuilder.build().stream()</span>
+<span class="fc" id="L367">            .map(pair -&gt; StringUtils.format(&quot;%s&quot; + &quot;=%s&quot;, pair.getLeft(), pair.getRight()))</span>
+<span class="fc" id="L368">            .collect(Collectors.joining(&quot; &quot;));</span>
+<span class="fc" id="L369">    return StringUtils.format(&quot;%s | eval %s&quot;, child, expressions);</span>
+  }
+
+  @Override
+  public String visitExpand(Expand node, String context) {
+<span class="nc" id="L374">    String child = node.getChild().getFirst().accept(this, context);</span>
+<span class="nc" id="L375">    String field = visitExpression(node.getField());</span>
+
+<span class="nc" id="L377">    return StringUtils.format(&quot;%s | expand %s&quot;, child, field);</span>
+  }
+
+  /** Build {@link LogicalSort}. */
+  @Override
+  public String visitSort(Sort node, String context) {
+<span class="fc" id="L383">    String child = node.getChild().get(0).accept(this, context);</span>
+    // the first options is {&quot;count&quot;: &quot;integer&quot;}
+<span class="fc" id="L385">    Integer count = node.getCount();</span>
+<span class="fc" id="L386">    String sortList = visitFieldList(node.getSortList());</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">    if (count != 0) {</span>
+<span class="fc" id="L388">      return StringUtils.format(&quot;%s | sort %d %s&quot;, child, count, sortList);</span>
+    } else {
+<span class="fc" id="L390">      return StringUtils.format(&quot;%s | sort %s&quot;, child, sortList);</span>
+    }
+  }
+
+  /** Build {@link LogicalDedupe}. */
+  @Override
+  public String visitDedupe(Dedupe node, String context) {
+<span class="fc" id="L397">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L398">    String fields = visitFieldList(node.getFields());</span>
+<span class="fc" id="L399">    List&lt;Argument&gt; options = node.getOptions();</span>
+<span class="fc" id="L400">    Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();</span>
+<span class="fc" id="L401">    Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();</span>
+<span class="fc" id="L402">    Boolean consecutive = (Boolean) options.get(2).getValue().getValue();</span>
+
+<span class="fc" id="L404">    return StringUtils.format(</span>
+        &quot;%s | dedup %s %d keepempty=%b consecutive=%b&quot;,
+        child, fields, allowedDuplication, keepEmpty, consecutive);
+  }
+
+  @Override
+  public String visitHead(Head node, String context) {
+<span class="fc" id="L411">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L412">    Integer size = node.getSize();</span>
+<span class="fc" id="L413">    return StringUtils.format(&quot;%s | head %d&quot;, child, size);</span>
+  }
+
+  @Override
+  public String visitReverse(Reverse node, String context) {
+<span class="fc" id="L418">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L419">    return StringUtils.format(&quot;%s | reverse&quot;, child);</span>
+  }
+
+  @Override
+  public String visitParse(Parse node, String context) {
+<span class="fc" id="L424">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L425">    String source = visitExpression(node.getSourceField());</span>
+<span class="fc" id="L426">    String regex = node.getPattern().toString();</span>
+    String commandName;
+
+<span class="pc bpc" id="L429" title="1 of 3 branches missed.">    switch (node.getParseMethod()) {</span>
+      case ParseMethod.PATTERNS:
+<span class="nc" id="L431">        commandName = &quot;patterns&quot;;</span>
+<span class="nc" id="L432">        break;</span>
+      case ParseMethod.GROK:
+<span class="fc" id="L434">        commandName = &quot;grok&quot;;</span>
+<span class="fc" id="L435">        break;</span>
+      default:
+<span class="fc" id="L437">        commandName = &quot;parse&quot;;</span>
+        break;
+    }
+<span class="pc bpc" id="L440" title="3 of 4 branches missed.">    return ParseMethod.PATTERNS.equals(node.getParseMethod()) &amp;&amp; regex.isEmpty()</span>
+<span class="nc" id="L441">        ? StringUtils.format(&quot;%s | %s %s&quot;, child, commandName, source)</span>
+<span class="fc" id="L442">        : StringUtils.format(&quot;%s | %s %s '%s'&quot;, child, commandName, source, regex);</span>
+  }
+
+  @Override
+  public String visitFlatten(Flatten node, String context) {
+<span class="nc" id="L447">    String child = node.getChild().getFirst().accept(this, context);</span>
+<span class="nc" id="L448">    String field = visitExpression(node.getField());</span>
+<span class="nc" id="L449">    return StringUtils.format(&quot;%s | flatten %s&quot;, child, field);</span>
+  }
+
+  @Override
+  public String visitTrendline(Trendline node, String context) {
+<span class="fc" id="L454">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L455">    String computations = visitExpressionList(node.getComputations(), &quot; &quot;);</span>
+<span class="fc" id="L456">    return StringUtils.format(&quot;%s | trendline %s&quot;, child, computations);</span>
+  }
+
+  @Override
+  public String visitAppendCol(AppendCol node, String context) {
+<span class="fc" id="L461">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L462">    UnresolvedPlan relation = getRelation(node);</span>
+<span class="fc" id="L463">    transformPlanToAttachChild(node.getSubSearch(), relation);</span>
+<span class="fc" id="L464">    String subsearch = anonymizeData(node.getSubSearch());</span>
+<span class="fc" id="L465">    String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf(&quot;|&quot;) + 1);</span>
+<span class="fc" id="L466">    return StringUtils.format(</span>
+<span class="fc" id="L467">        &quot;%s | appendcol override=%s [%s ]&quot;, child, node.isOverride(), subsearchWithoutRelation);</span>
+  }
+
+  private String visitFieldList(List&lt;Field&gt; fieldList) {
+<span class="fc" id="L471">    return fieldList.stream().map(this::visitExpression).collect(Collectors.joining(&quot;,&quot;));</span>
+  }
+
+  private String visitExpressionList(List&lt;? extends UnresolvedExpression&gt; expressionList) {
+<span class="fc" id="L475">    return visitExpressionList(expressionList, &quot;,&quot;);</span>
+  }
+
+  private String visitExpressionList(
+      List&lt;? extends UnresolvedExpression&gt; expressionList, String delimiter) {
+<span class="fc bfc" id="L480" title="All 2 branches covered.">    return expressionList.isEmpty()</span>
+<span class="fc" id="L481">        ? &quot;&quot;</span>
+<span class="fc" id="L482">        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(delimiter));</span>
+  }
+
+  private String visitExpression(UnresolvedExpression expression) {
+<span class="fc" id="L486">    return expressionAnalyzer.analyze(expression, null);</span>
+  }
+
+  @Override
+  public String visitFillNull(FillNull node, String context) {
+<span class="fc" id="L491">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L492">    List&lt;Pair&lt;Field, UnresolvedExpression&gt;&gt; fieldFills = node.getReplacementPairs();</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">    if (fieldFills.isEmpty()) {</span>
+<span class="fc" id="L494">      return StringUtils.format(&quot;%s | fillnull with %s&quot;, child, MASK_LITERAL);</span>
+    }
+<span class="fc" id="L496">    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();</span>
+<span class="fc bfc" id="L497" title="All 4 branches covered.">    if (fieldFills.stream().allMatch(n -&gt; firstReplacement == n.getRight())) {</span>
+<span class="fc" id="L498">      return StringUtils.format(</span>
+          &quot;%s | fillnull with %s in %s&quot;,
+          child,
+          MASK_LITERAL,
+<span class="fc" id="L502">          node.getReplacementPairs().stream()</span>
+<span class="fc" id="L503">              .map(n -&gt; visitExpression(n.getLeft()))</span>
+<span class="fc" id="L504">              .collect(Collectors.joining(&quot;, &quot;)));</span>
+    } else {
+<span class="fc" id="L506">      return StringUtils.format(</span>
+          &quot;%s | fillnull using %s&quot;,
+          child,
+<span class="fc" id="L509">          node.getReplacementPairs().stream()</span>
+<span class="fc" id="L510">              .map(n -&gt; StringUtils.format(&quot;%s = %s&quot;, visitExpression(n.getLeft()), MASK_LITERAL))</span>
+<span class="fc" id="L511">              .collect(Collectors.joining(&quot;, &quot;)));</span>
+    }
+  }
+
+  @Override
+  public String visitPatterns(Patterns node, String context) {
+<span class="fc" id="L517">    String child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L518">    String sourceField = visitExpression(node.getSourceField());</span>
+<span class="fc" id="L519">    StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L520">    builder.append(child).append(&quot; | patterns &quot;).append(sourceField);</span>
+<span class="pc bpc" id="L521" title="1 of 2 branches missed.">    if (!node.getPartitionByList().isEmpty()) {</span>
+<span class="nc" id="L522">      String partitionByList = visitExpressionList(node.getPartitionByList());</span>
+<span class="nc" id="L523">      builder.append(&quot; by &quot;).append(partitionByList);</span>
+    }
+<span class="fc" id="L525">    builder.append(&quot; method=&quot;).append(node.getPatternMethod().toString());</span>
+<span class="fc" id="L526">    builder.append(&quot; mode=&quot;).append(node.getPatternMode().toString());</span>
+<span class="fc" id="L527">    builder.append(&quot; max_sample_count=&quot;).append(visitExpression(node.getPatternMaxSampleCount()));</span>
+<span class="fc" id="L528">    builder.append(&quot; buffer_limit=&quot;).append(visitExpression(node.getPatternBufferLimit()));</span>
+<span class="fc" id="L529">    builder.append(&quot; new_field=&quot;).append(node.getAlias());</span>
+<span class="fc bfc" id="L530" title="All 2 branches covered.">    if (!node.getArguments().isEmpty()) {</span>
+<span class="fc bfc" id="L531" title="All 2 branches covered.">      for (java.util.Map.Entry&lt;String, Literal&gt; entry : node.getArguments().entrySet()) {</span>
+<span class="fc" id="L532">        builder.append(</span>
+<span class="fc" id="L533">            String.format(</span>
+<span class="fc" id="L534">                Locale.ROOT, &quot; %s=%s&quot;, entry.getKey(), visitExpression(entry.getValue())));</span>
+<span class="fc" id="L535">      }</span>
+    }
+
+<span class="fc" id="L538">    return builder.toString();</span>
+  }
+
+  private String groupBy(String groupBy) {
+<span class="fc bfc" id="L542" title="All 2 branches covered.">    return Strings.isNullOrEmpty(groupBy) ? &quot;&quot; : StringUtils.format(&quot;by %s&quot;, groupBy);</span>
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+<span class="pc bpc" id="L546" title="1 of 2 branches missed.">    if (settings != null) {</span>
+<span class="fc" id="L547">      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);</span>
+    } else {
+<span class="nc" id="L549">      return false;</span>
+    }
+  }
+
+  /** Expression Anonymizer. */
+  private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor&lt;String, String&gt; {
+    private final PPLQueryDataAnonymizer queryAnonymizer;
+
+<span class="fc" id="L557">    public AnonymizerExpressionAnalyzer(PPLQueryDataAnonymizer queryAnonymizer) {</span>
+<span class="fc" id="L558">      this.queryAnonymizer = queryAnonymizer;</span>
+<span class="fc" id="L559">    }</span>
+
+    public String analyze(UnresolvedExpression unresolved, String context) {
+<span class="fc" id="L562">      return unresolved.accept(this, context);</span>
+    }
+
+    @Override
+    public String visitLiteral(Literal node, String context) {
+<span class="fc" id="L567">      return MASK_LITERAL;</span>
+    }
+
+    @Override
+    public String visitInterval(Interval node, String context) {
+<span class="fc" id="L572">      String value = node.getValue().accept(this, context);</span>
+<span class="fc" id="L573">      String unit = node.getUnit().name();</span>
+<span class="fc" id="L574">      return StringUtils.format(&quot;INTERVAL %s %s&quot;, value, unit);</span>
+    }
+
+    @Override
+    public String visitAnd(And node, String context) {
+<span class="fc" id="L579">      String left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L580">      String right = node.getRight().accept(this, context);</span>
+<span class="fc" id="L581">      return StringUtils.format(&quot;%s and %s&quot;, left, right);</span>
+    }
+
+    @Override
+    public String visitOr(Or node, String context) {
+<span class="fc" id="L586">      String left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L587">      String right = node.getRight().accept(this, context);</span>
+<span class="fc" id="L588">      return StringUtils.format(&quot;%s or %s&quot;, left, right);</span>
+    }
+
+    @Override
+    public String visitXor(Xor node, String context) {
+<span class="fc" id="L593">      String left = node.getLeft().accept(this, context);</span>
+<span class="fc" id="L594">      String right = node.getRight().accept(this, context);</span>
+<span class="fc" id="L595">      return StringUtils.format(&quot;%s xor %s&quot;, left, right);</span>
+    }
+
+    @Override
+    public String visitNot(Not node, String context) {
+<span class="fc" id="L600">      String expr = node.getExpression().accept(this, context);</span>
+<span class="fc" id="L601">      return StringUtils.format(&quot;not %s&quot;, expr);</span>
+    }
+
+    @Override
+    public String visitAggregateFunction(AggregateFunction node, String context) {
+<span class="fc" id="L606">      String arg = node.getField().accept(this, context);</span>
+<span class="fc" id="L607">      return StringUtils.format(&quot;%s(%s)&quot;, node.getFuncName(), arg);</span>
+    }
+
+    @Override
+    public String visitSpan(Span node, String context) {
+<span class="fc" id="L612">      String field = analyze(node.getField(), context);</span>
+<span class="fc" id="L613">      String value = analyze(node.getValue(), context);</span>
+<span class="fc" id="L614">      return StringUtils.format(&quot;span(%s, %s %s)&quot;, field, value, node.getUnit().getName());</span>
+    }
+
+    @Override
+    public String visitFunction(Function node, String context) {
+<span class="fc" id="L619">      String arguments =</span>
+<span class="fc" id="L620">          node.getFuncArgs().stream()</span>
+<span class="fc" id="L621">              .map(unresolvedExpression -&gt; analyze(unresolvedExpression, context))</span>
+<span class="fc" id="L622">              .collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="fc" id="L623">      return StringUtils.format(&quot;%s(%s)&quot;, node.getFuncName(), arguments);</span>
+    }
+
+    @Override
+    public String visitWindowFunction(WindowFunction node, String context) {
+<span class="fc" id="L628">      String function = analyze(node.getFunction(), context);</span>
+<span class="fc" id="L629">      String partitions =</span>
+<span class="fc" id="L630">          node.getPartitionByList().stream()</span>
+<span class="fc" id="L631">              .map(p -&gt; analyze(p, context))</span>
+<span class="fc" id="L632">              .collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="fc bfc" id="L633" title="All 2 branches covered.">      if (partitions.isEmpty()) {</span>
+<span class="fc" id="L634">        return StringUtils.format(&quot;%s&quot;, function);</span>
+      } else {
+<span class="fc" id="L636">        return StringUtils.format(&quot;%s by %s&quot;, function, partitions);</span>
+      }
+    }
+
+    @Override
+    public String visitCompare(Compare node, String context) {
+<span class="fc" id="L642">      String left = analyze(node.getLeft(), context);</span>
+<span class="fc" id="L643">      String right = analyze(node.getRight(), context);</span>
+<span class="fc" id="L644">      return StringUtils.format(&quot;%s %s %s&quot;, left, node.getOperator(), right);</span>
+    }
+
+    @Override
+    public String visitBetween(Between node, String context) {
+<span class="fc" id="L649">      String value = analyze(node.getValue(), context);</span>
+<span class="fc" id="L650">      String left = analyze(node.getLowerBound(), context);</span>
+<span class="fc" id="L651">      String right = analyze(node.getUpperBound(), context);</span>
+<span class="fc" id="L652">      return StringUtils.format(&quot;%s between %s and %s&quot;, value, left, right);</span>
+    }
+
+    @Override
+    public String visitIn(In node, String context) {
+<span class="fc" id="L657">      String field = analyze(node.getField(), context);</span>
+<span class="fc" id="L658">      return StringUtils.format(&quot;%s in (%s)&quot;, field, MASK_LITERAL);</span>
+    }
+
+    @Override
+    public String visitField(Field node, String context) {
+<span class="fc" id="L663">      return node.getField().toString();</span>
+    }
+
+    @Override
+    public String visitAllFields(AllFields node, String context) {
+<span class="fc" id="L668">      return &quot;&quot;;</span>
+    }
+
+    @Override
+    public String visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, String context) {
+<span class="fc" id="L673">      return &quot;&quot;;</span>
+    }
+
+    @Override
+    public String visitAlias(Alias node, String context) {
+<span class="fc" id="L678">      String expr = node.getDelegated().accept(this, context);</span>
+<span class="fc" id="L679">      return StringUtils.format(&quot;%s&quot;, expr);</span>
+    }
+
+    @Override
+    public String visitTrendlineComputation(Trendline.TrendlineComputation node, String context) {
+<span class="fc" id="L684">      final String dataField = node.getDataField().accept(this, context);</span>
+<span class="fc" id="L685">      final String aliasClause = &quot; as &quot; + node.getAlias();</span>
+<span class="fc" id="L686">      final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L687">      return StringUtils.format(</span>
+<span class="fc" id="L688">          &quot;%s(%d, %s)%s&quot;, computationType, node.getNumberOfDataPoints(), dataField, aliasClause);</span>
+    }
+
+    @Override
+    public String visitInSubquery(InSubquery node, String context) {
+<span class="fc" id="L693">      String nodes =</span>
+<span class="fc" id="L694">          node.getChild().stream().map(c -&gt; analyze(c, context)).collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="fc" id="L695">      String subquery = queryAnonymizer.anonymizeData(node.getQuery());</span>
+<span class="fc" id="L696">      return StringUtils.format(&quot;(%s) in [ %s ]&quot;, nodes, subquery);</span>
+    }
+
+    @Override
+    public String visitScalarSubquery(ScalarSubquery node, String context) {
+<span class="fc" id="L701">      String subquery = queryAnonymizer.anonymizeData(node.getQuery());</span>
+<span class="fc" id="L702">      return StringUtils.format(&quot;[ %s ]&quot;, subquery);</span>
+    }
+
+    @Override
+    public String visitExistsSubquery(ExistsSubquery node, String context) {
+<span class="fc" id="L707">      String subquery = queryAnonymizer.anonymizeData(node.getQuery());</span>
+<span class="fc" id="L708">      return StringUtils.format(&quot;exists [ %s ]&quot;, subquery);</span>
+    }
+
+    @Override
+    public String visitCase(Case node, String context) {
+<span class="fc" id="L713">      StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L714">      builder.append(&quot;cast(&quot;);</span>
+<span class="fc bfc" id="L715" title="All 2 branches covered.">      for (When when : node.getWhenClauses()) {</span>
+<span class="fc" id="L716">        builder.append(analyze(when.getCondition(), context));</span>
+<span class="fc" id="L717">        builder.append(&quot;,&quot;);</span>
+<span class="fc" id="L718">        builder.append(analyze(when.getResult(), context));</span>
+<span class="fc" id="L719">        builder.append(&quot;,&quot;);</span>
+<span class="fc" id="L720">      }</span>
+<span class="fc" id="L721">      builder.deleteCharAt(builder.lastIndexOf(&quot;,&quot;));</span>
+<span class="fc" id="L722">      node.getElseClause()</span>
+<span class="fc" id="L723">          .ifPresent(</span>
+              elseClause -&gt; {
+<span class="fc" id="L725">                builder.append(&quot; else &quot;);</span>
+<span class="fc" id="L726">                builder.append(analyze(elseClause, context));</span>
+<span class="fc" id="L727">              });</span>
+<span class="fc" id="L728">      builder.append(&quot;)&quot;);</span>
+<span class="fc" id="L729">      return builder.toString();</span>
+    }
+
+    @Override
+    public String visitCast(Cast node, String context) {
+<span class="fc" id="L734">      String expr = analyze(node.getExpression(), context);</span>
+<span class="fc" id="L735">      return StringUtils.format(&quot;cast(%s as %s)&quot;, expr, node.getConvertedType().toString());</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

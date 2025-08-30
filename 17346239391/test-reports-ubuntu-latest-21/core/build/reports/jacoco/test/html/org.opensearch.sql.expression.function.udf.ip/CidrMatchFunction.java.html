@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CidrMatchFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.ip</a> &gt; <span class="el_source">CidrMatchFunction.java</span></div><h1>CidrMatchFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.ip;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.sql.expression.ip.IPFunctions;
+
+/**
+ * {@code cidrmatch(ip, cidr)} checks if ip is within the specified cidr range.
+ *
+ * &lt;p&gt;Signature:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(STRING, STRING) -&gt; BOOLEAN
+ *   &lt;li&gt;(IP, STRING) -&gt; BOOLEAN
+ * &lt;/ul&gt;
+ */
+public class CidrMatchFunction extends ImplementorUDF {
+  public CidrMatchFunction() {
+<span class="fc" id="L37">    super(new CidrMatchImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L38">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L42">    return ReturnTypes.BOOLEAN_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    // EXPR_IP is mapped to SqlTypeFamily.OTHER in
+    // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
+    // We use a specific type checker to serve
+<span class="fc" id="L50">    return UDFOperandMetadata.wrapUDT(</span>
+<span class="fc" id="L51">        List.of(</span>
+<span class="fc" id="L52">            List.of(ExprCoreType.IP, ExprCoreType.STRING),</span>
+<span class="fc" id="L53">            List.of(ExprCoreType.STRING, ExprCoreType.STRING)));</span>
+  }
+
+<span class="fc" id="L56">  public static class CidrMatchImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L60">      return Expressions.call(CidrMatchImplementor.class, &quot;cidrMatch&quot;, translatedOperands);</span>
+    }
+
+    public static boolean cidrMatch(Object ip, String cidr) {
+      ExprValue ipValue;
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (ip instanceof ExprIpValue) {</span>
+<span class="nc" id="L66">        ipValue = (ExprIpValue) ip;</span>
+      } else {
+        // Deserialization workaround
+<span class="nc" id="L69">        ipValue = new ExprIpValue((String) ip);</span>
+      }
+<span class="nc" id="L71">      ExprValue cidrValue = ExprValueUtils.stringValue(cidr);</span>
+<span class="nc" id="L72">      return (boolean) IPFunctions.exprCidrMatch(ipValue, cidrValue).valueForCalcite();</span>
+    }
+
+    public static boolean cidrMatch(String ip, String cidr) {
+<span class="nc" id="L76">      ExprIpValue ipValue = (ExprIpValue) ExprValueUtils.ipValue(ip);</span>
+<span class="nc" id="L77">      return cidrMatch(ipValue, cidr);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchJsonContent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.utils</a> &gt; <span class="el_source">OpenSearchJsonContent.java</span></div><h1>OpenSearchJsonContent.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.utils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Iterators;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.OpenSearchParseException;
+import org.opensearch.common.Numbers;
+import org.opensearch.common.geo.GeoPoint;
+import org.opensearch.common.geo.GeoUtils;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
+
+/** The Implementation of Content to represent {@link JsonNode}. */
+@RequiredArgsConstructor
+public class OpenSearchJsonContent implements Content {
+
+  private final JsonNode value;
+
+  @Override
+  public Integer intValue() {
+<span class="fc" id="L33">    return (int) parseLongValue(value());</span>
+  }
+
+  @Override
+  public Long longValue() {
+<span class="fc" id="L38">    return parseLongValue(value());</span>
+  }
+
+  @Override
+  public Short shortValue() {
+<span class="fc" id="L43">    return (short) parseLongValue(value());</span>
+  }
+
+  @Override
+  public Byte byteValue() {
+<span class="fc" id="L48">    return (byte) parseLongValue(value());</span>
+  }
+
+  @Override
+  public Float floatValue() {
+<span class="fc" id="L53">    return (float) parseDoubleValue(value());</span>
+  }
+
+  @Override
+  public Double doubleValue() {
+<span class="fc" id="L58">    return parseDoubleValue(value());</span>
+  }
+
+  @Override
+  public String stringValue() {
+<span class="fc" id="L63">    return value().asText();</span>
+  }
+
+  @Override
+  public Boolean booleanValue() {
+<span class="fc" id="L68">    return parseBooleanValue(value());</span>
+  }
+
+  @Override
+  public Iterator&lt;Map.Entry&lt;String, Content&gt;&gt; map() {
+<span class="fc" id="L73">    LinkedHashMap&lt;String, Content&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L74">    final JsonNode mapValue = value();</span>
+<span class="fc" id="L75">    mapValue</span>
+<span class="fc" id="L76">        .fieldNames()</span>
+<span class="fc" id="L77">        .forEachRemaining(field -&gt; map.put(field, new OpenSearchJsonContent(mapValue.get(field))));</span>
+<span class="fc" id="L78">    return map.entrySet().iterator();</span>
+  }
+
+  @Override
+  public Iterator&lt;? extends Content&gt; array() {
+<span class="fc" id="L83">    return Iterators.transform(value.elements(), OpenSearchJsonContent::new);</span>
+  }
+
+  @Override
+  public boolean isNull() {
+<span class="fc bfc" id="L88" title="All 8 branches covered.">    return value == null || value.isNull() || (value.isArray() &amp;&amp; value.isEmpty());</span>
+  }
+
+  @Override
+  public boolean isNumber() {
+<span class="fc" id="L93">    return value().isNumber();</span>
+  }
+
+  @Override
+  public boolean isShort() {
+<span class="nc" id="L98">    return value.isShort();</span>
+  }
+
+  @Override
+  public boolean isByte() {
+<span class="nc" id="L103">    return false;</span>
+  }
+
+  @Override
+  public boolean isInt() {
+<span class="fc" id="L108">    return value.isInt();</span>
+  }
+
+  @Override
+  public boolean isLong() {
+<span class="fc" id="L113">    return value().isLong();</span>
+  }
+
+  @Override
+  public boolean isFloat() {
+<span class="fc" id="L118">    return value().isFloat();</span>
+  }
+
+  @Override
+  public boolean isDouble() {
+<span class="fc" id="L123">    return value().isDouble();</span>
+  }
+
+  @Override
+  public boolean isString() {
+<span class="fc" id="L128">    return value().isTextual();</span>
+  }
+
+  @Override
+  public boolean isBoolean() {
+<span class="fc" id="L133">    return value().isBoolean();</span>
+  }
+
+  @Override
+  public boolean isArray() {
+<span class="fc" id="L138">    return value().isArray();</span>
+  }
+
+  @Override
+  public Object objectValue() {
+<span class="fc" id="L143">    return value();</span>
+  }
+
+  @Override
+  public Pair&lt;Double, Double&gt; geoValue() {
+<span class="fc" id="L148">    final JsonNode value = value();</span>
+<span class="fc" id="L149">    try (XContentParser parser =</span>
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.IGNORE_DEPRECATIONS,
+<span class="fc" id="L153">            value.traverse())) {</span>
+<span class="fc" id="L154">      parser.nextToken();</span>
+<span class="fc" id="L155">      GeoPoint point = new GeoPoint();</span>
+<span class="fc" id="L156">      GeoUtils.parseGeoPoint(parser, point, true);</span>
+<span class="fc" id="L157">      return Pair.of(point.getLat(), point.getLon());</span>
+<span class="fc" id="L158">    } catch (IOException ex) {</span>
+<span class="fc" id="L159">      throw new OpenSearchParseException(&quot;error parsing geo point&quot;, ex);</span>
+    }
+  }
+
+  /** Getter for value. If value is array the whole array is returned. */
+  private JsonNode value() {
+<span class="fc" id="L165">    return value;</span>
+  }
+
+  /** Parse long value from JsonNode. */
+  private long parseLongValue(JsonNode node) {
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">    if (node.isNumber()) {</span>
+<span class="fc" id="L171">      return node.longValue();</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    } else if (node.isTextual()) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">      if (node.textValue().isEmpty()) {</span>
+<span class="nc" id="L174">        return 0L;</span>
+      }
+<span class="nc" id="L176">      return Numbers.toLong(node.textValue(), true);</span>
+    } else {
+<span class="nc" id="L178">      throw new OpenSearchParseException(&quot;node must be a number&quot;);</span>
+    }
+  }
+
+  /** Parse double value from JsonNode. */
+  private double parseDoubleValue(JsonNode node) {
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">    if (node.isNumber()) {</span>
+<span class="fc" id="L185">      return node.doubleValue();</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">    } else if (node.isTextual()) {</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">      if (node.textValue().isEmpty()) {</span>
+<span class="nc" id="L188">        return 0.0;</span>
+      }
+<span class="nc" id="L190">      return Double.parseDouble(node.textValue());</span>
+    } else {
+<span class="nc" id="L192">      throw new OpenSearchParseException(&quot;node must be a number&quot;);</span>
+    }
+  }
+
+  /** Parse boolean value from JsonNode. */
+  private boolean parseBooleanValue(JsonNode node) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">    if (node.isBoolean()) {</span>
+<span class="fc" id="L199">      return node.booleanValue();</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">    } else if (node.isTextual()) {</span>
+<span class="nc" id="L201">      return Boolean.parseBoolean(node.textValue());</span>
+    } else {
+<span class="nc" id="L203">      throw new OpenSearchParseException(&quot;node must be a boolean&quot;);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

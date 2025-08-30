@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StandardTimeSpanHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.time</a> &gt; <span class="el_source">StandardTimeSpanHandler.java</span></div><h1>StandardTimeSpanHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.time;
+
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/** Handler for standard time units (microseconds through hours). */
+<span class="nc" id="L15">public class StandardTimeSpanHandler {</span>
+
+  public RexNode createExpression(
+      RexNode fieldExpr,
+      int intervalValue,
+      TimeUnitConfig config,
+      long alignmentOffsetMillis,
+      CalcitePlanContext context) {
+
+    // Convert timestamp to target unit
+<span class="nc" id="L25">    RexNode epochValue = convertToTargetUnit(fieldExpr, config, context);</span>
+
+    // Apply alignment offset
+<span class="nc" id="L28">    long alignmentOffset = convertAlignmentOffset(alignmentOffsetMillis, config);</span>
+<span class="nc" id="L29">    RexNode adjustedValue = applyAlignmentOffset(epochValue, alignmentOffset, context);</span>
+
+    // Perform binning
+<span class="nc" id="L32">    RexNode binValue = performBinning(adjustedValue, intervalValue, context);</span>
+
+    // Add back alignment offset
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    if (alignmentOffset != 0) {</span>
+<span class="nc" id="L36">      binValue =</span>
+<span class="nc" id="L37">          context.relBuilder.call(</span>
+<span class="nc" id="L38">              SqlStdOperatorTable.PLUS, binValue, context.relBuilder.literal(alignmentOffset));</span>
+    }
+
+    // Convert back to timestamp
+<span class="nc" id="L42">    return convertFromTargetUnit(binValue, config, context);</span>
+  }
+
+  private RexNode convertToTargetUnit(
+      RexNode fieldExpr, TimeUnitConfig config, CalcitePlanContext context) {
+
+<span class="nc" id="L48">    RexNode epochSeconds =</span>
+<span class="nc" id="L49">        context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);</span>
+
+    // For sub-second units, work in milliseconds
+<span class="nc bnc" id="L52" title="All 2 branches missed.">    if (isSubSecondUnit(config)) {</span>
+<span class="nc" id="L53">      RexNode epochMillis =</span>
+<span class="nc" id="L54">          context.relBuilder.call(</span>
+<span class="nc" id="L55">              SqlStdOperatorTable.MULTIPLY, epochSeconds, context.relBuilder.literal(1000L));</span>
+
+<span class="nc bnc" id="L57" title="All 2 branches missed.">      if (config.getDivisionFactor() == 1) {</span>
+<span class="nc" id="L58">        return epochMillis;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">      } else if (config.getDivisionFactor() &gt; 1) {</span>
+<span class="nc" id="L60">        return context.relBuilder.call(</span>
+            SqlStdOperatorTable.DIVIDE,
+            epochMillis,
+<span class="nc" id="L63">            context.relBuilder.literal(config.getDivisionFactor()));</span>
+      } else {
+        // Microseconds
+<span class="nc" id="L66">        return context.relBuilder.call(</span>
+            SqlStdOperatorTable.MULTIPLY,
+            epochMillis,
+<span class="nc" id="L69">            context.relBuilder.literal(BinConstants.MICROS_PER_MILLI));</span>
+      }
+    } else {
+      // For second and larger units, work in seconds
+<span class="nc bnc" id="L73" title="All 2 branches missed.">      if (config.getDivisionFactor() == 1) {</span>
+<span class="nc" id="L74">        return epochSeconds;</span>
+      } else {
+<span class="nc" id="L76">        return context.relBuilder.call(</span>
+            SqlStdOperatorTable.DIVIDE,
+            epochSeconds,
+<span class="nc" id="L79">            context.relBuilder.literal(config.getDivisionFactor()));</span>
+      }
+    }
+  }
+
+  private RexNode convertFromTargetUnit(
+      RexNode binValue, TimeUnitConfig config, CalcitePlanContext context) {
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    if (isSubSecondUnit(config)) {</span>
+      RexNode binMillis;
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      if (config.getDivisionFactor() == 1) {</span>
+<span class="nc" id="L90">        binMillis = binValue;</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      } else if (config.getDivisionFactor() &gt; 1) {</span>
+<span class="nc" id="L92">        binMillis =</span>
+<span class="nc" id="L93">            context.relBuilder.call(</span>
+                SqlStdOperatorTable.MULTIPLY,
+                binValue,
+<span class="nc" id="L96">                context.relBuilder.literal(config.getDivisionFactor()));</span>
+      } else {
+        // Microseconds
+<span class="nc" id="L99">        binMillis =</span>
+<span class="nc" id="L100">            context.relBuilder.call(</span>
+                SqlStdOperatorTable.DIVIDE,
+                binValue,
+<span class="nc" id="L103">                context.relBuilder.literal(BinConstants.MICROS_PER_MILLI));</span>
+      }
+
+<span class="nc" id="L106">      RexNode binSeconds =</span>
+<span class="nc" id="L107">          context.relBuilder.call(</span>
+<span class="nc" id="L108">              SqlStdOperatorTable.DIVIDE, binMillis, context.relBuilder.literal(1000L));</span>
+
+<span class="nc" id="L110">      return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);</span>
+    } else {
+      RexNode binSeconds;
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (config.getDivisionFactor() == 1) {</span>
+<span class="nc" id="L114">        binSeconds = binValue;</span>
+      } else {
+<span class="nc" id="L116">        binSeconds =</span>
+<span class="nc" id="L117">            context.relBuilder.call(</span>
+                SqlStdOperatorTable.MULTIPLY,
+                binValue,
+<span class="nc" id="L120">                context.relBuilder.literal(config.getDivisionFactor()));</span>
+      }
+
+<span class="nc" id="L123">      return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);</span>
+    }
+  }
+
+  private RexNode applyAlignmentOffset(
+      RexNode epochValue, long alignmentOffset, CalcitePlanContext context) {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (alignmentOffset == 0) {</span>
+<span class="nc" id="L130">      return epochValue;</span>
+    }
+<span class="nc" id="L132">    return context.relBuilder.call(</span>
+<span class="nc" id="L133">        SqlStdOperatorTable.MINUS, epochValue, context.relBuilder.literal(alignmentOffset));</span>
+  }
+
+  private RexNode performBinning(
+      RexNode adjustedValue, int intervalValue, CalcitePlanContext context) {
+<span class="nc" id="L138">    RexNode intervalLiteral = context.relBuilder.literal(intervalValue);</span>
+<span class="nc" id="L139">    RexNode divided =</span>
+<span class="nc" id="L140">        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedValue, intervalLiteral);</span>
+<span class="nc" id="L141">    RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);</span>
+<span class="nc" id="L142">    return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, intervalLiteral);</span>
+  }
+
+  private long convertAlignmentOffset(long offsetMillis, TimeUnitConfig config) {
+<span class="nc bnc" id="L146" title="All 4 branches missed.">    if (offsetMillis == 0 || !config.supportsAlignment()) {</span>
+<span class="nc" id="L147">      return 0;</span>
+    }
+
+<span class="nc bnc" id="L150" title="All 8 branches missed.">    return switch (config) {</span>
+<span class="nc" id="L151">      case MICROSECONDS -&gt; offsetMillis * BinConstants.MICROS_PER_MILLI;</span>
+<span class="nc" id="L152">      case MILLISECONDS -&gt; offsetMillis;</span>
+<span class="nc" id="L153">      case CENTISECONDS -&gt; offsetMillis / BinConstants.MILLIS_PER_CENTISECOND;</span>
+<span class="nc" id="L154">      case DECISECONDS -&gt; offsetMillis / BinConstants.MILLIS_PER_DECISECOND;</span>
+<span class="nc" id="L155">      case SECONDS -&gt; offsetMillis / BinConstants.MILLIS_PER_SECOND;</span>
+<span class="nc" id="L156">      case MINUTES -&gt; offsetMillis / BinConstants.MILLIS_PER_MINUTE;</span>
+<span class="nc" id="L157">      case HOURS -&gt; offsetMillis / BinConstants.MILLIS_PER_HOUR;</span>
+<span class="nc" id="L158">      default -&gt; 0;</span>
+    };
+  }
+
+  private boolean isSubSecondUnit(TimeUnitConfig config) {
+<span class="nc bnc" id="L163" title="All 8 branches missed.">    return config == TimeUnitConfig.MICROSECONDS</span>
+        || config == TimeUnitConfig.MILLISECONDS
+        || config == TimeUnitConfig.CENTISECONDS
+        || config == TimeUnitConfig.DECISECONDS;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

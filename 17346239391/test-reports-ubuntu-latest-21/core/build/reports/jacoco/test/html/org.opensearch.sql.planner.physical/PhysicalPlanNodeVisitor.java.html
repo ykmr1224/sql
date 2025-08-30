@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PhysicalPlanNodeVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">PhysicalPlanNodeVisitor.java</span></div><h1>PhysicalPlanNodeVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.write.TableWriteOperator;
+
+/**
+ * The visitor of {@link PhysicalPlan}.
+ *
+ * @param &lt;R&gt; return object type.
+ * @param &lt;C&gt; context type.
+ */
+<span class="fc" id="L17">public abstract class PhysicalPlanNodeVisitor&lt;R, C&gt; {</span>
+
+  protected R visitNode(PhysicalPlan node, C context) {
+<span class="fc" id="L20">    return null;</span>
+  }
+
+  public R visitFilter(FilterOperator node, C context) {
+<span class="fc" id="L24">    return visitNode(node, context);</span>
+  }
+
+  public R visitAggregation(AggregationOperator node, C context) {
+<span class="fc" id="L28">    return visitNode(node, context);</span>
+  }
+
+  public R visitRename(RenameOperator node, C context) {
+<span class="fc" id="L32">    return visitNode(node, context);</span>
+  }
+
+  public R visitTableScan(TableScanOperator node, C context) {
+<span class="fc" id="L36">    return visitNode(node, context);</span>
+  }
+
+  public R visitTableWrite(TableWriteOperator node, C context) {
+<span class="fc" id="L40">    return visitNode(node, context);</span>
+  }
+
+  public R visitProject(ProjectOperator node, C context) {
+<span class="fc" id="L44">    return visitNode(node, context);</span>
+  }
+
+  public R visitWindow(WindowOperator node, C context) {
+<span class="fc" id="L48">    return visitNode(node, context);</span>
+  }
+
+  public R visitRemove(RemoveOperator node, C context) {
+<span class="fc" id="L52">    return visitNode(node, context);</span>
+  }
+
+  public R visitEval(EvalOperator node, C context) {
+<span class="fc" id="L56">    return visitNode(node, context);</span>
+  }
+
+  public R visitNested(NestedOperator node, C context) {
+<span class="fc" id="L60">    return visitNode(node, context);</span>
+  }
+
+  public R visitDedupe(DedupeOperator node, C context) {
+<span class="fc" id="L64">    return visitNode(node, context);</span>
+  }
+
+  public R visitValues(ValuesOperator node, C context) {
+<span class="fc" id="L68">    return visitNode(node, context);</span>
+  }
+
+  public R visitSort(SortOperator node, C context) {
+<span class="fc" id="L72">    return visitNode(node, context);</span>
+  }
+
+  public R visitTakeOrdered(TakeOrderedOperator node, C context) {
+<span class="fc" id="L76">    return visitNode(node, context);</span>
+  }
+
+  public R visitRareTopN(RareTopNOperator node, C context) {
+<span class="fc" id="L80">    return visitNode(node, context);</span>
+  }
+
+  public R visitLimit(LimitOperator node, C context) {
+<span class="fc" id="L84">    return visitNode(node, context);</span>
+  }
+
+  public R visitMLCommons(PhysicalPlan node, C context) {
+<span class="fc" id="L88">    return visitNode(node, context);</span>
+  }
+
+  public R visitAD(PhysicalPlan node, C context) {
+<span class="fc" id="L92">    return visitNode(node, context);</span>
+  }
+
+  public R visitML(PhysicalPlan node, C context) {
+<span class="fc" id="L96">    return visitNode(node, context);</span>
+  }
+
+  public R visitTrendline(TrendlineOperator node, C context) {
+<span class="fc" id="L100">    return visitNode(node, context);</span>
+  }
+
+  public R visitCursorClose(CursorCloseOperator node, C context) {
+<span class="fc" id="L104">    return visitNode(node, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

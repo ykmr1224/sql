@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchSystemIndexEnumerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.system</a> &gt; <span class="el_source">OpenSearchSystemIndexEnumerator.java</span></div><h1>OpenSearchSystemIndexEnumerator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.system;
+
+import java.util.Iterator;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.apache.calcite.linq4j.Enumerator;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
+
+/** Supports a simple iteration over a collection for OpenSearch system index */
+public class OpenSearchSystemIndexEnumerator implements Enumerator&lt;Object&gt; {
+  /** How many moveNext() calls to perform resource check once. */
+  private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
+
+  private final List&lt;String&gt; fields;
+
+  @EqualsAndHashCode.Include @ToString.Include private final OpenSearchSystemRequest request;
+
+  private Iterator&lt;ExprValue&gt; iterator;
+
+  private ExprValue current;
+
+  /** Number of rows returned. */
+  private Integer queryCount;
+
+  /** ResourceMonitor. */
+  private final ResourceMonitor monitor;
+
+  public OpenSearchSystemIndexEnumerator(
+<span class="nc" id="L39">      List&lt;String&gt; fields, OpenSearchSystemRequest request, ResourceMonitor monitor) {</span>
+<span class="nc" id="L40">    this.fields = fields;</span>
+<span class="nc" id="L41">    this.request = request;</span>
+<span class="nc" id="L42">    this.monitor = monitor;</span>
+<span class="nc" id="L43">    this.queryCount = 0;</span>
+<span class="nc" id="L44">    this.current = null;</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    if (!this.monitor.isHealthy()) {</span>
+<span class="nc" id="L46">      throw new NonFallbackCalciteException(&quot;insufficient resources to run the query, quit.&quot;);</span>
+    }
+<span class="nc" id="L48">    this.iterator = request.search().iterator();</span>
+<span class="nc" id="L49">  }</span>
+
+  @Override
+  public Object current() {
+<span class="nc" id="L53">    return fields.stream()</span>
+<span class="nc" id="L54">        .map(k -&gt; current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())</span>
+<span class="nc" id="L55">        .toArray();</span>
+  }
+
+  @Override
+  public boolean moveNext() {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    boolean shouldCheck = (queryCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);</span>
+<span class="nc bnc" id="L61" title="All 4 branches missed.">    if (shouldCheck &amp;&amp; !this.monitor.isHealthy()) {</span>
+<span class="nc" id="L62">      throw new NonFallbackCalciteException(&quot;insufficient resources to load next row, quit.&quot;);</span>
+    }
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (iterator.hasNext()) {</span>
+<span class="nc" id="L65">      current = iterator.next();</span>
+<span class="nc" id="L66">      queryCount++;</span>
+<span class="nc" id="L67">      return true;</span>
+    } else {
+<span class="nc" id="L69">      return false;</span>
+    }
+  }
+
+  @Override
+  public void reset() {
+<span class="nc" id="L75">    iterator = request.search().iterator();</span>
+<span class="nc" id="L76">    queryCount = 0;</span>
+<span class="nc" id="L77">    current = null;</span>
+<span class="nc" id="L78">  }</span>
+
+  @Override
+  public void close() {
+<span class="nc" id="L82">    iterator = null;</span>
+<span class="nc" id="L83">    current = null;</span>
+<span class="nc" id="L84">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

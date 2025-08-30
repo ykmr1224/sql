@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractCalciteSystemIndexScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.system</a> &gt; <span class="el_source">AbstractCalciteSystemIndexScan.java</span></div><h1>AbstractCalciteSystemIndexScan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.system;
+
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+import lombok.Getter;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.type.RelDataType;
+
+/** An abstract relational operator representing a scan of an OpenSearchSystemIndex type. */
+@Getter
+public abstract class AbstractCalciteSystemIndexScan extends TableScan {
+  public final OpenSearchSystemIndex sysIndex;
+  protected final RelDataType schema;
+
+  protected AbstractCalciteSystemIndexScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchSystemIndex sysIndex,
+      RelDataType schema) {
+<span class="nc" id="L32">    super(cluster, traitSet, hints, table);</span>
+<span class="nc" id="L33">    this.sysIndex = requireNonNull(sysIndex, &quot;OpenSearch system index&quot;);</span>
+<span class="nc" id="L34">    this.schema = schema;</span>
+<span class="nc" id="L35">  }</span>
+
+  @Override
+  public RelDataType deriveRowType() {
+<span class="nc" id="L39">    return this.schema;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

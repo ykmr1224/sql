@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - FilterQueryBuilderTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>FilterQueryBuilderTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.opensearch.storage.script.filter.html">org.opensearch.sql.opensearch.storage.script.filter</a> &gt; FilterQueryBuilderTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">131</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.203s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">cast from boolean</td>
+<td class="success">cast_from_boolean()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">cast in range query</td>
+<td class="success">cast_in_range_query()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0.0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(0.0)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(false)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanFalse(&quot;false&quot;)</td>
+<td class="success">cast_to_boolean_false_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(1)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(-1)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(1)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(42)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(3.14)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(3.1415)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(true)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castBooleanTrue(&quot;true&quot;)</td>
+<td class="success">cast_to_boolean_true_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(1)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(-1)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(1)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(21)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(3.14)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(3.1415)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(true)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castByte(&quot;1&quot;)</td>
+<td class="success">cast_to_byte_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">cast to date in filter</td>
+<td class="success">cast_to_date_in_filter()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(1)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(-1)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(1)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(21)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(3.14)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(3.1415)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(true)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castDouble(&quot;1&quot;)</td>
+<td class="success">cast_to_double_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(1)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(-1)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(1)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(21)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(3.14)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(3.1415)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(true)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castFloat(&quot;1&quot;)</td>
+<td class="success">cast_to_float_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(1)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(-1)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(1)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(21)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(3.14)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(3.1415)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(true)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castInt(&quot;1&quot;)</td>
+<td class="success">cast_to_int_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castIp(&quot;1.2.3.4&quot;)</td>
+<td class="success">cast_to_ip_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castIp(&quot;2001:db7::ff00:42:8329&quot;)</td>
+<td class="success">cast_to_ip_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(1)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(-1)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(1)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(21)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(3.14)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(3.1415)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(true)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castLong(&quot;1&quot;)</td>
+<td class="success">cast_to_long_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(1)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(-1)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(1)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(21)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(3.14)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(3.1415)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(true)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[7]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">castShort(&quot;1&quot;)</td>
+<td class="success">cast_to_short_in_filter(LiteralExpression)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">cast to string in filter</td>
+<td class="success">cast_to_string_in_filter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">cast to time in filter</td>
+<td class="success">cast_to_time_in_filter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">cast to timestamp in filter</td>
+<td class="success">cast_to_timestamp_in_filter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">ensure alternate syntax falls back to legacy engine</td>
+<td class="success">ensure_alternate_syntax_falls_back_to_legacy_engine()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match disallow duplicate field</td>
+<td class="success">match_disallow_duplicate_field()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match disallow duplicate parameter</td>
+<td class="success">match_disallow_duplicate_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match disallow duplicate query</td>
+<td class="success">match_disallow_duplicate_query()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match invalid parameter</td>
+<td class="success">match_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match missing field</td>
+<td class="success">match_missing_field()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match missing query</td>
+<td class="success">match_missing_query()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">match phrase invalid parameter</td>
+<td class="success">match_phrase_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">multi match invalid parameter</td>
+<td class="success">multi_match_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">multi match missing query even with struct</td>
+<td class="success">multi_match_missing_query_even_with_struct()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">multi match without fields parameter</td>
+<td class="success">multi_match_without_fields_parameter()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">nested filter too many params throws exception</td>
+<td class="success">nested_filter_too_many_params_throws_exception()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">nested filter wrong first param type throws exception</td>
+<td class="success">nested_filter_wrong_first_param_type_throws_exception()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">nested filter wrong right side type in predicate throws exception</td>
+<td class="success">nested_filter_wrong_right_side_type_in_predicate_throws_exception()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">nested filter wrong second param type throws exception</td>
+<td class="success">nested_filter_wrong_second_param_type_throws_exception()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">non cast nested function should build script</td>
+<td class="success">non_cast_nested_function_should_build_script()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">non literal in cast should build script</td>
+<td class="success">non_literal_in_cast_should_build_script()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">query invalid fields parameter exception message</td>
+<td class="success">query_invalid_fields_parameter_exception_message()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">query invalid parameter</td>
+<td class="success">query_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">query string invalid parameter</td>
+<td class="success">query_string_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">relevancy func invalid arg values</td>
+<td class="success">relevancy_func_invalid_arg_values()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build bool query for and or expression</td>
+<td class="success">should_build_bool_query_for_and_or_expression()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build bool query for not expression</td>
+<td class="success">should_build_bool_query_for_not_expression()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match bool prefix query with default parameters</td>
+<td class="success">should_build_match_bool_prefix_query_with_default_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match phrase prefix query with default parameters</td>
+<td class="success">should_build_match_phrase_prefix_query_with_default_parameters()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match phrase prefix query with non default parameters</td>
+<td class="success">should_build_match_phrase_prefix_query_with_non_default_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match phrase query with custom parameters</td>
+<td class="success">should_build_match_phrase_query_with_custom_parameters()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match phrase query with default parameters</td>
+<td class="success">should_build_match_phrase_query_with_default_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match query with custom parameters</td>
+<td class="success">should_build_match_query_with_custom_parameters()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build match query with default parameters</td>
+<td class="success">should_build_match_query_with_default_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build multi match query with custom parameters</td>
+<td class="success">should_build_multi_match_query_with_custom_parameters()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build multi match query with default parameters all fields</td>
+<td class="success">should_build_multi_match_query_with_default_parameters_all_fields()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build multi match query with default parameters multiple fields</td>
+<td class="success">should_build_multi_match_query_with_default_parameters_multiple_fields()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build multi match query with default parameters no fields</td>
+<td class="success">should_build_multi_match_query_with_default_parameters_no_fields()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build multi match query with default parameters single field</td>
+<td class="success">should_build_multi_match_query_with_default_parameters_single_field()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build query query with custom parameters</td>
+<td class="success">should_build_query_query_with_custom_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build query query with default parameters</td>
+<td class="success">should_build_query_query_with_default_parameters()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build query string query with custom parameters</td>
+<td class="success">should_build_query_string_query_with_custom_parameters()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build query string query with default parameters multiple fields</td>
+<td class="success">should_build_query_string_query_with_default_parameters_multiple_fields()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build query string query with default parameters single field</td>
+<td class="success">should_build_query_string_query_with_default_parameters_single_field()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build range query for comparison expression</td>
+<td class="success">should_build_range_query_for_comparison_expression()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build range query predicate expression with nested function</td>
+<td class="success">should_build_range_query_predicate_expression_with_nested_function()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build script query for comparison between fields</td>
+<td class="success">should_build_script_query_for_comparison_between_fields()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build script query for function expression</td>
+<td class="success">should_build_script_query_for_function_expression()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build script query for unsupported lucene query</td>
+<td class="success">should_build_script_query_for_unsupported_lucene_query()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build simple query string query with custom parameters</td>
+<td class="success">should_build_simple_query_string_query_with_custom_parameters()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build simple query string query with default parameters multiple fields</td>
+<td class="success">should_build_simple_query_string_query_with_default_parameters_multiple_fields()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build simple query string query with default parameters single field</td>
+<td class="success">should_build_simple_query_string_query_with_default_parameters_single_field()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build term query for equality expression</td>
+<td class="success">should_build_term_query_for_equality_expression()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build term query predicate expression with nested function</td>
+<td class="success">should_build_term_query_predicate_expression_with_nested_function()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build wildcard query for like expression</td>
+<td class="success">should_build_wildcard_query_for_like_expression()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build wildcard query query with custom parameters</td>
+<td class="success">should_build_wildcard_query_query_with_custom_parameters()</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should build wildcard query with default parameters</td>
+<td class="success">should_build_wildcard_query_with_default_parameters()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should use keyword for multi field in equality expression</td>
+<td class="success">should_use_keyword_for_multi_field_in_equality_expression()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should use keyword for multi field in like expression</td>
+<td class="success">should_use_keyword_for_multi_field_in_like_expression()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">simple query string invalid parameter</td>
+<td class="success">simple_query_string_invalid_parameter()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">wildcard query convert sql wildcard to lucene</td>
+<td class="success">wildcard_query_convert_sql_wildcard_to_lucene()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">wildcard query escape wildcards characters</td>
+<td class="success">wildcard_query_escape_wildcards_characters()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">wildcard query invalid parameter</td>
+<td class="success">wildcard_query_invalid_parameter()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:32:00 PM</p>
+</div>
+</div>
+</body>
+</html>

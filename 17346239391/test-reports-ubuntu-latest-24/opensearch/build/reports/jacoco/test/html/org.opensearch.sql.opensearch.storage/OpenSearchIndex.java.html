@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchIndex.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage</a> &gt; <span class="el_source">OpenSearchIndex.java</span></div><h1>OpenSearchIndex.java</h1><pre class="source lang-java linenums"><span class="fc" id="L1">/*</span>
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage;
+
+import com.google.common.annotations.VisibleForTesting;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
+import org.opensearch.sql.opensearch.planner.physical.ADOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
+import org.opensearch.sql.planner.DefaultImplementor;
+import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalML;
+import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.read.TableScanBuilder;
+
+/** OpenSearch table (index) implementation. */
+public class OpenSearchIndex extends AbstractOpenSearchTable {
+
+  public static final String METADATA_FIELD_ID = &quot;_id&quot;;
+  public static final String METADATA_FIELD_INDEX = &quot;_index&quot;;
+  public static final String METADATA_FIELD_SCORE = &quot;_score&quot;;
+  public static final String METADATA_FIELD_MAXSCORE = &quot;_maxscore&quot;;
+  public static final String METADATA_FIELD_SORT = &quot;_sort&quot;;
+
+  public static final String METADATA_FIELD_ROUTING = &quot;_routing&quot;;
+
+<span class="fc" id="L60">  public static final java.util.Map&lt;String, ExprType&gt; METADATAFIELD_TYPE_MAP =</span>
+<span class="fc" id="L61">      new LinkedHashMap&lt;&gt;() {</span>
+        {
+<span class="fc" id="L63">          put(METADATA_FIELD_ID, ExprCoreType.STRING);</span>
+<span class="fc" id="L64">          put(METADATA_FIELD_INDEX, ExprCoreType.STRING);</span>
+<span class="fc" id="L65">          put(METADATA_FIELD_SCORE, ExprCoreType.FLOAT);</span>
+<span class="fc" id="L66">          put(METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT);</span>
+<span class="fc" id="L67">          put(METADATA_FIELD_SORT, ExprCoreType.LONG);</span>
+<span class="fc" id="L68">          put(METADATA_FIELD_ROUTING, ExprCoreType.STRING);</span>
+        }
+      };
+
+  /** OpenSearch client connection. */
+  @Getter private final OpenSearchClient client;
+
+  @Getter private final Settings settings;
+
+  /** {@link OpenSearchRequest.IndexName}. */
+  private final OpenSearchRequest.IndexName indexName;
+
+  /** The cached mapping of field and type in index. */
+<span class="fc" id="L81">  private Map&lt;String, OpenSearchDataType&gt; cachedFieldOpenSearchTypes = null;</span>
+
+  /** The cached ExprType of fields. */
+<span class="fc" id="L84">  private Map&lt;String, ExprType&gt; cachedFieldTypes = null;</span>
+
+  /** The cached mapping of alias type field to its original path. */
+<span class="fc" id="L87">  private Map&lt;String, String&gt; aliasMapping = null;</span>
+
+  /** The cached max result window setting of index. */
+<span class="fc" id="L90">  private Integer cachedMaxResultWindow = null;</span>
+
+  /** Constructor. */
+<span class="fc" id="L93">  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {</span>
+<span class="fc" id="L94">    this.client = client;</span>
+<span class="fc" id="L95">    this.settings = settings;</span>
+<span class="fc" id="L96">    this.indexName = new OpenSearchRequest.IndexName(indexName);</span>
+<span class="fc" id="L97">  }</span>
+
+  @Override
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+<span class="nc" id="L101">    final RelOptCluster cluster = context.getCluster();</span>
+<span class="nc" id="L102">    return new CalciteLogicalIndexScan(cluster, relOptTable, this);</span>
+  }
+
+  @Override
+  public boolean exists() {
+<span class="fc" id="L107">    return client.exists(indexName.toString());</span>
+  }
+
+  @Override
+  public void create(Map&lt;String, ExprType&gt; schema) {
+<span class="fc" id="L112">    Map&lt;String, Object&gt; mappings = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L113">    Map&lt;String, Object&gt; properties = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L114">    mappings.put(&quot;properties&quot;, properties);</span>
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    for (Map.Entry&lt;String, ExprType&gt; colType : schema.entrySet()) {</span>
+<span class="fc" id="L117">      properties.put(colType.getKey(), colType.getValue().legacyTypeName().toLowerCase());</span>
+<span class="fc" id="L118">    }</span>
+<span class="fc" id="L119">    client.createIndex(indexName.toString(), mappings);</span>
+<span class="fc" id="L120">  }</span>
+
+  /*
+   * TODO: Assume indexName doesn't have wildcard.
+   *  Need to either handle field name conflicts
+   *   or lazy evaluate when query engine pulls field type.
+   */
+  /**
+   * Get simplified parsed mapping info. Unlike {@link #getFieldOpenSearchTypes()} it returns a
+   * flattened map.
+   *
+   * @return A map between field names and matching `ExprCoreType`s.
+   */
+  @Override
+  public Map&lt;String, ExprType&gt; getFieldTypes() {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (cachedFieldOpenSearchTypes == null) {</span>
+<span class="fc" id="L136">      cachedFieldOpenSearchTypes =</span>
+<span class="fc" id="L137">          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();</span>
+    }
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (cachedFieldTypes == null) {</span>
+<span class="fc" id="L140">      cachedFieldTypes =</span>
+<span class="fc" id="L141">          OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()</span>
+<span class="fc" id="L142">              .collect(</span>
+                  LinkedHashMap::new,
+<span class="fc" id="L144">                  (map, item) -&gt; map.put(item.getKey(), item.getValue().getExprType()),</span>
+                  Map::putAll);
+    }
+<span class="fc" id="L147">    return cachedFieldTypes;</span>
+  }
+
+  @Override
+  public Map&lt;String, ExprType&gt; getReservedFieldTypes() {
+<span class="fc" id="L152">    return METADATAFIELD_TYPE_MAP;</span>
+  }
+
+  public Map&lt;String, String&gt; getAliasMapping() {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">    if (cachedFieldOpenSearchTypes == null) {</span>
+<span class="nc" id="L157">      cachedFieldOpenSearchTypes =</span>
+<span class="nc" id="L158">          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();</span>
+    }
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    if (aliasMapping == null) {</span>
+<span class="nc" id="L161">      aliasMapping =</span>
+<span class="nc" id="L162">          cachedFieldOpenSearchTypes.entrySet().stream()</span>
+<span class="nc" id="L163">              .filter(entry -&gt; entry.getValue().getOriginalPath().isPresent())</span>
+<span class="nc" id="L164">              .collect(</span>
+<span class="nc" id="L165">                  Collectors.toUnmodifiableMap(</span>
+<span class="nc" id="L166">                      Entry::getKey, entry -&gt; entry.getValue().getOriginalPath().get()));</span>
+    }
+<span class="nc" id="L168">    return aliasMapping;</span>
+  }
+
+  /**
+   * Get parsed mapping info.
+   *
+   * @return A complete map between field names and their types.
+   */
+  public Map&lt;String, OpenSearchDataType&gt; getFieldOpenSearchTypes() {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (cachedFieldOpenSearchTypes == null) {</span>
+<span class="fc" id="L178">      cachedFieldOpenSearchTypes =</span>
+<span class="fc" id="L179">          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();</span>
+    }
+<span class="fc" id="L181">    return cachedFieldOpenSearchTypes;</span>
+  }
+
+  /** Get the max result window setting of the table. */
+  public Integer getMaxResultWindow() {
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (cachedMaxResultWindow == null) {</span>
+<span class="fc" id="L187">      cachedMaxResultWindow =</span>
+<span class="fc" id="L188">          new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();</span>
+    }
+<span class="fc" id="L190">    return cachedMaxResultWindow;</span>
+  }
+
+  /** TODO: Push down operations to index scan operator as much as possible in future. */
+  @Override
+  public PhysicalPlan implement(LogicalPlan plan) {
+    // TODO: Leave it here to avoid impact Prometheus and AD operators. Need to move to Planner.
+<span class="fc" id="L197">    return plan.accept(new OpenSearchDefaultImplementor(client), null);</span>
+  }
+
+  @Override
+  public TableScanBuilder createScanBuilder() {
+<span class="fc" id="L202">    final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);</span>
+<span class="fc" id="L203">    var builder = createRequestBuilder();</span>
+<span class="fc" id="L204">    Function&lt;OpenSearchRequestBuilder, OpenSearchIndexScan&gt; createScanOperator =</span>
+        requestBuilder -&gt;
+<span class="fc" id="L206">            new OpenSearchIndexScan(</span>
+                client,
+<span class="fc" id="L208">                requestBuilder.getMaxResponseSize(),</span>
+<span class="fc" id="L209">                requestBuilder.build(</span>
+<span class="fc" id="L210">                    indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty()));</span>
+<span class="fc" id="L211">    return new OpenSearchIndexScanBuilder(builder, createScanOperator);</span>
+  }
+
+  private OpenSearchExprValueFactory createExprValueFactory() {
+<span class="fc" id="L215">    Map&lt;String, OpenSearchDataType&gt; allFields = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L216">    getReservedFieldTypes().forEach((k, v) -&gt; allFields.put(k, OpenSearchDataType.of(v)));</span>
+<span class="fc" id="L217">    allFields.putAll(getFieldOpenSearchTypes());</span>
+<span class="fc" id="L218">    return new OpenSearchExprValueFactory(</span>
+<span class="fc" id="L219">        allFields, settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE));</span>
+  }
+
+  public boolean isFieldTypeTolerance() {
+<span class="fc" id="L223">    return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);</span>
+  }
+
+  @VisibleForTesting
+  @RequiredArgsConstructor
+  public static class OpenSearchDefaultImplementor extends DefaultImplementor&lt;OpenSearchIndexScan&gt; {
+
+    private final OpenSearchClient client;
+
+    @Override
+    public PhysicalPlan visitMLCommons(LogicalMLCommons node, OpenSearchIndexScan context) {
+<span class="fc" id="L234">      return new MLCommonsOperator(</span>
+<span class="fc" id="L235">          visitChild(node, context),</span>
+<span class="fc" id="L236">          node.getAlgorithm(),</span>
+<span class="fc" id="L237">          node.getArguments(),</span>
+<span class="fc" id="L238">          client.getNodeClient());</span>
+    }
+
+    @Override
+    public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
+<span class="fc" id="L243">      return new ADOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());</span>
+    }
+
+    @Override
+    public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
+<span class="fc" id="L248">      return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());</span>
+    }
+
+    @Override
+    public PhysicalPlan visitEval(LogicalEval node, OpenSearchIndexScan context) {
+<span class="fc" id="L253">      return new OpenSearchEvalOperator(</span>
+<span class="fc" id="L254">          visitChild(node, context), node.getExpressions(), client.getNodeClient());</span>
+    }
+  }
+
+  public OpenSearchRequestBuilder createRequestBuilder() {
+<span class="fc" id="L259">    return new OpenSearchRequestBuilder(createExprValueFactory(), getMaxResultWindow(), settings);</span>
+  }
+
+  public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
+<span class="nc" id="L263">    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));</span>
+  }
+
+  public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
+<span class="nc" id="L267">    final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);</span>
+<span class="nc" id="L268">    return requestBuilder.build(</span>
+<span class="nc" id="L269">        indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

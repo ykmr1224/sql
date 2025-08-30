@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnalysisContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">AnalysisContext.java</span></div><h1>AnalysisContext.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import lombok.Getter;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
+
+/** The context used for Analyzer. */
+public class AnalysisContext {
+  /** Environment stack for symbol scope management. */
+  private TypeEnvironment environment;
+
+  @Getter private final List&lt;NamedExpression&gt; namedParseExpressions;
+
+  @Getter private final FunctionProperties functionProperties;
+
+  public AnalysisContext(QueryType queryType) {
+<span class="fc" id="L26">    this(new TypeEnvironment(null), queryType);</span>
+<span class="fc" id="L27">  }</span>
+
+  public AnalysisContext() {
+<span class="fc" id="L30">    this(new TypeEnvironment(null), QueryType.SQL);</span>
+<span class="fc" id="L31">  }</span>
+
+  /**
+   * Class CTOR.
+   *
+   * @param environment Env to set to a new instance.
+   */
+  public AnalysisContext(TypeEnvironment environment) {
+<span class="fc" id="L39">    this(environment, QueryType.SQL);</span>
+<span class="fc" id="L40">  }</span>
+
+<span class="fc" id="L42">  public AnalysisContext(TypeEnvironment environment, QueryType queryType) {</span>
+<span class="fc" id="L43">    this.environment = environment;</span>
+<span class="fc" id="L44">    this.namedParseExpressions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L45">    this.functionProperties = new FunctionProperties(queryType);</span>
+<span class="fc" id="L46">  }</span>
+
+  /** Push a new environment. */
+  public void push() {
+<span class="fc" id="L50">    environment = new TypeEnvironment(environment);</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * Return current environment.
+   *
+   * @return current environment
+   */
+  public TypeEnvironment peek() {
+<span class="fc" id="L59">    return environment;</span>
+  }
+
+  /**
+   * Pop up current environment from environment chain.
+   *
+   * @return current environment (before pop)
+   */
+  public TypeEnvironment pop() {
+<span class="fc" id="L68">    Objects.requireNonNull(environment, &quot;Fail to pop context due to no environment present&quot;);</span>
+
+<span class="fc" id="L70">    TypeEnvironment curEnv = environment;</span>
+<span class="fc" id="L71">    environment = curEnv.getParent();</span>
+<span class="fc" id="L72">    return curEnv;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

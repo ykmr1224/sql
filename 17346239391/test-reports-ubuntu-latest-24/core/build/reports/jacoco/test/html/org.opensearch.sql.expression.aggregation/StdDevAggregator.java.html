@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StdDevAggregator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.aggregation</a> &gt; <span class="el_source">StdDevAggregator.java</span></div><h1>StdDevAggregator.java</h1><pre class="source lang-java linenums">/*
+ *   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;).
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the &quot;license&quot; file accompanying this file. This file is distributed
+ *   on an &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+package org.opensearch.sql.expression.aggregation;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
+import static org.opensearch.sql.utils.ExpressionUtils.format;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/** StandardDeviation Aggregator. */
+public class StdDevAggregator extends Aggregator&lt;StdDevAggregator.StdDevState&gt; {
+
+  private final boolean isSampleStdDev;
+
+  /** Build Population Variance {@link VarianceAggregator}. */
+  public static Aggregator stddevPopulation(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L36">    return new StdDevAggregator(false, arguments, returnType);</span>
+  }
+
+  /** Build Sample Variance {@link VarianceAggregator}. */
+  public static Aggregator stddevSample(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L41">    return new StdDevAggregator(true, arguments, returnType);</span>
+  }
+
+  /**
+   * VarianceAggregator constructor.
+   *
+   * @param isSampleStdDev true for sample standard deviation aggregator, false for population
+   *     standard deviation aggregator.
+   * @param arguments aggregator arguments.
+   * @param returnType aggregator return types.
+   */
+  public StdDevAggregator(
+      Boolean isSampleStdDev, List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L54">    super(</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        isSampleStdDev</span>
+<span class="fc" id="L56">            ? BuiltinFunctionName.STDDEV_SAMP.getName()</span>
+<span class="fc" id="L57">            : BuiltinFunctionName.STDDEV_POP.getName(),</span>
+        arguments,
+        returnType);
+<span class="fc" id="L60">    this.isSampleStdDev = isSampleStdDev;</span>
+<span class="fc" id="L61">  }</span>
+
+  @Override
+  public StdDevAggregator.StdDevState create() {
+<span class="fc" id="L65">    return new StdDevAggregator.StdDevState(isSampleStdDev);</span>
+  }
+
+  @Override
+  protected StdDevAggregator.StdDevState iterate(
+      ExprValue value, StdDevAggregator.StdDevState state) {
+<span class="fc" id="L71">    state.evaluate(value);</span>
+<span class="fc" id="L72">    return state;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L77">    return StringUtils.format(</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        &quot;%s(%s)&quot;, isSampleStdDev ? &quot;stddev_samp&quot; : &quot;stddev_pop&quot;, format(getArguments()));</span>
+  }
+
+  protected static class StdDevState implements AggregationState {
+
+    private final StandardDeviation standardDeviation;
+
+<span class="fc" id="L85">    private final List&lt;Double&gt; values = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L87">    public StdDevState(boolean isSampleStdDev) {</span>
+<span class="fc" id="L88">      this.standardDeviation = new StandardDeviation(isSampleStdDev);</span>
+<span class="fc" id="L89">    }</span>
+
+    public void evaluate(ExprValue value) {
+<span class="fc" id="L92">      values.add(value.doubleValue());</span>
+<span class="fc" id="L93">    }</span>
+
+    @Override
+    public ExprValue result() {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      return values.size() == 0</span>
+<span class="fc" id="L98">          ? ExprNullValue.of()</span>
+<span class="fc" id="L99">          : doubleValue(standardDeviation.evaluate(values.stream().mapToDouble(d -&gt; d).toArray()));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

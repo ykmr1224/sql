@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SerializeUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">SerializeUtils.java</span></div><h1>SerializeUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import java.lang.reflect.Type;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.datasource.model.DataSourceType;
+
+@UtilityClass
+public class SerializeUtils {
+  private static class DataSourceTypeSerializer implements JsonSerializer&lt;DataSourceType&gt; {
+    @Override
+    public JsonElement serialize(
+        DataSourceType dataSourceType,
+        Type type,
+        JsonSerializationContext jsonSerializationContext) {
+<span class="fc" id="L29">      return new JsonPrimitive(dataSourceType.name());</span>
+    }
+  }
+
+  private static class DataSourceTypeDeserializer implements JsonDeserializer&lt;DataSourceType&gt; {
+    @Override
+    public DataSourceType deserialize(
+        JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext)
+        throws JsonParseException {
+<span class="fc" id="L38">      return DataSourceType.fromString(jsonElement.getAsString());</span>
+    }
+  }
+
+  public static GsonBuilder getGsonBuilder() {
+<span class="fc" id="L43">    return new GsonBuilder()</span>
+<span class="fc" id="L44">        .registerTypeAdapter(DataSourceType.class, new DataSourceTypeSerializer())</span>
+<span class="fc" id="L45">        .registerTypeAdapter(DataSourceType.class, new DataSourceTypeDeserializer());</span>
+  }
+
+  public static Gson buildGson() {
+<span class="fc" id="L49">    return getGsonBuilder().create();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

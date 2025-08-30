@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FilterOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">FilterOperator.java</span></div><h1>FilterOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import java.util.Collections;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperators;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/**
+ * The Filter operator represents WHERE clause and uses the conditions to evaluate the input {@link
+ * BindingTuple}. The Filter operator only returns the results that evaluated to true. The NULL and
+ * MISSING are handled by the logic defined in {@link BinaryPredicateOperators}.
+ */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+@RequiredArgsConstructor
+public class FilterOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+  @Getter private final Expression conditions;
+  @ToString.Exclude private ExprValue next = null;
+  @ToString.Exclude private boolean nextPrepared = false;
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L35">    return visitor.visitFilter(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L40">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (!nextPrepared) {</span>
+<span class="fc" id="L46">      prepareNext();</span>
+    }
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    return next != null;</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">    if (!nextPrepared) {</span>
+<span class="fc" id="L54">      prepareNext();</span>
+    }
+<span class="fc" id="L56">    ExprValue result = next;</span>
+<span class="fc" id="L57">    next = null;</span>
+<span class="fc" id="L58">    nextPrepared = false;</span>
+<span class="fc" id="L59">    return result;</span>
+  }
+
+  private void prepareNext() {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    while (input.hasNext()) {</span>
+<span class="fc" id="L64">      ExprValue inputValue = input.next();</span>
+<span class="fc" id="L65">      ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());</span>
+<span class="fc bfc" id="L66" title="All 6 branches covered.">      if (!(exprValue.isNull() || exprValue.isMissing()) &amp;&amp; exprValue.booleanValue()) {</span>
+<span class="fc" id="L67">        next = inputValue;</span>
+<span class="fc" id="L68">        nextPrepared = true;</span>
+<span class="fc" id="L69">        return;</span>
+      }
+<span class="fc" id="L71">    }</span>
+<span class="fc" id="L72">    next = null;</span>
+<span class="fc" id="L73">    nextPrepared = true;</span>
+<span class="fc" id="L74">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

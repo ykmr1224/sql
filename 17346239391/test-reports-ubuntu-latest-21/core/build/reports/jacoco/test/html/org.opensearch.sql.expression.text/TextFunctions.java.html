@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TextFunctions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.text</a> &gt; <span class="el_source">TextFunctions.java</span></div><h1>TextFunctions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.text;
+
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableBiFunction;
+import org.opensearch.sql.expression.function.SerializableTriFunction;
+
+/**
+ * The definition of text functions. 1) have the clear interface for function define. 2) the
+ * implementation should rely on ExprValue.
+ */
+@UtilityClass
+public class TextFunctions {
+  private static final String EMPTY_STRING = &quot;&quot;;
+
+  /**
+   * Register String Functions.
+   *
+   * @param repository {@link BuiltinFunctionRepository}.
+   */
+  public void register(BuiltinFunctionRepository repository) {
+<span class="fc" id="L50">    repository.register(ascii());</span>
+<span class="fc" id="L51">    repository.register(concat());</span>
+<span class="fc" id="L52">    repository.register(concat_ws());</span>
+<span class="fc" id="L53">    repository.register(left());</span>
+<span class="fc" id="L54">    repository.register(length());</span>
+<span class="fc" id="L55">    repository.register(locate());</span>
+<span class="fc" id="L56">    repository.register(lower());</span>
+<span class="fc" id="L57">    repository.register(ltrim());</span>
+<span class="fc" id="L58">    repository.register(position());</span>
+<span class="fc" id="L59">    repository.register(replace());</span>
+<span class="fc" id="L60">    repository.register(reverse());</span>
+<span class="fc" id="L61">    repository.register(right());</span>
+<span class="fc" id="L62">    repository.register(rtrim());</span>
+<span class="fc" id="L63">    repository.register(strcmp());</span>
+<span class="fc" id="L64">    repository.register(substr());</span>
+<span class="fc" id="L65">    repository.register(substring());</span>
+<span class="fc" id="L66">    repository.register(trim());</span>
+<span class="fc" id="L67">    repository.register(upper());</span>
+<span class="fc" id="L68">  }</span>
+
+  /**
+   * &lt;b&gt;Gets substring starting at given point, for optional given length.&lt;/b&gt;&lt;br&gt;
+   * Form of this function using keywords instead of comma delimited variables is not supported.&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * (STRING, INTEGER)/(STRING, INTEGER, INTEGER) -&gt; STRING
+   */
+  private DefaultFunctionResolver substringSubstr(FunctionName functionName) {
+<span class="fc" id="L77">    return define(</span>
+        functionName,
+<span class="fc" id="L79">        impl(nullMissingHandling(TextFunctions::exprSubstrStart), STRING, STRING, INTEGER),</span>
+<span class="fc" id="L80">        impl(</span>
+<span class="fc" id="L81">            nullMissingHandling(TextFunctions::exprSubstrStartLength),</span>
+            STRING,
+            STRING,
+            INTEGER,
+            INTEGER));
+  }
+
+  private DefaultFunctionResolver substring() {
+<span class="fc" id="L89">    return substringSubstr(BuiltinFunctionName.SUBSTRING.getName());</span>
+  }
+
+  private DefaultFunctionResolver substr() {
+<span class="fc" id="L93">    return substringSubstr(BuiltinFunctionName.SUBSTR.getName());</span>
+  }
+
+  /**
+   * &lt;b&gt;Removes leading whitespace from string.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; STRING
+   */
+  private DefaultFunctionResolver ltrim() {
+<span class="fc" id="L102">    return define(</span>
+<span class="fc" id="L103">        BuiltinFunctionName.LTRIM.getName(),</span>
+<span class="fc" id="L104">        impl(</span>
+<span class="fc" id="L105">            nullMissingHandling((v) -&gt; new ExprStringValue(v.stringValue().stripLeading())),</span>
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Removes trailing whitespace from string.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; STRING
+   */
+  private DefaultFunctionResolver rtrim() {
+<span class="fc" id="L116">    return define(</span>
+<span class="fc" id="L117">        BuiltinFunctionName.RTRIM.getName(),</span>
+<span class="fc" id="L118">        impl(</span>
+<span class="fc" id="L119">            nullMissingHandling((v) -&gt; new ExprStringValue(v.stringValue().stripTrailing())),</span>
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Removes leading and trailing whitespace from string.&lt;/b&gt;&lt;br&gt;
+   * Has option to specify a String to trim instead of whitespace but this is not yet supported.&lt;br&gt;
+   * Supporting String specification requires finding keywords inside TRIM command.&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; STRING
+   */
+  private DefaultFunctionResolver trim() {
+<span class="fc" id="L132">    return define(</span>
+<span class="fc" id="L133">        BuiltinFunctionName.TRIM.getName(),</span>
+<span class="fc" id="L134">        impl(</span>
+<span class="fc" id="L135">            nullMissingHandling((v) -&gt; new ExprStringValue(v.stringValue().trim())),</span>
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Converts String to lowercase.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; STRING
+   */
+  private DefaultFunctionResolver lower() {
+<span class="fc" id="L146">    return define(</span>
+<span class="fc" id="L147">        BuiltinFunctionName.LOWER.getName(),</span>
+<span class="fc" id="L148">        impl(</span>
+<span class="fc" id="L149">            nullMissingHandling((v) -&gt; new ExprStringValue((v.stringValue().toLowerCase()))),</span>
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Converts String to uppercase.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; STRING
+   */
+  private DefaultFunctionResolver upper() {
+<span class="fc" id="L160">    return define(</span>
+<span class="fc" id="L161">        BuiltinFunctionName.UPPER.getName(),</span>
+<span class="fc" id="L162">        impl(</span>
+<span class="fc" id="L163">            nullMissingHandling((v) -&gt; new ExprStringValue((v.stringValue().toUpperCase()))),</span>
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Concatenates a list of Strings.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * (STRING, STRING, ...., STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver concat() {
+<span class="fc" id="L174">    FunctionName concatFuncName = BuiltinFunctionName.CONCAT.getName();</span>
+<span class="fc" id="L175">    return define(</span>
+        concatFuncName,
+        funcName -&gt;
+<span class="fc" id="L178">            Pair.of(</span>
+<span class="fc" id="L179">                new FunctionSignature(concatFuncName, Collections.singletonList(ARRAY)),</span>
+                (funcProp, args) -&gt;
+<span class="fc" id="L181">                    new FunctionExpression(funcName, args) {</span>
+                      @Override
+                      public ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv) {
+<span class="fc" id="L184">                        List&lt;ExprValue&gt; exprValues =</span>
+<span class="fc" id="L185">                            args.stream()</span>
+<span class="fc" id="L186">                                .map(arg -&gt; arg.valueOf(valueEnv))</span>
+<span class="fc" id="L187">                                .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">                        if (exprValues.stream().anyMatch(ExprValue::isMissing)) {</span>
+<span class="fc" id="L189">                          return ExprValueUtils.missingValue();</span>
+                        }
+<span class="fc bfc" id="L191" title="All 2 branches covered.">                        if (exprValues.stream().anyMatch(ExprValue::isNull)) {</span>
+<span class="fc" id="L192">                          return ExprValueUtils.nullValue();</span>
+                        }
+<span class="fc" id="L194">                        return new ExprStringValue(</span>
+<span class="fc" id="L195">                            exprValues.stream()</span>
+<span class="fc" id="L196">                                .map(ExprValue::stringValue)</span>
+<span class="fc" id="L197">                                .collect(Collectors.joining()));</span>
+                      }
+
+                      @Override
+                      public ExprType type() {
+<span class="fc" id="L202">                        return STRING;</span>
+                      }
+                    }));
+  }
+
+  /**
+   * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710&lt;br&gt;
+   * Extend to accept variable argument amounts.&lt;br&gt;
+   * &lt;br&gt;
+   * Concatenates a list of Strings with a separator string. Supports following&lt;br&gt;
+   * signatures:&lt;br&gt;
+   * (STRING, STRING, STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver concat_ws() {
+<span class="fc" id="L216">    return define(</span>
+<span class="fc" id="L217">        BuiltinFunctionName.CONCAT_WS.getName(),</span>
+<span class="fc" id="L218">        impl(</span>
+<span class="fc" id="L219">            nullMissingHandling(</span>
+                (sep, str1, str2) -&gt;
+<span class="fc" id="L221">                    new ExprStringValue(</span>
+<span class="fc" id="L222">                        str1.stringValue() + sep.stringValue() + str2.stringValue())),</span>
+            STRING,
+            STRING,
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Calculates length of String in bytes.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * STRING -&gt; INTEGER
+   */
+  private DefaultFunctionResolver length() {
+<span class="fc" id="L235">    return define(</span>
+<span class="fc" id="L236">        BuiltinFunctionName.LENGTH.getName(),</span>
+<span class="fc" id="L237">        impl(</span>
+<span class="fc" id="L238">            nullMissingHandling((str) -&gt; new ExprIntegerValue(str.stringValue().getBytes().length)),</span>
+            INTEGER,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Does String comparison of two Strings and returns Integer value.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * (STRING, STRING) -&gt; INTEGER
+   */
+  private DefaultFunctionResolver strcmp() {
+<span class="fc" id="L249">    return define(</span>
+<span class="fc" id="L250">        BuiltinFunctionName.STRCMP.getName(),</span>
+<span class="fc" id="L251">        impl(</span>
+<span class="fc" id="L252">            nullMissingHandling(</span>
+                (str1, str2) -&gt;
+<span class="fc" id="L254">                    new ExprIntegerValue(</span>
+<span class="fc" id="L255">                        Integer.compare(str1.stringValue().compareTo(str2.stringValue()), 0))),</span>
+            INTEGER,
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;Returns the rightmost len characters from the string str, or NULL if any argument is
+   * NULL.&lt;/b&gt;&lt;br&gt;
+   * Supports following signatures:&lt;br&gt;
+   * (STRING, INTEGER) -&gt; STRING
+   */
+  private DefaultFunctionResolver right() {
+<span class="fc" id="L268">    return define(</span>
+<span class="fc" id="L269">        BuiltinFunctionName.RIGHT.getName(),</span>
+<span class="fc" id="L270">        impl(nullMissingHandling(TextFunctions::exprRight), STRING, STRING, INTEGER));</span>
+  }
+
+  /**
+   * &lt;b&gt;Returns the leftmost len characters from the string str, or NULL if any argument is
+   * NULL.&lt;/b&gt;&lt;br&gt;
+   * Supports following signature:&lt;br&gt;
+   * (STRING, INTEGER) -&gt; STRING
+   */
+  private DefaultFunctionResolver left() {
+<span class="fc" id="L280">    return define(</span>
+<span class="fc" id="L281">        BuiltinFunctionName.LEFT.getName(),</span>
+<span class="fc" id="L282">        impl(nullMissingHandling(TextFunctions::exprLeft), STRING, STRING, INTEGER));</span>
+  }
+
+  /**
+   * &lt;b&gt;Returns the numeric value of the leftmost character of the string str.&lt;/b&gt;&lt;br&gt;
+   * Returns 0 if str is the empty string. Returns NULL if str is NULL.&lt;br&gt;
+   * ASCII() works for 8-bit characters.&lt;br&gt;
+   * Supports following signature:&lt;br&gt;
+   * STRING -&gt; INTEGER
+   */
+  private DefaultFunctionResolver ascii() {
+<span class="fc" id="L293">    return define(</span>
+<span class="fc" id="L294">        BuiltinFunctionName.ASCII.getName(),</span>
+<span class="fc" id="L295">        impl(nullMissingHandling(TextFunctions::exprAscii), INTEGER, STRING));</span>
+  }
+
+  /**
+   * &lt;b&gt;LOCATE(substr, str) returns the position of the first occurrence of substring substr&lt;/b&gt;&lt;br&gt;
+   * in string str. LOCATE(substr, str, pos) returns the position of the first occurrence&lt;br&gt;
+   * of substring substr in string str, starting at position pos.&lt;br&gt;
+   * Returns 0 if substr is not in str.&lt;br&gt;
+   * Returns NULL if any argument is NULL.&lt;br&gt;
+   * Supports following signature:&lt;br&gt;
+   * (STRING, STRING) -&gt; INTEGER&lt;br&gt;
+   * (STRING, STRING, INTEGER) -&gt; INTEGER
+   */
+  private DefaultFunctionResolver locate() {
+<span class="fc" id="L309">    return define(</span>
+<span class="fc" id="L310">        BuiltinFunctionName.LOCATE.getName(),</span>
+<span class="fc" id="L311">        impl(</span>
+<span class="fc" id="L312">            nullMissingHandling(</span>
+                (SerializableBiFunction&lt;ExprValue, ExprValue, ExprValue&gt;)
+                    TextFunctions::exprLocate),
+            INTEGER,
+            STRING,
+            STRING),
+<span class="fc" id="L318">        impl(</span>
+<span class="fc" id="L319">            nullMissingHandling(</span>
+                (SerializableTriFunction&lt;ExprValue, ExprValue, ExprValue, ExprValue&gt;)
+                    TextFunctions::exprLocate),
+            INTEGER,
+            STRING,
+            STRING,
+            INTEGER));
+  }
+
+  /**
+   * &lt;b&gt;Returns the position of the first occurrence of a substring in a string starting from 1.&lt;/b&gt;
+   * &lt;br&gt;
+   * Returns 0 if substring is not in string.&lt;br&gt;
+   * Returns NULL if any argument is NULL.&lt;br&gt;
+   * Supports following signature:&lt;br&gt;
+   * (STRING IN STRING) -&gt; INTEGER
+   */
+  private DefaultFunctionResolver position() {
+<span class="fc" id="L337">    return define(</span>
+<span class="fc" id="L338">        BuiltinFunctionName.POSITION.getName(),</span>
+<span class="fc" id="L339">        impl(</span>
+<span class="fc" id="L340">            nullMissingHandling(</span>
+                (SerializableBiFunction&lt;ExprValue, ExprValue, ExprValue&gt;)
+                    TextFunctions::exprLocate),
+            INTEGER,
+            STRING,
+            STRING));
+  }
+
+  /**
+   * &lt;b&gt;REPLACE(str, from_str, to_str) returns the string str with all occurrences of&lt;br&gt;
+   * the string from_str replaced by the string to_str.&lt;/b&gt;&lt;br&gt;
+   * REPLACE() performs a case-sensitive match when searching for from_str.&lt;br&gt;
+   * Supports following signature:&lt;br&gt;
+   * (STRING, STRING, STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver replace() {
+<span class="fc" id="L356">    return define(</span>
+<span class="fc" id="L357">        BuiltinFunctionName.REPLACE.getName(),</span>
+<span class="fc" id="L358">        impl(nullMissingHandling(TextFunctions::exprReplace), STRING, STRING, STRING, STRING));</span>
+  }
+
+  /**
+   * &lt;b&gt;REVERSE(str) returns reversed string of the string supplied as an argument&lt;/b&gt;&lt;/b&gt;&lt;br&gt;
+   * Returns NULL if the argument is NULL.&lt;br&gt;
+   * Supports the following signature:&lt;br&gt;
+   * (STRING) -&gt; STRING
+   */
+  private DefaultFunctionResolver reverse() {
+<span class="fc" id="L368">    return define(</span>
+<span class="fc" id="L369">        BuiltinFunctionName.REVERSE.getName(),</span>
+<span class="fc" id="L370">        impl(nullMissingHandling(TextFunctions::exprReverse), STRING, STRING));</span>
+  }
+
+  private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
+<span class="fc" id="L374">    int startIdx = start.integerValue();</span>
+<span class="fc bfc" id="L375" title="All 2 branches covered.">    if (startIdx == 0) {</span>
+<span class="fc" id="L376">      return new ExprStringValue(EMPTY_STRING);</span>
+    }
+<span class="fc" id="L378">    String str = exprValue.stringValue();</span>
+<span class="fc" id="L379">    return exprSubStr(str, startIdx, str.length());</span>
+  }
+
+  private static ExprValue exprSubstrStartLength(
+      ExprValue exprValue, ExprValue start, ExprValue length) {
+<span class="fc" id="L384">    int startIdx = start.integerValue();</span>
+<span class="fc" id="L385">    int len = length.integerValue();</span>
+<span class="fc bfc" id="L386" title="All 4 branches covered.">    if ((startIdx == 0) || (len == 0)) {</span>
+<span class="fc" id="L387">      return new ExprStringValue(EMPTY_STRING);</span>
+    }
+<span class="fc" id="L389">    String str = exprValue.stringValue();</span>
+<span class="fc" id="L390">    return exprSubStr(str, startIdx, len);</span>
+  }
+
+  private static ExprValue exprSubStr(String str, int start, int len) {
+    // Correct negative start
+<span class="fc bfc" id="L395" title="All 2 branches covered.">    start = (start &gt; 0) ? (start - 1) : (str.length() + start);</span>
+
+<span class="fc bfc" id="L397" title="All 2 branches covered.">    if (start &gt; str.length()) {</span>
+<span class="fc" id="L398">      return new ExprStringValue(EMPTY_STRING);</span>
+<span class="fc bfc" id="L399" title="All 2 branches covered.">    } else if ((start + len) &gt; str.length()) {</span>
+<span class="fc" id="L400">      return new ExprStringValue(str.substring(start));</span>
+    }
+<span class="fc" id="L402">    return new ExprStringValue(str.substring(start, start + len));</span>
+  }
+
+  private static ExprValue exprRight(ExprValue str, ExprValue len) {
+<span class="fc bfc" id="L406" title="All 2 branches covered.">    if (len.integerValue() &lt;= 0) {</span>
+<span class="fc" id="L407">      return new ExprStringValue(&quot;&quot;);</span>
+    }
+<span class="fc" id="L409">    String stringValue = str.stringValue();</span>
+<span class="fc" id="L410">    int left = Math.max(stringValue.length() - len.integerValue(), 0);</span>
+<span class="fc" id="L411">    return new ExprStringValue(str.stringValue().substring(left));</span>
+  }
+
+  private static ExprValue exprLeft(ExprValue expr, ExprValue length) {
+<span class="fc" id="L415">    String stringValue = expr.stringValue();</span>
+<span class="fc" id="L416">    int right = length.integerValue();</span>
+<span class="fc" id="L417">    return new ExprStringValue(stringValue.substring(0, Math.min(right, stringValue.length())));</span>
+  }
+
+  private static ExprValue exprAscii(ExprValue expr) {
+<span class="fc" id="L421">    return new ExprIntegerValue(</span>
+<span class="fc bfc" id="L422" title="All 2 branches covered.">        expr.stringValue().length() == 0 ? 0 : (int) expr.stringValue().charAt(0));</span>
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
+<span class="fc" id="L426">    return new ExprIntegerValue(str.stringValue().indexOf(subStr.stringValue()) + 1);</span>
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
+<span class="fc" id="L430">    return new ExprIntegerValue(</span>
+<span class="fc" id="L431">        str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);</span>
+  }
+
+  private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
+<span class="fc" id="L435">    return new ExprStringValue(str.stringValue().replaceAll(from.stringValue(), to.stringValue()));</span>
+  }
+
+  private static ExprValue exprReverse(ExprValue str) {
+<span class="fc" id="L439">    return new ExprStringValue(new StringBuilder(str.stringValue()).reverse().toString());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

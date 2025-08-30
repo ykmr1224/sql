@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpressionNodeVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression</a> &gt; <span class="el_source">ExpressionNodeVisitor.java</span></div><h1>ExpressionNodeVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression;
+
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.conditional.cases.CaseClause;
+import org.opensearch.sql.expression.conditional.cases.WhenClause;
+import org.opensearch.sql.expression.function.FunctionImplementation;
+import org.opensearch.sql.expression.parse.ParseExpression;
+
+/**
+ * Abstract visitor for expression tree nodes.
+ *
+ * @param &lt;T&gt; type of return value to accumulate when visiting.
+ * @param &lt;C&gt; type of context.
+ */
+<span class="fc" id="L21">public abstract class ExpressionNodeVisitor&lt;T, C&gt; {</span>
+
+  public T visitNode(Expression node, C context) {
+<span class="fc" id="L24">    return null;</span>
+  }
+
+  /**
+   * Visit children nodes in function arguments.
+   *
+   * @param node function node
+   * @param context context
+   * @return result
+   */
+  public T visitChildren(FunctionImplementation node, C context) {
+<span class="fc" id="L35">    T result = defaultResult();</span>
+
+<span class="fc bfc" id="L37" title="All 2 branches covered.">    for (Expression child : node.getArguments()) {</span>
+<span class="fc" id="L38">      T childResult = child.accept(this, context);</span>
+<span class="fc" id="L39">      result = aggregateResult(result, childResult);</span>
+<span class="fc" id="L40">    }</span>
+<span class="fc" id="L41">    return result;</span>
+  }
+
+  private T defaultResult() {
+<span class="fc" id="L45">    return null;</span>
+  }
+
+  private T aggregateResult(T aggregate, T nextResult) {
+<span class="fc" id="L49">    return nextResult;</span>
+  }
+
+  public T visitLiteral(LiteralExpression node, C context) {
+<span class="fc" id="L53">    return visitNode(node, context);</span>
+  }
+
+  public T visitNamed(NamedExpression node, C context) {
+<span class="fc" id="L57">    return node.getDelegated().accept(this, context);</span>
+  }
+
+  public T visitHighlight(HighlightExpression node, C context) {
+<span class="fc" id="L61">    return visitNode(node, context);</span>
+  }
+
+  public T visitReference(ReferenceExpression node, C context) {
+<span class="fc" id="L65">    return visitNode(node, context);</span>
+  }
+
+  public T visitParse(ParseExpression node, C context) {
+<span class="fc" id="L69">    return visitNode(node, context);</span>
+  }
+
+  public T visitFunction(FunctionExpression node, C context) {
+<span class="fc" id="L73">    return visitChildren(node, context);</span>
+  }
+
+  public T visitAggregator(Aggregator&lt;?&gt; node, C context) {
+<span class="fc" id="L77">    return visitChildren(node, context);</span>
+  }
+
+  public T visitNamedAggregator(NamedAggregator node, C context) {
+<span class="fc" id="L81">    return visitChildren(node, context);</span>
+  }
+
+  /**
+   * Call visitFunction() by default rather than visitChildren(). This makes CASE/WHEN able to be
+   * handled:
+   *
+   * &lt;ol&gt;
+   *   &lt;li&gt;by visitFunction() if not overwritten: ex. FilterQueryBuilder
+   *   &lt;li&gt;by visitCase/When() otherwise if any special logic: ex. ExprReferenceOptimizer
+   * &lt;/ol&gt;
+   */
+  public T visitCase(CaseClause node, C context) {
+<span class="fc" id="L94">    return visitFunction(node, context);</span>
+  }
+
+  public T visitWhen(WhenClause node, C context) {
+<span class="fc" id="L98">    return visitFunction(node, context);</span>
+  }
+
+  public T visitNamedArgument(NamedArgumentExpression node, C context) {
+<span class="fc" id="L102">    return visitNode(node, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateTimeFormatters.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">DateTimeFormatters.java</span></div><h1>DateTimeFormatters.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
+import static java.time.temporal.ChronoField.YEAR;
+
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
+import java.util.Locale;
+import lombok.experimental.UtilityClass;
+
+/** DateTimeFormatter. Reference org.opensearch.common.time.DateFormatters. */
+@UtilityClass
+public class DateTimeFormatters {
+
+  // Length of a date formatted as YYYYMMDD.
+  public static final int FULL_DATE_LENGTH = 8;
+
+  // Length of a date formatted as YYMMDD.
+  public static final int SHORT_DATE_LENGTH = 6;
+
+  // Length of a date formatted as YMMDD.
+  public static final int SINGLE_DIGIT_YEAR_DATE_LENGTH = 5;
+
+  // Length of a date formatted as MMDD.
+  public static final int NO_YEAR_DATE_LENGTH = 4;
+
+  // Length of a date formatted as MDD.
+  public static final int SINGLE_DIGIT_MONTH_DATE_LENGTH = 3;
+
+  private static final int MIN_FRACTION_SECONDS = 0;
+  private static final int MAX_FRACTION_SECONDS = 9;
+
+<span class="fc" id="L46">  public static final DateTimeFormatter TIME_ZONE_FORMATTER_NO_COLON =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L48">          .appendOffset(&quot;+HHmm&quot;, &quot;Z&quot;)</span>
+<span class="fc" id="L49">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L50">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L52">  public static final DateTimeFormatter STRICT_YEAR_MONTH_DAY_FORMATTER =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L54">          .appendValue(ChronoField.YEAR, 4, 10, SignStyle.EXCEEDS_PAD)</span>
+<span class="fc" id="L55">          .optionalStart()</span>
+<span class="fc" id="L56">          .appendLiteral(&quot;-&quot;)</span>
+<span class="fc" id="L57">          .appendValue(MONTH_OF_YEAR, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L58">          .optionalStart()</span>
+<span class="fc" id="L59">          .appendLiteral('-')</span>
+<span class="fc" id="L60">          .appendValue(DAY_OF_MONTH, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L61">          .optionalEnd()</span>
+<span class="fc" id="L62">          .optionalEnd()</span>
+<span class="fc" id="L63">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L64">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L66">  public static final DateTimeFormatter STRICT_HOUR_MINUTE_SECOND_FORMATTER =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L68">          .appendValue(HOUR_OF_DAY, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L69">          .appendLiteral(':')</span>
+<span class="fc" id="L70">          .appendValue(MINUTE_OF_HOUR, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L71">          .appendLiteral(':')</span>
+<span class="fc" id="L72">          .appendValue(SECOND_OF_MINUTE, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L73">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L74">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L76">  public static final DateTimeFormatter STRICT_DATE_OPTIONAL_TIME_FORMATTER =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L78">          .append(STRICT_YEAR_MONTH_DAY_FORMATTER)</span>
+<span class="fc" id="L79">          .optionalStart()</span>
+<span class="fc" id="L80">          .appendLiteral('T')</span>
+<span class="fc" id="L81">          .optionalStart()</span>
+<span class="fc" id="L82">          .appendValue(HOUR_OF_DAY, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L83">          .optionalStart()</span>
+<span class="fc" id="L84">          .appendLiteral(':')</span>
+<span class="fc" id="L85">          .appendValue(MINUTE_OF_HOUR, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L86">          .optionalStart()</span>
+<span class="fc" id="L87">          .appendLiteral(':')</span>
+<span class="fc" id="L88">          .appendValue(SECOND_OF_MINUTE, 2, 2, SignStyle.NOT_NEGATIVE)</span>
+<span class="fc" id="L89">          .optionalStart()</span>
+<span class="fc" id="L90">          .appendFraction(NANO_OF_SECOND, 1, 9, true)</span>
+<span class="fc" id="L91">          .optionalEnd()</span>
+<span class="fc" id="L92">          .optionalStart()</span>
+<span class="fc" id="L93">          .appendLiteral(',')</span>
+<span class="fc" id="L94">          .appendFraction(NANO_OF_SECOND, 1, 9, false)</span>
+<span class="fc" id="L95">          .optionalEnd()</span>
+<span class="fc" id="L96">          .optionalEnd()</span>
+<span class="fc" id="L97">          .optionalEnd()</span>
+<span class="fc" id="L98">          .optionalStart()</span>
+<span class="fc" id="L99">          .appendZoneOrOffsetId()</span>
+<span class="fc" id="L100">          .optionalEnd()</span>
+<span class="fc" id="L101">          .optionalStart()</span>
+<span class="fc" id="L102">          .append(TIME_ZONE_FORMATTER_NO_COLON)</span>
+<span class="fc" id="L103">          .optionalEnd()</span>
+<span class="fc" id="L104">          .optionalEnd()</span>
+<span class="fc" id="L105">          .optionalEnd()</span>
+<span class="fc" id="L106">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L107">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L109">  public static final DateTimeFormatter SQL_LITERAL_DATE_TIME_FORMAT =</span>
+<span class="fc" id="L110">      DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+
+  /** todo. only support timestamp in format yyyy-MM-dd HH:mm:ss. */
+<span class="fc" id="L113">  public static final DateTimeFormatter DATE_TIME_FORMATTER_WITHOUT_NANO =</span>
+      SQL_LITERAL_DATE_TIME_FORMAT;
+
+<span class="fc" id="L116">  public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L118">          .appendPattern(&quot;uuuu-MM-dd HH:mm:ss&quot;)</span>
+<span class="fc" id="L119">          .appendFraction(</span>
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+<span class="fc" id="L121">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L122">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L124">  public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L126">          .appendPattern(&quot;[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][HH:mm:ss][HH:mm][uuuu-MM-dd]&quot;)</span>
+<span class="fc" id="L127">          .appendFraction(</span>
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+<span class="fc" id="L129">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L130">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L132">  public static final DateTimeFormatter DATE_TIMESTAMP_FORMATTER =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L134">          .appendPattern(&quot;[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][uuuu-MM-dd]&quot;)</span>
+<span class="fc" id="L135">          .appendFraction(</span>
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+<span class="fc" id="L137">          .parseDefaulting(HOUR_OF_DAY, 0)</span>
+<span class="fc" id="L138">          .parseDefaulting(MINUTE_OF_HOUR, 0)</span>
+<span class="fc" id="L139">          .parseDefaulting(SECOND_OF_MINUTE, 0)</span>
+<span class="fc" id="L140">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L141">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+<span class="fc" id="L143">  public static final DateTimeFormatter TIME_TIMESTAMP_FORMATTER =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L145">          .appendPattern(&quot;[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][HH:mm:ss][HH:mm]&quot;)</span>
+<span class="fc" id="L146">          .appendFraction(</span>
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+<span class="fc" id="L148">          .parseDefaulting(SECOND_OF_MINUTE, 0)</span>
+<span class="fc" id="L149">          .toFormatter(Locale.ROOT)</span>
+<span class="fc" id="L150">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // MDD
+<span class="fc" id="L153">  public static final DateTimeFormatter DATE_FORMATTER_SINGLE_DIGIT_MONTH =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L155">          .parseDefaulting(YEAR, 2000)</span>
+<span class="fc" id="L156">          .appendPattern(&quot;Mdd&quot;)</span>
+<span class="fc" id="L157">          .toFormatter()</span>
+<span class="fc" id="L158">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // MMDD
+<span class="fc" id="L161">  public static final DateTimeFormatter DATE_FORMATTER_NO_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L163">          .parseDefaulting(YEAR, 2000)</span>
+<span class="fc" id="L164">          .appendPattern(&quot;MMdd&quot;)</span>
+<span class="fc" id="L165">          .toFormatter()</span>
+<span class="fc" id="L166">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // YMMDD
+<span class="fc" id="L169">  public static final DateTimeFormatter DATE_FORMATTER_SINGLE_DIGIT_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L171">          .appendValueReduced(YEAR, 1, 1, 2000)</span>
+<span class="fc" id="L172">          .appendPattern(&quot;MMdd&quot;)</span>
+<span class="fc" id="L173">          .toFormatter()</span>
+<span class="fc" id="L174">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // YYMMDD
+<span class="fc" id="L177">  public static final DateTimeFormatter DATE_FORMATTER_SHORT_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L179">          .appendValueReduced(YEAR, 2, 2, 1970)</span>
+<span class="fc" id="L180">          .appendPattern(&quot;MMdd&quot;)</span>
+<span class="fc" id="L181">          .toFormatter()</span>
+<span class="fc" id="L182">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // YYYYMMDD
+<span class="fc" id="L185">  public static final DateTimeFormatter DATE_FORMATTER_LONG_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L187">          .appendValue(YEAR, 4)</span>
+<span class="fc" id="L188">          .appendPattern(&quot;MMdd&quot;)</span>
+<span class="fc" id="L189">          .toFormatter()</span>
+<span class="fc" id="L190">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // YYMMDDhhmmss
+<span class="fc" id="L193">  public static final DateTimeFormatter DATE_TIME_FORMATTER_SHORT_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L195">          .appendValueReduced(YEAR, 2, 2, 1970)</span>
+<span class="fc" id="L196">          .appendPattern(&quot;MMddHHmmss&quot;)</span>
+<span class="fc" id="L197">          .toFormatter()</span>
+<span class="fc" id="L198">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // YYYYMMDDhhmmss
+<span class="fc" id="L201">  public static final DateTimeFormatter DATE_TIME_FORMATTER_LONG_YEAR =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L203">          .appendValue(YEAR, 4)</span>
+<span class="fc" id="L204">          .appendPattern(&quot;MMddHHmmss&quot;)</span>
+<span class="fc" id="L205">          .toFormatter()</span>
+<span class="fc" id="L206">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // uuuu-MM-dd HH:mm:ss[xxx]
+<span class="fc" id="L209">  public static final DateTimeFormatter DATE_TIME_FORMATTER_STRICT_WITH_TZ =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L211">          .appendPattern(&quot;uuuu-MM-dd HH:mm:ss[xxx]&quot;)</span>
+<span class="fc" id="L212">          .toFormatter()</span>
+<span class="fc" id="L213">          .withResolverStyle(ResolverStyle.STRICT);</span>
+
+  // uuuu-MM-dd HH:mm:ss[xxx]
+<span class="fc" id="L216">  public static final DateTimeFormatter DATE_TIME_FORMATTER_WITH_TZ =</span>
+      new DateTimeFormatterBuilder()
+<span class="fc" id="L218">          .appendPattern(&quot;uuuu-MM-dd HH:mm:ss[xxx]&quot;)</span>
+<span class="fc" id="L219">          .appendFraction(</span>
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+<span class="fc" id="L221">          .toFormatter();</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CanPaginateVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor.pagination</a> &gt; <span class="el_source">CanPaginateVisitor.java</span></div><h1>CanPaginateVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.executor.pagination;
+
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedAttribute;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/**
+ * Use this unresolved plan visitor to check if a plan can be serialized by PaginatedPlanCache.&lt;br&gt;
+ * If
+ *
+ * &lt;pre&gt;plan.accept(new CanPaginateVisitor(...))&lt;/pre&gt;
+ *
+ * returns &lt;em&gt;true&lt;/em&gt;, &lt;em&gt;PaginatedPlanCache.convertToCursor&lt;/em&gt; will succeed.&lt;br&gt;
+ * Otherwise, it will fail.&lt;br&gt;
+ * The purpose of this visitor is to activate legacy engine fallback mechanism.&lt;br&gt;
+ * Currently, V2 engine does not support queries with:&lt;br&gt;
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;aggregation (GROUP BY clause or aggregation functions like min/max)
+ *   &lt;li&gt;in memory aggregation (window function)
+ *   &lt;li&gt;LIMIT/OFFSET clause(s)
+ *   &lt;li&gt;without FROM clause
+ *   &lt;li&gt;JOIN
+ *   &lt;li&gt;a subquery
+ * &lt;/ul&gt;
+ *
+ * V2 also requires that the table being queried should be an OpenSearch index.&lt;br&gt;
+ * See PaginatedPlanCache.canConvertToCursor for usage.
+ */
+<span class="fc" id="L66">public class CanPaginateVisitor extends AbstractNodeVisitor&lt;Boolean, Object&gt; {</span>
+
+  @Override
+  public Boolean visitRelation(Relation node, Object context) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (!node.getChild().isEmpty()) {</span>
+      // Relation instance should never have a child, but check just in case.
+<span class="fc" id="L72">      return Boolean.FALSE;</span>
+    }
+
+<span class="fc" id="L75">    return Boolean.TRUE;</span>
+  }
+
+  protected Boolean canPaginate(Node node, Object context) {
+<span class="fc" id="L79">    var childList = node.getChild();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (childList != null) {</span>
+<span class="fc" id="L81">      return childList.stream().allMatch(n -&gt; n.accept(this, context));</span>
+    }
+<span class="fc" id="L83">    return Boolean.TRUE;</span>
+  }
+
+  // Only column references in ORDER BY clause are supported in pagination,
+  // because expressions can't be pushed down due to #1471.
+  // https://github.com/opensearch-project/sql/issues/1471
+  @Override
+  public Boolean visitSort(Sort node, Object context) {
+<span class="fc" id="L91">    return node.getSortList().stream()</span>
+<span class="fc bfc" id="L92" title="All 6 branches covered.">            .allMatch(f -&gt; f.getField() instanceof QualifiedName &amp;&amp; visitField(f, context))</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        &amp;&amp; canPaginate(node, context);</span>
+  }
+
+  // For queries with WHERE clause:
+  @Override
+  public Boolean visitFilter(Filter node, Object context) {
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    return canPaginate(node, context) &amp;&amp; node.getCondition().accept(this, context);</span>
+  }
+
+  // Queries with GROUP BY clause are not supported
+  @Override
+  public Boolean visitAggregation(Aggregation node, Object context) {
+<span class="fc" id="L105">    return Boolean.FALSE;</span>
+  }
+
+  // For queries without FROM clause:
+  @Override
+  public Boolean visitValues(Values node, Object context) {
+<span class="fc" id="L111">    return Boolean.TRUE;</span>
+  }
+
+  // Queries with LIMIT/OFFSET clauses are unsupported
+  @Override
+  public Boolean visitLimit(Limit node, Object context) {
+<span class="fc" id="L117">    return Boolean.FALSE;</span>
+  }
+
+  @Override
+  public Boolean visitLiteral(Literal node, Object context) {
+<span class="fc" id="L122">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitField(Field node, Object context) {
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    return canPaginate(node, context)</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        &amp;&amp; node.getFieldArgs().stream().allMatch(n -&gt; n.accept(this, context));</span>
+  }
+
+  @Override
+  public Boolean visitAlias(Alias node, Object context) {
+<span class="fc bfc" id="L133" title="All 4 branches covered.">    return canPaginate(node, context) &amp;&amp; node.getDelegated().accept(this, context);</span>
+  }
+
+  @Override
+  public Boolean visitAllFields(AllFields node, Object context) {
+<span class="fc" id="L138">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitQualifiedName(QualifiedName node, Object context) {
+<span class="fc" id="L143">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitEqualTo(EqualTo node, Object context) {
+<span class="fc" id="L148">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitRelevanceFieldList(RelevanceFieldList node, Object context) {
+<span class="fc" id="L153">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitInterval(Interval node, Object context) {
+<span class="fc" id="L158">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitCompare(Compare node, Object context) {
+<span class="fc" id="L163">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitNot(Not node, Object context) {
+<span class="fc" id="L168">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitOr(Or node, Object context) {
+<span class="fc" id="L173">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitAnd(And node, Object context) {
+<span class="fc" id="L178">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitArgument(Argument node, Object context) {
+<span class="fc" id="L183">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitXor(Xor node, Object context) {
+<span class="fc" id="L188">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitFunction(Function node, Object context) {
+    // https://github.com/opensearch-project/sql/issues/1718
+<span class="fc" id="L194">    if (node.getFuncName()</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        .equalsIgnoreCase(BuiltinFunctionName.NESTED.getName().getFunctionName())) {</span>
+<span class="fc" id="L196">      return Boolean.FALSE;</span>
+    }
+<span class="fc" id="L198">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitIn(In node, Object context) {
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    return canPaginate(node, context)</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        &amp;&amp; node.getValueList().stream().allMatch(n -&gt; n.accept(this, context));</span>
+  }
+
+  @Override
+  public Boolean visitBetween(Between node, Object context) {
+<span class="fc" id="L209">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitCase(Case node, Object context) {
+<span class="fc" id="L214">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitWhen(When node, Object context) {
+<span class="fc" id="L219">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitCast(Cast node, Object context) {
+<span class="fc bfc" id="L224" title="All 4 branches covered.">    return canPaginate(node, context) &amp;&amp; node.getConvertedType().accept(this, context);</span>
+  }
+
+  @Override
+  public Boolean visitHighlightFunction(HighlightFunction node, Object context) {
+<span class="fc" id="L229">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitUnresolvedArgument(UnresolvedArgument node, Object context) {
+<span class="fc" id="L234">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitUnresolvedAttribute(UnresolvedAttribute node, Object context) {
+<span class="fc" id="L239">    return canPaginate(node, context);</span>
+  }
+
+  @Override
+  public Boolean visitChildren(Node node, Object context) {
+    // for all not listed (= unchecked) - false
+<span class="fc" id="L245">    return Boolean.FALSE;</span>
+  }
+
+  @Override
+  public Boolean visitWindowFunction(WindowFunction node, Object context) {
+    // don't support in-memory aggregation
+    // SELECT max(age) OVER (PARTITION BY city) ...
+<span class="fc" id="L252">    return Boolean.FALSE;</span>
+  }
+
+  @Override
+  public Boolean visitProject(Project node, Object context) {
+<span class="fc bfc" id="L257" title="All 2 branches covered.">    if (!node.getProjectList().stream().allMatch(n -&gt; n.accept(this, context))) {</span>
+<span class="fc" id="L258">      return Boolean.FALSE;</span>
+    }
+
+<span class="fc" id="L261">    var children = node.getChild();</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (children.size() != 1) {</span>
+<span class="fc" id="L263">      return Boolean.FALSE;</span>
+    }
+
+<span class="fc" id="L266">    return children.get(0).accept(this, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

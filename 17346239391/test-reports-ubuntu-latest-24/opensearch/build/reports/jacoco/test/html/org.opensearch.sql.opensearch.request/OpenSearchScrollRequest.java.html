@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchScrollRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">OpenSearchScrollRequest.java</span></div><h1>OpenSearchScrollRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+
+/**
+ * OpenSearch scroll search request. This has to be stateful because it needs to:
+ *
+ * &lt;p&gt;1) Accumulate search source builder when visiting logical plan to push down operation 2)
+ * Maintain scroll ID between calls to client search method
+ */
+@EqualsAndHashCode
+@Getter
+@ToString
+public class OpenSearchScrollRequest implements OpenSearchRequest {
+
+  /**
+   * Search request used to initiate paged (scrolled) search. Not needed to get subsequent pages.
+   */
+  @EqualsAndHashCode.Exclude private final transient SearchRequest initialSearchRequest;
+
+  /** Scroll context timeout. */
+  private final TimeValue scrollTimeout;
+
+  /** {@link OpenSearchRequest.IndexName}. */
+  private final IndexName indexName;
+
+  /** Index name. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude
+  private final OpenSearchExprValueFactory exprValueFactory;
+
+  /**
+   * Scroll id which is set after first request issued. Because OpenSearchClient is shared by
+   * multiple threads so this state has to be maintained here.
+   */
+<span class="fc" id="L59">  @Setter @Getter private String scrollId = NO_SCROLL_ID;</span>
+
+  public static final String NO_SCROLL_ID = &quot;&quot;;
+
+<span class="fc" id="L63">  @EqualsAndHashCode.Exclude private boolean needClean = true;</span>
+
+  @Getter @EqualsAndHashCode.Exclude @ToString.Exclude private final List&lt;String&gt; includes;
+
+  /** Constructor. */
+  public OpenSearchScrollRequest(
+      IndexName indexName,
+      TimeValue scrollTimeout,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory exprValueFactory,
+<span class="fc" id="L73">      List&lt;String&gt; includes) {</span>
+<span class="fc" id="L74">    this.indexName = indexName;</span>
+<span class="fc" id="L75">    this.scrollTimeout = scrollTimeout;</span>
+<span class="fc" id="L76">    this.exprValueFactory = exprValueFactory;</span>
+<span class="fc" id="L77">    this.initialSearchRequest =</span>
+        new SearchRequest()
+<span class="fc" id="L79">            .indices(indexName.getIndexNames())</span>
+<span class="fc" id="L80">            .scroll(scrollTimeout)</span>
+<span class="fc" id="L81">            .source(sourceBuilder);</span>
+
+<span class="fc" id="L83">    this.includes = includes;</span>
+<span class="fc" id="L84">  }</span>
+
+  /**
+   * Executes request using either {@param searchAction} or {@param scrollAction} as appropriate.
+   */
+  @Override
+  public OpenSearchResponse search(
+      Function&lt;SearchRequest, SearchResponse&gt; searchAction,
+      Function&lt;SearchScrollRequest, SearchResponse&gt; scrollAction) {
+    SearchResponse openSearchResponse;
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (isScroll()) {</span>
+<span class="fc" id="L95">      openSearchResponse = scrollAction.apply(scrollRequest());</span>
+    } else {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (initialSearchRequest == null) {</span>
+        // Probably a first page search (since there is no scroll set) called on a deserialized
+        // `OpenSearchScrollRequest`, which has no `initialSearchRequest`.
+<span class="fc" id="L100">        throw new UnsupportedOperationException(&quot;Misuse of OpenSearchScrollRequest&quot;);</span>
+      }
+<span class="fc" id="L102">      openSearchResponse = searchAction.apply(initialSearchRequest);</span>
+    }
+
+<span class="fc" id="L105">    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);</span>
+<span class="fc" id="L106">    needClean = response.isEmpty();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (!needClean) {</span>
+<span class="fc" id="L108">      setScrollId(openSearchResponse.getScrollId());</span>
+    }
+<span class="fc" id="L110">    return response;</span>
+  }
+
+  @Override
+  public void clean(Consumer&lt;String&gt; cleanAction) {
+    try {
+      // clean on the last page only, to prevent closing the scroll/cursor in the middle of paging.
+<span class="fc bfc" id="L117" title="All 4 branches covered.">      if (needClean &amp;&amp; isScroll()) {</span>
+<span class="fc" id="L118">        cleanAction.accept(getScrollId());</span>
+<span class="fc" id="L119">        setScrollId(NO_SCROLL_ID);</span>
+      }
+    } finally {
+<span class="fc" id="L122">      reset();</span>
+    }
+<span class="fc" id="L124">  }</span>
+
+  /**
+   * Is scroll started which means pages after first is being requested.
+   *
+   * @return true if scroll started
+   */
+  public boolean isScroll() {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    return !scrollId.equals(NO_SCROLL_ID);</span>
+  }
+
+  /**
+   * Generate OpenSearch scroll request by scroll id maintained.
+   *
+   * @return scroll request
+   */
+  public SearchScrollRequest scrollRequest() {
+<span class="fc" id="L141">    Objects.requireNonNull(scrollId, &quot;Scroll id cannot be null&quot;);</span>
+<span class="fc" id="L142">    return new SearchScrollRequest().scroll(scrollTimeout).scrollId(scrollId);</span>
+  }
+
+  /**
+   * Reset internal state in case any stale data. However, ideally the same instance is not supposed
+   * to be reused across different physical plan.
+   */
+  public void reset() {
+<span class="fc" id="L150">    scrollId = NO_SCROLL_ID;</span>
+<span class="fc" id="L151">  }</span>
+
+  @Override
+  public boolean hasAnotherBatch() {
+<span class="fc bfc" id="L155" title="All 4 branches covered.">    return !needClean &amp;&amp; !scrollId.equals(NO_SCROLL_ID);</span>
+  }
+
+  @Override
+  public void writeTo(StreamOutput out) throws IOException {
+<span class="fc" id="L160">    out.writeTimeValue(scrollTimeout);</span>
+<span class="fc" id="L161">    out.writeString(scrollId);</span>
+<span class="fc" id="L162">    out.writeStringCollection(includes);</span>
+<span class="fc" id="L163">    indexName.writeTo(out);</span>
+<span class="fc" id="L164">  }</span>
+
+  /**
+   * Constructs OpenSearchScrollRequest from serialized representation.
+   *
+   * @param in stream to read data from.
+   * @param engine OpenSearchSqlEngine to get node-specific context.
+   * @throws IOException thrown if reading from input {@code in} fails.
+   */
+  public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
+<span class="fc" id="L174">      throws IOException {</span>
+<span class="fc" id="L175">    initialSearchRequest = null;</span>
+<span class="fc" id="L176">    scrollTimeout = in.readTimeValue();</span>
+<span class="fc" id="L177">    scrollId = in.readString();</span>
+<span class="fc" id="L178">    includes = in.readStringList();</span>
+<span class="fc" id="L179">    indexName = new IndexName(in);</span>
+<span class="fc" id="L180">    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());</span>
+<span class="fc" id="L181">    exprValueFactory =</span>
+        new OpenSearchExprValueFactory(
+<span class="fc" id="L183">            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());</span>
+<span class="fc" id="L184">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

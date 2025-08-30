@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogicalFetchCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.logical</a> &gt; <span class="el_source">LogicalFetchCursor.java</span></div><h1>LogicalFetchCursor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.logical;
+
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.storage.StorageEngine;
+
+/** A plan node which represents operation of fetching a next page from the cursor. */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+public class LogicalFetchCursor extends LogicalPlan {
+  @Getter private final String cursor;
+
+  @Getter private final StorageEngine engine;
+
+  /** LogicalCursor constructor. Does not have child plans. */
+  public LogicalFetchCursor(String cursor, StorageEngine engine) {
+<span class="fc" id="L24">    super(List.of());</span>
+<span class="fc" id="L25">    this.cursor = cursor;</span>
+<span class="fc" id="L26">    this.engine = engine;</span>
+<span class="fc" id="L27">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(LogicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L31">    return visitor.visitFetchCursor(this, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

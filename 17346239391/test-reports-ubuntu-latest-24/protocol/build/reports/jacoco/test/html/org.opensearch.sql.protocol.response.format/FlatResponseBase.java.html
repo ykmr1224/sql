@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FlatResponseBase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">FlatResponseBase.java</span></div><h1>FlatResponseBase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+@Getter
+public class FlatResponseBase {
+<span class="fc" id="L18">  protected static final String INTERLINE_SEPARATOR = System.lineSeparator();</span>
+
+  private final QueryResult response;
+  protected final String separator;
+
+  private final List&lt;String&gt; headers;
+  private final List&lt;List&lt;String&gt;&gt; data;
+
+<span class="fc" id="L26">  FlatResponseBase(QueryResult response, String separator) {</span>
+<span class="fc" id="L27">    this.response = response;</span>
+<span class="fc" id="L28">    this.separator = separator;</span>
+<span class="fc" id="L29">    this.headers = getOriginalHeaders(response);</span>
+<span class="fc" id="L30">    this.data = getOriginalData(response);</span>
+<span class="fc" id="L31">  }</span>
+
+  public String format() {
+<span class="fc" id="L34">    List&lt;String&gt; headersAndData = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L35">    headersAndData.add(getHeaderLine());</span>
+<span class="fc" id="L36">    headersAndData.addAll(getDataLines());</span>
+<span class="fc" id="L37">    return String.join(INTERLINE_SEPARATOR, headersAndData);</span>
+  }
+
+  protected String getHeaderLine() {
+<span class="fc" id="L41">    return String.join(separator, headers);</span>
+  }
+
+  private List&lt;String&gt; getOriginalHeaders(QueryResult response) {
+<span class="fc" id="L45">    ImmutableList.Builder&lt;String&gt; headers = ImmutableList.builder();</span>
+<span class="fc" id="L46">    response.columnNameTypes().forEach((column, type) -&gt; headers.add(column));</span>
+<span class="fc" id="L47">    List&lt;String&gt; result = headers.build();</span>
+<span class="fc" id="L48">    return formatHeaders(result);</span>
+  }
+
+  protected List&lt;String&gt; getDataLines() {
+<span class="fc" id="L52">    return data.stream().map(v -&gt; String.join(separator, v)).collect(Collectors.toList());</span>
+  }
+
+  private List&lt;List&lt;String&gt;&gt; getOriginalData(QueryResult response) {
+<span class="fc" id="L56">    ImmutableList.Builder&lt;List&lt;String&gt;&gt; dataLines = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc" id="L57">    response</span>
+<span class="fc" id="L58">        .iterator()</span>
+<span class="fc" id="L59">        .forEachRemaining(</span>
+            row -&gt; {
+<span class="fc" id="L61">              ImmutableList.Builder&lt;String&gt; line = new ImmutableList.Builder&lt;&gt;();</span>
+              // replace null values with empty string
+<span class="fc bfc" id="L63" title="All 2 branches covered.">              Arrays.asList(row).forEach(val -&gt; line.add(val == null ? &quot;&quot; : val.toString()));</span>
+<span class="fc" id="L64">              dataLines.add(line.build());</span>
+<span class="fc" id="L65">            });</span>
+<span class="fc" id="L66">    List&lt;List&lt;String&gt;&gt; result = dataLines.build();</span>
+<span class="fc" id="L67">    return formatData(result);</span>
+  }
+
+  protected List&lt;String&gt; formatHeaders(List&lt;String&gt; headers) {
+<span class="fc" id="L71">    return headers.stream()</span>
+<span class="fc" id="L72">        .map(cell -&gt; quoteIfRequired(separator, cell))</span>
+<span class="fc" id="L73">        .collect(Collectors.toList());</span>
+  }
+
+  protected List&lt;List&lt;String&gt;&gt; formatData(List&lt;List&lt;String&gt;&gt; lines) {
+<span class="fc" id="L77">    List&lt;List&lt;String&gt;&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    for (List&lt;String&gt; line : lines) {</span>
+<span class="fc" id="L79">      result.add(</span>
+<span class="fc" id="L80">          line.stream().map(cell -&gt; quoteIfRequired(separator, cell)).collect(Collectors.toList()));</span>
+<span class="fc" id="L81">    }</span>
+<span class="fc" id="L82">    return result;</span>
+  }
+
+  protected String quoteIfRequired(String separator, String cell) {
+<span class="fc" id="L86">    final String quote = &quot;\&quot;&quot;;</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (cell.contains(separator)</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        || cell.contains(quote)</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        || cell.contains(&quot;\r&quot;)</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        || cell.contains(&quot;\n&quot;)) {</span>
+<span class="fc" id="L91">      return quote + cell.replaceAll(quote, quote + quote) + quote;</span>
+    } else {
+<span class="fc" id="L93">      return cell;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.InformationSchemaCommandIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.InformationSchemaCommandIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.html">org.opensearch.sql.ppl</a> &gt; InformationSchemaCommandIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">3</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.204s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testDescribeCommandWithPrometheusCatalog</td>
+<td class="success">0.046s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSearchTablesFromPrometheusCatalog</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTablesFromPrometheusCatalog</td>
+<td class="success">0.116s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T19:29:34,118][INFO ][o.o.s.p.InformationSchemaCommandIT] [testTablesFromPrometheusCatalog] before test
+[2025-08-30T19:29:34,122][INFO ][o.o.s.p.InformationSchemaCommandIT] [testTablesFromPrometheusCatalog] initializing REST clients against [http://[::1]:43357, http://127.0.0.1:43599]
+[2025-08-30T19:29:34,218][ERROR][o.o.s.p.InformationSchemaCommandIT] [testTablesFromPrometheusCatalog] {&quot;schema&quot;:[{&quot;name&quot;:&quot;TABLE_CATALOG&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_SCHEMA&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_NAME&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_TYPE&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;UNIT&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;REMARKS&quot;,&quot;type&quot;:&quot;string&quot;}],&quot;total&quot;:1,&quot;datarows&quot;:[[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;prometheus_http_requests_total&quot;,&quot;counter&quot;,&quot;&quot;,&quot;Counter of HTTP requests.&quot;]],&quot;size&quot;:1}
+[2025-08-30T19:29:34,233][INFO ][o.o.s.p.InformationSchemaCommandIT] [testTablesFromPrometheusCatalog] after test
+[2025-08-30T19:29:34,235][INFO ][o.o.s.p.InformationSchemaCommandIT] [testDescribeCommandWithPrometheusCatalog] before test
+[2025-08-30T19:29:34,279][INFO ][o.o.s.p.InformationSchemaCommandIT] [testDescribeCommandWithPrometheusCatalog] after test
+[2025-08-30T19:29:34,280][INFO ][o.o.s.p.InformationSchemaCommandIT] [testSearchTablesFromPrometheusCatalog] before test
+[2025-08-30T19:29:34,310][ERROR][o.o.s.p.InformationSchemaCommandIT] [testSearchTablesFromPrometheusCatalog] {&quot;schema&quot;:[{&quot;name&quot;:&quot;TABLE_CATALOG&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_SCHEMA&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_NAME&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;TABLE_TYPE&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;UNIT&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;REMARKS&quot;,&quot;type&quot;:&quot;string&quot;}],&quot;total&quot;:6,&quot;datarows&quot;:[[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;prometheus_http_requests_total&quot;,&quot;counter&quot;,&quot;&quot;,&quot;Counter of HTTP requests.&quot;],[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;promhttp_metric_handler_requests_in_flight&quot;,&quot;gauge&quot;,&quot;&quot;,&quot;Current number of scrapes being served.&quot;],[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;prometheus_http_request_duration_seconds&quot;,&quot;histogram&quot;,&quot;&quot;,&quot;Histogram of latencies for HTTP requests.&quot;],[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;prometheus_sd_http_failures_total&quot;,&quot;counter&quot;,&quot;&quot;,&quot;Number of HTTP service discovery refresh failures.&quot;],[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;promhttp_metric_handler_requests_total&quot;,&quot;counter&quot;,&quot;&quot;,&quot;Total number of scrapes by HTTP status code.&quot;],[&quot;my_prometheus&quot;,&quot;default&quot;,&quot;prometheus_http_response_size_bytes&quot;,&quot;histogram&quot;,&quot;&quot;,&quot;Histogram of response size for HTTP requests.&quot;]],&quot;size&quot;:6}
+[2025-08-30T19:29:34,321][INFO ][o.o.s.p.InformationSchemaCommandIT] [testSearchTablesFromPrometheusCatalog] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:30:33 PM</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AstAggregationBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser</a> &gt; <span class="el_source">AstAggregationBuilder.java</span></div><h1>AstAggregationBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser;
+
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+import org.opensearch.sql.sql.parser.context.QuerySpecification;
+
+/**
+ *
+ *
+ * &lt;pre&gt;SelectExpressionAnalyzerTest
+ * AST aggregation builder that builds AST aggregation node for the following scenarios:
+ *
+ *  1. Explicit GROUP BY
+ *     1.1 Group by column name or scalar expression (SELECT DISTINCT equivalent):
+ *          SELECT ABS(age) FROM test GROUP BY ABS(age)
+ *     1.2 Group by alias in SELECT AS clause:
+ *          SELECT state AS s FROM test GROUP BY s
+ *     1.3 Group by ordinal referring to select list:
+ *          SELECT state FROM test GROUP BY 1
+ *  2. Implicit GROUP BY
+ *     2.1 No non-aggregated item (only aggregate functions):
+ *          SELECT AVG(age), SUM(balance) FROM test
+ *     2.2 Non-aggregated item exists:
+ *          SELECT state, AVG(age) FROM test
+ *
+ *  For 1.1 and 2.1, Aggregation node is built with aggregators.
+ *  For 1.2 and 1.3, alias and ordinal is replaced first and then
+ *    Aggregation is built same as above.
+ *  For 2.2, Exception thrown for now. We may support this by different SQL mode.
+ *
+ * Note the responsibility separation between this builder and analyzer in core engine:
+ *
+ *  1. This builder is only responsible for AST node building and handle special SQL
+ *     syntactical cases aforementioned. The validation in this builder is essentially
+ *     static based on syntactic information.
+ *  2. Analyzer will perform semantic check and report semantic error as needed.
+ * &lt;/pre&gt;
+ */
+@RequiredArgsConstructor
+public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor&lt;UnresolvedPlan&gt; {
+
+  /** Query specification that contains info collected beforehand. */
+  private final QuerySpecification querySpec;
+
+  @Override
+  public UnresolvedPlan visit(ParseTree groupByClause) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (querySpec.getGroupByItems().isEmpty()) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (isAggregatorNotFoundAnywhere()) {</span>
+        // Simple select query without GROUP BY and aggregate function in SELECT
+<span class="fc" id="L71">        return null;</span>
+      }
+<span class="fc" id="L73">      return buildImplicitAggregation();</span>
+    }
+<span class="fc" id="L75">    return buildExplicitAggregation();</span>
+  }
+
+  private UnresolvedPlan buildExplicitAggregation() {
+<span class="fc" id="L79">    List&lt;UnresolvedExpression&gt; groupByItems = replaceGroupByItemIfAliasOrOrdinal();</span>
+<span class="fc" id="L80">    return new Aggregation(new ArrayList&lt;&gt;(querySpec.getAggregators()), emptyList(), groupByItems);</span>
+  }
+
+  private UnresolvedPlan buildImplicitAggregation() {
+<span class="fc" id="L84">    Optional&lt;UnresolvedExpression&gt; invalidSelectItem = findNonAggregatedItemInSelect();</span>
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (invalidSelectItem.isPresent()) {</span>
+      // Report semantic error to avoid fall back to old engine again
+<span class="fc" id="L88">      throw new SemanticCheckException(</span>
+<span class="fc" id="L89">          StringUtils.format(</span>
+              &quot;Explicit GROUP BY clause is required because expression [%s] &quot;
+                  + &quot;contains non-aggregated column&quot;,
+<span class="fc" id="L92">              invalidSelectItem.get()));</span>
+    }
+
+<span class="fc" id="L95">    return new Aggregation(</span>
+<span class="fc" id="L96">        new ArrayList&lt;&gt;(querySpec.getAggregators()), emptyList(), querySpec.getGroupByItems());</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; replaceGroupByItemIfAliasOrOrdinal() {
+<span class="fc" id="L100">    return querySpec.getGroupByItems().stream()</span>
+<span class="fc" id="L101">        .map(querySpec::replaceIfAliasOrOrdinal)</span>
+<span class="fc" id="L102">        .map(expr -&gt; new Alias(expr.toString(), expr))</span>
+<span class="fc" id="L103">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Find non-aggregate item in SELECT clause. Note that literal is special which is not required to
+   * be applied by aggregate function.
+   */
+  private Optional&lt;UnresolvedExpression&gt; findNonAggregatedItemInSelect() {
+<span class="fc" id="L111">    return querySpec.getSelectItems().stream()</span>
+<span class="fc" id="L112">        .filter(this::isNonAggregateOrLiteralExpression)</span>
+<span class="fc" id="L113">        .findFirst();</span>
+  }
+
+  private boolean isAggregatorNotFoundAnywhere() {
+<span class="fc" id="L117">    return querySpec.getAggregators().isEmpty();</span>
+  }
+
+  private boolean isNonAggregateOrLiteralExpression(UnresolvedExpression expr) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (expr instanceof AggregateFunction) {</span>
+<span class="fc" id="L122">      return false;</span>
+    }
+
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (expr instanceof QualifiedName) {</span>
+<span class="fc" id="L126">      return true;</span>
+    }
+
+<span class="fc" id="L129">    List&lt;? extends Node&gt; children = expr.getChild();</span>
+<span class="fc" id="L130">    return children.stream()</span>
+<span class="fc" id="L131">        .anyMatch(child -&gt; isNonAggregateOrLiteralExpression((UnresolvedExpression) child));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

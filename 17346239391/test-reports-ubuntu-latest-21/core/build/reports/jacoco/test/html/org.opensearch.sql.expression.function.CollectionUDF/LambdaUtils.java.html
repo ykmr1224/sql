@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LambdaUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.CollectionUDF</a> &gt; <span class="el_source">LambdaUtils.java</span></div><h1>LambdaUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.CollectionUDF;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+<span class="nc" id="L22">public class LambdaUtils {</span>
+  public static Object transferLambdaOutputToTargetType(Object candidate, SqlTypeName targetType) {
+<span class="nc bnc" id="L24" title="All 2 branches missed.">    if (candidate instanceof BigDecimal) {</span>
+<span class="nc" id="L25">      BigDecimal bd = (BigDecimal) candidate;</span>
+<span class="nc bnc" id="L26" title="All 4 branches missed.">      switch (targetType) {</span>
+        case INTEGER:
+<span class="nc" id="L28">          return bd.intValue();</span>
+        case DOUBLE:
+<span class="nc" id="L30">          return bd.doubleValue();</span>
+        case FLOAT:
+<span class="nc" id="L32">          return bd.floatValue();</span>
+        default:
+<span class="nc" id="L34">          return bd;</span>
+      }
+    } else {
+<span class="nc" id="L37">      return candidate;</span>
+    }
+  }
+
+  public static RelDataType inferReturnTypeFromLambda(
+      RexLambda rexLambda, Map&lt;String, RelDataType&gt; filledTypes, RelDataTypeFactory typeFactory) {
+<span class="nc" id="L43">    RexCall rexCall = (RexCall) rexLambda.getExpression();</span>
+<span class="nc" id="L44">    SqlReturnTypeInference returnInfer = rexCall.getOperator().getReturnTypeInference();</span>
+<span class="nc" id="L45">    List&lt;RexNode&gt; lambdaOperands = rexCall.getOperands();</span>
+<span class="nc" id="L46">    List&lt;RexNode&gt; filledOperands = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    for (RexNode rexNode : lambdaOperands) {</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">      if (rexNode instanceof RexLambdaRef rexLambdaRef) {</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if (rexLambdaRef.getType().getSqlTypeName() == SqlTypeName.ANY) {</span>
+<span class="nc" id="L50">          filledOperands.add(</span>
+              new RexLambdaRef(
+<span class="nc" id="L52">                  rexLambdaRef.getIndex(),</span>
+<span class="nc" id="L53">                  rexLambdaRef.getName(),</span>
+<span class="nc" id="L54">                  filledTypes.get(rexLambdaRef.getName())));</span>
+        } else {
+<span class="nc" id="L56">          filledOperands.add(rexNode);</span>
+        }
+<span class="nc bnc" id="L58" title="All 2 branches missed.">      } else if (rexNode instanceof RexCall) {</span>
+<span class="nc" id="L59">        filledOperands.add(</span>
+<span class="nc" id="L60">            reInferReturnTypeForRexCallInsideLambda((RexCall) rexNode, filledTypes, typeFactory));</span>
+      } else {
+<span class="nc" id="L62">        filledOperands.add(rexNode);</span>
+      }
+<span class="nc" id="L64">    }</span>
+<span class="nc" id="L65">    return returnInfer.inferReturnType(</span>
+<span class="nc" id="L66">        new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));</span>
+  }
+
+  public static RexCall reInferReturnTypeForRexCallInsideLambda(
+      RexCall rexCall, Map&lt;String, RelDataType&gt; argTypes, RelDataTypeFactory typeFactory) {
+<span class="nc" id="L71">    List&lt;RexNode&gt; filledOperands = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L72">    List&lt;RexNode&gt; rexCallOperands = rexCall.getOperands();</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    for (RexNode rexNode : rexCallOperands) {</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">      if (rexNode instanceof RexLambdaRef rexLambdaRef) {</span>
+<span class="nc" id="L75">        filledOperands.add(</span>
+            new RexLambdaRef(
+<span class="nc" id="L77">                rexLambdaRef.getIndex(),</span>
+<span class="nc" id="L78">                rexLambdaRef.getName(),</span>
+<span class="nc" id="L79">                argTypes.get(rexLambdaRef.getName())));</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">      } else if (rexNode instanceof RexCall) {</span>
+<span class="nc" id="L81">        filledOperands.add(</span>
+<span class="nc" id="L82">            reInferReturnTypeForRexCallInsideLambda((RexCall) rexNode, argTypes, typeFactory));</span>
+      } else {
+<span class="nc" id="L84">        filledOperands.add(rexNode);</span>
+      }
+<span class="nc" id="L86">    }</span>
+<span class="nc" id="L87">    RelDataType returnType =</span>
+        rexCall
+<span class="nc" id="L89">            .getOperator()</span>
+<span class="nc" id="L90">            .inferReturnType(</span>
+<span class="nc" id="L91">                new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));</span>
+<span class="nc" id="L92">    return rexCall.clone(returnType, filledOperands);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

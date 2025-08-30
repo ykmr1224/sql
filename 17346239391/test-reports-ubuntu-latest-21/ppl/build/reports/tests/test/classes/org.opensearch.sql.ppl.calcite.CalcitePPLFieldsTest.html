@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.calcite.CalcitePPLFieldsTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.calcite.CalcitePPLFieldsTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.calcite.html">org.opensearch.sql.ppl.calcite</a> &gt; CalcitePPLFieldsTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">18</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.242s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testBasicSelection</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCommaSpaceMixedDelimiters</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCustomFieldOrdering</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDuplicateFieldDeduplication</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExcludeAllFieldsValidation</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplicitFieldExclusion</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplicitInclusionSyntax</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testIncludeAllFieldsVariations</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testInvalidWildcardPattern</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMixedCommandPipeline</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultipleWildcardCombinations</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSelectAllWithWildcard</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSequentialFieldExclusion</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSpaceDelimitedSyntax</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTableCommandEquivalence</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testWildcardFieldExclusion</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testWildcardMixedFields</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testWildcardPatternMatching</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>LogicalProject(ENAME=[$1], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], DEPTNO=[$7], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(SAL=[$5], EMPNO=[$0], ENAME=[$1])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(JOB=[$2], EMPNO=[$0], DEPTNO=[$7])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], JOB=[$2], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalTableScan(table=[[scott, EMP]])
+
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:32:19 PM</p>
+</div>
+</div>
+</body>
+</html>

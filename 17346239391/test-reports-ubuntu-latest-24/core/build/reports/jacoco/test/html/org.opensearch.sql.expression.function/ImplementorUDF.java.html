@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImplementorUDF.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">ImplementorUDF.java</span></div><h1>ImplementorUDF.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ImplementableFunction;
+
+/** The UDF which implements its functionality by NotNullImplementor */
+public abstract class ImplementorUDF implements UserDefinedFunctionBuilder {
+  private final NotNullImplementor implementor;
+  private final NullPolicy nullPolicy;
+
+<span class="fc" id="L21">  protected ImplementorUDF(NotNullImplementor implementor, NullPolicy nullPolicy) {</span>
+<span class="fc" id="L22">    this.implementor = implementor;</span>
+<span class="fc" id="L23">    this.nullPolicy = nullPolicy;</span>
+<span class="fc" id="L24">  }</span>
+
+  @Override
+  public ImplementableFunction getFunction() {
+<span class="fc" id="L28">    return new ImplementableFunction() {</span>
+      @Override
+      public List&lt;FunctionParameter&gt; getParameters() {
+<span class="nc" id="L31">        return List.of();</span>
+      }
+
+      @Override
+      public CallImplementor getImplementor() {
+<span class="nc" id="L36">        return RexImpTable.createImplementor(implementor, nullPolicy, false);</span>
+      }
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

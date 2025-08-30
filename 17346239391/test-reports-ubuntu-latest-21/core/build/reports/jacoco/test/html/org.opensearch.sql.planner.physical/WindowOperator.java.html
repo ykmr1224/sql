@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WindowOperator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical</a> &gt; <span class="el_source">WindowOperator.java</span></div><h1>WindowOperator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
+import java.util.Collections;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.expression.window.WindowFunctionExpression;
+import org.opensearch.sql.expression.window.frame.WindowFrame;
+
+/** Physical operator for window function computation. */
+@EqualsAndHashCode(callSuper = false)
+@ToString
+public class WindowOperator extends PhysicalPlan {
+  @Getter private final PhysicalPlan input;
+
+  @Getter private final NamedExpression windowFunction;
+
+  @Getter private final WindowDefinition windowDefinition;
+
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final WindowFrame windowFrame;
+
+  /**
+   * Peeking iterator that can peek next element which is required by window frame such as peer
+   * frame to prefetch all rows related to same peer (of same sorting key).
+   */
+  @EqualsAndHashCode.Exclude @ToString.Exclude
+  private final PeekingIterator&lt;ExprValue&gt; peekingIterator;
+
+  /**
+   * Initialize window operator.
+   *
+   * @param input child operator
+   * @param windowFunction window function
+   * @param windowDefinition window definition
+   */
+  public WindowOperator(
+<span class="fc" id="L50">      PhysicalPlan input, NamedExpression windowFunction, WindowDefinition windowDefinition) {</span>
+<span class="fc" id="L51">    this.input = input;</span>
+<span class="fc" id="L52">    this.windowFunction = windowFunction;</span>
+<span class="fc" id="L53">    this.windowDefinition = windowDefinition;</span>
+<span class="fc" id="L54">    this.windowFrame = createWindowFrame();</span>
+<span class="fc" id="L55">    this.peekingIterator = Iterators.peekingIterator(input);</span>
+<span class="fc" id="L56">  }</span>
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L60">    return visitor.visitWindow(this, context);</span>
+  }
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L65">    return Collections.singletonList(input);</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc bfc" id="L70" title="All 4 branches covered.">    return peekingIterator.hasNext() || windowFrame.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L75">    windowFrame.load(peekingIterator);</span>
+<span class="fc" id="L76">    return enrichCurrentRowByWindowFunctionResult();</span>
+  }
+
+  private WindowFrame createWindowFrame() {
+<span class="fc" id="L80">    return ((WindowFunctionExpression) windowFunction.getDelegated())</span>
+<span class="fc" id="L81">        .createWindowFrame(windowDefinition);</span>
+  }
+
+  private ExprValue enrichCurrentRowByWindowFunctionResult() {
+<span class="fc" id="L85">    ImmutableMap.Builder&lt;String, ExprValue&gt; mapBuilder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L86">    preserveAllOriginalColumns(mapBuilder);</span>
+<span class="fc" id="L87">    addWindowFunctionResultColumn(mapBuilder);</span>
+<span class="fc" id="L88">    return ExprTupleValue.fromExprValueMap(mapBuilder.build());</span>
+  }
+
+  private void preserveAllOriginalColumns(ImmutableMap.Builder&lt;String, ExprValue&gt; mapBuilder) {
+<span class="fc" id="L92">    ExprValue inputValue = windowFrame.current();</span>
+<span class="fc" id="L93">    inputValue.tupleValue().forEach(mapBuilder::put);</span>
+<span class="fc" id="L94">  }</span>
+
+  private void addWindowFunctionResultColumn(ImmutableMap.Builder&lt;String, ExprValue&gt; mapBuilder) {
+<span class="fc" id="L97">    ExprValue exprValue = windowFunction.valueOf(windowFrame);</span>
+<span class="fc" id="L98">    mapBuilder.put(windowFunction.getName(), exprValue);</span>
+<span class="fc" id="L99">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

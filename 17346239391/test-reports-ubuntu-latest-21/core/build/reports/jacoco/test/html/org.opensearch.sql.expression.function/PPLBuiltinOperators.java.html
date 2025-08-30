@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLBuiltinOperators.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">PPLBuiltinOperators.java</span></div><h1>PPLBuiltinOperators.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createUserDefinedAggFunction;
+
+import com.google.common.base.Suppliers;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.function.Supplier;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
+import org.opensearch.sql.expression.function.udf.CryptographicFunction;
+import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
+import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
+import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
+import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
+import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
+import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DatePartFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DatetimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.ExtractFunction;
+import org.opensearch.sql.expression.function.udf.datetime.FormatFunction;
+import org.opensearch.sql.expression.function.udf.datetime.FromUnixTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
+import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
+import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampFunction;
+import org.opensearch.sql.expression.function.udf.datetime.ToSecondsFunction;
+import org.opensearch.sql.expression.function.udf.datetime.UnixTimestampFunction;
+import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
+import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
+import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
+import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
+import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.IPFunction;
+import org.opensearch.sql.expression.function.udf.math.CRC32Function;
+import org.opensearch.sql.expression.function.udf.math.ConvFunction;
+import org.opensearch.sql.expression.function.udf.math.DivideFunction;
+import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.ModFunction;
+import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
+
+/** Defines functions and operators that are implemented only by PPL */
+<span class="nc" id="L93">public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {</span>
+
+<span class="fc" id="L95">  private static final Supplier&lt;PPLBuiltinOperators&gt; INSTANCE =</span>
+<span class="pc" id="L96">      Suppliers.memoize(() -&gt; (PPLBuiltinOperators) new PPLBuiltinOperators().init());</span>
+
+  // Json Functions
+<span class="fc" id="L99">  public static final SqlOperator JSON = new JsonFunctionImpl().toUDF(&quot;JSON&quot;);</span>
+<span class="fc" id="L100">  public static final SqlOperator JSON_ARRAY_LENGTH =</span>
+<span class="fc" id="L101">      new JsonArrayLengthFunctionImpl().toUDF(&quot;JSON_ARRAY_LENGTH&quot;);</span>
+<span class="fc" id="L102">  public static final SqlOperator JSON_EXTRACT =</span>
+<span class="fc" id="L103">      new JsonExtractFunctionImpl().toUDF(&quot;JSON_EXTRACT&quot;);</span>
+<span class="fc" id="L104">  public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF(&quot;JSON_KEYS&quot;);</span>
+<span class="fc" id="L105">  public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF(&quot;JSON_SET&quot;);</span>
+<span class="fc" id="L106">  public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF(&quot;JSON_DELETE&quot;);</span>
+<span class="fc" id="L107">  public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF(&quot;JSON_APPEND&quot;);</span>
+<span class="fc" id="L108">  public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF(&quot;JSON_EXTEND&quot;);</span>
+
+  // Math functions
+<span class="fc" id="L111">  public static final SqlOperator SPAN = new SpanFunction().toUDF(&quot;SPAN&quot;);</span>
+<span class="fc" id="L112">  public static final SqlOperator E = new EulerFunction().toUDF(&quot;E&quot;);</span>
+<span class="fc" id="L113">  public static final SqlOperator CONV = new ConvFunction().toUDF(&quot;CONVERT&quot;);</span>
+<span class="fc" id="L114">  public static final SqlOperator MOD = new ModFunction().toUDF(&quot;MOD&quot;);</span>
+<span class="fc" id="L115">  public static final SqlOperator CRC32 = new CRC32Function().toUDF(&quot;CRC32&quot;);</span>
+<span class="fc" id="L116">  public static final SqlOperator DIVIDE = new DivideFunction().toUDF(&quot;DIVIDE&quot;);</span>
+<span class="fc" id="L117">  public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF(&quot;SHA2&quot;);</span>
+<span class="fc" id="L118">  public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF(&quot;CIDRMATCH&quot;);</span>
+
+<span class="fc" id="L120">  public static final SqlOperator COSH =</span>
+<span class="fc" id="L121">      adaptMathFunctionToUDF(</span>
+              &quot;cosh&quot;, ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+<span class="fc" id="L123">          .toUDF(&quot;COSH&quot;);</span>
+
+<span class="fc" id="L125">  public static final SqlOperator SINH =</span>
+<span class="fc" id="L126">      adaptMathFunctionToUDF(</span>
+              &quot;sinh&quot;, ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+<span class="fc" id="L128">          .toUDF(&quot;SINH&quot;);</span>
+
+<span class="fc" id="L130">  public static final SqlOperator RINT =</span>
+<span class="fc" id="L131">      adaptMathFunctionToUDF(</span>
+              &quot;rint&quot;, ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+<span class="fc" id="L133">          .toUDF(&quot;RINT&quot;);</span>
+
+<span class="fc" id="L135">  public static final SqlOperator EXPM1 =</span>
+<span class="fc" id="L136">      adaptMathFunctionToUDF(</span>
+              &quot;expm1&quot;, ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+<span class="fc" id="L138">          .toUDF(&quot;EXPM1&quot;);</span>
+
+  // IP comparing functions
+  public static final SqlOperator NOT_EQUALS_IP =
+<span class="fc" id="L142">      CompareIpFunction.notEquals().toUDF(&quot;NOT_EQUALS_IP&quot;);</span>
+<span class="fc" id="L143">  public static final SqlOperator EQUALS_IP = CompareIpFunction.equals().toUDF(&quot;EQUALS_IP&quot;);</span>
+<span class="fc" id="L144">  public static final SqlOperator GREATER_IP = CompareIpFunction.greater().toUDF(&quot;GREATER_IP&quot;);</span>
+<span class="fc" id="L145">  public static final SqlOperator GTE_IP = CompareIpFunction.greaterOrEquals().toUDF(&quot;GTE_IP&quot;);</span>
+<span class="fc" id="L146">  public static final SqlOperator LESS_IP = CompareIpFunction.less().toUDF(&quot;LESS_IP&quot;);</span>
+<span class="fc" id="L147">  public static final SqlOperator LTE_IP = CompareIpFunction.lessOrEquals().toUDF(&quot;LTE_IP&quot;);</span>
+
+  // Condition function
+<span class="fc" id="L150">  public static final SqlOperator EARLIEST = new EarliestFunction().toUDF(&quot;EARLIEST&quot;);</span>
+<span class="fc" id="L151">  public static final SqlOperator LATEST = new LatestFunction().toUDF(&quot;LATEST&quot;);</span>
+
+  // Datetime function
+<span class="fc" id="L154">  public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF(&quot;TIMESTAMP&quot;);</span>
+<span class="fc" id="L155">  public static final SqlOperator DATE =</span>
+<span class="fc" id="L156">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprDate&quot;,
+              PPLReturnTypes.DATE_FORCE_NULLABLE,
+              NullPolicy.ARG0,
+              PPLOperandTypes.DATE_OR_TIMESTAMP_OR_STRING)
+<span class="fc" id="L162">          .toUDF(&quot;DATE&quot;);</span>
+<span class="fc" id="L163">  public static final SqlOperator YEARWEEK = new YearweekFunction().toUDF(&quot;YEARWEEK&quot;);</span>
+<span class="fc" id="L164">  public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF(&quot;WEEKDAY&quot;);</span>
+<span class="fc" id="L165">  public static final SqlOperator UNIX_TIMESTAMP =</span>
+<span class="fc" id="L166">      new UnixTimestampFunction().toUDF(&quot;UNIX_TIMESTAMP&quot;);</span>
+<span class="fc" id="L167">  public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF(&quot;TO_SECONDS&quot;);</span>
+<span class="fc" id="L168">  public static final SqlOperator ADDTIME =</span>
+<span class="fc" id="L169">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprAddTime&quot;,
+              PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
+              NullPolicy.ANY,
+              PPLOperandTypes.DATETIME_DATETIME)
+<span class="fc" id="L175">          .toUDF(&quot;ADDTIME&quot;);</span>
+<span class="fc" id="L176">  public static final SqlOperator SUBTIME =</span>
+<span class="fc" id="L177">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprSubTime&quot;,
+              PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
+              NullPolicy.ANY,
+              PPLOperandTypes.DATETIME_DATETIME)
+<span class="fc" id="L183">          .toUDF(&quot;SUBTIME&quot;);</span>
+<span class="fc" id="L184">  public static final SqlOperator ADDDATE = new AddSubDateFunction(true).toUDF(&quot;ADDDATE&quot;);</span>
+<span class="fc" id="L185">  public static final SqlOperator SUBDATE = new AddSubDateFunction(false).toUDF(&quot;SUBDATE&quot;);</span>
+<span class="fc" id="L186">  public static final SqlOperator DATE_ADD = new DateAddSubFunction(true).toUDF(&quot;DATE_ADD&quot;);</span>
+<span class="fc" id="L187">  public static final SqlOperator DATE_SUB = new DateAddSubFunction(false).toUDF(&quot;DATE_SUB&quot;);</span>
+<span class="fc" id="L188">  public static final SqlOperator EXTRACT = new ExtractFunction().toUDF(&quot;EXTRACT&quot;);</span>
+<span class="fc" id="L189">  public static final SqlOperator YEAR = new DatePartFunction(TimeUnit.YEAR).toUDF(&quot;YEAR&quot;);</span>
+<span class="fc" id="L190">  public static final SqlOperator QUARTER = new DatePartFunction(TimeUnit.QUARTER).toUDF(&quot;QUARTER&quot;);</span>
+<span class="fc" id="L191">  public static final SqlOperator MONTH = new DatePartFunction(TimeUnit.MONTH).toUDF(&quot;MONTH&quot;);</span>
+<span class="fc" id="L192">  public static final SqlOperator DAY = new DatePartFunction(TimeUnit.DAY).toUDF(&quot;DAY&quot;);</span>
+<span class="fc" id="L193">  public static final SqlOperator DAY_OF_WEEK =</span>
+<span class="fc" id="L194">      new DatePartFunction(TimeUnit.DOW).toUDF(&quot;DAY_OF_WEEK&quot;);</span>
+<span class="fc" id="L195">  public static final SqlOperator DAY_OF_YEAR =</span>
+<span class="fc" id="L196">      new DatePartFunction(TimeUnit.DOY).toUDF(&quot;DAY_OF_YEAR&quot;);</span>
+<span class="fc" id="L197">  public static final SqlOperator HOUR = new DatePartFunction(TimeUnit.HOUR).toUDF(&quot;HOUR&quot;);</span>
+<span class="fc" id="L198">  public static final SqlOperator MINUTE = new DatePartFunction(TimeUnit.MINUTE).toUDF(&quot;MINUTE&quot;);</span>
+<span class="fc" id="L199">  public static final SqlOperator MINUTE_OF_DAY =</span>
+<span class="fc" id="L200">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprMinuteOfDay&quot;,
+              PPLReturnTypes.INTEGER_FORCE_NULLABLE,
+              NullPolicy.ARG0,
+              PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING)
+<span class="fc" id="L206">          .toUDF(&quot;MINUTE_OF_DAY&quot;);</span>
+<span class="fc" id="L207">  public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF(&quot;SECOND&quot;);</span>
+<span class="fc" id="L208">  public static final SqlOperator MICROSECOND =</span>
+<span class="fc" id="L209">      new DatePartFunction(TimeUnit.MICROSECOND).toUDF(&quot;MICROSECOND&quot;);</span>
+<span class="fc" id="L210">  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF(&quot;NOW&quot;);</span>
+<span class="fc" id="L211">  public static final SqlOperator CURRENT_TIME =</span>
+<span class="fc" id="L212">      new CurrentFunction(ExprCoreType.TIME).toUDF(&quot;CURRENT_TIME&quot;);</span>
+<span class="fc" id="L213">  public static final SqlOperator CURRENT_DATE =</span>
+<span class="fc" id="L214">      new CurrentFunction(ExprCoreType.DATE).toUDF(&quot;CURRENT_DATE&quot;);</span>
+<span class="fc" id="L215">  public static final SqlOperator DATE_FORMAT =</span>
+<span class="fc" id="L216">      new FormatFunction(ExprCoreType.DATE).toUDF(&quot;DATE_FORMAT&quot;);</span>
+<span class="fc" id="L217">  public static final SqlOperator TIME_FORMAT =</span>
+<span class="fc" id="L218">      new FormatFunction(ExprCoreType.TIME).toUDF(&quot;TIME_FORMAT&quot;);</span>
+<span class="fc" id="L219">  public static final SqlOperator DAYNAME = new PeriodNameFunction(TimeUnit.DAY).toUDF(&quot;DAYNAME&quot;);</span>
+<span class="fc" id="L220">  public static final SqlOperator MONTHNAME =</span>
+<span class="fc" id="L221">      new PeriodNameFunction(TimeUnit.MONTH).toUDF(&quot;MONTHNAME&quot;);</span>
+<span class="fc" id="L222">  public static final SqlOperator CONVERT_TZ =</span>
+<span class="fc" id="L223">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprConvertTZ&quot;,
+              PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.TIMESTAMP_OR_STRING_STRING_STRING)
+<span class="fc" id="L229">          .toUDF(&quot;CONVERT_TZ&quot;);</span>
+<span class="fc" id="L230">  public static final SqlOperator DATEDIFF =</span>
+<span class="fc" id="L231">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprDateDiff&quot;,
+              ReturnTypes.BIGINT_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.DATETIME_DATETIME)
+<span class="fc" id="L237">          .toUDF(&quot;DATEDIFF&quot;);</span>
+<span class="fc" id="L238">  public static final SqlOperator TIMESTAMPDIFF =</span>
+<span class="fc" id="L239">      new TimestampDiffFunction().toUDF(&quot;TIMESTAMPDIFF&quot;);</span>
+<span class="fc" id="L240">  public static final SqlOperator LAST_DAY = new LastDayFunction().toUDF(&quot;LAST_DAY&quot;);</span>
+<span class="fc" id="L241">  public static final SqlOperator FROM_DAYS =</span>
+<span class="fc" id="L242">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprFromDays&quot;,
+              PPLReturnTypes.DATE_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.INTEGER)
+<span class="fc" id="L248">          .toUDF(&quot;FROM_DAYS&quot;);</span>
+<span class="fc" id="L249">  public static final SqlOperator FROM_UNIXTIME = new FromUnixTimeFunction().toUDF(&quot;FROM_UNIXTIME&quot;);</span>
+<span class="fc" id="L250">  public static final SqlOperator GET_FORMAT =</span>
+<span class="fc" id="L251">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprGetFormat&quot;,
+<span class="fc" id="L254">              ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),</span>
+              NullPolicy.ANY,
+              PPLOperandTypes.STRING_STRING)
+<span class="fc" id="L257">          .toUDF(&quot;GET_FORMAT&quot;);</span>
+<span class="fc" id="L258">  public static final SqlOperator MAKEDATE =</span>
+<span class="fc" id="L259">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprMakeDate&quot;,
+              PPLReturnTypes.DATE_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC_NUMERIC)
+<span class="fc" id="L265">          .toUDF(&quot;MAKEDATE&quot;);</span>
+<span class="fc" id="L266">  public static final SqlOperator MAKETIME =</span>
+<span class="fc" id="L267">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprMakeTime&quot;,
+              PPLReturnTypes.TIME_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC)
+<span class="fc" id="L273">          .toUDF(&quot;MAKETIME&quot;);</span>
+<span class="fc" id="L274">  public static final SqlOperator PERIOD_DIFF =</span>
+<span class="fc" id="L275">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprPeriodDiff&quot;,
+              PPLReturnTypes.INTEGER_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.INTEGER_INTEGER)
+<span class="fc" id="L281">          .toUDF(&quot;PERIOD_DIFF&quot;);</span>
+<span class="fc" id="L282">  public static final SqlOperator PERIOD_ADD =</span>
+<span class="fc" id="L283">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprPeriodAdd&quot;,
+              PPLReturnTypes.INTEGER_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.INTEGER_INTEGER)
+<span class="fc" id="L289">          .toUDF(&quot;PERIOD_ADD&quot;);</span>
+<span class="fc" id="L290">  public static final SqlOperator STR_TO_DATE =</span>
+<span class="fc" id="L291">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprStrToDate&quot;,
+              PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.STRING_STRING)
+<span class="fc" id="L297">          .toUDF(&quot;STR_TO_DATE&quot;);</span>
+<span class="fc" id="L298">  public static final SqlOperator SYSDATE = new SysdateFunction().toUDF(&quot;SYSDATE&quot;);</span>
+<span class="fc" id="L299">  public static final SqlOperator SEC_TO_TIME = new SecToTimeFunction().toUDF(&quot;SEC_TO_TIME&quot;);</span>
+<span class="fc" id="L300">  public static final SqlOperator TIME =</span>
+<span class="fc" id="L301">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprTime&quot;,
+              PPLReturnTypes.TIME_FORCE_NULLABLE,
+              NullPolicy.ARG0,
+              PPLOperandTypes.DATETIME_OR_STRING)
+<span class="fc" id="L307">          .toUDF(&quot;TIME&quot;);</span>
+
+  // IP cast function
+<span class="fc" id="L310">  public static final SqlOperator IP =</span>
+<span class="fc" id="L311">      new IPFunction().toUDF(UserDefinedFunctionUtils.IP_FUNCTION_NAME);</span>
+<span class="fc" id="L312">  public static final SqlOperator TIME_TO_SEC =</span>
+<span class="fc" id="L313">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprTimeToSec&quot;,
+              ReturnTypes.BIGINT_FORCE_NULLABLE,
+              NullPolicy.ARG0,
+              PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING)
+<span class="fc" id="L319">          .toUDF(&quot;TIME_TO_SEC&quot;);</span>
+<span class="fc" id="L320">  public static final SqlOperator TIMEDIFF =</span>
+<span class="fc" id="L321">      UserDefinedFunctionUtils.adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprTimeDiff&quot;,
+              PPLReturnTypes.TIME_FORCE_NULLABLE,
+              NullPolicy.ANY,
+              PPLOperandTypes.TIME_TIME)
+<span class="fc" id="L327">          .toUDF(&quot;TIME_DIFF&quot;);</span>
+<span class="fc" id="L328">  public static final SqlOperator TIMESTAMPADD = new TimestampAddFunction().toUDF(&quot;TIMESTAMPADD&quot;);</span>
+<span class="fc" id="L329">  public static final SqlOperator TO_DAYS =</span>
+<span class="fc" id="L330">      adaptExprMethodToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprToDays&quot;,
+              ReturnTypes.BIGINT_FORCE_NULLABLE,
+              NullPolicy.ARG0,
+              PPLOperandTypes.DATE_OR_TIMESTAMP_OR_STRING)
+<span class="fc" id="L336">          .toUDF(&quot;TO_DAYS&quot;);</span>
+<span class="fc" id="L337">  public static final SqlOperator DATETIME = new DatetimeFunction().toUDF(&quot;DATETIME&quot;);</span>
+<span class="fc" id="L338">  public static final SqlOperator UTC_DATE =</span>
+<span class="fc" id="L339">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprUtcDate&quot;,
+              PPLReturnTypes.DATE_FORCE_NULLABLE,
+              NullPolicy.NONE,
+              PPLOperandTypes.NONE)
+<span class="fc" id="L345">          .toUDF(&quot;UTC_DATE&quot;);</span>
+<span class="fc" id="L346">  public static final SqlOperator UTC_TIME =</span>
+<span class="fc" id="L347">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprUtcTime&quot;,
+              PPLReturnTypes.TIME_FORCE_NULLABLE,
+              NullPolicy.NONE,
+              PPLOperandTypes.NONE)
+<span class="fc" id="L353">          .toUDF(&quot;UTC_TIME&quot;);</span>
+<span class="fc" id="L354">  public static final SqlOperator UTC_TIMESTAMP =</span>
+<span class="fc" id="L355">      adaptExprMethodWithPropertiesToUDF(</span>
+              DateTimeFunctions.class,
+              &quot;exprUtcTimestamp&quot;,
+              PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
+              NullPolicy.NONE,
+              PPLOperandTypes.NONE)
+<span class="fc" id="L361">          .toUDF(&quot;UTC_TIMESTAMP&quot;);</span>
+<span class="fc" id="L362">  public static final SqlOperator WEEK = new WeekFunction().toUDF(&quot;WEEK&quot;);</span>
+<span class="fc" id="L363">  public static final SqlOperator GROK = new GrokFunction().toUDF(&quot;GROK&quot;);</span>
+<span class="fc" id="L364">  public static final SqlOperator PATTERN_PARSER =</span>
+<span class="fc" id="L365">      new PatternParserFunctionImpl().toUDF(&quot;PATTERN_PARSER&quot;);</span>
+
+<span class="fc" id="L367">  public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF(&quot;forall&quot;);</span>
+<span class="fc" id="L368">  public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF(&quot;exists&quot;);</span>
+<span class="fc" id="L369">  public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF(&quot;array&quot;);</span>
+<span class="fc" id="L370">  public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF(&quot;filter&quot;);</span>
+<span class="fc" id="L371">  public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF(&quot;transform&quot;);</span>
+<span class="fc" id="L372">  public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF(&quot;reduce&quot;);</span>
+
+<span class="fc" id="L374">  private static final RelevanceQueryFunction RELEVANCE_QUERY_FUNCTION_INSTANCE =</span>
+      new RelevanceQueryFunction();
+<span class="fc" id="L376">  public static final SqlOperator MATCH = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;match&quot;);</span>
+<span class="fc" id="L377">  public static final SqlOperator MATCH_PHRASE =</span>
+<span class="fc" id="L378">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;match_phrase&quot;);</span>
+<span class="fc" id="L379">  public static final SqlOperator MATCH_BOOL_PREFIX =</span>
+<span class="fc" id="L380">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;match_bool_prefix&quot;);</span>
+<span class="fc" id="L381">  public static final SqlOperator MATCH_PHRASE_PREFIX =</span>
+<span class="fc" id="L382">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;match_phrase_prefix&quot;);</span>
+<span class="fc" id="L383">  public static final SqlOperator SIMPLE_QUERY_STRING =</span>
+<span class="fc" id="L384">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;simple_query_string&quot;, false);</span>
+<span class="fc" id="L385">  public static final SqlOperator QUERY_STRING =</span>
+<span class="fc" id="L386">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;query_string&quot;, false);</span>
+<span class="fc" id="L387">  public static final SqlOperator MULTI_MATCH =</span>
+<span class="fc" id="L388">      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF(&quot;multi_match&quot;, false);</span>
+<span class="fc" id="L389">  public static final SqlOperator NUMBER_TO_STRING =</span>
+<span class="fc" id="L390">      new NumberToStringFunction().toUDF(&quot;NUMBER_TO_STRING&quot;);</span>
+<span class="fc" id="L391">  public static final SqlOperator WIDTH_BUCKET =</span>
+      new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
+<span class="fc" id="L393">          .toUDF(&quot;WIDTH_BUCKET&quot;);</span>
+<span class="fc" id="L394">  public static final SqlOperator SPAN_BUCKET =</span>
+      new org.opensearch.sql.expression.function.udf.binning.SpanBucketFunction()
+<span class="fc" id="L396">          .toUDF(&quot;SPAN_BUCKET&quot;);</span>
+<span class="fc" id="L397">  public static final SqlOperator MINSPAN_BUCKET =</span>
+      new org.opensearch.sql.expression.function.udf.binning.MinspanBucketFunction()
+<span class="fc" id="L399">          .toUDF(&quot;MINSPAN_BUCKET&quot;);</span>
+<span class="fc" id="L400">  public static final SqlOperator RANGE_BUCKET =</span>
+      new org.opensearch.sql.expression.function.udf.binning.RangeBucketFunction()
+<span class="fc" id="L402">          .toUDF(&quot;RANGE_BUCKET&quot;);</span>
+
+  // Aggregation functions
+<span class="fc" id="L405">  public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);</span>
+<span class="fc" id="L406">  public static final SqlAggFunction STDDEV_POP_NULLABLE =</span>
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
+<span class="fc" id="L408">  public static final SqlAggFunction STDDEV_SAMP_NULLABLE =</span>
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_SAMP);
+<span class="fc" id="L410">  public static final SqlAggFunction VAR_POP_NULLABLE =</span>
+      new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
+<span class="fc" id="L412">  public static final SqlAggFunction VAR_SAMP_NULLABLE =</span>
+      new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
+<span class="fc" id="L414">  public static final SqlAggFunction TAKE =</span>
+<span class="fc" id="L415">      createUserDefinedAggFunction(</span>
+          TakeAggFunction.class,
+          &quot;TAKE&quot;,
+          PPLReturnTypes.ARG0_ARRAY,
+          PPLOperandTypes.ANY_OPTIONAL_INTEGER);
+<span class="fc" id="L420">  public static final SqlAggFunction PERCENTILE_APPROX =</span>
+<span class="fc" id="L421">      createUserDefinedAggFunction(</span>
+          PercentileApproxFunction.class,
+          &quot;percentile_approx&quot;,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          PPLOperandTypes.NUMERIC_NUMERIC_OPTIONAL_NUMERIC);
+<span class="fc" id="L426">  public static final SqlAggFunction INTERNAL_PATTERN =</span>
+<span class="fc" id="L427">      createUserDefinedAggFunction(</span>
+          LogPatternAggFunction.class,
+          &quot;pattern&quot;,
+<span class="fc" id="L430">          ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),</span>
+          null);
+
+<span class="fc" id="L433">  public static final SqlOperator ENHANCED_COALESCE =</span>
+<span class="fc" id="L434">      new EnhancedCoalesceFunction().toUDF(&quot;COALESCE&quot;);</span>
+
+  /**
+   * Returns the PPL specific operator table, creating it if necessary.
+   *
+   * @return PPLBuiltinOperators operator table
+   */
+  public static PPLBuiltinOperators instance() {
+<span class="nc" id="L442">    return INSTANCE.get();</span>
+  }
+
+  /**
+   * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
+   * all private Use method directly in {@link BuiltInMethod} if possible, most operators'
+   * implementor could be substituted by a single method.
+   */
+  private static Expression invokeCalciteImplementor(
+      RexToLixTranslator translator, RexCall call, SqlOperator operator, Expression field)
+      throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+<span class="nc" id="L453">    RexCallImplementor rexCallImplementor = RexImpTable.INSTANCE.get(operator);</span>
+<span class="nc" id="L454">    Method method =</span>
+        rexCallImplementor
+<span class="nc" id="L456">            .getClass()</span>
+<span class="nc" id="L457">            .getDeclaredMethod(</span>
+                &quot;implementSafe&quot;, RexToLixTranslator.class, RexCall.class, List.class);
+<span class="nc" id="L459">    method.setAccessible(true);</span>
+<span class="nc" id="L460">    return (Expression) method.invoke(rexCallImplementor, translator, call, List.of(field));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

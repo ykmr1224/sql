@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AstExpressionBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser</a> &gt; <span class="el_source">AstExpressionBuilder.java</span></div><h1>AstExpressionBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser;
+
+import static org.opensearch.sql.ast.dsl.AstDSL.between;
+import static org.opensearch.sql.ast.dsl.AstDSL.not;
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchFieldContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnFilterContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConvertedDataTypeContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExtractFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.GetFormatFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HighlightFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedAllFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NoFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NotExpressionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NullLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OverClauseContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.PositionFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegexpPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegularAggregateFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFieldAndWeightContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScoreRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedDecimalContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedRealContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SingleFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableFilterContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimeLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
+import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.antlr.v4.runtime.RuleContext;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AndExpressionContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnNameContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IdentContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IntervalLiteralContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedExpressionAtomContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrExpressionContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableNameContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+
+/** Expression builder to parse text to expression in AST. */
+<span class="fc" id="L99">public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor&lt;UnresolvedExpression&gt; {</span>
+
+  @Override
+  public UnresolvedExpression visitTableName(TableNameContext ctx) {
+<span class="fc" id="L103">    return visit(ctx.qualifiedName());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitColumnName(ColumnNameContext ctx) {
+<span class="fc" id="L108">    return visit(ctx.qualifiedName());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIdent(IdentContext ctx) {
+<span class="fc" id="L113">    return visitIdentifiers(Collections.singletonList(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitQualifiedName(QualifiedNameContext ctx) {
+<span class="fc" id="L118">    return visitIdentifiers(ctx.ident());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitMathExpressionAtom(MathExpressionAtomContext ctx) {
+<span class="fc" id="L123">    return new Function(</span>
+<span class="fc" id="L124">        ctx.mathOperator.getText(), Arrays.asList(visit(ctx.left), visit(ctx.right)));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNestedExpressionAtom(NestedExpressionAtomContext ctx) {
+<span class="fc" id="L129">    return visit(ctx.expression()); // Discard parenthesis around</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNestedAllFunctionCall(NestedAllFunctionCallContext ctx) {
+<span class="fc" id="L134">    return new NestedAllTupleFields(visitQualifiedName(ctx.allTupleFields().path).toString());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
+<span class="fc" id="L139">    return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitGetFormatFunctionCall(GetFormatFunctionCallContext ctx) {
+<span class="fc" id="L144">    return new Function(</span>
+<span class="fc" id="L145">        ctx.getFormatFunction().GET_FORMAT().toString(), getFormatFunctionArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitHighlightFunctionCall(HighlightFunctionCallContext ctx) {
+<span class="fc" id="L150">    ImmutableMap.Builder&lt;String, Literal&gt; builder = ImmutableMap.builder();</span>
+<span class="fc" id="L151">    ctx.highlightFunction()</span>
+<span class="fc" id="L152">        .highlightArg()</span>
+<span class="fc" id="L153">        .forEach(</span>
+            v -&gt;
+<span class="fc" id="L155">                builder.put(</span>
+<span class="fc" id="L156">                    v.highlightArgName().getText().toLowerCase(Locale.ROOT),</span>
+                    new Literal(
+<span class="fc" id="L158">                        StringUtils.unquoteText(v.highlightArgValue().getText()),</span>
+                        DataType.STRING)));
+
+<span class="fc" id="L161">    return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()), builder.build());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTimestampFunctionCall(TimestampFunctionCallContext ctx) {
+<span class="fc" id="L166">    return new Function(</span>
+<span class="fc" id="L167">        ctx.timestampFunction().timestampFunctionName().getText(), timestampFunctionArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitPositionFunction(PositionFunctionContext ctx) {
+<span class="fc" id="L172">    return new Function(</span>
+<span class="fc" id="L173">        POSITION.getName().getFunctionName(),</span>
+<span class="fc" id="L174">        Arrays.asList(visitFunctionArg(ctx.functionArg(0)), visitFunctionArg(ctx.functionArg(1))));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTableFilter(TableFilterContext ctx) {
+<span class="fc" id="L179">    return new Function(</span>
+<span class="fc" id="L180">        LIKE.getName().getFunctionName(),</span>
+<span class="fc" id="L181">        Arrays.asList(qualifiedName(&quot;TABLE_NAME&quot;), visit(ctx.showDescribePattern())));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitColumnFilter(ColumnFilterContext ctx) {
+<span class="fc" id="L186">    return new Function(</span>
+<span class="fc" id="L187">        LIKE.getName().getFunctionName(),</span>
+<span class="fc" id="L188">        Arrays.asList(qualifiedName(&quot;COLUMN_NAME&quot;), visit(ctx.showDescribePattern())));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitShowDescribePattern(ShowDescribePatternContext ctx) {
+<span class="fc" id="L193">    return visit(ctx.stringLiteral());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitFilteredAggregationFunctionCall(
+      FilteredAggregationFunctionCallContext ctx) {
+<span class="fc" id="L199">    AggregateFunction agg = (AggregateFunction) visit(ctx.aggregateFunction());</span>
+<span class="fc" id="L200">    return agg.condition(visit(ctx.filterClause()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitWindowFunctionClause(WindowFunctionClauseContext ctx) {
+<span class="fc" id="L205">    OverClauseContext overClause = ctx.overClause();</span>
+
+<span class="fc" id="L207">    List&lt;UnresolvedExpression&gt; partitionByList = Collections.emptyList();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    if (overClause.partitionByClause() != null) {</span>
+<span class="fc" id="L209">      partitionByList =</span>
+<span class="fc" id="L210">          overClause.partitionByClause().expression().stream()</span>
+<span class="fc" id="L211">              .map(this::visit)</span>
+<span class="fc" id="L212">              .collect(Collectors.toList());</span>
+    }
+
+<span class="fc" id="L215">    List&lt;Pair&lt;SortOption, UnresolvedExpression&gt;&gt; sortList = Collections.emptyList();</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (overClause.orderByClause() != null) {</span>
+<span class="fc" id="L217">      sortList =</span>
+<span class="fc" id="L218">          overClause.orderByClause().orderByElement().stream()</span>
+<span class="fc" id="L219">              .map(item -&gt; ImmutablePair.of(createSortOption(item), visit(item.expression())))</span>
+<span class="fc" id="L220">              .collect(Collectors.toList());</span>
+    }
+<span class="fc" id="L222">    return new WindowFunction(visit(ctx.function), partitionByList, sortList);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarWindowFunction(ScalarWindowFunctionContext ctx) {
+<span class="fc" id="L227">    return buildFunction(ctx.functionName.getText(), ctx.functionArgs().functionArg());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitRegularAggregateFunctionCall(
+      RegularAggregateFunctionCallContext ctx) {
+<span class="fc" id="L233">    return new AggregateFunction(ctx.functionName.getText(), visitFunctionArg(ctx.functionArg()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
+<span class="fc" id="L238">    return new AggregateFunction(ctx.COUNT().getText(), visitFunctionArg(ctx.functionArg()), true);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitCountStarFunctionCall(CountStarFunctionCallContext ctx) {
+<span class="fc" id="L243">    return new AggregateFunction(&quot;COUNT&quot;, AllFields.of());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitFilterClause(FilterClauseContext ctx) {
+<span class="fc" id="L248">    return visit(ctx.expression());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIsNullPredicate(IsNullPredicateContext ctx) {
+<span class="fc" id="L253">    return new Function(</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        ctx.nullNotnull().NOT() == null</span>
+<span class="fc" id="L255">            ? IS_NULL.getName().getFunctionName()</span>
+<span class="fc" id="L256">            : IS_NOT_NULL.getName().getFunctionName(),</span>
+<span class="fc" id="L257">        Arrays.asList(visit(ctx.predicate())));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBetweenPredicate(BetweenPredicateContext ctx) {
+<span class="fc" id="L262">    UnresolvedExpression func =</span>
+<span class="fc" id="L263">        between(visit(ctx.predicate(0)), visit(ctx.predicate(1)), visit(ctx.predicate(2)));</span>
+
+<span class="fc bfc" id="L265" title="All 2 branches covered.">    if (ctx.NOT() != null) {</span>
+<span class="fc" id="L266">      func = not(func);</span>
+    }
+<span class="fc" id="L268">    return func;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitLikePredicate(LikePredicateContext ctx) {
+<span class="fc" id="L273">    return new Function(</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">        ctx.NOT() == null ? LIKE.getName().getFunctionName() : NOT_LIKE.getName().getFunctionName(),</span>
+<span class="fc" id="L275">        Arrays.asList(visit(ctx.left), visit(ctx.right)));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitRegexpPredicate(RegexpPredicateContext ctx) {
+<span class="fc" id="L280">    return new Function(</span>
+<span class="fc" id="L281">        REGEXP.getName().getFunctionName(), Arrays.asList(visit(ctx.left), visit(ctx.right)));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitInPredicate(InPredicateContext ctx) {
+<span class="fc" id="L286">    UnresolvedExpression field = visit(ctx.predicate());</span>
+<span class="fc" id="L287">    List&lt;UnresolvedExpression&gt; inLists =</span>
+<span class="fc" id="L288">        ctx.expressions().expression().stream().map(this::visit).collect(Collectors.toList());</span>
+<span class="fc" id="L289">    UnresolvedExpression in = AstDSL.in(field, inLists);</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    return ctx.NOT() != null ? AstDSL.not(in) : in;</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitAndExpression(AndExpressionContext ctx) {
+<span class="fc" id="L295">    return new And(visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitOrExpression(OrExpressionContext ctx) {
+<span class="fc" id="L300">    return new Or(visit(ctx.left), visit(ctx.right));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNotExpression(NotExpressionContext ctx) {
+<span class="fc" id="L305">    return new Not(visit(ctx.expression()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitString(StringContext ctx) {
+<span class="fc" id="L310">    return AstDSL.stringLiteral(StringUtils.unquoteText(ctx.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSignedDecimal(SignedDecimalContext ctx) {
+<span class="fc" id="L315">    long number = Long.parseLong(ctx.getText());</span>
+<span class="fc bfc" id="L316" title="All 4 branches covered.">    if (Integer.MIN_VALUE &lt;= number &amp;&amp; number &lt;= Integer.MAX_VALUE) {</span>
+<span class="fc" id="L317">      return AstDSL.intLiteral((int) number);</span>
+    }
+<span class="fc" id="L319">    return AstDSL.longLiteral(number);</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSignedReal(SignedRealContext ctx) {
+<span class="fc" id="L324">    return AstDSL.doubleLiteral(Double.valueOf(ctx.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBoolean(BooleanContext ctx) {
+<span class="fc" id="L329">    return AstDSL.booleanLiteral(Boolean.valueOf(ctx.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitStringLiteral(StringLiteralContext ctx) {
+<span class="fc" id="L334">    return AstDSL.stringLiteral(StringUtils.unquoteText(ctx.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNullLiteral(NullLiteralContext ctx) {
+<span class="fc" id="L339">    return AstDSL.nullLiteral();</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDateLiteral(DateLiteralContext ctx) {
+<span class="fc" id="L344">    return AstDSL.dateLiteral(StringUtils.unquoteText(ctx.date.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTimeLiteral(TimeLiteralContext ctx) {
+<span class="fc" id="L349">    return AstDSL.timeLiteral(StringUtils.unquoteText(ctx.time.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitTimestampLiteral(TimestampLiteralContext ctx) {
+<span class="fc" id="L354">    return AstDSL.timestampLiteral(StringUtils.unquoteText(ctx.timestamp.getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitIntervalLiteral(IntervalLiteralContext ctx) {
+<span class="fc" id="L359">    return new Interval(visit(ctx.expression()), IntervalUnit.of(ctx.intervalUnit().getText()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitBinaryComparisonPredicate(BinaryComparisonPredicateContext ctx) {
+<span class="fc" id="L364">    String functionName = ctx.comparisonOperator().getText();</span>
+<span class="fc" id="L365">    return new Function(</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">        functionName.equals(&quot;&lt;&gt;&quot;) ? &quot;!=&quot; : functionName,</span>
+<span class="fc" id="L367">        Arrays.asList(visit(ctx.left), visit(ctx.right)));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitCaseFunctionCall(CaseFunctionCallContext ctx) {
+<span class="fc bfc" id="L372" title="All 2 branches covered.">    UnresolvedExpression caseValue = (ctx.expression() == null) ? null : visit(ctx.expression());</span>
+<span class="fc" id="L373">    List&lt;When&gt; whenStatements =</span>
+<span class="fc" id="L374">        ctx.caseFuncAlternative().stream()</span>
+<span class="fc" id="L375">            .map(when -&gt; (When) visit(when))</span>
+<span class="fc" id="L376">            .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L377" title="All 2 branches covered.">    UnresolvedExpression elseStatement = (ctx.elseArg == null) ? null : visit(ctx.elseArg);</span>
+
+<span class="fc" id="L379">    return new Case(caseValue, whenStatements, Optional.ofNullable(elseStatement));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitCaseFuncAlternative(CaseFuncAlternativeContext ctx) {
+<span class="fc" id="L384">    return new When(visit(ctx.condition), visit(ctx.consequent));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
+<span class="fc" id="L389">    return new Cast(visit(ctx.expression()), visit(ctx.convertedDataType()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
+<span class="fc" id="L394">    return AstDSL.stringLiteral(ctx.getText());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitPercentileApproxFunctionCall(
+      OpenSearchSQLParser.PercentileApproxFunctionCallContext ctx) {
+<span class="fc" id="L400">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L401">    builder.add(</span>
+        new UnresolvedArgument(
+            &quot;percent&quot;,
+<span class="fc" id="L404">            AstDSL.doubleLiteral(</span>
+<span class="fc" id="L405">                Double.valueOf(ctx.percentileApproxFunction().percent.getText()))));</span>
+<span class="fc bfc" id="L406" title="All 2 branches covered.">    if (ctx.percentileApproxFunction().compression != null) {</span>
+<span class="fc" id="L407">      builder.add(</span>
+          new UnresolvedArgument(
+              &quot;compression&quot;,
+<span class="fc" id="L410">              AstDSL.doubleLiteral(</span>
+<span class="fc" id="L411">                  Double.valueOf(ctx.percentileApproxFunction().compression.getText()))));</span>
+    }
+<span class="fc" id="L413">    return new AggregateFunction(</span>
+<span class="fc" id="L414">        &quot;percentile&quot;, visit(ctx.percentileApproxFunction().aggField), builder.build());</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitNoFieldRelevanceFunction(NoFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L419">    return new Function(</span>
+<span class="fc" id="L420">        ctx.noFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L421">        noFieldRelevanceArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitSingleFieldRelevanceFunction(
+      SingleFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L427">    return new Function(</span>
+<span class="fc" id="L428">        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L429">        singleFieldRelevanceArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitAltSingleFieldRelevanceFunction(
+      AltSingleFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L435">    return new Function(</span>
+<span class="fc" id="L436">        ctx.altSyntaxFunctionName.getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L437">        altSingleFieldRelevanceFunctionArguments(ctx));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitMultiFieldRelevanceFunction(
+      MultiFieldRelevanceFunctionContext ctx) {
+    // To support alternate syntax for MULTI_MATCH like
+    // 'MULTI_MATCH('query'='query_val', 'fields'='*fields_val')'
+<span class="fc" id="L445">    String funcName = StringUtils.unquoteText(ctx.multiFieldRelevanceFunctionName().getText());</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">    if ((funcName.equalsIgnoreCase(BuiltinFunctionName.MULTI_MATCH.toString())</span>
+<span class="fc bfc" id="L447" title="All 2 branches covered.">            || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCH.toString())</span>
+<span class="fc bfc" id="L448" title="All 2 branches covered.">            || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCHQUERY.toString()))</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">        &amp;&amp; !ctx.getRuleContexts(AlternateMultiMatchQueryContext.class).isEmpty()) {</span>
+<span class="fc" id="L450">      return new Function(</span>
+<span class="fc" id="L451">          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L452">          alternateMultiMatchArguments(ctx));</span>
+    } else {
+<span class="fc" id="L454">      return new Function(</span>
+<span class="fc" id="L455">          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L456">          multiFieldRelevanceArguments(ctx));</span>
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitAltMultiFieldRelevanceFunction(
+      AltMultiFieldRelevanceFunctionContext ctx) {
+<span class="fc" id="L463">    return new Function(</span>
+<span class="fc" id="L464">        ctx.altSyntaxFunctionName.getText().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L465">        altMultiFieldRelevanceFunctionArguments(ctx));</span>
+  }
+
+  /**
+   * Visit score-relevance function and collect children.
+   *
+   * @param ctx the parse tree
+   * @return children
+   */
+  public UnresolvedExpression visitScoreRelevanceFunction(ScoreRelevanceFunctionContext ctx) {
+    Literal weight =
+<span class="fc bfc" id="L476" title="All 2 branches covered.">        ctx.weight == null</span>
+<span class="fc" id="L477">            ? new Literal(Double.valueOf(1.0), DataType.DOUBLE)</span>
+<span class="fc" id="L478">            : new Literal(Double.parseDouble(ctx.weight.getText()), DataType.DOUBLE);</span>
+<span class="fc" id="L479">    return new ScoreFunction(visit(ctx.relevanceFunction()), weight);</span>
+  }
+
+  private Function buildFunction(String functionName, List&lt;FunctionArgContext&gt; arg) {
+<span class="fc" id="L483">    return new Function(</span>
+<span class="fc" id="L484">        functionName, arg.stream().map(this::visitFunctionArg).collect(Collectors.toList()));</span>
+  }
+
+  @Override
+  public UnresolvedExpression visitExtractFunctionCall(ExtractFunctionCallContext ctx) {
+<span class="fc" id="L489">    return new Function(</span>
+<span class="fc" id="L490">        ctx.extractFunction().EXTRACT().toString(), getExtractFunctionArguments(ctx));</span>
+  }
+
+  private QualifiedName visitIdentifiers(List&lt;IdentContext&gt; identifiers) {
+<span class="fc" id="L494">    return new QualifiedName(</span>
+<span class="fc" id="L495">        identifiers.stream()</span>
+<span class="fc" id="L496">            .map(RuleContext::getText)</span>
+<span class="fc" id="L497">            .map(StringUtils::unquoteIdentifier)</span>
+<span class="fc" id="L498">            .collect(Collectors.toList()));</span>
+  }
+
+  private void fillRelevanceArgs(
+      List&lt;RelevanceArgContext&gt; args, ImmutableList.Builder&lt;UnresolvedExpression&gt; builder) {
+    // To support old syntax we must support argument keys as quoted strings.
+<span class="fc" id="L504">    args.forEach(</span>
+        v -&gt;
+<span class="fc" id="L506">            builder.add(</span>
+<span class="fc bfc" id="L507" title="All 2 branches covered.">                v.argName == null</span>
+<span class="fc" id="L508">                    ? new UnresolvedArgument(</span>
+<span class="fc" id="L509">                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),</span>
+                        new Literal(
+<span class="fc" id="L511">                            StringUtils.unquoteText(v.relevanceArgValue().getText()),</span>
+                            DataType.STRING))
+<span class="fc" id="L513">                    : new UnresolvedArgument(</span>
+<span class="fc" id="L514">                        StringUtils.unquoteText(v.argName.getText()).toLowerCase(Locale.ROOT),</span>
+                        new Literal(
+<span class="fc" id="L516">                            StringUtils.unquoteText(v.argVal.getText()), DataType.STRING))));</span>
+<span class="fc" id="L517">  }</span>
+
+  private List&lt;UnresolvedExpression&gt; noFieldRelevanceArguments(
+      NoFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L523">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L524">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L526">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L527">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+<span class="fc" id="L528">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; singleFieldRelevanceArguments(
+      SingleFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L535">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L536">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L538">            &quot;field&quot;, new QualifiedName(StringUtils.unquoteText(ctx.field.getText()))));</span>
+<span class="fc" id="L539">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L541">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L542">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+<span class="fc" id="L543">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; altSingleFieldRelevanceFunctionArguments(
+      AltSingleFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L550">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L551">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L553">            &quot;field&quot;, new QualifiedName(StringUtils.unquoteText(ctx.field.getText()))));</span>
+<span class="fc" id="L554">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L556">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L557">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+<span class="fc" id="L558">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; multiFieldRelevanceArguments(
+      MultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L565">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L566">    var fields =</span>
+        new RelevanceFieldList(
+<span class="fc" id="L568">            ctx.getRuleContexts(RelevanceFieldAndWeightContext.class).stream()</span>
+<span class="fc" id="L569">                .collect(</span>
+<span class="fc" id="L570">                    Collectors.toMap(</span>
+<span class="fc" id="L571">                        f -&gt; StringUtils.unquoteText(f.field.getText()),</span>
+<span class="fc bfc" id="L572" title="All 2 branches covered.">                        f -&gt; (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));</span>
+<span class="fc" id="L573">    builder.add(new UnresolvedArgument(&quot;fields&quot;, fields));</span>
+<span class="fc" id="L574">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L576">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L577">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+<span class="fc" id="L578">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; getFormatFunctionArguments(GetFormatFunctionCallContext ctx) {
+<span class="fc" id="L582">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L583">        Arrays.asList(</span>
+<span class="fc" id="L584">            new Literal(ctx.getFormatFunction().getFormatType().getText(), DataType.STRING),</span>
+<span class="fc" id="L585">            visitFunctionArg(ctx.getFormatFunction().functionArg()));</span>
+<span class="fc" id="L586">    return args;</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; timestampFunctionArguments(TimestampFunctionCallContext ctx) {
+<span class="fc" id="L590">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L591">        Arrays.asList(</span>
+<span class="fc" id="L592">            new Literal(ctx.timestampFunction().simpleDateTimePart().getText(), DataType.STRING),</span>
+<span class="fc" id="L593">            visitFunctionArg(ctx.timestampFunction().firstArg),</span>
+<span class="fc" id="L594">            visitFunctionArg(ctx.timestampFunction().secondArg));</span>
+<span class="fc" id="L595">    return args;</span>
+  }
+
+  /**
+   *
+   *
+   * &lt;pre&gt;
+   * Adds support for multi_match alternate syntax like
+   * MULTI_MATCH('query'='Dale', 'fields'='*name').
+   * &lt;/pre&gt;
+   *
+   * @param ctx : Context for multi field relevance function.
+   * @return : Returns list of all arguments for relevance function.
+   */
+  private List&lt;UnresolvedExpression&gt; alternateMultiMatchArguments(
+      MultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L613">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L614">    Map&lt;String, Float&gt; fieldAndWeightMap = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L616">    String[] fieldAndWeights =</span>
+<span class="fc" id="L617">        StringUtils.unquoteText(</span>
+<span class="fc" id="L618">                ctx.getRuleContexts(AlternateMultiMatchFieldContext.class).stream()</span>
+<span class="fc" id="L619">                    .findFirst()</span>
+<span class="fc" id="L620">                    .get()</span>
+                    .argVal
+<span class="fc" id="L622">                    .getText())</span>
+<span class="fc" id="L623">            .split(&quot;,&quot;);</span>
+
+<span class="fc bfc" id="L625" title="All 2 branches covered.">    for (var fieldAndWeight : fieldAndWeights) {</span>
+<span class="fc" id="L626">      String[] splitFieldAndWeights = fieldAndWeight.split(&quot;\\^&quot;);</span>
+<span class="fc" id="L627">      fieldAndWeightMap.put(</span>
+          splitFieldAndWeights[0],
+<span class="fc bfc" id="L629" title="All 2 branches covered.">          splitFieldAndWeights.length &gt; 1 ? Float.parseFloat(splitFieldAndWeights[1]) : 1F);</span>
+    }
+<span class="fc" id="L631">    builder.add(new UnresolvedArgument(&quot;fields&quot;, new RelevanceFieldList(fieldAndWeightMap)));</span>
+
+<span class="fc" id="L633">    ctx.getRuleContexts(AlternateMultiMatchQueryContext.class).stream()</span>
+<span class="fc" id="L634">        .findFirst()</span>
+<span class="fc" id="L635">        .ifPresent(</span>
+            arg -&gt;
+<span class="fc" id="L637">                builder.add(</span>
+                    new UnresolvedArgument(
+                        &quot;query&quot;,
+                        new Literal(
+<span class="fc" id="L641">                            StringUtils.unquoteText(arg.argVal.getText()), DataType.STRING))));</span>
+
+<span class="fc" id="L643">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+
+<span class="fc" id="L645">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; altMultiFieldRelevanceFunctionArguments(
+      AltMultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+<span class="fc" id="L652">    var map = new HashMap&lt;String, Float&gt;();</span>
+<span class="fc" id="L653">    map.put(ctx.field.getText(), 1F);</span>
+<span class="fc" id="L654">    ImmutableList.Builder&lt;UnresolvedExpression&gt; builder = ImmutableList.builder();</span>
+<span class="fc" id="L655">    var fields = new RelevanceFieldList(map);</span>
+<span class="fc" id="L656">    builder.add(new UnresolvedArgument(&quot;fields&quot;, fields));</span>
+<span class="fc" id="L657">    builder.add(</span>
+        new UnresolvedArgument(
+<span class="fc" id="L659">            &quot;query&quot;, new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));</span>
+<span class="fc" id="L660">    fillRelevanceArgs(ctx.relevanceArg(), builder);</span>
+<span class="fc" id="L661">    return builder.build();</span>
+  }
+
+  private List&lt;UnresolvedExpression&gt; getExtractFunctionArguments(ExtractFunctionCallContext ctx) {
+<span class="fc" id="L665">    List&lt;UnresolvedExpression&gt; args =</span>
+<span class="fc" id="L666">        Arrays.asList(</span>
+<span class="fc" id="L667">            new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),</span>
+<span class="fc" id="L668">            visitFunctionArg(ctx.extractFunction().functionArg()));</span>
+<span class="fc" id="L669">    return args;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QualifierAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">QualifierAnalyzer.java</span></div><h1>QualifierAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import java.util.Arrays;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.analysis.symbol.Namespace;
+import org.opensearch.sql.analysis.symbol.Symbol;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
+
+/** Analyzer that analyzes qualifier(s) in a full field name. */
+@RequiredArgsConstructor
+public class QualifierAnalyzer {
+
+  private final AnalysisContext context;
+
+  public String unqualified(String... parts) {
+<span class="fc" id="L24">    return unqualified(QualifiedName.of(Arrays.asList(parts)));</span>
+  }
+
+  /**
+   * Get unqualified name if its qualifier symbol found is in index namespace on type environment.
+   * Unqualified name means name with qualifier removed. For example, unqualified name of
+   * &quot;accounts.age&quot; or &quot;acc.age&quot; is &quot;age&quot;.
+   *
+   * @return unqualified name if criteria met above, otherwise original name
+   */
+  public String unqualified(QualifiedName fullName) {
+<span class="fc bfc" id="L35" title="All 2 branches covered.">    return isQualifierIndexOrAlias(fullName) ? fullName.rest().toString() : fullName.toString();</span>
+  }
+
+  private boolean isQualifierIndexOrAlias(QualifiedName fullName) {
+<span class="fc" id="L39">    Optional&lt;String&gt; qualifier = fullName.first();</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    if (qualifier.isPresent()) {</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">      if (isFieldName(qualifier.get())) {</span>
+<span class="fc" id="L42">        return false;</span>
+      }
+<span class="fc" id="L44">      resolveQualifierSymbol(fullName, qualifier.get());</span>
+<span class="fc" id="L45">      return true;</span>
+    }
+<span class="fc" id="L47">    return false;</span>
+  }
+
+  private boolean isFieldName(String qualifier) {
+    try {
+      // Resolve the qualifier in Namespace.FIELD_NAME
+<span class="fc" id="L53">      context.peek().resolve(new Symbol(Namespace.FIELD_NAME, qualifier));</span>
+<span class="fc" id="L54">      return true;</span>
+<span class="fc" id="L55">    } catch (SemanticCheckException e2) {</span>
+<span class="fc" id="L56">      return false;</span>
+    }
+  }
+
+  private void resolveQualifierSymbol(QualifiedName fullName, String qualifier) {
+    try {
+<span class="fc" id="L62">      context.peek().resolve(new Symbol(Namespace.INDEX_NAME, qualifier));</span>
+<span class="fc" id="L63">    } catch (SemanticCheckException e) {</span>
+      // Throw syntax check intentionally to indicate fall back to old engine.
+      // Need change to semantic check exception in future.
+<span class="fc" id="L66">      throw new SyntaxCheckException(</span>
+<span class="fc" id="L67">          String.format(</span>
+              &quot;The qualifier [%s] of qualified name [%s] must be an field name, index name or its &quot;
+                  + &quot;alias&quot;,
+              qualifier, fullName));
+<span class="fc" id="L71">    }</span>
+<span class="fc" id="L72">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

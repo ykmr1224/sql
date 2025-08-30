@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteAggregationScriptLeafFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation</a> &gt; <span class="el_source">CalciteAggregationScriptLeafFactory.java</span></div><h1>CalciteAggregationScriptLeafFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation;
+
+import java.util.Map;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.lucene.index.LeafReaderContext;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.search.lookup.SearchLookup;
+
+/** Calcite script leaf factory that produces script executor for each leaf. */
+class CalciteAggregationScriptLeafFactory implements AggregationScript.LeafFactory {
+
+  private final Function1&lt;DataContext, Object[]&gt; function;
+  private final RelDataType type;
+
+  /** Parameters for the calcite script. */
+  private final Map&lt;String, Object&gt; params;
+
+  /** Document lookup that returns doc values. */
+  private final SearchLookup lookup;
+
+  public CalciteAggregationScriptLeafFactory(
+      Function1&lt;DataContext, Object[]&gt; function,
+      RelDataType type,
+      Map&lt;String, Object&gt; params,
+<span class="nc" id="L32">      SearchLookup lookup) {</span>
+<span class="nc" id="L33">    this.function = function;</span>
+<span class="nc" id="L34">    this.type = type;</span>
+<span class="nc" id="L35">    this.params = params;</span>
+<span class="nc" id="L36">    this.lookup = lookup;</span>
+<span class="nc" id="L37">  }</span>
+
+  @Override
+  public AggregationScript newInstance(LeafReaderContext ctx) {
+<span class="nc" id="L41">    return new CalciteAggregationScript(function, type, lookup, ctx, params);</span>
+  }
+
+  @Override
+  public boolean needs_score() {
+<span class="nc" id="L46">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

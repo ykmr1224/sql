@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchDescribeIndexRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request.system</a> &gt; <span class="el_source">OpenSearchDescribeIndexRequest.java</span></div><h1>OpenSearchDescribeIndexRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request.system;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
+import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import lombok.extern.log4j.Log4j2;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.lang.LangSpec;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.util.MergeRules.MergeRuleHelper;
+
+<span class="fc" id="L29">@Log4j2</span>
+/** Describe index meta data request. */
+public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
+
+  private static final String DEFAULT_TABLE_CAT = &quot;opensearch&quot;;
+
+<span class="fc" id="L35">  private static final Integer DEFAULT_NUM_PREC_RADIX = 10;</span>
+
+<span class="fc" id="L37">  private static final Integer DEFAULT_NULLABLE = 2;</span>
+
+  private static final String DEFAULT_IS_AUTOINCREMENT = &quot;NO&quot;;
+
+  /** OpenSearch client connection. */
+  private final OpenSearchClient client;
+
+  /** {@link OpenSearchRequest.IndexName}. */
+  private final OpenSearchRequest.IndexName indexName;
+
+  private final LangSpec langSpec;
+
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
+<span class="fc" id="L50">    this(client, new OpenSearchRequest.IndexName(indexName));</span>
+<span class="fc" id="L51">  }</span>
+
+  public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client, String indexName, LangSpec langSpec) {
+<span class="fc" id="L55">    this(client, new OpenSearchRequest.IndexName(indexName), langSpec);</span>
+<span class="fc" id="L56">  }</span>
+
+  public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client, OpenSearchRequest.IndexName indexName) {
+<span class="fc" id="L60">    this(client, indexName, LangSpec.SQL_SPEC);</span>
+<span class="fc" id="L61">  }</span>
+
+  public OpenSearchDescribeIndexRequest(
+<span class="fc" id="L64">      OpenSearchClient client, OpenSearchRequest.IndexName indexName, LangSpec langSpec) {</span>
+<span class="fc" id="L65">    this.client = client;</span>
+<span class="fc" id="L66">    this.indexName = indexName;</span>
+<span class="fc" id="L67">    this.langSpec = langSpec;</span>
+<span class="fc" id="L68">  }</span>
+
+  /**
+   * search all the index in the data store.
+   *
+   * @return list of {@link ExprValue}
+   */
+  @Override
+  public List&lt;ExprValue&gt; search() {
+<span class="fc" id="L77">    List&lt;ExprValue&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L78">    Map&lt;String, String&gt; meta = client.meta();</span>
+<span class="fc" id="L79">    int pos = 0;</span>
+    for (Map.Entry&lt;String, OpenSearchDataType&gt; entry :
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        OpenSearchDataType.traverseAndFlatten(getFieldTypes()).entrySet()) {</span>
+<span class="fc" id="L82">      results.add(</span>
+<span class="fc" id="L83">          row(</span>
+<span class="fc" id="L84">              entry.getKey(),</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">              (langSpec.language() == QueryType.PPL</span>
+<span class="fc" id="L86">                      ? langSpec.typeName(entry.getValue().getExprType())</span>
+<span class="fc" id="L87">                      : entry.getValue().legacyTypeName())</span>
+<span class="fc" id="L88">                  .toLowerCase(Locale.ROOT),</span>
+              pos++,
+<span class="fc" id="L90">              clusterName(meta)));</span>
+<span class="fc" id="L91">    }</span>
+<span class="fc" id="L92">    return results;</span>
+  }
+
+  /**
+   * Get the mapping of field and type.
+   *
+   * @return mapping of field and type.
+   */
+  // TODO possible collision if two indices have fields with the same name and different mappings
+  public Map&lt;String, OpenSearchDataType&gt; getFieldTypes() {
+<span class="fc" id="L102">    Map&lt;String, OpenSearchDataType&gt; fieldTypes = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L103">    Map&lt;String, IndexMapping&gt; indexMappings =</span>
+<span class="fc" id="L104">        client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (indexMappings.size() &lt;= 1) {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      for (IndexMapping indexMapping : indexMappings.values()) {</span>
+<span class="fc" id="L107">        fieldTypes.putAll(indexMapping.getFieldMappings());</span>
+<span class="fc" id="L108">      }</span>
+    } else {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      for (IndexMapping indexMapping : indexMappings.values()) {</span>
+<span class="fc" id="L111">        MergeRuleHelper.merge(fieldTypes, indexMapping.getFieldMappings());</span>
+<span class="fc" id="L112">      }</span>
+    }
+<span class="fc" id="L114">    return fieldTypes;</span>
+  }
+
+  /**
+   * Get the minimum of the max result windows of the indices.
+   *
+   * @return max result window
+   */
+  public Integer getMaxResultWindow() {
+<span class="fc" id="L123">    return client</span>
+<span class="fc" id="L124">        .getIndexMaxResultWindows(getLocalIndexNames(indexName.getIndexNames()))</span>
+<span class="fc" id="L125">        .values()</span>
+<span class="fc" id="L126">        .stream()</span>
+<span class="fc" id="L127">        .min(Integer::compare)</span>
+<span class="fc" id="L128">        .get();</span>
+  }
+
+  private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {
+<span class="fc" id="L132">    LinkedHashMap&lt;String, ExprValue&gt; valueMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L133">    valueMap.put(&quot;TABLE_CAT&quot;, stringValue(clusterName));</span>
+<span class="fc" id="L134">    valueMap.put(&quot;TABLE_NAME&quot;, stringValue(indexName.toString()));</span>
+<span class="fc" id="L135">    valueMap.put(&quot;COLUMN_NAME&quot;, stringValue(fieldName));</span>
+    // todo
+<span class="fc" id="L137">    valueMap.put(&quot;TYPE_NAME&quot;, stringValue(fieldType));</span>
+<span class="fc" id="L138">    valueMap.put(&quot;NUM_PREC_RADIX&quot;, integerValue(DEFAULT_NUM_PREC_RADIX));</span>
+<span class="fc" id="L139">    valueMap.put(&quot;NULLABLE&quot;, integerValue(DEFAULT_NULLABLE));</span>
+    // There is no deterministic position of column in table
+<span class="fc" id="L141">    valueMap.put(&quot;ORDINAL_POSITION&quot;, integerValue(position));</span>
+    // TODO Defaulting to unknown, need to check this
+<span class="fc" id="L143">    valueMap.put(&quot;IS_NULLABLE&quot;, stringValue(&quot;&quot;));</span>
+    // Defaulting to &quot;NO&quot;
+<span class="fc" id="L145">    valueMap.put(&quot;IS_AUTOINCREMENT&quot;, stringValue(DEFAULT_IS_AUTOINCREMENT));</span>
+    // TODO Defaulting to unknown, need to check
+<span class="fc" id="L147">    valueMap.put(&quot;IS_GENERATEDCOLUMN&quot;, stringValue(&quot;&quot;));</span>
+<span class="fc" id="L148">    return new ExprTupleValue(valueMap);</span>
+  }
+
+  /**
+   * Return index names without &quot;{cluster}:&quot; prefix. Without the prefix, they refer to the indices
+   * at the local cluster.
+   *
+   * @param indexNames a string array of index names
+   * @return local cluster index names
+   */
+  private String[] getLocalIndexNames(String[] indexNames) {
+<span class="fc" id="L159">    return Arrays.stream(indexNames)</span>
+<span class="fc" id="L160">        .map(name -&gt; name.substring(name.indexOf(&quot;:&quot;) + 1))</span>
+<span class="fc" id="L161">        .toArray(String[]::new);</span>
+  }
+
+  private String clusterName(Map&lt;String, String&gt; meta) {
+<span class="fc" id="L165">    return meta.getOrDefault(META_CLUSTER_NAME, DEFAULT_TABLE_CAT);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L170">    return &quot;OpenSearchDescribeIndexRequest{indexName='&quot; + indexName + &quot;\'}&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PeerRowsWindowFrame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.window.frame</a> &gt; <span class="el_source">PeerRowsWindowFrame.java</span></div><h1>PeerRowsWindowFrame.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.window.frame;
+
+import com.google.common.collect.PeekingIterator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.window.WindowDefinition;
+
+/**
+ * Window frame that only keep peers (tuples with same value of fields specified in sort list in
+ * window definition). See PeerWindowFrameTest for details about how this window frame interacts
+ * with window operator and window function.
+ */
+@EqualsAndHashCode
+@RequiredArgsConstructor
+public class PeerRowsWindowFrame implements WindowFrame {
+
+  private final WindowDefinition windowDefinition;
+
+  /**
+   * All peer rows (peer means rows in a partition that share same sort key based on sort list in
+   * window definition.
+   */
+  protected final List&lt;ExprValue&gt; peers = new ArrayList&lt;&gt;();
+
+  /** Which row in the peer is currently being enriched by window function. */
+  protected int position;
+
+  /** Does row at current position represents a new partition. */
+  private boolean isNewPartition = true;
+
+  /** If any more pre-fetched rows not returned to window operator yet. */
+  @Override
+  public boolean hasNext() {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    return position &lt; peers.size();</span>
+  }
+
+  /**
+   * Move position and clear new partition flag. Note that because all peer rows have same result
+   * from window function, this is only returned at first time to change window function state.
+   * Afterward, empty list is returned to avoid changes until next peer loaded.
+   *
+   * @return all rows for the peer
+   */
+  @Override
+  public List&lt;ExprValue&gt; next() {
+<span class="fc" id="L59">    isNewPartition = false;</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (position++ == 0) {</span>
+<span class="fc" id="L61">      return peers;</span>
+    }
+<span class="fc" id="L63">    return Collections.emptyList();</span>
+  }
+
+  /**
+   * Current row at the position. Because rows are pre-fetched here, window operator needs to get
+   * them from here too.
+   *
+   * @return row at current position that being enriched by window function
+   */
+  @Override
+  public ExprValue current() {
+<span class="fc" id="L74">    return peers.get(position);</span>
+  }
+
+  /**
+   * Preload all peer rows if last peer rows done. Note that when no more data in peeking iterator,
+   * there must be rows in frame (hasNext()=true), so no need to check it.hasNext() in this method.
+   * &lt;br&gt;
+   * Load until:&lt;br&gt;
+   *
+   * &lt;ol&gt;
+   *   &lt;li&gt;Different peer found (row with different sort key)
+   *   &lt;li&gt;Or new partition (row with different partition key)
+   *   &lt;li&gt;Or no more rows
+   * &lt;/ol&gt;
+   *
+   * @param it rows iterator
+   */
+  @Override
+  public void load(PeekingIterator&lt;ExprValue&gt; it) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (hasNext()) {</span>
+<span class="fc" id="L94">      return;</span>
+    }
+
+<span class="fc" id="L97">    loadAllRows(it);</span>
+<span class="fc" id="L98">  }</span>
+
+  protected void loadAllRows(PeekingIterator&lt;ExprValue&gt; it) {
+    // Reset state: reset new partition before clearing peers
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    isNewPartition = !isSamePartition(it.peek());</span>
+<span class="fc" id="L103">    position = 0;</span>
+<span class="fc" id="L104">    peers.clear();</span>
+
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    while (it.hasNext()) {</span>
+<span class="fc" id="L107">      ExprValue next = it.peek();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">      if (peers.isEmpty()) {</span>
+<span class="fc" id="L109">        peers.add(it.next());</span>
+<span class="fc bfc" id="L110" title="All 4 branches covered.">      } else if (isSamePartition(next) &amp;&amp; isPeer(next)) {</span>
+<span class="fc" id="L111">        peers.add(it.next());</span>
+      } else {
+        break;
+      }
+<span class="fc" id="L115">    }</span>
+<span class="fc" id="L116">  }</span>
+
+  @Override
+  public boolean isNewPartition() {
+<span class="fc" id="L120">    return isNewPartition;</span>
+  }
+
+  private boolean isPeer(ExprValue next) {
+<span class="fc" id="L124">    List&lt;Expression&gt; sortFields =</span>
+<span class="fc" id="L125">        windowDefinition.getSortList().stream().map(Pair::getRight).collect(Collectors.toList());</span>
+
+<span class="fc" id="L127">    ExprValue last = peers.get(peers.size() - 1);</span>
+<span class="fc" id="L128">    return resolve(sortFields, last).equals(resolve(sortFields, next));</span>
+  }
+
+  private boolean isSamePartition(ExprValue next) {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (peers.isEmpty()) {</span>
+<span class="fc" id="L133">      return false;</span>
+    }
+
+<span class="fc" id="L136">    List&lt;Expression&gt; partitionByList = windowDefinition.getPartitionByList();</span>
+<span class="fc" id="L137">    ExprValue last = peers.get(peers.size() - 1);</span>
+<span class="fc" id="L138">    return resolve(partitionByList, last).equals(resolve(partitionByList, next));</span>
+  }
+
+  private List&lt;ExprValue&gt; resolve(List&lt;Expression&gt; expressions, ExprValue row) {
+<span class="fc" id="L142">    Environment&lt;Expression, ExprValue&gt; valueEnv = row.bindingTuples();</span>
+<span class="fc" id="L143">    return expressions.stream().map(expr -&gt; expr.valueOf(valueEnv)).collect(Collectors.toList());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

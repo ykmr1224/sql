@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractCalciteIndexScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.scan</a> &gt; <span class="el_source">AbstractCalciteIndexScan.java</span></div><h1>AbstractCalciteIndexScan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import lombok.Getter;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.NumberUtil;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+
+/** An abstract relational operator representing a scan of an OpenSearchIndex type. */
+@Getter
+public abstract class AbstractCalciteIndexScan extends TableScan {
+<span class="nc" id="L66">  private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);</span>
+  public final OpenSearchIndex osIndex;
+  // The schema of this scan operator, it's initialized with the row type of the table, but may be
+  // changed by push down operations.
+  protected final RelDataType schema;
+  // This context maintains all the push down actions, which will be applied to the requestBuilder
+  // when it begins to scan data from OpenSearch.
+  // Because OpenSearchRequestBuilder doesn't support deep copy while we want to keep the
+  // requestBuilder independent among different plans produced in the optimization process,
+  // so we cannot apply these actions right away.
+  protected final PushDownContext pushDownContext;
+
+  protected AbstractCalciteIndexScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+<span class="nc" id="L86">    super(cluster, traitSet, hints, table);</span>
+<span class="nc" id="L87">    this.osIndex = requireNonNull(osIndex, &quot;OpenSearch index&quot;);</span>
+<span class="nc" id="L88">    this.schema = schema;</span>
+<span class="nc" id="L89">    this.pushDownContext = pushDownContext;</span>
+<span class="nc" id="L90">  }</span>
+
+  @Override
+  public RelDataType deriveRowType() {
+<span class="nc" id="L94">    return this.schema;</span>
+  }
+
+  @Override
+  public RelWriter explainTerms(RelWriter pw) {
+<span class="nc" id="L99">    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();</span>
+<span class="nc" id="L100">    pushDownContext.forEach(action -&gt; action.apply(requestBuilder));</span>
+<span class="nc" id="L101">    String explainString = pushDownContext + &quot;, &quot; + requestBuilder;</span>
+<span class="nc" id="L102">    return super.explainTerms(pw)</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        .itemIf(&quot;PushDownContext&quot;, explainString, !pushDownContext.isEmpty());</span>
+  }
+
+  protected Integer getQuerySizeLimit() {
+<span class="nc" id="L107">    return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);</span>
+  }
+
+  @Override
+  public double estimateRowCount(RelMetadataQuery mq) {
+    /*
+     The impact factor to estimate the row count after push down an operator.
+
+     &lt;p&gt;It will be multiplied to the original estimated row count of the operator, and it's set to
+     less than 1 by default to make the result always less than the row count of operator without
+     push down. As a result, the optimizer will prefer the plan with push down.
+    */
+<span class="nc" id="L119">    double estimateRowCountFactor =</span>
+<span class="nc" id="L120">        osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);</span>
+<span class="nc" id="L121">    return pushDownContext.stream()</span>
+<span class="nc" id="L122">        .reduce(</span>
+<span class="nc" id="L123">            osIndex.getMaxResultWindow().doubleValue(),</span>
+            (rowCount, action) -&gt;
+<span class="nc bnc" id="L125" title="All 6 branches missed.">                switch (action.type) {</span>
+<span class="nc" id="L126">                      case AGGREGATION -&gt; mq.getRowCount((RelNode) action.digest)</span>
+<span class="nc" id="L127">                          * getAggMultiplier(action);</span>
+<span class="nc" id="L128">                      case PROJECT, SORT -&gt; rowCount;</span>
+                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+<span class="nc" id="L130">                      case COLLAPSE -&gt; rowCount * (1.0 - Math.pow(.5, 1));</span>
+<span class="nc" id="L131">                      case FILTER -&gt; NumberUtil.multiply(</span>
+<span class="nc" id="L132">                          rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));</span>
+<span class="nc" id="L133">                      case SCRIPT -&gt; NumberUtil.multiply(</span>
+<span class="nc" id="L134">                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest))</span>
+                          * 1.1;
+<span class="nc" id="L136">                      case LIMIT -&gt; Math.min(rowCount, (Integer) action.digest);</span>
+                    }
+                    * estimateRowCountFactor,
+<span class="nc" id="L139">            (a, b) -&gt; null);</span>
+  }
+
+  /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
+  private static float getAggMultiplier(PushDownAction action) {
+    // START CALCITE
+<span class="nc" id="L145">    List&lt;AggregateCall&gt; aggCalls = ((Aggregate) action.digest).getAggCallList();</span>
+<span class="nc" id="L146">    float multiplier = 1f + (float) aggCalls.size() * 0.125f;</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    for (AggregateCall aggCall : aggCalls) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (aggCall.getAggregation().getName().equals(&quot;SUM&quot;)) {</span>
+        // Pretend that SUM costs a little bit more than $SUM0,
+        // to make things deterministic.
+<span class="nc" id="L151">        multiplier += 0.0125f;</span>
+      }
+<span class="nc" id="L153">    }</span>
+    // END CALCITE
+
+    // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
+    // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (((AggPushDownAction) action.action).isScriptPushed) {</span>
+<span class="nc" id="L159">      multiplier *= 2.2f;</span>
+    }
+<span class="nc" id="L161">    return multiplier;</span>
+  }
+
+  // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
+<span class="nc" id="L165">  public static class PushDownContext extends ArrayDeque&lt;PushDownAction&gt; {</span>
+
+<span class="nc" id="L167">    private boolean isAggregatePushed = false;</span>
+<span class="nc" id="L168">    @Getter private boolean isLimitPushed = false;</span>
+<span class="nc" id="L169">    @Getter private boolean isProjectPushed = false;</span>
+
+    @Override
+    public PushDownContext clone() {
+<span class="nc" id="L173">      return (PushDownContext) super.clone();</span>
+    }
+
+    @Override
+    public boolean add(PushDownAction pushDownAction) {
+<span class="nc bnc" id="L178" title="All 2 branches missed.">      if (pushDownAction.type == PushDownType.AGGREGATION) {</span>
+<span class="nc" id="L179">        isAggregatePushed = true;</span>
+      }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">      if (pushDownAction.type == PushDownType.LIMIT) {</span>
+<span class="nc" id="L182">        isLimitPushed = true;</span>
+      }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">      if (pushDownAction.type == PushDownType.PROJECT) {</span>
+<span class="nc" id="L185">        isProjectPushed = true;</span>
+      }
+<span class="nc" id="L187">      return super.add(pushDownAction);</span>
+    }
+
+    public boolean isAggregatePushed() {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">      if (isAggregatePushed) return true;</span>
+<span class="nc bnc" id="L192" title="All 4 branches missed.">      isAggregatePushed = !isEmpty() &amp;&amp; super.peekLast().type == PushDownType.AGGREGATION;</span>
+<span class="nc" id="L193">      return isAggregatePushed;</span>
+    }
+  }
+
+  protected abstract AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext);
+
+  private List&lt;String&gt; getCollationNames(List&lt;RelFieldCollation&gt; collations) {
+<span class="nc" id="L207">    return collations.stream()</span>
+<span class="nc" id="L208">        .map(collation -&gt; getRowType().getFieldNames().get(collation.getFieldIndex()))</span>
+<span class="nc" id="L209">        .toList();</span>
+  }
+
+  /**
+   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
+   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
+   * aggregator. The function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  private boolean hasAggregatorInSortBy(List&lt;String&gt; collations) {
+<span class="nc" id="L221">    Stream&lt;LogicalAggregate&gt; aggregates =</span>
+<span class="nc" id="L222">        pushDownContext.stream()</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            .filter(action -&gt; action.type() == PushDownType.AGGREGATION)</span>
+<span class="nc" id="L224">            .map(action -&gt; ((LogicalAggregate) action.digest()));</span>
+<span class="nc" id="L225">    return aggregates</span>
+<span class="nc" id="L226">        .map(aggregate -&gt; isAnyCollationNameInAggregateOutput(aggregate, collations))</span>
+<span class="nc" id="L227">        .reduce(false, Boolean::logicalOr);</span>
+  }
+
+  private static boolean isAnyCollationNameInAggregateOutput(
+      LogicalAggregate aggregate, List&lt;String&gt; collations) {
+<span class="nc" id="L232">    List&lt;String&gt; fieldNames = aggregate.getRowType().getFieldNames();</span>
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+<span class="nc" id="L236">    int groupOffset = aggregate.getGroupSet().cardinality();</span>
+<span class="nc" id="L237">    List&lt;String&gt; fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());</span>
+<span class="nc" id="L238">    return collations.stream()</span>
+<span class="nc" id="L239">        .map(fieldsWithoutGrouping::contains)</span>
+<span class="nc" id="L240">        .reduce(false, Boolean::logicalOr);</span>
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the collation action.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the collation action.
+   */
+  protected PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
+<span class="nc" id="L250">    PushDownContext newContext = new PushDownContext();</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    for (PushDownAction action : pushDownContext) {</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">      if (action.type() != PushDownType.SORT) {</span>
+<span class="nc" id="L253">        newContext.add(action);</span>
+      }
+<span class="nc" id="L255">    }</span>
+<span class="nc" id="L256">    return newContext;</span>
+  }
+
+  /**
+   * The sort pushdown is not only applied in logical plan side, but also should be applied in
+   * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
+   * EnumerableMergeJoin} to OpenSearch.
+   */
+  public AbstractCalciteIndexScan pushDownSort(List&lt;RelFieldCollation&gt; collations) {
+    try {
+<span class="nc" id="L266">      List&lt;String&gt; collationNames = getCollationNames(collations);</span>
+<span class="nc bnc" id="L267" title="All 4 branches missed.">      if (getPushDownContext().isAggregatePushed() &amp;&amp; hasAggregatorInSortBy(collationNames)) {</span>
+        // If aggregation is pushed down, we cannot push down sorts where its by fields contain
+        // aggregators.
+<span class="nc" id="L270">        return null;</span>
+      }
+
+      // Propagate the sort to the new scan
+<span class="nc" id="L274">      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));</span>
+<span class="nc" id="L275">      AbstractCalciteIndexScan newScan =</span>
+<span class="nc" id="L276">          buildScan(</span>
+<span class="nc" id="L277">              getCluster(),</span>
+              traitsWithCollations,
+              hints,
+              table,
+              osIndex,
+<span class="nc" id="L282">              getRowType(),</span>
+              // Existing collations are overridden (discarded) by the new collations,
+<span class="nc" id="L284">              cloneWithoutSort(pushDownContext));</span>
+
+      AbstractAction action;
+      Object digest;
+<span class="nc bnc" id="L288" title="All 2 branches missed.">      if (pushDownContext.isAggregatePushed) {</span>
+        // Push down the sort into the aggregation bucket
+<span class="nc" id="L290">        ((AggPushDownAction) requireNonNull(pushDownContext.peekLast()).action)</span>
+<span class="nc" id="L291">            .pushDownSortIntoAggBucket(collations);</span>
+<span class="nc" id="L292">        action = requestBuilder -&gt; {};</span>
+<span class="nc" id="L293">        digest = collations;</span>
+      } else {
+<span class="nc" id="L295">        List&lt;SortBuilder&lt;?&gt;&gt; builders = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        for (RelFieldCollation collation : collations) {</span>
+<span class="nc" id="L297">          int index = collation.getFieldIndex();</span>
+<span class="nc" id="L298">          String fieldName = this.getRowType().getFieldNames().get(index);</span>
+<span class="nc" id="L299">          Direction direction = collation.getDirection();</span>
+<span class="nc" id="L300">          NullDirection nullDirection = collation.nullDirection;</span>
+          // Default sort order is ASCENDING
+<span class="nc bnc" id="L302" title="All 2 branches missed.">          SortOrder order = Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;</span>
+          // TODO: support script sort and distance sort
+          SortBuilder&lt;?&gt; sortBuilder;
+<span class="nc bnc" id="L305" title="All 2 branches missed.">          if (ScoreSortBuilder.NAME.equals(fieldName)) {</span>
+<span class="nc" id="L306">            sortBuilder = SortBuilders.scoreSort();</span>
+          } else {
+<span class="nc" id="L308">            String missing =</span>
+<span class="nc bnc" id="L309" title="All 3 branches missed.">                switch (nullDirection) {</span>
+<span class="nc" id="L310">                  case FIRST -&gt; &quot;_first&quot;;</span>
+<span class="nc" id="L311">                  case LAST -&gt; &quot;_last&quot;;</span>
+<span class="nc" id="L312">                  default -&gt; null;</span>
+                };
+            // Keyword field is optimized for sorting in OpenSearch
+<span class="nc" id="L315">            ExprType fieldType = osIndex.getFieldTypes().get(fieldName);</span>
+<span class="nc" id="L316">            String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);</span>
+<span class="nc" id="L317">            sortBuilder = SortBuilders.fieldSort(field).missing(missing);</span>
+          }
+<span class="nc" id="L319">          builders.add(sortBuilder.order(order));</span>
+<span class="nc" id="L320">        }</span>
+<span class="nc" id="L321">        action = requestBuilder -&gt; requestBuilder.pushDownSort(builders);</span>
+<span class="nc" id="L322">        digest = builders.toString();</span>
+      }
+<span class="nc" id="L324">      newScan.pushDownContext.add(PushDownAction.of(PushDownType.SORT, digest, action));</span>
+<span class="nc" id="L325">      return newScan;</span>
+<span class="nc" id="L326">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L328">        LOG.debug(&quot;Cannot pushdown the sort {}&quot;, getCollationNames(collations), e);</span>
+      }
+    }
+<span class="nc" id="L331">    return null;</span>
+  }
+
+<span class="nc" id="L334">  protected enum PushDownType {</span>
+<span class="nc" id="L335">    FILTER,</span>
+<span class="nc" id="L336">    PROJECT,</span>
+<span class="nc" id="L337">    AGGREGATION,</span>
+<span class="nc" id="L338">    SORT,</span>
+<span class="nc" id="L339">    LIMIT,</span>
+<span class="nc" id="L340">    SCRIPT,</span>
+<span class="nc" id="L341">    COLLAPSE</span>
+    // HIGHLIGHT,
+    // NESTED
+  }
+
+  /**
+   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+   *
+   * @param type PushDownType enum
+   * @param digest the digest of the pushed down operator
+   * @param action the lambda action to apply on the OpenSearchRequestBuilder
+   */
+<span class="nc" id="L353">  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {</span>
+    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
+<span class="nc" id="L355">      return new PushDownAction(type, digest, action);</span>
+    }
+
+    public String toString() {
+<span class="nc" id="L359">      return type + &quot;-&gt;&quot; + digest;</span>
+    }
+
+    public void apply(OpenSearchRequestBuilder requestBuilder) {
+<span class="nc" id="L363">      action.apply(requestBuilder);</span>
+<span class="nc" id="L364">    }</span>
+  }
+
+  public interface AbstractAction {
+    void apply(OpenSearchRequestBuilder requestBuilder);
+  }
+
+  public static class AggPushDownAction implements AbstractAction {
+
+    private Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; aggregationBuilder;
+    private final Map&lt;String, OpenSearchDataType&gt; extendedTypeMapping;
+    @Getter private final boolean isScriptPushed;
+
+    public AggPushDownAction(
+        Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; aggregationBuilder,
+<span class="nc" id="L379">        Map&lt;String, OpenSearchDataType&gt; extendedTypeMapping) {</span>
+<span class="nc" id="L380">      this.aggregationBuilder = aggregationBuilder;</span>
+<span class="nc" id="L381">      this.extendedTypeMapping = extendedTypeMapping;</span>
+<span class="nc" id="L382">      this.isScriptPushed =</span>
+<span class="nc" id="L383">          aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);</span>
+<span class="nc" id="L384">    }</span>
+
+    private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
+<span class="nc" id="L387">      return aggBuilder instanceof ValuesSourceAggregationBuilder&lt;?&gt; valueSourceAgg</span>
+<span class="nc bnc" id="L388" title="All 4 branches missed.">          &amp;&amp; valueSourceAgg.script() != null;</span>
+    }
+
+    @Override
+    public void apply(OpenSearchRequestBuilder requestBuilder) {
+<span class="nc" id="L393">      requestBuilder.pushDownAggregation(aggregationBuilder);</span>
+<span class="nc" id="L394">      requestBuilder.pushTypeMapping(extendedTypeMapping);</span>
+<span class="nc" id="L395">    }</span>
+
+    public void pushDownSortIntoAggBucket(List&lt;RelFieldCollation&gt; collations) {
+      // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
+      // See {@link AggregateAnalyzer}
+<span class="nc" id="L400">      CompositeAggregationBuilder compositeAggregationBuilder =</span>
+<span class="nc" id="L401">          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();</span>
+<span class="nc" id="L402">      List&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; buckets =</span>
+<span class="nc" id="L403">          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst()).sources();</span>
+<span class="nc" id="L404">      List&lt;CompositeValuesSourceBuilder&lt;?&gt;&gt; newBuckets = new ArrayList&lt;&gt;(buckets.size());</span>
+<span class="nc" id="L405">      List&lt;Integer&gt; selected = new ArrayList&lt;&gt;(collations.size());</span>
+      // Have to put the collation required buckets first, then the rest of buckets.
+<span class="nc" id="L407">      collations.forEach(</span>
+          collation -&gt; {
+<span class="nc" id="L409">            CompositeValuesSourceBuilder&lt;?&gt; bucket = buckets.get(collation.getFieldIndex());</span>
+<span class="nc" id="L410">            Direction direction = collation.getDirection();</span>
+<span class="nc" id="L411">            NullDirection nullDirection = collation.nullDirection;</span>
+            SortOrder order =
+<span class="nc bnc" id="L413" title="All 2 branches missed.">                Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;</span>
+<span class="nc" id="L414">            MissingOrder missingOrder =</span>
+<span class="nc bnc" id="L415" title="All 3 branches missed.">                switch (nullDirection) {</span>
+<span class="nc" id="L416">                  case FIRST -&gt; MissingOrder.FIRST;</span>
+<span class="nc" id="L417">                  case LAST -&gt; MissingOrder.LAST;</span>
+<span class="nc" id="L418">                  default -&gt; MissingOrder.DEFAULT;</span>
+                };
+<span class="nc" id="L420">            newBuckets.add(bucket.order(order).missingOrder(missingOrder));</span>
+<span class="nc" id="L421">            selected.add(collation.getFieldIndex());</span>
+<span class="nc" id="L422">          });</span>
+<span class="nc" id="L423">      IntStream.range(0, buckets.size())</span>
+<span class="nc bnc" id="L424" title="All 2 branches missed.">          .filter(i -&gt; !selected.contains(i))</span>
+<span class="nc" id="L425">          .forEach(i -&gt; newBuckets.add(buckets.get(i)));</span>
+<span class="nc" id="L426">      Builder newAggBuilder = new Builder();</span>
+<span class="nc" id="L427">      compositeAggregationBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);</span>
+<span class="nc" id="L428">      aggregationBuilder =</span>
+<span class="nc" id="L429">          Pair.of(</span>
+<span class="nc" id="L430">              Collections.singletonList(</span>
+<span class="nc" id="L431">                  AggregationBuilders.composite(&quot;composite_buckets&quot;, newBuckets)</span>
+<span class="nc" id="L432">                      .subAggregations(newAggBuilder)</span>
+<span class="nc" id="L433">                      .size(AGGREGATION_BUCKET_SIZE)),</span>
+<span class="nc" id="L434">              aggregationBuilder.getRight());</span>
+<span class="nc" id="L435">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

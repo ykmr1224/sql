@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FormatFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">FormatFunction.java</span></div><h1>FormatFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedDate;
+import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedDateOfToday;
+import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedTime;
+
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Implementation for date_format and time_format functions.
+ *
+ * &lt;p&gt;Signatures:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;date_format(DATE/TIME/TIMESTAMP/STRING, STRING) -&gt; STRING
+ *   &lt;li&gt;time_format(TIME/TIMESTAMP/STRING, STRING) -&gt; STRING
+ * &lt;/ul&gt;
+ */
+public class FormatFunction extends ImplementorUDF {
+
+  public FormatFunction(ExprType functionType) {
+<span class="fc" id="L47">    super(new DataFormatImplementor(functionType), NullPolicy.ANY);</span>
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">    if (!functionType.equals(ExprCoreType.DATE) &amp;&amp; !functionType.equals(ExprCoreType.TIME)) {</span>
+<span class="nc" id="L49">      throw new IllegalArgumentException(</span>
+          &quot;Function type can only be DATE or TIME, but got: &quot; + functionType);
+    }
+<span class="fc" id="L52">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L56">    return PPLReturnTypes.STRING_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L61">    return PPLOperandTypes.DATETIME_OR_STRING_STRING;</span>
+  }
+
+  @RequiredArgsConstructor
+  public static class DataFormatImplementor implements NotNullImplementor {
+    private final ExprType functionType;
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L71">      ExprType type =</span>
+<span class="nc" id="L72">          OpenSearchTypeFactory.convertRelDataTypeToExprType(</span>
+<span class="nc" id="L73">              call.getOperands().getFirst().getType());</span>
+<span class="nc" id="L74">      Expression functionProperties =</span>
+<span class="nc" id="L75">          Expressions.call(</span>
+<span class="nc" id="L76">              UserDefinedFunctionUtils.class, &quot;restoreFunctionProperties&quot;, translator.getRoot());</span>
+<span class="nc" id="L77">      Expression datetime =</span>
+<span class="nc" id="L78">          Expressions.call(</span>
+              ExprValueUtils.class,
+              &quot;fromObjectValue&quot;,
+<span class="nc" id="L81">              translatedOperands.get(0),</span>
+<span class="nc" id="L82">              Expressions.constant(type));</span>
+<span class="nc" id="L83">      Expression format = Expressions.new_(ExprStringValue.class, translatedOperands.get(1));</span>
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">      if (ExprCoreType.TIME.equals(functionType)) {</span>
+<span class="nc" id="L86">        return Expressions.call(DataFormatImplementor.class, &quot;timeFormat&quot;, datetime, format);</span>
+      } else {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (ExprCoreType.TIME.equals(type)) {</span>
+<span class="nc" id="L89">          return Expressions.call(</span>
+              DataFormatImplementor.class,
+              &quot;dateFormatForTime&quot;,
+              functionProperties,
+              format,
+              datetime);
+        } else {
+<span class="nc" id="L96">          return Expressions.call(DataFormatImplementor.class, &quot;dateFormat&quot;, datetime, format);</span>
+        }
+      }
+    }
+
+    public static String dateFormat(ExprValue date, ExprStringValue format) {
+<span class="nc" id="L102">      return getFormattedDate(date, format).stringValue();</span>
+    }
+
+    public static String dateFormatForTime(
+        FunctionProperties functionProperties, ExprStringValue format, ExprValue time) {
+<span class="nc" id="L107">      return getFormattedDateOfToday(format, time, functionProperties.getQueryStartClock())</span>
+<span class="nc" id="L108">          .stringValue();</span>
+    }
+
+    public static String timeFormat(ExprValue time, ExprStringValue format) {
+<span class="nc" id="L112">      return getFormattedTime(time, format).stringValue();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteFilterScript.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter</a> &gt; <span class="el_source">CalciteFilterScript.java</span></div><h1>CalciteFilterScript.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter;
+
+import java.util.Map;
+import lombok.EqualsAndHashCode;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.lucene.index.LeafReaderContext;
+import org.opensearch.script.FilterScript;
+import org.opensearch.search.lookup.SearchLookup;
+import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
+
+/**
+ * Calcite script executor that executes the generated code on each document and determine if the
+ * document is supposed to be filtered out or not.
+ */
+@EqualsAndHashCode(callSuper = false)
+class CalciteFilterScript extends FilterScript {
+
+  /** Calcite Script. */
+  private final CalciteScript calciteScript;
+
+  private final SourceLookup sourceLookup;
+
+  public CalciteFilterScript(
+      Function1&lt;DataContext, Object[]&gt; function,
+      SearchLookup lookup,
+      LeafReaderContext context,
+      Map&lt;String, Object&gt; params) {
+<span class="nc" id="L35">    super(params, lookup, context);</span>
+<span class="nc" id="L36">    this.calciteScript = new CalciteScript(function, params);</span>
+    // TODO: we'd better get source from the leafLookup of super once it's available
+<span class="nc" id="L38">    this.sourceLookup = lookup.getLeafSearchLookup(context).source();</span>
+<span class="nc" id="L39">  }</span>
+
+  @Override
+  public boolean execute() {
+<span class="nc" id="L43">    Object result = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];</span>
+    // The result should be type of BOOLEAN_NULLABLE. Treat it as false if null
+<span class="nc bnc" id="L45" title="All 4 branches missed.">    return result != null &amp;&amp; (boolean) result;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

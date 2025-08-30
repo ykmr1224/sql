@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeoIpFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.functions</a> &gt; <span class="el_source">GeoIpFunction.java</span></div><h1>GeoIpFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.functions;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import lombok.Getter;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.geospatial.action.IpEnrichmentActionClient;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.transport.client.node.NodeClient;
+
+/**
+ * {@code GEOIP(dataSourceName, ipAddress[, options])} looks up location information from given IP
+ * addresses via OpenSearch GeoSpatial plugin API. The options is a comma-separated list of fields
+ * to be returned. If not specified, all fields are returned.
+ *
+ * &lt;p&gt;Signatures:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(STRING, STRING) -&gt; MAP
+ *   &lt;li&gt;(STRING, STRING, STRING) -&gt; MAP
+ * &lt;/ul&gt;
+ */
+public class GeoIpFunction extends ImplementorUDF {
+  public GeoIpFunction(NodeClient nodeClient) {
+<span class="nc" id="L47">    super(new GeoIPImplementor(nodeClient), NullPolicy.ANY);</span>
+<span class="nc" id="L48">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="nc" id="L52">    return op -&gt; {</span>
+<span class="nc" id="L53">      RelDataTypeFactory typeFactory = op.getTypeFactory();</span>
+<span class="nc" id="L54">      RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);</span>
+<span class="nc" id="L55">      RelDataType anyType = typeFactory.createSqlType(SqlTypeName.ANY);</span>
+<span class="nc" id="L56">      return typeFactory.createMapType(varcharType, anyType);</span>
+    };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="nc" id="L62">    return UDFOperandMetadata.wrap(</span>
+        (CompositeOperandTypeChecker)
+<span class="nc" id="L64">            OperandTypes.CHARACTER_CHARACTER.or(</span>
+<span class="nc" id="L65">                OperandTypes.family(</span>
+                    SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
+  }
+
+  public static class GeoIPImplementor implements NotNullImplementor {
+    @Getter private static NodeClient nodeClient;
+
+<span class="nc" id="L72">    public GeoIPImplementor(NodeClient nodeClient) {</span>
+<span class="nc" id="L73">      GeoIPImplementor.nodeClient = nodeClient;</span>
+<span class="nc" id="L74">    }</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (getNodeClient() == null) {</span>
+<span class="nc" id="L80">        throw new IllegalStateException(&quot;nodeClient is null.&quot;);</span>
+      }
+<span class="nc" id="L82">      List&lt;Expression&gt; operandsWithClient = new ArrayList&lt;&gt;(translatedOperands);</span>
+      // Since a NodeClient cannot be passed as a parameter using Expressions.constant,
+      // it is instead provided through a function call.
+<span class="nc" id="L85">      operandsWithClient.add(Expressions.call(GeoIPImplementor.class, &quot;getNodeClient&quot;));</span>
+<span class="nc" id="L86">      return Expressions.call(GeoIPImplementor.class, &quot;fetchIpEnrichment&quot;, operandsWithClient);</span>
+    }
+
+    public static Map&lt;String, ?&gt; fetchIpEnrichment(
+        String dataSource, String ipAddress, NodeClient nodeClient) {
+<span class="nc" id="L91">      return fetchIpEnrichment(dataSource, ipAddress, Collections.emptySet(), nodeClient);</span>
+    }
+
+    public static Map&lt;String, ?&gt; fetchIpEnrichment(
+        String dataSource, String ipAddress, String commaSeparatedOptions, NodeClient nodeClient) {
+<span class="nc" id="L96">      String unquotedOptions = StringUtils.unquoteText(commaSeparatedOptions);</span>
+<span class="nc" id="L97">      final Set&lt;String&gt; options =</span>
+<span class="nc" id="L98">          Arrays.stream(unquotedOptions.split(&quot;,&quot;)).map(String::trim).collect(Collectors.toSet());</span>
+<span class="nc" id="L99">      return fetchIpEnrichment(dataSource, ipAddress, options, nodeClient);</span>
+    }
+
+    private static Map&lt;String, ?&gt; fetchIpEnrichment(
+        String dataSource, String ipAddress, Set&lt;String&gt; options, NodeClient nodeClient) {
+<span class="nc" id="L104">      IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);</span>
+<span class="nc" id="L105">      dataSource = StringUtils.unquoteText(dataSource);</span>
+      try {
+<span class="nc" id="L107">        Map&lt;String, Object&gt; geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);</span>
+<span class="nc" id="L108">        Map&lt;String, ExprValue&gt; enrichmentResult =</span>
+<span class="nc" id="L109">            geoLocationData.entrySet().stream()</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">                .filter(entry -&gt; options.isEmpty() || options.contains(entry.getKey()))</span>
+<span class="nc" id="L111">                .collect(</span>
+<span class="nc" id="L112">                    Collectors.toMap(</span>
+<span class="nc" id="L113">                        Map.Entry::getKey, v -&gt; new ExprStringValue(v.getValue().toString())));</span>
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L115">        Map&lt;String, ?&gt; result =</span>
+<span class="nc" id="L116">            (Map&lt;String, ?&gt;) ExprTupleValue.fromExprValueMap(enrichmentResult).valueForCalcite();</span>
+<span class="nc" id="L117">        return result;</span>
+<span class="nc" id="L118">      } catch (Exception e) {</span>
+<span class="nc" id="L119">        throw new RuntimeException(e);</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

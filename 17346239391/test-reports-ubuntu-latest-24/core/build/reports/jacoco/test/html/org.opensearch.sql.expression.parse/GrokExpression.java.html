@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GrokExpression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.parse</a> &gt; <span class="el_source">GrokExpression.java</span></div><h1>GrokExpression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.parse;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.common.grok.Grok;
+import org.opensearch.sql.common.grok.GrokCompiler;
+import org.opensearch.sql.common.grok.Match;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.Expression;
+
+/** GrokExpression with grok patterns. */
+@EqualsAndHashCode(callSuper = true)
+@ToString
+public class GrokExpression extends ParseExpression {
+<span class="fc" id="L27">  private static final Logger log = LogManager.getLogger(GrokExpression.class);</span>
+<span class="fc" id="L28">  private static final GrokCompiler grokCompiler = GrokCompiler.newInstance();</span>
+
+  static {
+<span class="fc" id="L31">    grokCompiler.registerDefaultPatterns();</span>
+<span class="fc" id="L32">  }</span>
+
+  @EqualsAndHashCode.Exclude private final Grok grok;
+
+  /**
+   * GrokExpression.
+   *
+   * @param sourceField source text field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
+   */
+  public GrokExpression(Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L44">    super(&quot;grok&quot;, sourceField, pattern, identifier);</span>
+<span class="fc" id="L45">    this.grok = grokCompiler.compile(pattern.valueOf().stringValue());</span>
+<span class="fc" id="L46">  }</span>
+
+  @Override
+  public ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+<span class="fc" id="L50">    String rawString = value.stringValue();</span>
+<span class="fc" id="L51">    Match grokMatch = grok.match(rawString);</span>
+<span class="fc" id="L52">    Map&lt;String, Object&gt; capture = grokMatch.capture();</span>
+<span class="fc" id="L53">    Object match = capture.get(identifierStr);</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (match != null) {</span>
+<span class="fc" id="L55">      return new ExprStringValue(match.toString());</span>
+    }
+<span class="fc" id="L57">    log.debug(&quot;failed to extract pattern {} from input ***&quot;, grok.getOriginalGrokPattern());</span>
+<span class="fc" id="L58">    return new ExprStringValue(&quot;&quot;);</span>
+  }
+
+  /**
+   * Get list of derived fields based on parse pattern.
+   *
+   * @param pattern pattern used for parsing
+   * @return list of names of the derived fields
+   */
+  public static List&lt;String&gt; getNamedGroupCandidates(String pattern) {
+<span class="fc" id="L68">    Grok grok = grokCompiler.compile(pattern);</span>
+<span class="fc" id="L69">    return grok.namedGroups.stream()</span>
+<span class="fc" id="L70">        .map(grok::getNamedRegexCollectionById)</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        .filter(group -&gt; !group.equals(&quot;UNWANTED&quot;))</span>
+<span class="fc" id="L72">        .collect(Collectors.toUnmodifiableList());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

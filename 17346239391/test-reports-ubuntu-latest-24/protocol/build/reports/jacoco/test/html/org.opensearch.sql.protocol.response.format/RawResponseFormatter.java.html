@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RawResponseFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">RawResponseFormatter.java</span></div><h1>RawResponseFormatter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import org.opensearch.sql.protocol.response.QueryResult;
+
+/** Response formatter to format response to raw format. */
+public class RawResponseFormatter implements ResponseFormatter&lt;QueryResult&gt; {
+  public static final String CONTENT_TYPE = &quot;plain/text; charset=UTF-8&quot;;
+  private final String separator;
+  private final boolean pretty;
+
+  public RawResponseFormatter() {
+<span class="fc" id="L17">    this(&quot;|&quot;, false);</span>
+<span class="fc" id="L18">  }</span>
+
+  public RawResponseFormatter(boolean pretty) {
+<span class="fc" id="L21">    this(&quot;|&quot;, pretty);</span>
+<span class="fc" id="L22">  }</span>
+
+  /**
+   * Create a raw response formatter with separator and pretty parameter.
+   *
+   * @param pretty if true, display the columns with proper padding. Tracks the maximum width for
+   *     each column to ensure proper formatting.
+   */
+<span class="fc" id="L30">  public RawResponseFormatter(String separator, boolean pretty) {</span>
+<span class="fc" id="L31">    this.separator = separator;</span>
+<span class="fc" id="L32">    this.pretty = pretty;</span>
+<span class="fc" id="L33">  }</span>
+
+  @Override
+  public String format(QueryResult response) {
+    FlatResponseBase flatResponse;
+<span class="fc bfc" id="L38" title="All 2 branches covered.">    if (pretty) {</span>
+<span class="fc" id="L39">      flatResponse = new FlatResponseWithPrettifier(response, separator);</span>
+    } else {
+<span class="fc" id="L41">      flatResponse = new FlatResponseBase(response, separator);</span>
+    }
+<span class="fc" id="L43">    return flatResponse.format();</span>
+  }
+
+  @Override
+  public String format(Throwable t) {
+<span class="fc" id="L48">    return ErrorFormatter.prettyFormat(t);</span>
+  }
+
+  @Override
+  public String contentType() {
+<span class="fc" id="L53">    return CONTENT_TYPE;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

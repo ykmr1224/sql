@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.calcite.remote.CalciteExplainIT</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.calcite.remote.CalciteExplainIT</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.calcite.remote.html">org.opensearch.sql.calcite.remote</a> &gt; CalciteExplainIT</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">148</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">15</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">9.500s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox skipped" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Ignored tests</a>
+</li>
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Ignored tests</h2>
+<div class="test">
+<a name="noPushDownForAggOnWindow"></a>
+<h3 class="skipped">noPushDownForAggOnWindow</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:EB0C619F36578ABD]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.noPushDownForAggOnWindow(CalciteExplainIT.java:221)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="supportPartialPushDown"></a>
+<h3 class="skipped">supportPartialPushDown</h3>
+</div>
+<div class="test">
+<a name="supportPartialPushDown"></a>
+<h3 class="skipped">supportPartialPushDown</h3>
+</div>
+<div class="test">
+<a name="supportPartialPushDownScript"></a>
+<h3 class="skipped">supportPartialPushDownScript</h3>
+</div>
+<div class="test">
+<a name="supportPartialPushDownScript"></a>
+<h3 class="skipped">supportPartialPushDownScript</h3>
+</div>
+<div class="test">
+<a name="supportPartialPushDown_NoPushIfAllFailed"></a>
+<h3 class="skipped">supportPartialPushDown_NoPushIfAllFailed</h3>
+</div>
+<div class="test">
+<a name="supportPartialPushDown_NoPushIfAllFailed"></a>
+<h3 class="skipped">supportPartialPushDown_NoPushIfAllFailed</h3>
+</div>
+<div class="test">
+<a name="supportPushDownScriptOnTextField"></a>
+<h3 class="skipped">supportPushDownScriptOnTextField</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:F230EE0855CF4042]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.supportPushDownScriptOnTextField(CalciteExplainIT.java:233)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testEventstatsDistinctCountExplain"></a>
+<h3 class="skipped">testEventstatsDistinctCountExplain</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:2826E62916152E7D]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.testEventstatsDistinctCountExplain(CalciteExplainIT.java:288)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testEventstatsDistinctCountFunctionExplain"></a>
+<h3 class="skipped">testEventstatsDistinctCountFunctionExplain</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:3E87445A763C20D4]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.testEventstatsDistinctCountFunctionExplain(CalciteExplainIT.java:298)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testExplainModeUnsupportedInV2"></a>
+<h3 class="skipped">testExplainModeUnsupportedInV2</h3>
+</div>
+<div class="test">
+<a name="testExplainModeUnsupportedInV2"></a>
+<h3 class="skipped">testExplainModeUnsupportedInV2</h3>
+</div>
+<div class="test">
+<a name="testExplainRegexMatchInEvalWithOutScriptPushdown"></a>
+<h3 class="skipped">testExplainRegexMatchInEvalWithOutScriptPushdown</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:79C3D1C33392FC87]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.testExplainRegexMatchInEvalWithOutScriptPushdown(CalciteExplainIT.java:332)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testExplainRegexMatchInWhereWithScriptPushdown"></a>
+<h3 class="skipped">testExplainRegexMatchInWhereWithScriptPushdown</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:EFB6A06475584F45]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.testExplainRegexMatchInWhereWithScriptPushdown(CalciteExplainIT.java:322)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testSkipScriptEncodingOnExtendedFormat"></a>
+<h3 class="skipped">testSkipScriptEncodingOnExtendedFormat</h3>
+<span class="code">
+<pre>This test is only for push down enabled
+
+org.junit.AssumptionViolatedException: This test is only for push down enabled
+	at __randomizedtesting.SeedInfo.seed([68349FAA8C22254B:D431BA1A2EF943EF]:0)
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at org.opensearch.sql.calcite.remote.CalciteExplainIT.testSkipScriptEncodingOnExtendedFormat(CalciteExplainIT.java:184)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.invoke(RandomizedRunner.java:1750)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$8.evaluate(RandomizedRunner.java:938)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$9.evaluate(RandomizedRunner.java:974)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$10.evaluate(RandomizedRunner.java:988)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.apache.lucene.tests.util.TestRuleSetupTeardownChained$1.evaluate(TestRuleSetupTeardownChained.java:48)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleThreadAndTestName$1.evaluate(TestRuleThreadAndTestName.java:45)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl.forkTimeoutingTask(ThreadLeakControl.java:817)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$3.evaluate(ThreadLeakControl.java:468)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner.runSingleTest(RandomizedRunner.java:947)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$5.evaluate(RandomizedRunner.java:832)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$6.evaluate(RandomizedRunner.java:883)
+	at com.carrotsearch.randomizedtesting.RandomizedRunner$7.evaluate(RandomizedRunner.java:894)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleStoreClassName$1.evaluate(TestRuleStoreClassName.java:38)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.NoShadowingOrOverridesOnMethodsRule$1.evaluate(NoShadowingOrOverridesOnMethodsRule.java:40)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at org.apache.lucene.tests.util.TestRuleAssertionsRequired$1.evaluate(TestRuleAssertionsRequired.java:53)
+	at org.apache.lucene.tests.util.AbstractBeforeAfterRule$1.evaluate(AbstractBeforeAfterRule.java:43)
+	at org.apache.lucene.tests.util.TestRuleMarkFailure$1.evaluate(TestRuleMarkFailure.java:44)
+	at org.apache.lucene.tests.util.TestRuleIgnoreAfterMaxFailures$1.evaluate(TestRuleIgnoreAfterMaxFailures.java:60)
+	at org.apache.lucene.tests.util.TestRuleIgnoreTestSuites$1.evaluate(TestRuleIgnoreTestSuites.java:47)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at com.carrotsearch.randomizedtesting.rules.StatementAdapter.evaluate(StatementAdapter.java:36)
+	at com.carrotsearch.randomizedtesting.ThreadLeakControl$StatementRunner.run(ThreadLeakControl.java:368)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</pre>
+</span>
+</div>
+</div>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">noPushDownForAggOnWindow</td>
+<td class="success">0.050s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">noPushDownForAggOnWindow</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDown</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDown</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDownScript</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDownScript</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDown_NoPushIfAllFailed</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">supportPartialPushDown_NoPushIfAllFailed</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">supportPushDownScriptOnTextField</td>
+<td class="success">0.056s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">supportPushDownScriptOnTextField</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">supportPushDownSortMergeJoin</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportPushDownSortMergeJoin</td>
+<td class="success">0.102s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_multiRange</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_multiRange</td>
+<td class="success">0.054s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_singleRange</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_singleRange</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_timeRange</td>
+<td class="success">0.047s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">supportSearchSargPushDown_timeRange</td>
+<td class="success">0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCountAggPushDownExplain</td>
+<td class="success">0.077s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCountAggPushDownExplain</td>
+<td class="success">0.038s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupKeepEmptyFalsePushdown</td>
+<td class="success">0.070s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupKeepEmptyFalsePushdown</td>
+<td class="success">0.044s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupKeepEmptyTruePushdown</td>
+<td class="success">0.060s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupKeepEmptyTruePushdown</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupPushdown</td>
+<td class="success">0.073s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDedupPushdown</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDifferentFilterScriptPushDownBehaviorExplain</td>
+<td class="success">0.040s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDifferentFilterScriptPushDownBehaviorExplain</td>
+<td class="success">0.065s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testEventstatsDistinctCountExplain</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testEventstatsDistinctCountExplain</td>
+<td class="success">0.043s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testEventstatsDistinctCountFunctionExplain</td>
+<td class="success">0.069s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testEventstatsDistinctCountFunctionExplain</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testExplain</td>
+<td class="success">0.101s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplain</td>
+<td class="success">0.167s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithAligntime</td>
+<td class="success">0.047s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithAligntime</td>
+<td class="success">0.055s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithBins</td>
+<td class="success">0.064s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithBins</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithMinspan</td>
+<td class="success">0.059s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithMinspan</td>
+<td class="success">0.047s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithSpan</td>
+<td class="success">0.849s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithSpan</td>
+<td class="success">0.547s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithStartEnd</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainBinWithStartEnd</td>
+<td class="success">0.065s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsBlank</td>
+<td class="success">0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsBlank</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsEmpty</td>
+<td class="success">0.064s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsEmpty</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsEmptyOrOthers</td>
+<td class="success">0.061s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsEmptyOrOthers</td>
+<td class="success">0.046s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsNullOrOthers</td>
+<td class="success">0.054s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainIsNullOrOthers</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testExplainModeUnsupportedInV2</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="skipped">testExplainModeUnsupportedInV2</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testExplainOnAggregationWithFunction</td>
+<td class="success">0.109s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnAggregationWithFunction</td>
+<td class="success">0.061s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnAggregationWithSumEnhancement</td>
+<td class="success">0.051s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnAggregationWithSumEnhancement</td>
+<td class="success">0.071s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnEarliestLatest</td>
+<td class="success">0.058s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnEarliestLatest</td>
+<td class="success">0.043s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnEarliestLatestWithCustomTimeField</td>
+<td class="success">0.044s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnEarliestLatestWithCustomTimeField</td>
+<td class="success">0.068s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnPercentile</td>
+<td class="success">0.071s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnPercentile</td>
+<td class="success">0.047s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnTake</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainOnTake</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testExplainRegexMatchInEvalWithOutScriptPushdown</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testExplainRegexMatchInEvalWithOutScriptPushdown</td>
+<td class="success">0.052s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testExplainRegexMatchInWhereWithScriptPushdown</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testExplainRegexMatchInWhereWithScriptPushdown</td>
+<td class="success">0.040s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainWithReverse</td>
+<td class="success">0.066s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExplainWithReverse</td>
+<td class="success">0.044s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFillNullPushDownExplain</td>
+<td class="success">0.050s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFillNullPushDownExplain</td>
+<td class="success">0.062s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterAndAggPushDownExplain</td>
+<td class="success">0.070s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterAndAggPushDownExplain</td>
+<td class="success">0.052s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareIPCoercion</td>
+<td class="success">0.060s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareIPCoercion</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareIpv6Swapped</td>
+<td class="success">0.053s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareIpv6Swapped</td>
+<td class="success">0.083s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringDatePushDownExplain</td>
+<td class="success">0.070s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringDatePushDownExplain</td>
+<td class="success">0.061s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringTimePushDownExplain</td>
+<td class="success">0.070s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringTimePushDownExplain</td>
+<td class="success">0.065s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringTimestampPushDownExplain</td>
+<td class="success">0.051s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterByCompareStringTimestampPushDownExplain</td>
+<td class="success">0.075s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterFunctionScriptPushDownExplain</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterFunctionScriptPushDownExplain</td>
+<td class="success">0.058s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterPushDownExplain</td>
+<td class="success">0.061s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterPushDownExplain</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterScriptPushDownExplain</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFilterScriptPushDownExplain</td>
+<td class="success">0.109s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testKeywordLikeFunctionExplain</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testKeywordLikeFunctionExplain</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitPushDownExplain</td>
+<td class="success">0.059s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitPushDownExplain</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitThenSortExplain</td>
+<td class="success">0.062s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitThenSortExplain</td>
+<td class="success">0.043s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitWithFilterPushdownExplain</td>
+<td class="success">0.054s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitWithFilterPushdownExplain</td>
+<td class="success">0.074s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitWithMultipleOffsetPushdownExplain</td>
+<td class="success">0.039s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testLimitWithMultipleOffsetPushdownExplain</td>
+<td class="success">0.054s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultiFieldsRelevanceQueryFunctionExplain</td>
+<td class="success">0.106s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultiFieldsRelevanceQueryFunctionExplain</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultiSortPushDownExplain</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultiSortPushDownExplain</td>
+<td class="success">0.066s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultipleLimitExplain</td>
+<td class="success">0.059s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testMultipleLimitExplain</td>
+<td class="success">0.102s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPartialPushdownFilterWithIsNull</td>
+<td class="success">0.065s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPartialPushdownFilterWithIsNull</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsBrainMethodWithAggPushDownExplain</td>
+<td class="success">0.076s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsBrainMethodWithAggPushDownExplain</td>
+<td class="success">0.059s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsSimplePatternMethodWithAggPushDownExplain</td>
+<td class="success">0.052s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsSimplePatternMethodWithAggPushDownExplain</td>
+<td class="success">0.076s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsSimplePatternMethodWithoutAggExplain</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPatternsSimplePatternMethodWithoutAggExplain</td>
+<td class="success">0.062s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSingleFieldRelevanceQueryFunctionExplain</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSingleFieldRelevanceQueryFunctionExplain</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSkipScriptEncodingOnExtendedFormat</td>
+<td class="success">0.037s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="skipped">testSkipScriptEncodingOnExtendedFormat</td>
+<td class="skipped">-</td>
+<td class="skipped">ignored</td>
+</tr>
+<tr>
+<td class="success">testSortPushDownExplain</td>
+<td class="success">0.038s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortPushDownExplain</td>
+<td class="success">0.067s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortThenAggregatePushDownExplain</td>
+<td class="success">0.107s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortThenAggregatePushDownExplain</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortThenLimitExplain</td>
+<td class="success">0.054s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortThenLimitExplain</td>
+<td class="success">0.036s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithAggregationExplain</td>
+<td class="success">0.080s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithAggregationExplain</td>
+<td class="success">0.055s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithCountPushDownExplain</td>
+<td class="success">0.042s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithCountPushDownExplain</td>
+<td class="success">0.053s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithDescPushDownExplain</td>
+<td class="success">0.069s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithDescPushDownExplain</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithRenameExplain</td>
+<td class="success">0.044s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithRenameExplain</td>
+<td class="success">0.057s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithTypePushDownExplain</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortWithTypePushDownExplain</td>
+<td class="success">0.090s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testStatsBySpan</td>
+<td class="success">0.043s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testStatsBySpan</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testStatsByTimeSpan</td>
+<td class="success">0.081s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testStatsByTimeSpan</td>
+<td class="success">0.053s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTextLikeFunctionExplain</td>
+<td class="success">0.051s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTextLikeFunctionExplain</td>
+<td class="success">0.058s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTrendlinePushDownExplain</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTrendlinePushDownExplain</td>
+<td class="success">0.102s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTrendlineWithSortPushDownExplain</td>
+<td class="success">0.063s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTrendlineWithSortPushDownExplain</td>
+<td class="success">0.074s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testWeekArgumentCoercion</td>
+<td class="success">0.056s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testWeekArgumentCoercion</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>[2025-08-30T14:23:29,610][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] before test
+[2025-08-30T14:23:29,614][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] initializing REST clients against [http://[::1]:38089, http://127.0.0.1:35875]
+[2025-08-30T14:23:29,642][INFO ][o.o.s.p.PPLIntegTestCase ] [testExplainBinWithSpan] Updating plugins.calcite.pushdown.enabled to false
+[2025-08-30T14:23:30,457][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] after test
+[2025-08-30T14:23:30,459][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountExplain] before test
+[2025-08-30T14:23:30,501][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountExplain] after test
+[2025-08-30T14:23:30,509][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithTypePushDownExplain] before test
+[2025-08-30T14:23:30,596][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithTypePushDownExplain] after test
+[2025-08-30T14:23:30,599][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithFunction] before test
+[2025-08-30T14:23:30,706][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithFunction] after test
+[2025-08-30T14:23:30,709][INFO ][o.o.s.c.r.CalciteExplainIT] [noPushDownForAggOnWindow] before test
+[2025-08-30T14:23:30,751][INFO ][o.o.s.c.r.CalciteExplainIT] [noPushDownForAggOnWindow] after test
+[2025-08-30T14:23:30,754][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortPushDownExplain] before test
+[2025-08-30T14:23:30,818][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortPushDownExplain] after test
+[2025-08-30T14:23:30,821][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithBins] before test
+[2025-08-30T14:23:30,883][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithBins] after test
+[2025-08-30T14:23:30,885][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitThenSortExplain] before test
+[2025-08-30T14:23:30,945][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitThenSortExplain] after test
+[2025-08-30T14:23:30,947][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitPushDownExplain] before test
+[2025-08-30T14:23:31,004][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitPushDownExplain] after test
+[2025-08-30T14:23:31,007][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultipleLimitExplain] before test
+[2025-08-30T14:23:31,107][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultipleLimitExplain] after test
+[2025-08-30T14:23:31,109][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimestampPushDownExplain] before test
+[2025-08-30T14:23:31,181][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimestampPushDownExplain] after test
+[2025-08-30T14:23:31,183][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_singleRange] before test
+[2025-08-30T14:23:31,244][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_singleRange] after test
+[2025-08-30T14:23:31,247][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithStartEnd] before test
+[2025-08-30T14:23:31,309][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithStartEnd] after test
+[2025-08-30T14:23:31,312][INFO ][o.o.s.c.r.CalciteExplainIT] [testCountAggPushDownExplain] before test
+[2025-08-30T14:23:31,386][INFO ][o.o.s.c.r.CalciteExplainIT] [testCountAggPushDownExplain] after test
+[2025-08-30T14:23:31,388][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenLimitExplain] before test
+[2025-08-30T14:23:31,440][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenLimitExplain] after test
+[2025-08-30T14:23:31,442][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithCountPushDownExplain] before test
+[2025-08-30T14:23:31,494][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithCountPushDownExplain] after test
+[2025-08-30T14:23:31,496][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsBrainMethodWithAggPushDownExplain] before test
+[2025-08-30T14:23:31,570][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsBrainMethodWithAggPushDownExplain] after test
+[2025-08-30T14:23:31,573][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatestWithCustomTimeField] before test
+[2025-08-30T14:23:31,638][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatestWithCustomTimeField] after test
+[2025-08-30T14:23:31,640][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithFilterPushdownExplain] before test
+[2025-08-30T14:23:31,712][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithFilterPushdownExplain] after test
+[2025-08-30T14:23:31,715][INFO ][o.o.s.c.r.CalciteExplainIT] [testTextLikeFunctionExplain] before test
+[2025-08-30T14:23:31,770][INFO ][o.o.s.c.r.CalciteExplainIT] [testTextLikeFunctionExplain] after test
+[2025-08-30T14:23:31,772][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownSortMergeJoin] before test
+[2025-08-30T14:23:31,872][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownSortMergeJoin] after test
+[2025-08-30T14:23:31,875][INFO ][o.o.s.c.r.CalciteExplainIT] [testSingleFieldRelevanceQueryFunctionExplain] before test
+[2025-08-30T14:23:31,913][INFO ][o.o.s.c.r.CalciteExplainIT] [testSingleFieldRelevanceQueryFunctionExplain] after test
+[2025-08-30T14:23:31,915][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupPushdown] before test
+[2025-08-30T14:23:31,986][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupPushdown] after test
+[2025-08-30T14:23:31,989][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithAggPushDownExplain] before test
+[2025-08-30T14:23:32,063][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithAggPushDownExplain] after test
+[2025-08-30T14:23:32,065][INFO ][o.o.s.c.r.CalciteExplainIT] [testWeekArgumentCoercion] before test
+[2025-08-30T14:23:32,118][INFO ][o.o.s.c.r.CalciteExplainIT] [testWeekArgumentCoercion] after test
+[2025-08-30T14:23:32,120][INFO ][o.o.s.c.r.CalciteExplainIT] [testKeywordLikeFunctionExplain] before test
+[2025-08-30T14:23:32,182][INFO ][o.o.s.c.r.CalciteExplainIT] [testKeywordLikeFunctionExplain] after test
+[2025-08-30T14:23:32,184][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithRenameExplain] before test
+[2025-08-30T14:23:32,239][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithRenameExplain] after test
+[2025-08-30T14:23:32,242][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnPercentile] before test
+[2025-08-30T14:23:32,310][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnPercentile] after test
+[2025-08-30T14:23:32,313][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnTake] before test
+[2025-08-30T14:23:32,374][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnTake] after test
+[2025-08-30T14:23:32,376][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlinePushDownExplain] before test
+[2025-08-30T14:23:32,476][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlinePushDownExplain] after test
+[2025-08-30T14:23:32,479][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIPCoercion] before test
+[2025-08-30T14:23:32,536][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIPCoercion] after test
+[2025-08-30T14:23:32,539][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithoutAggExplain] before test
+[2025-08-30T14:23:32,598][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithoutAggExplain] after test
+[2025-08-30T14:23:32,601][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownScriptOnTextField] before test
+[2025-08-30T14:23:32,649][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownScriptOnTextField] after test
+[2025-08-30T14:23:32,652][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithAggregationExplain] before test
+[2025-08-30T14:23:32,730][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithAggregationExplain] after test
+[2025-08-30T14:23:32,732][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountFunctionExplain] before test
+[2025-08-30T14:23:32,774][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountFunctionExplain] after test
+[2025-08-30T14:23:32,777][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlineWithSortPushDownExplain] before test
+[2025-08-30T14:23:32,848][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlineWithSortPushDownExplain] after test
+[2025-08-30T14:23:32,851][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithDescPushDownExplain] before test
+[2025-08-30T14:23:32,917][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithDescPushDownExplain] after test
+[2025-08-30T14:23:32,920][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiFieldsRelevanceQueryFunctionExplain] before test
+[2025-08-30T14:23:32,959][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiFieldsRelevanceQueryFunctionExplain] after test
+[2025-08-30T14:23:32,961][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyTruePushdown] before test
+[2025-08-30T14:23:33,021][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyTruePushdown] after test
+[2025-08-30T14:23:33,024][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIpv6Swapped] before test
+[2025-08-30T14:23:33,104][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIpv6Swapped] after test
+[2025-08-30T14:23:33,106][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmptyOrOthers] before test
+[2025-08-30T14:23:33,166][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmptyOrOthers] after test
+[2025-08-30T14:23:33,168][INFO ][o.o.s.c.r.CalciteExplainIT] [testFillNullPushDownExplain] before test
+[2025-08-30T14:23:33,227][INFO ][o.o.s.c.r.CalciteExplainIT] [testFillNullPushDownExplain] after test
+[2025-08-30T14:23:33,230][INFO ][o.o.s.c.r.CalciteExplainIT] [testDifferentFilterScriptPushDownBehaviorExplain] before test
+[2025-08-30T14:23:33,293][INFO ][o.o.s.c.r.CalciteExplainIT] [testDifferentFilterScriptPushDownBehaviorExplain] after test
+[2025-08-30T14:23:33,295][INFO ][o.o.s.c.r.CalciteExplainIT] [testSkipScriptEncodingOnExtendedFormat] before test
+[2025-08-30T14:23:33,334][INFO ][o.o.s.c.r.CalciteExplainIT] [testSkipScriptEncodingOnExtendedFormat] after test
+[2025-08-30T14:23:33,336][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiSortPushDownExplain] before test
+[2025-08-30T14:23:33,400][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiSortPushDownExplain] after test
+[2025-08-30T14:23:33,403][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterScriptPushDownExplain] before test
+[2025-08-30T14:23:33,509][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterScriptPushDownExplain] after test
+[2025-08-30T14:23:33,512][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenAggregatePushDownExplain] before test
+[2025-08-30T14:23:33,616][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenAggregatePushDownExplain] after test
+[2025-08-30T14:23:33,619][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsBlank] before test
+[2025-08-30T14:23:33,688][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsBlank] after test
+[2025-08-30T14:23:33,690][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsNullOrOthers] before test
+[2025-08-30T14:23:33,742][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsNullOrOthers] after test
+[2025-08-30T14:23:33,744][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithAligntime] before test
+[2025-08-30T14:23:33,797][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithAligntime] after test
+[2025-08-30T14:23:33,800][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithMultipleOffsetPushdownExplain] before test
+[2025-08-30T14:23:33,851][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithMultipleOffsetPushdownExplain] after test
+[2025-08-30T14:23:33,853][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_timeRange] before test
+[2025-08-30T14:23:33,923][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_timeRange] after test
+[2025-08-30T14:23:33,925][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimePushDownExplain] before test
+[2025-08-30T14:23:33,988][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimePushDownExplain] after test
+[2025-08-30T14:23:33,990][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsByTimeSpan] before test
+[2025-08-30T14:23:34,069][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsByTimeSpan] after test
+[2025-08-30T14:23:34,072][INFO ][o.o.s.c.r.CalciteExplainIT] [testPartialPushdownFilterWithIsNull] before test
+[2025-08-30T14:23:34,134][INFO ][o.o.s.c.r.CalciteExplainIT] [testPartialPushdownFilterWithIsNull] after test
+[2025-08-30T14:23:34,136][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInEvalWithOutScriptPushdown] before test
+[2025-08-30T14:23:34,173][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInEvalWithOutScriptPushdown] after test
+[2025-08-30T14:23:34,176][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmpty] before test
+[2025-08-30T14:23:34,237][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmpty] after test
+[2025-08-30T14:23:34,239][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_multiRange] before test
+[2025-08-30T14:23:34,291][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_multiRange] after test
+[2025-08-30T14:23:34,293][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterFunctionScriptPushDownExplain] before test
+[2025-08-30T14:23:34,349][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterFunctionScriptPushDownExplain] after test
+[2025-08-30T14:23:34,352][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplain] before test
+[2025-08-30T14:23:34,517][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplain] after test
+[2025-08-30T14:23:34,519][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainWithReverse] before test
+[2025-08-30T14:23:34,583][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainWithReverse] after test
+[2025-08-30T14:23:34,585][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatest] before test
+[2025-08-30T14:23:34,641][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatest] after test
+[2025-08-30T14:23:34,643][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInWhereWithScriptPushdown] before test
+[2025-08-30T14:23:34,698][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInWhereWithScriptPushdown] after test
+[2025-08-30T14:23:34,701][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyFalsePushdown] before test
+[2025-08-30T14:23:34,769][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyFalsePushdown] after test
+[2025-08-30T14:23:34,771][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithSumEnhancement] before test
+[2025-08-30T14:23:34,840][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithSumEnhancement] after test
+[2025-08-30T14:23:34,842][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithMinspan] before test
+[2025-08-30T14:23:34,899][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithMinspan] after test
+[2025-08-30T14:23:34,901][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterPushDownExplain] before test
+[2025-08-30T14:23:34,961][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterPushDownExplain] after test
+[2025-08-30T14:23:34,963][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterAndAggPushDownExplain] before test
+[2025-08-30T14:23:35,031][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterAndAggPushDownExplain] after test
+[2025-08-30T14:23:35,033][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringDatePushDownExplain] before test
+[2025-08-30T14:23:35,101][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringDatePushDownExplain] after test
+[2025-08-30T14:23:35,104][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsBySpan] before test
+[2025-08-30T14:23:35,165][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsBySpan] after test
+[2025-08-30T14:26:04,067][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] before test
+[2025-08-30T14:26:04,068][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] initializing REST clients against [http://[::1]:38089, http://127.0.0.1:35875]
+[2025-08-30T14:26:04,613][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithSpan] after test
+[2025-08-30T14:26:04,615][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountExplain] before test
+[2025-08-30T14:26:04,656][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountExplain] after test
+[2025-08-30T14:26:04,658][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithTypePushDownExplain] before test
+[2025-08-30T14:26:04,705][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithTypePushDownExplain] after test
+[2025-08-30T14:26:04,707][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithFunction] before test
+[2025-08-30T14:26:04,767][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithFunction] after test
+[2025-08-30T14:26:04,769][INFO ][o.o.s.c.r.CalciteExplainIT] [noPushDownForAggOnWindow] before test
+[2025-08-30T14:26:04,817][INFO ][o.o.s.c.r.CalciteExplainIT] [noPushDownForAggOnWindow] after test
+[2025-08-30T14:26:04,819][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortPushDownExplain] before test
+[2025-08-30T14:26:04,855][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortPushDownExplain] after test
+[2025-08-30T14:26:04,857][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithBins] before test
+[2025-08-30T14:26:04,904][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithBins] after test
+[2025-08-30T14:26:04,906][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitThenSortExplain] before test
+[2025-08-30T14:26:04,947][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitThenSortExplain] after test
+[2025-08-30T14:26:04,949][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitPushDownExplain] before test
+[2025-08-30T14:26:04,996][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitPushDownExplain] after test
+[2025-08-30T14:26:04,997][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultipleLimitExplain] before test
+[2025-08-30T14:26:05,055][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultipleLimitExplain] after test
+[2025-08-30T14:26:05,056][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimestampPushDownExplain] before test
+[2025-08-30T14:26:05,105][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimestampPushDownExplain] after test
+[2025-08-30T14:26:05,107][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_singleRange] before test
+[2025-08-30T14:26:05,145][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_singleRange] after test
+[2025-08-30T14:26:05,147][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithStartEnd] before test
+[2025-08-30T14:26:05,194][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithStartEnd] after test
+[2025-08-30T14:26:05,196][INFO ][o.o.s.c.r.CalciteExplainIT] [testCountAggPushDownExplain] before test
+[2025-08-30T14:26:05,232][INFO ][o.o.s.c.r.CalciteExplainIT] [testCountAggPushDownExplain] after test
+[2025-08-30T14:26:05,234][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenLimitExplain] before test
+[2025-08-30T14:26:05,269][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenLimitExplain] after test
+[2025-08-30T14:26:05,271][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithCountPushDownExplain] before test
+[2025-08-30T14:26:05,311][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithCountPushDownExplain] after test
+[2025-08-30T14:26:05,313][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsBrainMethodWithAggPushDownExplain] before test
+[2025-08-30T14:26:05,369][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsBrainMethodWithAggPushDownExplain] after test
+[2025-08-30T14:26:05,371][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatestWithCustomTimeField] before test
+[2025-08-30T14:26:05,414][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatestWithCustomTimeField] after test
+[2025-08-30T14:26:05,417][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithFilterPushdownExplain] before test
+[2025-08-30T14:26:05,469][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithFilterPushdownExplain] after test
+[2025-08-30T14:26:05,471][INFO ][o.o.s.c.r.CalciteExplainIT] [testTextLikeFunctionExplain] before test
+[2025-08-30T14:26:05,519][INFO ][o.o.s.c.r.CalciteExplainIT] [testTextLikeFunctionExplain] after test
+[2025-08-30T14:26:05,522][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownSortMergeJoin] before test
+[2025-08-30T14:26:05,569][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownSortMergeJoin] after test
+[2025-08-30T14:26:05,571][INFO ][o.o.s.c.r.CalciteExplainIT] [testSingleFieldRelevanceQueryFunctionExplain] before test
+[2025-08-30T14:26:05,617][INFO ][o.o.s.c.r.CalciteExplainIT] [testSingleFieldRelevanceQueryFunctionExplain] after test
+[2025-08-30T14:26:05,619][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupPushdown] before test
+[2025-08-30T14:26:05,656][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupPushdown] after test
+[2025-08-30T14:26:05,658][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithAggPushDownExplain] before test
+[2025-08-30T14:26:05,708][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithAggPushDownExplain] after test
+[2025-08-30T14:26:05,711][INFO ][o.o.s.c.r.CalciteExplainIT] [testWeekArgumentCoercion] before test
+[2025-08-30T14:26:05,757][INFO ][o.o.s.c.r.CalciteExplainIT] [testWeekArgumentCoercion] after test
+[2025-08-30T14:26:05,759][INFO ][o.o.s.c.r.CalciteExplainIT] [testKeywordLikeFunctionExplain] before test
+[2025-08-30T14:26:05,801][INFO ][o.o.s.c.r.CalciteExplainIT] [testKeywordLikeFunctionExplain] after test
+[2025-08-30T14:26:05,803][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithRenameExplain] before test
+[2025-08-30T14:26:05,845][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithRenameExplain] after test
+[2025-08-30T14:26:05,848][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnPercentile] before test
+[2025-08-30T14:26:05,893][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnPercentile] after test
+[2025-08-30T14:26:05,895][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnTake] before test
+[2025-08-30T14:26:05,934][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnTake] after test
+[2025-08-30T14:26:05,936][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlinePushDownExplain] before test
+[2025-08-30T14:26:05,984][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlinePushDownExplain] after test
+[2025-08-30T14:26:05,986][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIPCoercion] before test
+[2025-08-30T14:26:06,025][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIPCoercion] after test
+[2025-08-30T14:26:06,027][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithoutAggExplain] before test
+[2025-08-30T14:26:06,067][INFO ][o.o.s.c.r.CalciteExplainIT] [testPatternsSimplePatternMethodWithoutAggExplain] after test
+[2025-08-30T14:26:06,069][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownScriptOnTextField] before test
+[2025-08-30T14:26:06,123][INFO ][o.o.s.c.r.CalciteExplainIT] [supportPushDownScriptOnTextField] after test
+[2025-08-30T14:26:06,125][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithAggregationExplain] before test
+[2025-08-30T14:26:06,178][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithAggregationExplain] after test
+[2025-08-30T14:26:06,180][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountFunctionExplain] before test
+[2025-08-30T14:26:06,248][INFO ][o.o.s.c.r.CalciteExplainIT] [testEventstatsDistinctCountFunctionExplain] after test
+[2025-08-30T14:26:06,251][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlineWithSortPushDownExplain] before test
+[2025-08-30T14:26:06,310][INFO ][o.o.s.c.r.CalciteExplainIT] [testTrendlineWithSortPushDownExplain] after test
+[2025-08-30T14:26:06,312][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithDescPushDownExplain] before test
+[2025-08-30T14:26:06,355][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortWithDescPushDownExplain] after test
+[2025-08-30T14:26:06,358][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiFieldsRelevanceQueryFunctionExplain] before test
+[2025-08-30T14:26:06,461][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiFieldsRelevanceQueryFunctionExplain] after test
+[2025-08-30T14:26:06,464][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyTruePushdown] before test
+[2025-08-30T14:26:06,521][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyTruePushdown] after test
+[2025-08-30T14:26:06,524][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIpv6Swapped] before test
+[2025-08-30T14:26:06,574][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareIpv6Swapped] after test
+[2025-08-30T14:26:06,577][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmptyOrOthers] before test
+[2025-08-30T14:26:06,621][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmptyOrOthers] after test
+[2025-08-30T14:26:06,622][INFO ][o.o.s.c.r.CalciteExplainIT] [testFillNullPushDownExplain] before test
+[2025-08-30T14:26:06,670][INFO ][o.o.s.c.r.CalciteExplainIT] [testFillNullPushDownExplain] after test
+[2025-08-30T14:26:06,672][INFO ][o.o.s.c.r.CalciteExplainIT] [testDifferentFilterScriptPushDownBehaviorExplain] before test
+[2025-08-30T14:26:06,710][INFO ][o.o.s.c.r.CalciteExplainIT] [testDifferentFilterScriptPushDownBehaviorExplain] after test
+[2025-08-30T14:26:06,712][INFO ][o.o.s.c.r.CalciteExplainIT] [testSkipScriptEncodingOnExtendedFormat] before test
+[2025-08-30T14:26:06,747][INFO ][o.o.s.c.r.CalciteExplainIT] [testSkipScriptEncodingOnExtendedFormat] after test
+[2025-08-30T14:26:06,749][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiSortPushDownExplain] before test
+[2025-08-30T14:26:06,789][INFO ][o.o.s.c.r.CalciteExplainIT] [testMultiSortPushDownExplain] after test
+[2025-08-30T14:26:06,790][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterScriptPushDownExplain] before test
+[2025-08-30T14:26:06,828][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterScriptPushDownExplain] after test
+[2025-08-30T14:26:06,830][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenAggregatePushDownExplain] before test
+[2025-08-30T14:26:06,876][INFO ][o.o.s.c.r.CalciteExplainIT] [testSortThenAggregatePushDownExplain] after test
+[2025-08-30T14:26:06,881][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsBlank] before test
+[2025-08-30T14:26:06,924][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsBlank] after test
+[2025-08-30T14:26:06,926][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsNullOrOthers] before test
+[2025-08-30T14:26:06,963][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsNullOrOthers] after test
+[2025-08-30T14:26:06,965][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithAligntime] before test
+[2025-08-30T14:26:07,010][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithAligntime] after test
+[2025-08-30T14:26:07,012][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithMultipleOffsetPushdownExplain] before test
+[2025-08-30T14:26:07,050][INFO ][o.o.s.c.r.CalciteExplainIT] [testLimitWithMultipleOffsetPushdownExplain] after test
+[2025-08-30T14:26:07,052][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_timeRange] before test
+[2025-08-30T14:26:07,097][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_timeRange] after test
+[2025-08-30T14:26:07,099][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimePushDownExplain] before test
+[2025-08-30T14:26:07,167][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringTimePushDownExplain] after test
+[2025-08-30T14:26:07,169][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsByTimeSpan] before test
+[2025-08-30T14:26:07,220][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsByTimeSpan] after test
+[2025-08-30T14:26:07,222][INFO ][o.o.s.c.r.CalciteExplainIT] [testPartialPushdownFilterWithIsNull] before test
+[2025-08-30T14:26:07,269][INFO ][o.o.s.c.r.CalciteExplainIT] [testPartialPushdownFilterWithIsNull] after test
+[2025-08-30T14:26:07,271][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInEvalWithOutScriptPushdown] before test
+[2025-08-30T14:26:07,321][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInEvalWithOutScriptPushdown] after test
+[2025-08-30T14:26:07,324][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmpty] before test
+[2025-08-30T14:26:07,364][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainIsEmpty] after test
+[2025-08-30T14:26:07,366][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_multiRange] before test
+[2025-08-30T14:26:07,405][INFO ][o.o.s.c.r.CalciteExplainIT] [supportSearchSargPushDown_multiRange] after test
+[2025-08-30T14:26:07,407][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterFunctionScriptPushDownExplain] before test
+[2025-08-30T14:26:07,449][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterFunctionScriptPushDownExplain] after test
+[2025-08-30T14:26:07,451][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplain] before test
+[2025-08-30T14:26:07,550][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplain] after test
+[2025-08-30T14:26:07,553][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainWithReverse] before test
+[2025-08-30T14:26:07,594][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainWithReverse] after test
+[2025-08-30T14:26:07,596][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatest] before test
+[2025-08-30T14:26:07,637][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnEarliestLatest] after test
+[2025-08-30T14:26:07,639][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInWhereWithScriptPushdown] before test
+[2025-08-30T14:26:07,677][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainRegexMatchInWhereWithScriptPushdown] after test
+[2025-08-30T14:26:07,680][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyFalsePushdown] before test
+[2025-08-30T14:26:07,721][INFO ][o.o.s.c.r.CalciteExplainIT] [testDedupKeepEmptyFalsePushdown] after test
+[2025-08-30T14:26:07,724][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithSumEnhancement] before test
+[2025-08-30T14:26:07,773][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainOnAggregationWithSumEnhancement] after test
+[2025-08-30T14:26:07,776][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithMinspan] before test
+[2025-08-30T14:26:07,821][INFO ][o.o.s.c.r.CalciteExplainIT] [testExplainBinWithMinspan] after test
+[2025-08-30T14:26:07,822][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterPushDownExplain] before test
+[2025-08-30T14:26:07,870][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterPushDownExplain] after test
+[2025-08-30T14:26:07,872][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterAndAggPushDownExplain] before test
+[2025-08-30T14:26:07,921][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterAndAggPushDownExplain] after test
+[2025-08-30T14:26:07,923][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringDatePushDownExplain] before test
+[2025-08-30T14:26:07,983][INFO ][o.o.s.c.r.CalciteExplainIT] [testFilterByCompareStringDatePushDownExplain] after test
+[2025-08-30T14:26:07,985][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsBySpan] before test
+[2025-08-30T14:26:08,025][INFO ][o.o.s.c.r.CalciteExplainIT] [testStatsBySpan] after test
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:30:23 PM</p>
+</div>
+</div>
+</body>
+</html>

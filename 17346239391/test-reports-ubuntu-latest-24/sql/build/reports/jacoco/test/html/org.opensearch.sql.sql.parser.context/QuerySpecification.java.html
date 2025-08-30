@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QuerySpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql.parser.context</a> &gt; <span class="el_source">QuerySpecification.java</span></div><h1>QuerySpecification.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql.parser.context;
+
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.GroupByElementContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrderByElementContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectClauseContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectElementContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SubqueryAsRelationContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
+import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
+import static org.opensearch.sql.sql.parser.ParserUtils.getTextInQuery;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AggregateFunctionCallContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectSpecContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+import org.opensearch.sql.sql.parser.AstExpressionBuilder;
+
+/**
+ * Query specification domain that collects basic info for a simple query.
+ *
+ * &lt;pre&gt;
+ * (I) What is the impact of this new abstraction?
+ *  This abstraction and collecting process turns AST building process into two phases:
+ *  1) Query specification collects info
+ *  2) AST builder uses the info to build AST node
+ *
+ * (II) Why is this required?
+ *  There are two reasons as follows that make single pass building hard or impossible:
+ *  1) Building aggregation AST node needs to know all aggregate function calls
+ *     in SELECT and HAVING clause
+ *  2) GROUP BY or HAVING clause may contain aliases defined in SELECT clause
+ *
+ * &lt;/pre&gt;
+ */
+@EqualsAndHashCode
+@Getter
+@ToString
+<span class="fc" id="L62">public class QuerySpecification {</span>
+
+  /** Items in SELECT clause and mapping from alias to select item. */
+<span class="fc" id="L65">  private final List&lt;UnresolvedExpression&gt; selectItems = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L67">  private final Map&lt;String, UnresolvedExpression&gt; selectItemsByAlias = new HashMap&lt;&gt;();</span>
+
+  /**
+   * Aggregate function calls that spreads in SELECT, HAVING clause. Since this is going to be
+   * pushed to aggregation operator, de-duplicate is necessary to avoid duplication.
+   */
+<span class="fc" id="L73">  private final Set&lt;UnresolvedExpression&gt; aggregators = new LinkedHashSet&lt;&gt;();</span>
+
+  /**
+   *
+   *
+   * &lt;pre&gt;
+   * Items in GROUP BY clause that may be:
+   *  1) Simple field name
+   *  2) Field nested in scalar function call
+   *  3) Ordinal that points to expression in SELECT
+   *  4) Alias that points to expression in SELECT.
+   *  &lt;/pre&gt;
+   */
+<span class="fc" id="L86">  private final List&lt;UnresolvedExpression&gt; groupByItems = new ArrayList&lt;&gt;();</span>
+
+  /** Items in ORDER BY clause that may be different forms as above and its options. */
+<span class="fc" id="L89">  private final List&lt;UnresolvedExpression&gt; orderByItems = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L91">  private final List&lt;SortOption&gt; orderByOptions = new ArrayList&lt;&gt;();</span>
+
+  /**
+   * Collect all query information in the parse tree excluding info in sub-query).
+   *
+   * @param query query spec node in parse tree
+   */
+  public void collect(QuerySpecificationContext query, String queryString) {
+<span class="fc" id="L99">    query.accept(new QuerySpecificationCollector(queryString));</span>
+<span class="fc" id="L100">  }</span>
+
+  /**
+   * Replace unresolved expression if it's an alias or ordinal that represents an actual expression
+   * in SELECT list.
+   *
+   * @param expr item to be replaced
+   * @return select item that the given expr represents
+   */
+  public UnresolvedExpression replaceIfAliasOrOrdinal(UnresolvedExpression expr) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (isIntegerLiteral(expr)) {</span>
+<span class="fc" id="L111">      return getSelectItemByOrdinal(expr);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    } else if (isSelectAlias(expr)) {</span>
+<span class="fc" id="L113">      return getSelectItemByAlias(expr);</span>
+    } else {
+<span class="fc" id="L115">      return expr;</span>
+    }
+  }
+
+  private boolean isIntegerLiteral(UnresolvedExpression expr) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (!(expr instanceof Literal)) {</span>
+<span class="fc" id="L121">      return false;</span>
+    }
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (((Literal) expr).getType() != DataType.INTEGER) {</span>
+<span class="fc" id="L125">      throw new SemanticCheckException(</span>
+<span class="fc" id="L126">          StringUtils.format(&quot;Non-integer constant [%s] found in ordinal&quot;, expr));</span>
+    }
+<span class="fc" id="L128">    return true;</span>
+  }
+
+  private UnresolvedExpression getSelectItemByOrdinal(UnresolvedExpression expr) {
+<span class="fc" id="L132">    int ordinal = (Integer) ((Literal) expr).getValue();</span>
+<span class="fc bfc" id="L133" title="All 4 branches covered.">    if (ordinal &lt;= 0 || ordinal &gt; selectItems.size()) {</span>
+<span class="fc" id="L134">      throw new SemanticCheckException(</span>
+<span class="fc" id="L135">          StringUtils.format(&quot;Ordinal [%d] is out of bound of select item list&quot;, ordinal));</span>
+    }
+<span class="fc" id="L137">    return selectItems.get(ordinal - 1);</span>
+  }
+
+  /**
+   * Check if an expression is a select alias.
+   *
+   * @param expr expression
+   * @return true if it's an alias
+   */
+  public boolean isSelectAlias(UnresolvedExpression expr) {
+<span class="fc bfc" id="L147" title="All 4 branches covered.">    return (expr instanceof QualifiedName) &amp;&amp; (selectItemsByAlias.containsKey(expr.toString()));</span>
+  }
+
+  /**
+   * Get original expression aliased in SELECT clause.
+   *
+   * @param expr alias
+   * @return expression in SELECT
+   */
+  public UnresolvedExpression getSelectItemByAlias(UnresolvedExpression expr) {
+<span class="fc" id="L157">    return selectItemsByAlias.get(expr.toString());</span>
+  }
+
+  /*
+   * Query specification collector that visits a parse tree to collect query info.
+   * Most visit methods only collect info and returns nothing. However, one exception is
+   * visitQuerySpec() which needs to change visit ordering to avoid visiting sub-query.
+   */
+  private class QuerySpecificationCollector extends OpenSearchSQLParserBaseVisitor&lt;Void&gt; {
+<span class="fc" id="L166">    private final AstExpressionBuilder expressionBuilder = new AstExpressionBuilder();</span>
+
+    private final String queryString;
+
+<span class="fc" id="L170">    public QuerySpecificationCollector(String queryString) {</span>
+<span class="fc" id="L171">      this.queryString = queryString;</span>
+<span class="fc" id="L172">    }</span>
+
+    @Override
+    public Void visitSubqueryAsRelation(SubqueryAsRelationContext ctx) {
+      // skip collecting subquery for current layer
+<span class="fc" id="L177">      return null;</span>
+    }
+
+    @Override
+    public Void visitWindowFunctionClause(WindowFunctionClauseContext ctx) {
+      // skip collecting sort items in window functions
+<span class="fc" id="L183">      return null;</span>
+    }
+
+    @Override
+    public Void visitSelectClause(SelectClauseContext ctx) {
+<span class="fc" id="L188">      super.visitSelectClause(ctx);</span>
+
+      // SELECT DISTINCT is an equivalent and special form of GROUP BY
+<span class="fc bfc" id="L191" title="All 2 branches covered.">      if (isDistinct(ctx.selectSpec())) {</span>
+<span class="fc" id="L192">        groupByItems.addAll(selectItems);</span>
+      }
+<span class="fc" id="L194">      return null;</span>
+    }
+
+    @Override
+    public Void visitSelectElement(SelectElementContext ctx) {
+<span class="fc" id="L199">      UnresolvedExpression expr = visitAstExpression(ctx.expression());</span>
+<span class="fc" id="L200">      selectItems.add(expr);</span>
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (ctx.alias() != null) {</span>
+<span class="fc" id="L203">        String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());</span>
+<span class="fc" id="L204">        selectItemsByAlias.put(alias, expr);</span>
+      }
+<span class="fc" id="L206">      return super.visitSelectElement(ctx);</span>
+    }
+
+    @Override
+    public Void visitGroupByElement(GroupByElementContext ctx) {
+<span class="fc" id="L211">      groupByItems.add(visitAstExpression(ctx));</span>
+<span class="fc" id="L212">      return super.visitGroupByElement(ctx);</span>
+    }
+
+    @Override
+    public Void visitOrderByElement(OrderByElementContext ctx) {
+<span class="fc" id="L217">      orderByItems.add(visitAstExpression(ctx.expression()));</span>
+<span class="fc" id="L218">      orderByOptions.add(createSortOption(ctx));</span>
+<span class="fc" id="L219">      return super.visitOrderByElement(ctx);</span>
+    }
+
+    @Override
+    public Void visitAggregateFunctionCall(AggregateFunctionCallContext ctx) {
+<span class="fc" id="L224">      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), visitAstExpression(ctx)));</span>
+<span class="fc" id="L225">      return super.visitAggregateFunctionCall(ctx);</span>
+    }
+
+    @Override
+    public Void visitFilteredAggregationFunctionCall(FilteredAggregationFunctionCallContext ctx) {
+<span class="fc" id="L230">      UnresolvedExpression aggregateFunction = visitAstExpression(ctx);</span>
+<span class="fc" id="L231">      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));</span>
+<span class="fc" id="L232">      return super.visitFilteredAggregationFunctionCall(ctx);</span>
+    }
+
+    private boolean isDistinct(SelectSpecContext ctx) {
+<span class="fc bfc" id="L236" title="All 4 branches covered.">      return (ctx != null) &amp;&amp; (ctx.DISTINCT() != null);</span>
+    }
+
+    private UnresolvedExpression visitAstExpression(ParseTree tree) {
+<span class="fc" id="L240">      return expressionBuilder.visit(tree);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataSourceSchemaIdentifierNameResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">DataSourceSchemaIdentifierNameResolver.java</span></div><h1>DataSourceSchemaIdentifierNameResolver.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.analysis;
+
+import java.util.List;
+import org.opensearch.sql.datasource.DataSourceService;
+
+public class DataSourceSchemaIdentifierNameResolver {
+
+  public static final String DEFAULT_DATASOURCE_NAME = &quot;@opensearch&quot;;
+  public static final String DEFAULT_SCHEMA_NAME = &quot;default&quot;;
+  public static final String INFORMATION_SCHEMA_NAME = &quot;information_schema&quot;;
+
+<span class="fc" id="L19">  private String dataSourceName = DEFAULT_DATASOURCE_NAME;</span>
+<span class="fc" id="L20">  private String schemaName = DEFAULT_SCHEMA_NAME;</span>
+  private final String identifierName;
+  private final DataSourceService dataSourceService;
+
+  private static final String DOT = &quot;.&quot;;
+
+  /**
+   * Data model for capturing dataSourceName, schema and identifier from fully qualifiedName. In the
+   * current state, it is used to capture DataSourceSchemaTable name and DataSourceSchemaFunction in
+   * case of table functions.
+   *
+   * @param dataSourceService {@link DataSourceService}.
+   * @param parts parts of qualifiedName.
+   */
+  public DataSourceSchemaIdentifierNameResolver(
+<span class="fc" id="L35">      DataSourceService dataSourceService, List&lt;String&gt; parts) {</span>
+<span class="fc" id="L36">    this.dataSourceService = dataSourceService;</span>
+<span class="fc" id="L37">    List&lt;String&gt; remainingParts = captureSchemaName(captureDataSourceName(parts));</span>
+<span class="fc" id="L38">    identifierName = String.join(DOT, remainingParts);</span>
+<span class="fc" id="L39">  }</span>
+
+  public String getIdentifierName() {
+<span class="fc" id="L42">    return identifierName;</span>
+  }
+
+  public String getDataSourceName() {
+<span class="fc" id="L46">    return dataSourceName;</span>
+  }
+
+  public String getSchemaName() {
+<span class="fc" id="L50">    return schemaName;</span>
+  }
+
+  // Capture datasource name and return remaining parts(schema name and table name)
+  // from the fully qualified name.
+  private List&lt;String&gt; captureDataSourceName(List&lt;String&gt; parts) {
+<span class="fc bfc" id="L56" title="All 4 branches covered.">    if (parts.size() &gt; 1 &amp;&amp; dataSourceService.dataSourceExists(parts.get(0))) {</span>
+<span class="fc" id="L57">      dataSourceName = parts.get(0);</span>
+<span class="fc" id="L58">      return parts.subList(1, parts.size());</span>
+    } else {
+<span class="fc" id="L60">      return parts;</span>
+    }
+  }
+
+  // Capture schema name and return the remaining parts(table name )
+  // in the fully qualified name.
+  private List&lt;String&gt; captureSchemaName(List&lt;String&gt; parts) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (parts.size() &gt; 1</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        &amp;&amp; (DEFAULT_SCHEMA_NAME.equals(parts.get(0))</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            || INFORMATION_SCHEMA_NAME.contains(parts.get(0)))) {</span>
+<span class="fc" id="L70">      schemaName = parts.get(0);</span>
+<span class="fc" id="L71">      return parts.subList(1, parts.size());</span>
+    } else {
+<span class="fc" id="L73">      return parts;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

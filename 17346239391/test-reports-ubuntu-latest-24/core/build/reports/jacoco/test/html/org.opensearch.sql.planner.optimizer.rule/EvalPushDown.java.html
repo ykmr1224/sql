@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EvalPushDown.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.optimizer.rule</a> &gt; <span class="el_source">EvalPushDown.java</span></div><h1>EvalPushDown.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.optimizer.rule;
+
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.evalCapture;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
+import static org.opensearch.sql.planner.optimizer.rule.EvalPushDown.EvalPushDownBuilder.match;
+
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Captures;
+import com.facebook.presto.matching.Pattern;
+import com.facebook.presto.matching.pattern.CapturePattern;
+import com.facebook.presto.matching.pattern.WithPattern;
+import java.util.List;
+import java.util.function.BiFunction;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.optimizer.Rule;
+
+/**
+ * Rule template for all rules related to push down logical plans under eval, so these plans can
+ * avoid blocking by eval and may have chances to be pushed down into table scan by rules in {@link
+ * org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown}.
+ */
+public class EvalPushDown&lt;T extends LogicalPlan&gt; implements Rule&lt;T&gt; {
+
+  // TODO: Add more rules to push down sort and project
+  /** Push down optimize rule for limit operator. Transform `limit -&gt; eval` to `eval -&gt; limit` */
+<span class="fc" id="L35">  public static final Rule&lt;LogicalLimit&gt; PUSH_DOWN_LIMIT =</span>
+<span class="fc" id="L36">      match(limit(evalCapture()))</span>
+<span class="fc" id="L37">          .apply(</span>
+              (limit, logicalEval) -&gt; {
+<span class="fc" id="L39">                List&lt;LogicalPlan&gt; child = logicalEval.getChild();</span>
+<span class="fc" id="L40">                limit.replaceChildPlans(child);</span>
+<span class="fc" id="L41">                logicalEval.replaceChildPlans(List.of(limit));</span>
+<span class="fc" id="L42">                return logicalEval;</span>
+              });
+
+  private final Capture&lt;LogicalEval&gt; capture;
+
+  @Accessors(fluent = true)
+  @Getter
+  private final Pattern&lt;T&gt; pattern;
+
+  private final BiFunction&lt;T, LogicalEval, LogicalPlan&gt; pushDownFunction;
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public EvalPushDown(
+<span class="fc" id="L55">      WithPattern&lt;T&gt; pattern, BiFunction&lt;T, LogicalEval, LogicalPlan&gt; pushDownFunction) {</span>
+<span class="fc" id="L56">    this.pattern = pattern;</span>
+<span class="fc" id="L57">    this.capture = ((CapturePattern&lt;LogicalEval&gt;) pattern.getPattern()).capture();</span>
+<span class="fc" id="L58">    this.pushDownFunction = pushDownFunction;</span>
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  public LogicalPlan apply(T plan, Captures captures) {
+<span class="fc" id="L63">    LogicalEval logicalEval = captures.get(capture);</span>
+<span class="fc" id="L64">    return pushDownFunction.apply(plan, logicalEval);</span>
+  }
+
+<span class="fc" id="L67">  static class EvalPushDownBuilder&lt;T extends LogicalPlan&gt; {</span>
+
+    private WithPattern&lt;T&gt; pattern;
+
+    public static &lt;T extends LogicalPlan&gt; EvalPushDown.EvalPushDownBuilder&lt;T&gt; match(
+        Pattern&lt;T&gt; pattern) {
+<span class="fc" id="L73">      EvalPushDown.EvalPushDownBuilder&lt;T&gt; builder = new EvalPushDown.EvalPushDownBuilder&lt;&gt;();</span>
+<span class="fc" id="L74">      builder.pattern = (WithPattern&lt;T&gt;) pattern;</span>
+<span class="fc" id="L75">      return builder;</span>
+    }
+
+    public EvalPushDown&lt;T&gt; apply(BiFunction&lt;T, LogicalEval, LogicalPlan&gt; pushDownFunction) {
+<span class="fc" id="L79">      return new EvalPushDown&lt;&gt;(pattern, pushDownFunction);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

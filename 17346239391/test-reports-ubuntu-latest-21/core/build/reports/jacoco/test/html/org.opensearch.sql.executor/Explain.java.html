@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Explain.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor</a> &gt; <span class="el_source">Explain.java</span></div><h1>Explain.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.executor;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.DedupeOperator;
+import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.NestedOperator;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.RareTopNOperator;
+import org.opensearch.sql.planner.physical.RemoveOperator;
+import org.opensearch.sql.planner.physical.RenameOperator;
+import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
+import org.opensearch.sql.planner.physical.WindowOperator;
+import org.opensearch.sql.storage.TableScanOperator;
+
+/** Visitor that explains a physical plan to JSON format. */
+<span class="fc" id="L42">public class Explain extends PhysicalPlanNodeVisitor&lt;ExplainResponseNode, Object&gt;</span>
+    implements Function&lt;PhysicalPlan, ExplainResponse&gt; {
+
+  @Override
+  public ExplainResponse apply(PhysicalPlan plan) {
+<span class="fc" id="L47">    return new ExplainResponse(plan.accept(this, null));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitProject(ProjectOperator node, Object context) {
+<span class="fc" id="L52">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L56">            explainNode.setDescription(</span>
+<span class="fc" id="L57">                ImmutableMap.of(&quot;fields&quot;, node.getProjectList().toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitFilter(FilterOperator node, Object context) {
+<span class="fc" id="L62">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L66">            explainNode.setDescription(</span>
+<span class="fc" id="L67">                ImmutableMap.of(&quot;conditions&quot;, node.getConditions().toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitSort(SortOperator node, Object context) {
+<span class="fc" id="L72">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L76">            explainNode.setDescription(</span>
+<span class="fc" id="L77">                ImmutableMap.of(&quot;sortList&quot;, describeSortList(node.getSortList()))));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitTakeOrdered(TakeOrderedOperator node, Object context) {
+<span class="fc" id="L82">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L86">            explainNode.setDescription(</span>
+<span class="fc" id="L87">                ImmutableMap.of(</span>
+<span class="fc" id="L88">                    &quot;limit&quot;, node.getLimit(),</span>
+<span class="fc" id="L89">                    &quot;offset&quot;, node.getOffset(),</span>
+<span class="fc" id="L90">                    &quot;sortList&quot;, describeSortList(node.getSortList()))));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
+<span class="fc" id="L95">    return explain(</span>
+        node,
+        context,
+<span class="fc" id="L98">        explainNode -&gt; explainNode.setDescription(ImmutableMap.of(&quot;request&quot;, node.toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitAggregation(AggregationOperator node, Object context) {
+<span class="fc" id="L103">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L107">            explainNode.setDescription(</span>
+<span class="fc" id="L108">                ImmutableMap.of(</span>
+<span class="fc" id="L109">                    &quot;aggregators&quot;, node.getAggregatorList().toString(),</span>
+<span class="fc" id="L110">                    &quot;groupBy&quot;, node.getGroupByExprList().toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitWindow(WindowOperator node, Object context) {
+<span class="fc" id="L115">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L119">            explainNode.setDescription(</span>
+<span class="fc" id="L120">                ImmutableMap.of(</span>
+<span class="fc" id="L121">                    &quot;function&quot;, node.getWindowFunction().toString(),</span>
+                    &quot;definition&quot;,
+<span class="fc" id="L123">                        ImmutableMap.of(</span>
+                            &quot;partitionBy&quot;,
+<span class="fc" id="L125">                                node.getWindowDefinition().getPartitionByList().toString(),</span>
+                            &quot;sortList&quot;,
+<span class="fc" id="L127">                                describeSortList(node.getWindowDefinition().getSortList())))));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitRename(RenameOperator node, Object context) {
+<span class="fc" id="L132">    Map&lt;String, String&gt; renameMappingDescription =</span>
+<span class="fc" id="L133">        node.getMapping().entrySet().stream()</span>
+<span class="fc" id="L134">            .collect(Collectors.toMap(e -&gt; e.getKey().toString(), e -&gt; e.getValue().toString()));</span>
+
+<span class="fc" id="L136">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L140">            explainNode.setDescription(ImmutableMap.of(&quot;mapping&quot;, renameMappingDescription)));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitRemove(RemoveOperator node, Object context) {
+<span class="fc" id="L145">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L149">            explainNode.setDescription(</span>
+<span class="fc" id="L150">                ImmutableMap.of(&quot;removeList&quot;, node.getRemoveList().toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitEval(EvalOperator node, Object context) {
+<span class="fc" id="L155">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L159">            explainNode.setDescription(</span>
+<span class="fc" id="L160">                ImmutableMap.of(&quot;expressions&quot;, convertPairListToMap(node.getExpressionList()))));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitDedupe(DedupeOperator node, Object context) {
+<span class="fc" id="L165">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L169">            explainNode.setDescription(</span>
+<span class="fc" id="L170">                ImmutableMap.of(</span>
+<span class="fc" id="L171">                    &quot;dedupeList&quot;, node.getDedupeList().toString(),</span>
+<span class="fc" id="L172">                    &quot;allowedDuplication&quot;, node.getAllowedDuplication(),</span>
+<span class="fc" id="L173">                    &quot;keepEmpty&quot;, node.getKeepEmpty(),</span>
+<span class="fc" id="L174">                    &quot;consecutive&quot;, node.getConsecutive())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitRareTopN(RareTopNOperator node, Object context) {
+<span class="fc" id="L179">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L183">            explainNode.setDescription(</span>
+<span class="fc" id="L184">                ImmutableMap.of(</span>
+<span class="fc" id="L185">                    &quot;commandType&quot;, node.getCommandType(),</span>
+<span class="fc" id="L186">                    &quot;noOfResults&quot;, node.getNoOfResults(),</span>
+<span class="fc" id="L187">                    &quot;fields&quot;, node.getFieldExprList().toString(),</span>
+<span class="fc" id="L188">                    &quot;groupBy&quot;, node.getGroupByExprList().toString())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitValues(ValuesOperator node, Object context) {
+<span class="fc" id="L193">    return explain(</span>
+        node,
+        context,
+<span class="fc" id="L196">        explainNode -&gt; explainNode.setDescription(ImmutableMap.of(&quot;values&quot;, node.getValues())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitLimit(LimitOperator node, Object context) {
+<span class="fc" id="L201">    return explain(</span>
+        node,
+        context,
+        explanNode -&gt;
+<span class="fc" id="L205">            explanNode.setDescription(</span>
+<span class="fc" id="L206">                ImmutableMap.of(&quot;limit&quot;, node.getLimit(), &quot;offset&quot;, node.getOffset())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitNested(NestedOperator node, Object context) {
+<span class="fc" id="L211">    return explain(</span>
+        node,
+        context,
+<span class="fc" id="L214">        explanNode -&gt; explanNode.setDescription(ImmutableMap.of(&quot;nested&quot;, node.getFields())));</span>
+  }
+
+  @Override
+  public ExplainResponseNode visitTrendline(TrendlineOperator node, Object context) {
+<span class="fc" id="L219">    return explain(</span>
+        node,
+        context,
+        explainNode -&gt;
+<span class="fc" id="L223">            explainNode.setDescription(</span>
+<span class="fc" id="L224">                ImmutableMap.of(</span>
+                    &quot;computations&quot;,
+<span class="fc" id="L226">                    describeTrendlineComputations(</span>
+<span class="fc" id="L227">                        node.getComputations().stream()</span>
+<span class="fc" id="L228">                            .map(Pair::getKey)</span>
+<span class="fc" id="L229">                            .collect(Collectors.toList())))));</span>
+  }
+
+  protected ExplainResponseNode explain(
+      PhysicalPlan node, Object context, Consumer&lt;ExplainResponseNode&gt; doExplain) {
+<span class="fc" id="L234">    ExplainResponseNode explainNode = new ExplainResponseNode(getOperatorName(node));</span>
+
+<span class="fc" id="L236">    List&lt;ExplainResponseNode&gt; children = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">    for (PhysicalPlan child : node.getChild()) {</span>
+<span class="fc" id="L238">      children.add(child.accept(this, context));</span>
+<span class="fc" id="L239">    }</span>
+<span class="fc" id="L240">    explainNode.setChildren(children);</span>
+
+<span class="fc" id="L242">    doExplain.accept(explainNode);</span>
+<span class="fc" id="L243">    return explainNode;</span>
+  }
+
+  private String getOperatorName(PhysicalPlan node) {
+<span class="fc" id="L247">    return node.getClass().getSimpleName();</span>
+  }
+
+  private &lt;T, U&gt; Map&lt;String, String&gt; convertPairListToMap(List&lt;Pair&lt;T, U&gt;&gt; pairs) {
+<span class="fc" id="L251">    return pairs.stream()</span>
+<span class="fc" id="L252">        .collect(Collectors.toMap(p -&gt; p.getLeft().toString(), p -&gt; p.getRight().toString()));</span>
+  }
+
+  private Map&lt;String, Map&lt;String, String&gt;&gt; describeSortList(
+      List&lt;Pair&lt;Sort.SortOption, Expression&gt;&gt; sortList) {
+<span class="fc" id="L257">    return sortList.stream()</span>
+<span class="fc" id="L258">        .collect(</span>
+<span class="fc" id="L259">            Collectors.toMap(</span>
+<span class="fc" id="L260">                p -&gt; p.getRight().toString(),</span>
+                p -&gt;
+<span class="fc" id="L262">                    ImmutableMap.of(</span>
+<span class="fc" id="L263">                        &quot;sortOrder&quot;, p.getLeft().getSortOrder().toString(),</span>
+<span class="fc" id="L264">                        &quot;nullOrder&quot;, p.getLeft().getNullOrder().toString())));</span>
+  }
+
+  private List&lt;Map&lt;String, String&gt;&gt; describeTrendlineComputations(
+      List&lt;Trendline.TrendlineComputation&gt; computations) {
+<span class="fc" id="L269">    return computations.stream()</span>
+<span class="fc" id="L270">        .map(</span>
+            computation -&gt;
+<span class="fc" id="L272">                ImmutableMap.of(</span>
+                    &quot;computationType&quot;,
+<span class="fc" id="L274">                        computation.getComputationType().name().toLowerCase(Locale.ROOT),</span>
+<span class="fc" id="L275">                    &quot;numberOfDataPoints&quot;, computation.getNumberOfDataPoints().toString(),</span>
+<span class="fc" id="L276">                    &quot;dataField&quot;, computation.getDataField().getChild().get(0).toString(),</span>
+<span class="fc" id="L277">                    &quot;alias&quot;, computation.getAlias()))</span>
+<span class="fc" id="L278">        .collect(Collectors.toList());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

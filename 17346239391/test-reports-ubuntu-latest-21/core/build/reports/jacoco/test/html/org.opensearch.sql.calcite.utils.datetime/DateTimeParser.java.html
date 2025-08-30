@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateTimeParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.datetime</a> &gt; <span class="el_source">DateTimeParser.java</span></div><h1>DateTimeParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.datetime;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
+import org.opensearch.sql.utils.DateTimeFormatters;
+
+public interface DateTimeParser {
+  /**
+   * Parse a string into a LocalDateTime. If only date is found, time is set to 00:00:00. If only
+   * time is found, date is set to today at UTC.
+   *
+   * @param input A date/time/timestamp string
+   * @return A LocalDateTime
+   * @throws IllegalArgumentException if parsing fails
+   */
+  static LocalDateTime parse(String input) {
+    try {
+<span class="nc" id="L27">      return LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);</span>
+<span class="nc" id="L28">    } catch (DateTimeParseException ignored) {</span>
+    }
+
+    try {
+<span class="nc" id="L32">      LocalTime t = LocalTime.parse(input, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);</span>
+<span class="nc" id="L33">      return LocalDateTime.of(LocalDate.now(ZoneId.of(&quot;UTC&quot;)), t);</span>
+<span class="nc" id="L34">    } catch (Exception ignored) {</span>
+<span class="nc" id="L35">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L36">          String.format(</span>
+              Locale.ROOT,
+              &quot;timestamp:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'&quot;,
+              input));
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

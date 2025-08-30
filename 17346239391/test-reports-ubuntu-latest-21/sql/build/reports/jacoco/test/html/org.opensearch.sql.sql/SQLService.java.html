@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQLService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.sql</a> &gt; <span class="el_source">SQLService.java</span></div><h1>SQLService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.sql;
+
+import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
+
+import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.execution.AbstractPlan;
+import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.sql.sql.parser.AstBuilder;
+import org.opensearch.sql.sql.parser.AstStatementBuilder;
+
+/** SQL service. */
+@RequiredArgsConstructor
+public class SQLService {
+
+  private final SQLSyntaxParser parser;
+
+  private final QueryManager queryManager;
+
+  private final QueryPlanFactory queryExecutionFactory;
+
+  private final QueryType SQL_QUERY = QueryType.SQL;
+
+  /**
+   * Given {@link SQLQueryRequest}, execute it. Using listener to listen result.
+   *
+   * @param request {@link SQLQueryRequest}
+   * @param queryListener callback listener
+   * @param explainListener callback listener for explain query
+   */
+  public void execute(
+      SQLQueryRequest request,
+      ResponseListener&lt;QueryResponse&gt; queryListener,
+      ResponseListener&lt;ExplainResponse&gt; explainListener) {
+    try {
+<span class="fc" id="L49">      queryManager.submit(plan(request, queryListener, explainListener));</span>
+<span class="fc" id="L50">    } catch (Exception e) {</span>
+<span class="fc" id="L51">      queryListener.onFailure(e);</span>
+<span class="fc" id="L52">    }</span>
+<span class="fc" id="L53">  }</span>
+
+  /**
+   * Given {@link SQLQueryRequest}, explain it. Using listener to listen result.
+   *
+   * @param request {@link SQLQueryRequest}
+   * @param listener callback listener
+   */
+  public void explain(SQLQueryRequest request, ResponseListener&lt;ExplainResponse&gt; listener) {
+    try {
+<span class="fc" id="L63">      queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener));</span>
+<span class="fc" id="L64">    } catch (Exception e) {</span>
+<span class="fc" id="L65">      listener.onFailure(e);</span>
+<span class="fc" id="L66">    }</span>
+<span class="fc" id="L67">  }</span>
+
+  private AbstractPlan plan(
+      SQLQueryRequest request,
+      ResponseListener&lt;QueryResponse&gt; queryListener,
+      ResponseListener&lt;ExplainResponse&gt; explainListener) {
+<span class="fc" id="L73">    boolean isExplainRequest = request.isExplainRequest();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (request.getCursor().isPresent()) {</span>
+      // Handle v2 cursor here -- legacy cursor was handled earlier.
+<span class="fc bfc" id="L76" title="All 2 branches covered.">      if (isExplainRequest) {</span>
+<span class="fc" id="L77">        throw new UnsupportedOperationException(</span>
+            &quot;Explain of a paged query continuation &quot;
+                + &quot;is not supported. Use `explain` for the initial query request.&quot;);
+      }
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (request.isCursorCloseRequest()) {</span>
+<span class="fc" id="L82">        return queryExecutionFactory.createCloseCursor(</span>
+<span class="fc" id="L83">            request.getCursor().get(), SQL_QUERY, queryListener);</span>
+      }
+<span class="fc" id="L85">      return queryExecutionFactory.create(</span>
+<span class="fc" id="L86">          request.getCursor().get(),</span>
+          isExplainRequest,
+          SQL_QUERY,
+<span class="fc" id="L89">          request.getFormat(),</span>
+          queryListener,
+          explainListener);
+    } else {
+      // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
+<span class="fc" id="L94">      ParseTree cst = parser.parse(request.getQuery());</span>
+<span class="fc" id="L95">      Statement statement =</span>
+<span class="fc" id="L96">          cst.accept(</span>
+              new AstStatementBuilder(
+<span class="fc" id="L98">                  new AstBuilder(request.getQuery()),</span>
+<span class="fc" id="L99">                  AstStatementBuilder.StatementBuilderContext.builder()</span>
+<span class="fc" id="L100">                      .isExplain(isExplainRequest)</span>
+<span class="fc" id="L101">                      .fetchSize(request.getFetchSize())</span>
+<span class="fc" id="L102">                      .format(request.getFormat())</span>
+<span class="fc" id="L103">                      .build()));</span>
+
+<span class="fc" id="L105">      return queryExecutionFactory.create(statement, queryListener, explainListener);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

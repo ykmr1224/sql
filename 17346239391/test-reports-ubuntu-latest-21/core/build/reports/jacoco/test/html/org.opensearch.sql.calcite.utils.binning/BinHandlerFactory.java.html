@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinHandlerFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning</a> &gt; <span class="el_source">BinHandlerFactory.java</span></div><h1>BinHandlerFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning;
+
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
+import org.opensearch.sql.ast.tree.DefaultBin;
+import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.RangeBin;
+import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.calcite.utils.binning.handlers.*;
+
+/** Factory for creating appropriate bin handlers based on bin type. */
+<span class="nc" id="L17">public class BinHandlerFactory {</span>
+
+<span class="nc" id="L19">  private static final SpanBinHandler SPAN_HANDLER = new SpanBinHandler();</span>
+<span class="nc" id="L20">  private static final MinSpanBinHandler MIN_SPAN_HANDLER = new MinSpanBinHandler();</span>
+<span class="nc" id="L21">  private static final CountBinHandler COUNT_HANDLER = new CountBinHandler();</span>
+<span class="nc" id="L22">  private static final RangeBinHandler RANGE_HANDLER = new RangeBinHandler();</span>
+<span class="nc" id="L23">  private static final DefaultBinHandler DEFAULT_HANDLER = new DefaultBinHandler();</span>
+
+  /** Gets the appropriate handler for the given bin node. */
+  public static BinHandler getHandler(Bin node) {
+<span class="nc bnc" id="L27" title="All 2 branches missed.">    if (node instanceof SpanBin) {</span>
+<span class="nc" id="L28">      return SPAN_HANDLER;</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">    } else if (node instanceof MinSpanBin) {</span>
+<span class="nc" id="L30">      return MIN_SPAN_HANDLER;</span>
+<span class="nc bnc" id="L31" title="All 2 branches missed.">    } else if (node instanceof CountBin) {</span>
+<span class="nc" id="L32">      return COUNT_HANDLER;</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">    } else if (node instanceof RangeBin) {</span>
+<span class="nc" id="L34">      return RANGE_HANDLER;</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    } else if (node instanceof DefaultBin) {</span>
+<span class="nc" id="L36">      return DEFAULT_HANDLER;</span>
+    } else {
+<span class="nc" id="L38">      throw new IllegalArgumentException(&quot;Unknown bin type: &quot; + node.getClass().getSimpleName());</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

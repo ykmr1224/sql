@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceMonitorPlan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.executor.protector</a> &gt; <span class="el_source">ResourceMonitorPlan.java</span></div><h1>ResourceMonitorPlan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.executor.protector;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+
+/** A PhysicalPlan which will run the delegate plan in resource protection manner. */
+@ToString
+@RequiredArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePlan {
+
+  /** How many method calls to delegate's next() to perform resource check once. */
+  public static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
+
+  /** Delegated PhysicalPlan. */
+  private final PhysicalPlan delegate;
+
+  /** ResourceMonitor. */
+  @ToString.Exclude private final ResourceMonitor monitor;
+
+  /** Count how many calls to delegate's next() already. */
+  @EqualsAndHashCode.Exclude private long nextCallCount = 0L;
+
+  @Override
+  public &lt;R, C&gt; R accept(PhysicalPlanNodeVisitor&lt;R, C&gt; visitor, C context) {
+<span class="fc" id="L41">    return delegate.accept(visitor, context);</span>
+  }
+
+  @Override
+  public void open() {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (!this.monitor.isHealthy()) {</span>
+<span class="fc" id="L47">      throw new IllegalStateException(&quot;insufficient resources to run the query, quit.&quot;);</span>
+    }
+<span class="fc" id="L49">    delegate.open();</span>
+<span class="fc" id="L50">  }</span>
+
+  @Override
+  public void close() {
+<span class="fc" id="L54">    delegate.close();</span>
+<span class="fc" id="L55">  }</span>
+
+  @Override
+  public List&lt;PhysicalPlan&gt; getChild() {
+<span class="fc" id="L59">    return delegate.getChild();</span>
+  }
+
+  @Override
+  public boolean hasNext() {
+<span class="fc" id="L64">    return delegate.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    boolean shouldCheck = (++nextCallCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);</span>
+<span class="fc bfc" id="L70" title="All 4 branches covered.">    if (shouldCheck &amp;&amp; !this.monitor.isHealthy()) {</span>
+<span class="fc" id="L71">      throw new IllegalStateException(&quot;insufficient resources to load next row, quit.&quot;);</span>
+    }
+<span class="fc" id="L73">    return delegate.next();</span>
+  }
+
+  @Override
+  public SerializablePlan getPlanForSerialization() {
+<span class="fc" id="L78">    return (SerializablePlan) delegate;</span>
+  }
+
+  /**
+   * Those two methods should never be called. They called if a plan upper in the tree missed to
+   * call {@link #getPlanForSerialization}.
+   */
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+<span class="fc" id="L87">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+<span class="fc" id="L92">    throw new UnsupportedOperationException();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

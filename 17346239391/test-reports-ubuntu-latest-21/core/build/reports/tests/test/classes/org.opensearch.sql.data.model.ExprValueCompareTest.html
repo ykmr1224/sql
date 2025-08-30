@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - ExprValueCompareTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>ExprValueCompareTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.data.model.html">org.opensearch.sql.data.model</a> &gt; ExprValueCompareTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">33</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.044s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">compareDateTimeWithNotADateTime()</td>
+<td class="success">compareDateTimeWithNotADateTime()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[1] TIMESTAMP '1984-11-22 00:00:00', DATE '1984-11-22'</td>
+<td class="success">compareEqDifferentDateTimeValueTypes(ExprValue, ExprValue)[1]</td>
+<td class="success">0.019s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[2] TIMESTAMP '2025-08-30 00:00:00', DATE '2025-08-30'</td>
+<td class="success">compareEqDifferentDateTimeValueTypes(ExprValue, ExprValue)[2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[3] DATE '2025-08-30', TIME '00:00:00'</td>
+<td class="success">compareEqDifferentDateTimeValueTypes(ExprValue, ExprValue)[3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[4] TIMESTAMP '1984-11-22 00:00:00', DATE '1984-11-22'</td>
+<td class="success">compareEqDifferentDateTimeValueTypes(ExprValue, ExprValue)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[5] TIME '17:42:15', TIMESTAMP '2025-08-30 17:42:15'</td>
+<td class="success">compareEqDifferentDateTimeValueTypes(ExprValue, ExprValue)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[1] 42, 42</td>
+<td class="success">compareEqDifferentNumericValueTypes(ExprValue, ExprValue)[1]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[2] 42, 42</td>
+<td class="success">compareEqDifferentNumericValueTypes(ExprValue, ExprValue)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[3] 42, 42</td>
+<td class="success">compareEqDifferentNumericValueTypes(ExprValue, ExprValue)[3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[4] 42, 42.0</td>
+<td class="success">compareEqDifferentNumericValueTypes(ExprValue, ExprValue)[4]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[5] 42, 42.0</td>
+<td class="success">compareEqDifferentNumericValueTypes(ExprValue, ExprValue)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[1] DATE '1984-11-22', TIMESTAMP '2020-09-16 17:30:00'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[2] DATE '1984-11-22', TIME '19:14:38'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[3] TIME '19:14:38', DATE '2025-08-30'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[4] TIME '19:14:38', TIMESTAMP '1984-02-03 04:05:07'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[4]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[5] TIMESTAMP '2012-08-07 19:14:38', TIME '09:07:00'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[5]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[6] TIMESTAMP '2025-08-30 19:14:38', TIME '09:07:00'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[6]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[7] TIMESTAMP '2012-08-07 00:00:00', DATE '1961-04-12'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[7]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[8] TIMESTAMP '1961-04-12 19:14:38', DATE '1961-04-12'</td>
+<td class="success">compareNeqDifferentDateTimeValueTypes(ExprValue, ExprValue)[8]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[1] 42, 1</td>
+<td class="success">compareNeqDifferentNumericValueTypes(ExprValue, ExprValue)[1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[2] 42, 146</td>
+<td class="success">compareNeqDifferentNumericValueTypes(ExprValue, ExprValue)[2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[3] 42, 100500</td>
+<td class="success">compareNeqDifferentNumericValueTypes(ExprValue, ExprValue)[3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[4] 42, -1.5</td>
+<td class="success">compareNeqDifferentNumericValueTypes(ExprValue, ExprValue)[4]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">[5] 42, 1468.84138</td>
+<td class="success">compareNeqDifferentNumericValueTypes(ExprValue, ExprValue)[5]</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">dateValueCompare()</td>
+<td class="success">dateValueCompare()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">doubleValueCompare()</td>
+<td class="success">doubleValueCompare()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">intValueCompare()</td>
+<td class="success">intValueCompare()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">intervalValueCompare()</td>
+<td class="success">intervalValueCompare()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">missingCompareToMethodShouldNotBeenCalledDirectly()</td>
+<td class="success">missingCompareToMethodShouldNotBeenCalledDirectly()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">nullCompareToMethodShouldNotBeenCalledDirectly()</td>
+<td class="success">nullCompareToMethodShouldNotBeenCalledDirectly()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">stringValueCompare()</td>
+<td class="success">stringValueCompare()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">timeValueCompare()</td>
+<td class="success">timeValueCompare()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">timestampValueCompare()</td>
+<td class="success">timestampValueCompare()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 5:21:25 PM</p>
+</div>
+</div>
+</body>
+</html>

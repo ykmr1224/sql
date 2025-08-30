@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MergeRuleHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.util.MergeRules</a> &gt; <span class="el_source">MergeRuleHelper.java</span></div><h1>MergeRuleHelper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.util.MergeRules;
+
+import java.util.List;
+import java.util.Map;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+
+<span class="nc" id="L12">public class MergeRuleHelper {</span>
+<span class="fc" id="L13">  private static final List&lt;MergeRule&gt; RULES =</span>
+<span class="fc" id="L14">      List.of(</span>
+          new DeepMergeRule(), new LatestRule() // must come last
+          );
+
+  public static MergeRule selectRule(OpenSearchDataType source, OpenSearchDataType target) {
+<span class="fc" id="L19">    return RULES.stream()</span>
+<span class="fc" id="L20">        .filter(rule -&gt; rule.isMatch(source, target))</span>
+<span class="fc" id="L21">        .findFirst()</span>
+<span class="fc" id="L22">        .orElseThrow(); // logically unreachable if fallback exists</span>
+  }
+
+  public static void merge(
+      Map&lt;String, OpenSearchDataType&gt; target, Map&lt;String, OpenSearchDataType&gt; source) {
+<span class="fc bfc" id="L27" title="All 2 branches covered.">    for (Map.Entry&lt;String, OpenSearchDataType&gt; entry : source.entrySet()) {</span>
+<span class="fc" id="L28">      String key = entry.getKey();</span>
+<span class="fc" id="L29">      OpenSearchDataType sourceValue = entry.getValue();</span>
+<span class="fc" id="L30">      OpenSearchDataType targetValue = target.get(key);</span>
+<span class="fc" id="L31">      MergeRuleHelper.selectRule(sourceValue, targetValue).mergeInto(key, sourceValue, target);</span>
+<span class="fc" id="L32">    }</span>
+<span class="fc" id="L33">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

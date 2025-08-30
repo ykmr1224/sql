@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchDataType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.data.type</a> &gt; <span class="el_source">OpenSearchDataType.java</span></div><h1>OpenSearchDataType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.type;
+
+import com.google.common.collect.ImmutableMap;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import org.apache.commons.lang3.EnumUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+
+/** The extension of ExprType in OpenSearch. */
+@EqualsAndHashCode
+public class OpenSearchDataType implements ExprType, Serializable {
+
+  /** The mapping (OpenSearch engine) type. */
+<span class="fc" id="L25">  public enum MappingType {</span>
+<span class="fc" id="L26">    Invalid(null, ExprCoreType.UNKNOWN),</span>
+<span class="fc" id="L27">    Text(&quot;text&quot;, ExprCoreType.UNKNOWN),</span>
+<span class="fc" id="L28">    MatchOnlyText(&quot;match_only_text&quot;, ExprCoreType.UNKNOWN),</span>
+<span class="fc" id="L29">    Keyword(&quot;keyword&quot;, ExprCoreType.STRING),</span>
+<span class="fc" id="L30">    Ip(&quot;ip&quot;, ExprCoreType.IP),</span>
+<span class="fc" id="L31">    GeoPoint(&quot;geo_point&quot;, ExprCoreType.UNKNOWN),</span>
+<span class="fc" id="L32">    Binary(&quot;binary&quot;, ExprCoreType.UNKNOWN),</span>
+<span class="fc" id="L33">    Date(&quot;date&quot;, ExprCoreType.TIMESTAMP),</span>
+<span class="fc" id="L34">    DateNanos(&quot;date_nanos&quot;, ExprCoreType.TIMESTAMP),</span>
+<span class="fc" id="L35">    Object(&quot;object&quot;, ExprCoreType.STRUCT),</span>
+<span class="fc" id="L36">    Nested(&quot;nested&quot;, ExprCoreType.ARRAY),</span>
+<span class="fc" id="L37">    Byte(&quot;byte&quot;, ExprCoreType.BYTE),</span>
+<span class="fc" id="L38">    Short(&quot;short&quot;, ExprCoreType.SHORT),</span>
+<span class="fc" id="L39">    Integer(&quot;integer&quot;, ExprCoreType.INTEGER),</span>
+<span class="fc" id="L40">    Long(&quot;long&quot;, ExprCoreType.LONG),</span>
+<span class="fc" id="L41">    Float(&quot;float&quot;, ExprCoreType.FLOAT),</span>
+<span class="fc" id="L42">    HalfFloat(&quot;half_float&quot;, ExprCoreType.FLOAT),</span>
+<span class="fc" id="L43">    ScaledFloat(&quot;scaled_float&quot;, ExprCoreType.DOUBLE),</span>
+<span class="fc" id="L44">    Double(&quot;double&quot;, ExprCoreType.DOUBLE),</span>
+<span class="fc" id="L45">    Boolean(&quot;boolean&quot;, ExprCoreType.BOOLEAN);</span>
+    // TODO: ranges, geo shape, point, shape
+
+    private final String name;
+
+    // Associated `ExprCoreType`
+    @Getter private final ExprCoreType exprCoreType;
+
+<span class="fc" id="L53">    MappingType(String name, ExprCoreType exprCoreType) {</span>
+<span class="fc" id="L54">      this.name = name;</span>
+<span class="fc" id="L55">      this.exprCoreType = exprCoreType;</span>
+<span class="fc" id="L56">    }</span>
+
+    public String toString() {
+<span class="fc" id="L59">      return name;</span>
+    }
+  }
+
+  @EqualsAndHashCode.Exclude @Getter protected MappingType mappingType;
+
+  // resolved ExprCoreType
+  @Getter protected ExprCoreType exprCoreType;
+
+  /**
+   * Get a simplified type {@link ExprCoreType} if possible. To avoid returning `UNKNOWN` for
+   * `OpenSearch*Type`s, e.g. for IP, returns itself. If the `exprCoreType` is {@link
+   * ExprCoreType#DATE}, {@link ExprCoreType#TIMESTAMP}, {@link ExprCoreType#TIME}, or {@link
+   * ExprCoreType#UNKNOWN}, it returns the current instance; otherwise, it returns `exprCoreType`.
+   *
+   * @return An {@link ExprType}.
+   */
+  public ExprType getExprType() {
+<span class="fc bfc" id="L77" title="All 8 branches covered.">    return (exprCoreType == ExprCoreType.DATE</span>
+            || exprCoreType == ExprCoreType.TIMESTAMP
+            || exprCoreType == ExprCoreType.TIME
+            || exprCoreType == ExprCoreType.UNKNOWN)
+<span class="fc" id="L81">        ? this</span>
+<span class="fc" id="L82">        : exprCoreType;</span>
+  }
+
+  /**
+   * Simple instances of OpenSearchDataType are created once during entire SQL engine lifetime and
+   * cached there. This reduces memory usage and increases type comparison. Note: Types with
+   * non-empty fields and properties are not cached.
+   */
+<span class="fc" id="L90">  private static final Map&lt;String, OpenSearchDataType&gt; instances = new HashMap&lt;&gt;();</span>
+
+  static {
+<span class="fc" id="L93">    EnumUtils.getEnumList(MappingType.class).stream()</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        .filter(t -&gt; t != MappingType.Invalid)</span>
+<span class="fc" id="L95">        .forEach(t -&gt; instances.put(t.toString(), OpenSearchDataType.of(t)));</span>
+<span class="fc" id="L96">    EnumUtils.getEnumList(ExprCoreType.class)</span>
+<span class="fc" id="L97">        .forEach(t -&gt; instances.put(t.toString(), OpenSearchDataType.of(t)));</span>
+<span class="fc" id="L98">  }</span>
+
+  /**
+   * Parses index mapping and maps it to a Data type in the SQL plugin.
+   *
+   * @param indexMapping An input with keys and objects that need to be mapped to a data type.
+   * @return The mapping.
+   */
+  public static Map&lt;String, OpenSearchDataType&gt; parseMapping(Map&lt;String, Object&gt; indexMapping) {
+<span class="fc" id="L107">    Map&lt;String, OpenSearchDataType&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (indexMapping == null) {</span>
+<span class="fc" id="L110">      return result;</span>
+    }
+
+<span class="fc" id="L113">    Map&lt;String, String&gt; aliasMapping = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L114">    indexMapping.forEach(</span>
+        (k, v) -&gt; {
+<span class="fc" id="L116">          var innerMap = (Map&lt;String, Object&gt;) v;</span>
+          // by default, the type is treated as an Object if &quot;type&quot; is not provided
+<span class="fc" id="L118">          var type = ((String) innerMap.getOrDefault(&quot;type&quot;, &quot;object&quot;)).replace(&quot;_&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">          if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {</span>
+            // unknown type, e.g. `alias`
+            // Record fields of the alias type and resolve them later in case their references have
+            // not been resolved.
+<span class="fc bfc" id="L123" title="All 2 branches covered.">            if (OpenSearchAliasType.typeName.equals(type)) {</span>
+<span class="fc" id="L124">              aliasMapping.put(k, (String) innerMap.get(OpenSearchAliasType.pathPropertyName));</span>
+            }
+<span class="fc" id="L126">            return;</span>
+          }
+          // create OpenSearchDataType
+<span class="fc" id="L129">          result.put(</span>
+              k,
+<span class="fc" id="L131">              OpenSearchDataType.of(</span>
+<span class="fc" id="L132">                  EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),</span>
+                  innerMap));
+<span class="fc" id="L134">        });</span>
+
+    // Begin to parse alias type fields
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (!aliasMapping.isEmpty()) {</span>
+      // The path of alias type may point to a nested field, so we need to flatten the result.
+<span class="fc" id="L139">      Map&lt;String, OpenSearchDataType&gt; flattenResult = traverseAndFlatten(result);</span>
+<span class="fc" id="L140">      aliasMapping.forEach(</span>
+          (k, v) -&gt; {
+<span class="fc bfc" id="L142" title="All 2 branches covered.">            if (flattenResult.containsKey(v)) {</span>
+<span class="fc" id="L143">              result.put(k, new OpenSearchAliasType(v, flattenResult.get(v)));</span>
+            } else {
+<span class="fc" id="L145">              throw new IllegalStateException(</span>
+<span class="fc" id="L146">                  String.format(&quot;Cannot find the path [%s] for alias type field [%s]&quot;, v, k));</span>
+            }
+<span class="fc" id="L148">          });</span>
+    }
+
+<span class="fc" id="L151">    return result;</span>
+  }
+
+  /**
+   * A constructor function which builds proper `OpenSearchDataType` for given mapping `Type`.
+   *
+   * @param mappingType A mapping type.
+   * @return An instance or inheritor of `OpenSearchDataType`.
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public static OpenSearchDataType of(MappingType mappingType, Map&lt;String, Object&gt; innerMap) {
+<span class="fc" id="L162">    OpenSearchDataType res =</span>
+<span class="fc" id="L163">        instances.getOrDefault(mappingType.toString(), new OpenSearchDataType(mappingType));</span>
+<span class="fc bfc" id="L164" title="All 6 branches covered.">    switch (mappingType) {</span>
+      case Object:
+        // TODO: use Object type once it has been added
+      case Nested:
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (innerMap.isEmpty()) {</span>
+<span class="fc" id="L169">          return res;</span>
+        }
+<span class="fc" id="L171">        Map&lt;String, OpenSearchDataType&gt; properties =</span>
+<span class="fc" id="L172">            parseMapping((Map&lt;String, Object&gt;) innerMap.getOrDefault(&quot;properties&quot;, Map.of()));</span>
+<span class="fc" id="L173">        OpenSearchDataType objectDataType = res.cloneEmpty();</span>
+<span class="fc" id="L174">        objectDataType.properties = properties;</span>
+<span class="fc" id="L175">        return objectDataType;</span>
+      case MatchOnlyText:
+      case Text:
+        // TODO update these 2 below #1038 https://github.com/opensearch-project/sql/issues/1038
+<span class="fc" id="L179">        Map&lt;String, OpenSearchDataType&gt; fields =</span>
+<span class="fc" id="L180">            parseMapping((Map&lt;String, Object&gt;) innerMap.getOrDefault(&quot;fields&quot;, Map.of()));</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        return (!fields.isEmpty()) ? OpenSearchTextType.of(fields) : OpenSearchTextType.of();</span>
+      case GeoPoint:
+<span class="fc" id="L183">        return OpenSearchGeoPointType.of();</span>
+      case Binary:
+<span class="fc" id="L185">        return OpenSearchBinaryType.of();</span>
+      case Date:
+      case DateNanos:
+        // Default date formatter is used when &quot;&quot; is passed as the second parameter
+<span class="fc" id="L189">        String format = (String) innerMap.getOrDefault(&quot;format&quot;, &quot;&quot;);</span>
+<span class="fc" id="L190">        return OpenSearchDateType.of(format);</span>
+      default:
+<span class="fc" id="L192">        return res;</span>
+    }
+  }
+
+  /**
+   * A constructor function which builds proper `OpenSearchDataType` for given mapping `Type`.
+   * Designed to be called by the mapping parser only (and tests).
+   *
+   * @param mappingType A mapping type.
+   * @return An instance or inheritor of `OpenSearchDataType`.
+   */
+  public static OpenSearchDataType of(MappingType mappingType) {
+<span class="fc" id="L204">    return of(mappingType, Map.of());</span>
+  }
+
+  /**
+   * A constructor function which builds proper `OpenSearchDataType` for given {@link ExprType}.
+   *
+   * @param type A type.
+   * @return An instance of `OpenSearchDataType`.
+   */
+  public static OpenSearchDataType of(ExprType type) {
+<span class="fc bfc" id="L214" title="All 2 branches covered.">    if (type instanceof OpenSearchDataType) {</span>
+<span class="fc" id="L215">      return (OpenSearchDataType) type;</span>
+    }
+<span class="fc" id="L217">    var res = instances.getOrDefault(type.toString(), null);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    if (res != null) {</span>
+<span class="fc" id="L219">      return res;</span>
+    }
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (OpenSearchDateType.isDateTypeCompatible(type)) {</span>
+<span class="fc" id="L222">      return OpenSearchDateType.of(type);</span>
+    }
+
+<span class="fc" id="L225">    return new OpenSearchDataType((ExprCoreType) type);</span>
+  }
+
+<span class="fc" id="L228">  protected OpenSearchDataType(MappingType mappingType) {</span>
+<span class="fc" id="L229">    this.mappingType = mappingType;</span>
+<span class="fc" id="L230">    this.exprCoreType = mappingType.getExprCoreType();</span>
+<span class="fc" id="L231">  }</span>
+
+<span class="fc" id="L233">  protected OpenSearchDataType(ExprCoreType type) {</span>
+<span class="fc" id="L234">    this.exprCoreType = type;</span>
+<span class="fc" id="L235">  }</span>
+
+  // For datatypes with properties (example: object and nested types)
+  // a read-only collection
+<span class="fc" id="L239">  @Getter @EqualsAndHashCode.Exclude Map&lt;String, OpenSearchDataType&gt; properties = ImmutableMap.of();</span>
+
+  @Override
+  // Called when building TypeEnvironment and when serializing PPL response
+  public String typeName() {
+    // To avoid breaking changes return `string` for `typeName` call (PPL) and `text` for
+    // `legacyTypeName` call (SQL). See more: https://github.com/opensearch-project/sql/issues/1296
+<span class="fc bfc" id="L246" title="All 2 branches covered.">    if (legacyTypeName().equals(&quot;TEXT&quot;)) {</span>
+<span class="fc" id="L247">      return &quot;STRING&quot;;</span>
+    }
+<span class="fc" id="L249">    return legacyTypeName();</span>
+  }
+
+  @Override
+  // Called when serializing SQL response
+  public String legacyTypeName() {
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    if (mappingType == null) {</span>
+<span class="fc" id="L256">      return exprCoreType.typeName();</span>
+    }
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (mappingType.toString().equalsIgnoreCase(&quot;DATE&quot;)) {</span>
+<span class="fc" id="L259">      return exprCoreType.typeName();</span>
+    }
+<span class="fc" id="L261">    return mappingType.toString().toUpperCase();</span>
+  }
+
+  /**
+   * Clone type object without {@link #properties} - without info about nested object types. Note:
+   * Should be overriden by all derived classes for proper work.
+   *
+   * @return A cloned object.
+   */
+  protected OpenSearchDataType cloneEmpty() {
+<span class="fc bfc" id="L271" title="All 2 branches covered.">    return this.mappingType == null</span>
+<span class="fc" id="L272">        ? new OpenSearchDataType(this.exprCoreType)</span>
+<span class="fc" id="L273">        : new OpenSearchDataType(this.mappingType);</span>
+  }
+
+  /**
+   * Flattens mapping tree into a single layer list of objects (pairs of name-types actually), which
+   * don't have nested types. See {@link OpenSearchDataTypeTest#traverseAndFlatten() test} for
+   * example.
+   *
+   * @param tree A list of `OpenSearchDataType`s - map between field name and its type.
+   * @return A list of all `OpenSearchDataType`s from given map on the same nesting level (1).
+   *     Nested object names are prefixed by names of their host.
+   */
+  public static Map&lt;String, OpenSearchDataType&gt; traverseAndFlatten(
+      Map&lt;String, OpenSearchDataType&gt; tree) {
+<span class="fc" id="L287">    final Map&lt;String, OpenSearchDataType&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L288">    BiConsumer&lt;Map&lt;String, OpenSearchDataType&gt;, String&gt; visitLevel =</span>
+<span class="fc" id="L289">        new BiConsumer&lt;&gt;() {</span>
+          @Override
+          public void accept(Map&lt;String, OpenSearchDataType&gt; subtree, String prefix) {
+<span class="fc bfc" id="L292" title="All 2 branches covered.">            for (var entry : subtree.entrySet()) {</span>
+<span class="fc" id="L293">              String entryKey = entry.getKey();</span>
+              var nextPrefix =
+<span class="fc bfc" id="L295" title="All 2 branches covered.">                  prefix.isEmpty() ? entryKey : String.format(&quot;%s.%s&quot;, prefix, entryKey);</span>
+<span class="fc" id="L296">              result.put(nextPrefix, entry.getValue().cloneEmpty());</span>
+<span class="fc" id="L297">              var nextSubtree = entry.getValue().getProperties();</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">              if (!nextSubtree.isEmpty()) {</span>
+<span class="fc" id="L299">                accept(nextSubtree, nextPrefix);</span>
+              }
+<span class="fc" id="L301">            }</span>
+<span class="fc" id="L302">          }</span>
+        };
+<span class="fc" id="L304">    visitLevel.accept(tree, &quot;&quot;);</span>
+<span class="fc" id="L305">    return result;</span>
+  }
+
+  /**
+   * Resolve type of identified from parsed mapping tree.
+   *
+   * @param tree Parsed mapping tree (not flattened).
+   * @param id An identifier.
+   * @return Resolved OpenSearchDataType or null if not found.
+   */
+  public static OpenSearchDataType resolve(Map&lt;String, OpenSearchDataType&gt; tree, String id) {
+<span class="fc bfc" id="L316" title="All 2 branches covered.">    for (var item : tree.entrySet()) {</span>
+<span class="fc bfc" id="L317" title="All 2 branches covered.">      if (item.getKey().equals(id)) {</span>
+<span class="fc" id="L318">        return item.getValue();</span>
+      }
+<span class="fc" id="L320">      OpenSearchDataType result = resolve(item.getValue().getProperties(), id);</span>
+<span class="fc bfc" id="L321" title="All 2 branches covered.">      if (result != null) {</span>
+<span class="fc" id="L322">        return result;</span>
+      }
+<span class="fc" id="L324">    }</span>
+<span class="fc" id="L325">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

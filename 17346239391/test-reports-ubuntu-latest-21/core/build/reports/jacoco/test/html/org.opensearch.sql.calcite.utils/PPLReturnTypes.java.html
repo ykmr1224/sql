@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLReturnTypes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">PPLReturnTypes.java</span></div><h1>PPLReturnTypes.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import java.util.List;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.data.type.ExprCoreType;
+
+/**
+ * Return types used in PPL. This class complements the {@link
+ * org.apache.calcite.sql.type.ReturnTypes} class.
+ */
+public final class PPLReturnTypes {
+  private PPLReturnTypes() {}
+
+<span class="fc" id="L24">  public static final SqlReturnTypeInference DATE_FORCE_NULLABLE =</span>
+<span class="fc" id="L25">      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_DATE_UDT);</span>
+<span class="fc" id="L26">  public static final SqlReturnTypeInference TIME_FORCE_NULLABLE =</span>
+<span class="fc" id="L27">      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIME_UDT);</span>
+<span class="fc" id="L28">  public static final SqlReturnTypeInference TIMESTAMP_FORCE_NULLABLE =</span>
+<span class="fc" id="L29">      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT);</span>
+<span class="fc" id="L30">  public static final SqlReturnTypeInference IP_FORCE_NULLABLE =</span>
+<span class="fc" id="L31">      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_IP_UDT);</span>
+<span class="fc" id="L32">  public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =</span>
+<span class="fc" id="L33">      ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);</span>
+<span class="fc" id="L34">  public static SqlReturnTypeInference STRING_FORCE_NULLABLE =</span>
+<span class="fc" id="L35">      ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);</span>
+<span class="fc" id="L36">  public static SqlReturnTypeInference TIME_APPLY_RETURN_TYPE =</span>
+      opBinding -&gt; {
+<span class="nc" id="L38">        RelDataType temporalType = opBinding.getOperandType(0);</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (ExprCoreType.TIME.equals(</span>
+<span class="nc" id="L40">            OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType))) {</span>
+<span class="nc" id="L41">          return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;</span>
+        }
+<span class="nc" id="L43">        return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;</span>
+      };
+<span class="fc" id="L45">  public static SqlReturnTypeInference ARG0_ARRAY =</span>
+      opBinding -&gt; {
+<span class="nc" id="L47">        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();</span>
+
+        // Get argument types
+<span class="nc" id="L50">        List&lt;RelDataType&gt; argTypes = opBinding.collectOperandTypes();</span>
+
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (argTypes.isEmpty()) {</span>
+<span class="nc" id="L53">          throw new IllegalArgumentException(&quot;Function requires at least one argument.&quot;);</span>
+        }
+<span class="nc" id="L55">        RelDataType firstArgType = argTypes.getFirst();</span>
+<span class="nc" id="L56">        return SqlTypeUtil.createArrayType(typeFactory, firstArgType, true);</span>
+      };
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StreamingQueryPlan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor.execution</a> &gt; <span class="el_source">StreamingQueryPlan.java</span></div><h1>StreamingQueryPlan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.executor.execution;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.streaming.DefaultMetadataLog;
+import org.opensearch.sql.executor.streaming.MicroBatchStreamingExecution;
+import org.opensearch.sql.executor.streaming.StreamingSource;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+
+/** Streaming Query Plan. */
+public class StreamingQueryPlan extends QueryPlan {
+
+<span class="fc" id="L31">  private static final Logger log = LogManager.getLogger(StreamingQueryPlan.class);</span>
+
+  private final ExecutionStrategy executionStrategy;
+
+  private MicroBatchStreamingExecution streamingExecution;
+
+  /** constructor. */
+  public StreamingQueryPlan(
+      QueryId queryId,
+      QueryType queryType,
+      UnresolvedPlan plan,
+      QueryService queryService,
+      ResponseListener&lt;ExecutionEngine.QueryResponse&gt; listener,
+      ExecutionStrategy executionStrategy) {
+<span class="fc" id="L45">    super(queryId, queryType, plan, queryService, listener);</span>
+
+<span class="fc" id="L47">    this.executionStrategy = executionStrategy;</span>
+<span class="fc" id="L48">  }</span>
+
+  @Override
+  public void execute() {
+    try {
+<span class="fc" id="L53">      LogicalPlan logicalPlan = queryService.analyze(plan, queryType);</span>
+<span class="fc" id="L54">      StreamingSource streamingSource = buildStreamingSource(logicalPlan);</span>
+<span class="fc" id="L55">      streamingExecution =</span>
+          new MicroBatchStreamingExecution(
+              streamingSource,
+              logicalPlan,
+              queryService,
+              new DefaultMetadataLog&lt;&gt;(),
+              new DefaultMetadataLog&lt;&gt;());
+<span class="fc" id="L62">      executionStrategy.execute(streamingExecution::execute);</span>
+<span class="fc" id="L63">    } catch (UnsupportedOperationException | IllegalArgumentException e) {</span>
+<span class="fc" id="L64">      listener.onFailure(e);</span>
+<span class="fc" id="L65">    } catch (InterruptedException e) {</span>
+<span class="fc" id="L66">      log.error(e);</span>
+      // todo, update async task status.
+<span class="fc" id="L68">    }</span>
+<span class="fc" id="L69">  }</span>
+
+  interface ExecutionStrategy {
+    /** execute task. */
+    void execute(Runnable task) throws InterruptedException;
+  }
+
+  /**
+   * execute task with fixed interval.&lt;br&gt;
+   * if task run time &lt; interval, trigger next task on next interval.&lt;br&gt;
+   * if task run time &gt;= interval, trigger next task immediately.
+   */
+  @RequiredArgsConstructor
+  public static class IntervalTriggerExecution implements ExecutionStrategy {
+
+    private final long intervalInSeconds;
+
+    @Override
+    public void execute(Runnable runnable) throws InterruptedException {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">      while (!Thread.currentThread().isInterrupted()) {</span>
+        try {
+<span class="fc" id="L90">          Instant start = Instant.now();</span>
+<span class="fc" id="L91">          runnable.run();</span>
+<span class="fc" id="L92">          Instant end = Instant.now();</span>
+<span class="fc" id="L93">          long took = Duration.between(start, end).toSeconds();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">          TimeUnit.SECONDS.sleep(intervalInSeconds &gt; took ? intervalInSeconds - took : 0);</span>
+<span class="fc" id="L95">        } catch (InterruptedException e) {</span>
+<span class="fc" id="L96">          Thread.currentThread().interrupt();</span>
+<span class="fc" id="L97">        }</span>
+      }
+<span class="fc" id="L99">    }</span>
+  }
+
+  private StreamingSource buildStreamingSource(LogicalPlan logicalPlan) {
+<span class="fc" id="L103">    return logicalPlan.accept(new StreamingSourceBuilder(), null);</span>
+  }
+
+<span class="fc" id="L106">  static class StreamingSourceBuilder extends LogicalPlanNodeVisitor&lt;StreamingSource, Void&gt; {</span>
+    @Override
+    public StreamingSource visitNode(LogicalPlan plan, Void context) {
+<span class="fc" id="L109">      List&lt;LogicalPlan&gt; children = plan.getChild();</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (children.isEmpty()) {</span>
+<span class="fc" id="L111">        String errorMsg =</span>
+<span class="fc" id="L112">            String.format(</span>
+                &quot;Could find relation plan, %s does not have child node.&quot;,
+<span class="fc" id="L114">                plan.getClass().getSimpleName());</span>
+<span class="fc" id="L115">        log.error(errorMsg);</span>
+<span class="fc" id="L116">        throw new IllegalArgumentException(errorMsg);</span>
+      }
+<span class="fc" id="L118">      return children.get(0).accept(this, context);</span>
+    }
+
+    @Override
+    public StreamingSource visitRelation(LogicalRelation plan, Void context) {
+      try {
+<span class="fc" id="L124">        return plan.getTable().asStreamingSource();</span>
+<span class="fc" id="L125">      } catch (UnsupportedOperationException e) {</span>
+<span class="fc" id="L126">        String errorMsg =</span>
+<span class="fc" id="L127">            String.format(</span>
+<span class="fc" id="L128">                &quot;table %s could not been used as streaming source.&quot;, plan.getRelationName());</span>
+<span class="fc" id="L129">        log.error(errorMsg);</span>
+<span class="fc" id="L130">        throw new UnsupportedOperationException(errorMsg);</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

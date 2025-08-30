@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MinSpanBinHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.handlers</a> &gt; <span class="el_source">MinSpanBinHandler.java</span></div><h1>MinSpanBinHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.handlers;
+
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/** Handler for minspan-based binning operations. */
+<span class="nc" id="L22">public class MinSpanBinHandler implements BinHandler {</span>
+
+  @Override
+  public RexNode createExpression(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc" id="L28">    MinSpanBin minSpanBin = (MinSpanBin) node;</span>
+
+<span class="nc" id="L30">    RexNode minspanValue = visitor.analyze(minSpanBin.getMinspan(), context);</span>
+
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    if (!minspanValue.isA(LITERAL)) {</span>
+<span class="nc" id="L33">      throw new IllegalArgumentException(&quot;Minspan must be a literal value&quot;);</span>
+    }
+
+<span class="nc" id="L36">    Number minspanNum = (Number) ((RexLiteral) minspanValue).getValue();</span>
+<span class="nc" id="L37">    double minspan = minspanNum.doubleValue();</span>
+
+    // Calculate data range using window functions
+<span class="nc" id="L40">    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();</span>
+<span class="nc" id="L41">    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();</span>
+<span class="nc" id="L42">    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);</span>
+
+    // Convert start/end parameters
+<span class="nc" id="L45">    RexNode startValue = convertParameter(minSpanBin.getStart(), context);</span>
+<span class="nc" id="L46">    RexNode endValue = convertParameter(minSpanBin.getEnd(), context);</span>
+
+    // MINSPAN_BUCKET(field_value, min_span, data_range, max_value)
+<span class="nc" id="L49">    RexNode minSpanParam = context.relBuilder.literal(minspan);</span>
+
+<span class="nc" id="L51">    return context.rexBuilder.makeCall(</span>
+        PPLBuiltinOperators.MINSPAN_BUCKET, fieldExpr, minSpanParam, dataRange, maxValue);
+  }
+
+  private RexNode convertParameter(
+      org.opensearch.sql.ast.expression.UnresolvedExpression expr, CalcitePlanContext context) {
+
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    if (expr == null) {</span>
+<span class="nc" id="L59">      return context.relBuilder.literal(-1); // Sentinel value</span>
+    }
+
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    if (expr instanceof Literal) {</span>
+<span class="nc" id="L63">      Literal literal = (Literal) expr;</span>
+<span class="nc" id="L64">      Object value = literal.getValue();</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (value instanceof Number) {</span>
+<span class="nc" id="L66">        return context.relBuilder.literal(((Number) value).doubleValue());</span>
+      } else {
+<span class="nc" id="L68">        return context.relBuilder.literal(value);</span>
+      }
+    }
+
+<span class="nc" id="L72">    throw new IllegalArgumentException(&quot;Expected literal expression, got: &quot; + expr.getClass());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
