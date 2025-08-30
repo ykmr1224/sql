@@ -1,0 +1,216 @@
+[2025-08-30T16:58:51,321][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] Aug 30, 2025 4:58:51 PM org.opensearch.javaagent.bootstrap.AgentPolicy setPolicy
+[2025-08-30T16:58:51,326][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] INFO: Policy attached successfully: org.opensearch.bootstrap.OpenSearchPolicy@64aad809
+[2025-08-30T16:58:51,352][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] version[3.2.0-SNAPSHOT], pid[6877], build[tar/6adc0bf476e1624190564d7fbe4aba00ccf49ad8/2025-08-14T03:23:12.443636Z], OS[Mac OS X/13.7.6/x86_64], JVM[Eclipse Adoptium/OpenJDK 64-Bit Server VM/21.0.8/21.0.8+9-LTS]
+[2025-08-30T16:58:51,353][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] JVM home [/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.8-9.0/x64/Contents/Home], using bundled JDK/JRE [false]
+[2025-08-30T16:58:51,354][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] JVM arguments [-Xshare:auto, -Dopensearch.networkaddress.cache.ttl=60, -Dopensearch.networkaddress.cache.negative.ttl=10, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -XX:-OmitStackTraceInFastThrow, -XX:+ShowCodeDetailsInExceptionMessages, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dio.netty.allocator.numDirectArenas=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Djava.locale.providers=SPI,CLDR, -Xms1g, -Xmx1g, -XX:+UseG1GC, -XX:G1ReservePercent=25, -XX:InitiatingHeapOccupancyPercent=30, -Djava.io.tmpdir=/Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/tmp, -XX:+HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath=logs, -XX:ErrorFile=logs/hs_err_pid%p.log, -Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m, --add-modules=jdk.incubator.vector, -javaagent:agent/opensearch-agent.jar, --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED, -Xms512m, -Xmx512m, -ea, -esa, -XX:MaxDirectMemorySize=268435456, -Dopensearch.path.home=/Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/distro/3.2.0-ARCHIVE, -Dopensearch.path.conf=/Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config, -Dopensearch.distribution.type=tar, -Dopensearch.bundled_jdk=true]
+[2025-08-30T16:58:51,355][WARN ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] version [3.2.0-SNAPSHOT] is a pre-release version of OpenSearch and is not suitable for production
+[2025-08-30T16:58:51,946][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] Aug 30, 2025 4:58:51 PM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+[2025-08-30T16:58:51,948][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] INFO: Java vector incubator API enabled; uses preferredBitSize=256
+[2025-08-30T16:58:53,873][INFO ][o.o.s.s.t.SSLConfig      ] [remoteIntegTestWithSecurity-0] SSL dual mode is disabled
+[2025-08-30T16:58:53,873][INFO ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] OpenSearch Config path is /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config
+[2025-08-30T16:58:54,887][INFO ][o.o.s.s.SslSettingsManager] [remoteIntegTestWithSecurity-0] TLS Transport Client Provider             : JDK
+[2025-08-30T16:58:54,887][INFO ][o.o.s.s.SslSettingsManager] [remoteIntegTestWithSecurity-0] TLS Transport Server Provider             : JDK
+[2025-08-30T16:58:54,889][INFO ][o.o.s.s.SslSettingsManager] [remoteIntegTestWithSecurity-0] Enabled TLS protocols for Transport layer : [TLSv1.3, TLSv1.2]
+[2025-08-30T16:58:56,688][INFO ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] Clustername: remoteIntegTestWithSecurity
+[2025-08-30T16:58:56,694][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] Directory /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config has insecure file permissions (should be 0700)
+[2025-08-30T16:58:56,695][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] File /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/esnode-key.pem has insecure file permissions (should be 0600)
+[2025-08-30T16:58:56,695][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] File /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/root-ca.pem has insecure file permissions (should be 0600)
+[2025-08-30T16:58:56,696][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] Directory /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/jvm.options.d has insecure file permissions (should be 0700)
+[2025-08-30T16:58:56,696][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] File /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch.yml has insecure file permissions (should be 0600)
+[2025-08-30T16:58:56,697][WARN ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] File /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/esnode.pem has insecure file permissions (should be 0600)
+[2025-08-30T16:58:56,822][INFO ][o.o.i.r.ReindexModulePlugin] [remoteIntegTestWithSecurity-0] ReindexPlugin reloadSPI called
+[2025-08-30T16:58:56,824][INFO ][o.o.i.r.ReindexModulePlugin] [remoteIntegTestWithSecurity-0] Unable to find any implementation for RemoteReindexExtension
+[2025-08-30T16:58:56,835][INFO ][o.o.j.JobSchedulerPlugin ] [remoteIntegTestWithSecurity-0] Loaded scheduler extension: async-query-scheduler, index: .async-query-scheduler
+[2025-08-30T16:58:56,838][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [aggs-matrix-stats]
+[2025-08-30T16:58:56,839][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [analysis-common]
+[2025-08-30T16:58:56,839][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [cache-common]
+[2025-08-30T16:58:56,839][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [geo]
+[2025-08-30T16:58:56,840][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [ingest-common]
+[2025-08-30T16:58:56,840][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [ingest-geoip]
+[2025-08-30T16:58:56,840][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [ingest-user-agent]
+[2025-08-30T16:58:56,841][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [lang-expression]
+[2025-08-30T16:58:56,841][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [lang-mustache]
+[2025-08-30T16:58:56,842][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [lang-painless]
+[2025-08-30T16:58:56,842][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [mapper-extras]
+[2025-08-30T16:58:56,842][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [opensearch-dashboards]
+[2025-08-30T16:58:56,842][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [parent-join]
+[2025-08-30T16:58:56,842][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [percolator]
+[2025-08-30T16:58:56,843][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [rank-eval]
+[2025-08-30T16:58:56,843][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [reindex]
+[2025-08-30T16:58:56,843][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [repository-url]
+[2025-08-30T16:58:56,843][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [rule-framework]
+[2025-08-30T16:58:56,843][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [search-pipeline-common]
+[2025-08-30T16:58:56,844][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [test-delayed-aggs]
+[2025-08-30T16:58:56,844][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [transport-grpc]
+[2025-08-30T16:58:56,844][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded module [transport-netty4]
+[2025-08-30T16:58:56,845][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded plugin [opensearch-job-scheduler]
+[2025-08-30T16:58:56,845][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded plugin [opensearch-security]
+[2025-08-30T16:58:56,846][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] loaded plugin [opensearch-sql]
+[2025-08-30T16:58:56,910][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] WARNING: A restricted method in java.lang.foreign.Linker has been called
+[2025-08-30T16:58:56,911][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+[2025-08-30T16:58:56,911][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+[2025-08-30T16:58:57,071][INFO ][o.o.e.NodeEnvironment    ] [remoteIntegTestWithSecurity-0] using [1] data paths, mounts [[/System/Volumes/Data (/dev/disk1s1)]], net usable_space [168.9gb], net total_space [324.6gb], types [apfs]
+[2025-08-30T16:58:57,072][INFO ][o.o.e.NodeEnvironment    ] [remoteIntegTestWithSecurity-0] heap size [512mb], compressed ordinary object pointers [true]
+[2025-08-30T16:58:57,219][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] node name [remoteIntegTestWithSecurity-0], node ID [btMNjbSoQhaoyX6yd_b-ag], cluster name [remoteIntegTestWithSecurity], roles [ingest, remote_cluster_client, data, cluster_manager]
+[2025-08-30T16:58:57,260][INFO ][o.o.e.ExtensionsManager  ] [remoteIntegTestWithSecurity-0] ExtensionsManager initialized
+[2025-08-30T16:59:01,314][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[2025-08-30T16:59:01,316][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[2025-08-30T16:59:01,317][WARN ][stderr                   ] [remoteIntegTestWithSecurity-0] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[2025-08-30T16:59:05,152][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [remoteIntegTestWithSecurity-0] Registered 4 built-in query converters
+[2025-08-30T16:59:05,153][INFO ][o.o.t.g.p.r.s.q.QueryBuilderProtoConverterRegistry] [remoteIntegTestWithSecurity-0] Loaded 0 external query converters (0 failed)
+[2025-08-30T16:59:05,239][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Message routing enabled: true
+[2025-08-30T16:59:05,386][WARN ][o.o.s.c.Salt             ] [remoteIntegTestWithSecurity-0] If you plan to use field masking pls configure compliance salt e1ukloTsQlOgPquJ to be a random string of 16 chars length identical on all nodes
+[2025-08-30T16:59:05,386][WARN ][o.o.s.c.Salt             ] [remoteIntegTestWithSecurity-0] If you plan to use field masking pls configure compliance salt e1ukloTsQlOgPquJ to be a random string of 16 chars length identical on all nodes
+[2025-08-30T16:59:05,392][INFO ][o.o.s.f.SecurityFilter   ] [remoteIntegTestWithSecurity-0] <NONE> indices are made immutable.
+[2025-08-30T16:59:05,553][WARN ][o.o.s.p.SQLPlugin        ] [remoteIntegTestWithSecurity-0] Master key is a required config for using create and update datasource APIs. Please set plugins.query.datasources.encryption.masterkey config in opensearch.yml in all the cluster nodes. More details can be found here: https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/admin/datasources.rst#master-key-config-for-encrypting-credential-information
+[2025-08-30T16:59:05,896][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: COALESCE. Will skip its type checking
+[2025-08-30T16:59:05,899][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: array. Will skip its type checking
+[2025-08-30T16:59:05,900][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: forall. Will skip its type checking
+[2025-08-30T16:59:05,903][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: exists. Will skip its type checking
+[2025-08-30T16:59:05,903][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: filter. Will skip its type checking
+[2025-08-30T16:59:05,903][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: transform. Will skip its type checking
+[2025-08-30T16:59:05,903][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: reduce. Will skip its type checking
+[2025-08-30T16:59:05,904][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON. Will skip its type checking
+[2025-08-30T16:59:05,904][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_EXTRACT. Will skip its type checking
+[2025-08-30T16:59:05,904][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_KEYS. Will skip its type checking
+[2025-08-30T16:59:05,905][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_SET. Will skip its type checking
+[2025-08-30T16:59:05,905][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_DELETE. Will skip its type checking
+[2025-08-30T16:59:05,905][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_APPEND. Will skip its type checking
+[2025-08-30T16:59:05,905][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: JSON_EXTEND. Will skip its type checking
+[2025-08-30T16:59:05,912][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: INTERNAL_PATTERN. Will skip its type checking
+[2025-08-30T16:59:05,913][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: COUNT. Will skip its type checking
+[2025-08-30T16:59:05,914][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: EARLIEST. Will skip its type checking
+[2025-08-30T16:59:05,914][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: LATEST. Will skip its type checking
+[2025-08-30T16:59:05,916][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:05,918][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:05,993][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:05,994][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:05,995][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:05,995][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:05,996][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:05,996][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:06,770][INFO ][o.o.t.NettyAllocator     ] [remoteIntegTestWithSecurity-0] creating NettyAllocator with the following configs: [name=unpooled, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_unpooled_allocator=null, g1gc_enabled=true, g1gc_region_size=1mb, heap_size=512mb}]
+[2025-08-30T16:59:06,830][INFO ][o.o.s.s.t.SSLConfig      ] [remoteIntegTestWithSecurity-0] SSL dual mode is disabled
+[2025-08-30T16:59:06,919][INFO ][o.o.d.DiscoveryModule    ] [remoteIntegTestWithSecurity-0] using discovery type [zen] and seed hosts providers [settings, file]
+[2025-08-30T16:59:07,507][WARN ][o.o.g.DanglingIndicesState] [remoteIntegTestWithSecurity-0] gateway.auto_import_dangling_indices is disabled, dangling indices will not be automatically detected or imported and must be managed manually
+[2025-08-30T16:59:07,560][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:07,561][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:07,562][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:07,562][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:07,562][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:07,562][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:07,563][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: GEOIP. Will skip its type checking
+[2025-08-30T16:59:07,563][INFO ][o.o.s.e.f.PPLFuncImpTable] [remoteIntegTestWithSecurity-0] Cannot create type checker for function: DISTINCT_COUNT_APPROX. Will skip its type checking
+[2025-08-30T16:59:08,125][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] initialized
+[2025-08-30T16:59:08,128][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] starting ...
+[2025-08-30T16:59:08,445][INFO ][o.o.t.TransportService   ] [remoteIntegTestWithSecurity-0] publish_address {127.0.0.1:49303}, bound_addresses {[::1]:49302}, {127.0.0.1:49303}
+[2025-08-30T16:59:08,448][INFO ][o.o.t.TransportService   ] [remoteIntegTestWithSecurity-0] Remote clusters initialized successfully.
+[2025-08-30T16:59:08,849][WARN ][o.o.d.FileBasedSeedHostsProvider] [remoteIntegTestWithSecurity-0] expected, but did not find, a dynamic hosts list at [/Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/unicast_hosts.txt]
+[2025-08-30T16:59:08,850][INFO ][o.o.c.c.Coordinator      ] [remoteIntegTestWithSecurity-0] setting initial configuration to VotingConfiguration{btMNjbSoQhaoyX6yd_b-ag}
+[2025-08-30T16:59:08,944][INFO ][o.o.h.AbstractHttpServerTransport] [remoteIntegTestWithSecurity-0] publish_address {127.0.0.1:49305}, bound_addresses {[::1]:49304}, {127.0.0.1:49305}
+[2025-08-30T16:59:08,947][INFO ][o.o.n.Node               ] [remoteIntegTestWithSecurity-0] started
+[2025-08-30T16:59:08,949][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Will attempt to create index .opendistro_security and default configs if they are absent
+[2025-08-30T16:59:08,950][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Background init thread started. Install default config?: true
+[2025-08-30T16:59:08,951][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Wait for cluster to be available ...
+[2025-08-30T16:59:08,952][INFO ][o.o.s.OpenSearchSecurityPlugin] [remoteIntegTestWithSecurity-0] 0 OpenSearch Security modules loaded so far: []
+[2025-08-30T16:59:09,095][INFO ][o.o.c.s.ClusterManagerService] [remoteIntegTestWithSecurity-0] Tasks batched with key: org.opensearch.cluster.coordination.JoinHelper, count:3 and sample tasks: elected-as-cluster-manager ([1] nodes joined)[{remoteIntegTestWithSecurity-0}{btMNjbSoQhaoyX6yd_b-ag}{bEkvrc8IS1WO1oPji-h_Gw}{127.0.0.1}{127.0.0.1:49303}{dimr}{testattr=test, shard_indexing_pressure_enabled=true} elect leader, _BECOME_CLUSTER_MANAGER_TASK_, _FINISH_ELECTION_], term: 1, version: 1, delta: cluster-manager node changed {previous [], current [{remoteIntegTestWithSecurity-0}{btMNjbSoQhaoyX6yd_b-ag}{bEkvrc8IS1WO1oPji-h_Gw}{127.0.0.1}{127.0.0.1:49303}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}
+[2025-08-30T16:59:09,142][INFO ][o.o.c.c.CoordinationState] [remoteIntegTestWithSecurity-0] cluster UUID set to [G-m3RuGnROydIq5MhOm93Q]
+[2025-08-30T16:59:09,178][INFO ][o.o.c.s.ClusterApplierService] [remoteIntegTestWithSecurity-0] cluster-manager node changed {previous [], current [{remoteIntegTestWithSecurity-0}{btMNjbSoQhaoyX6yd_b-ag}{bEkvrc8IS1WO1oPji-h_Gw}{127.0.0.1}{127.0.0.1:49303}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]}, term: 1, version: 1, reason: Publication{term=1, version=1}
+[2025-08-30T16:59:09,196][INFO ][o.o.d.PeerFinder         ] [remoteIntegTestWithSecurity-0] setting findPeersInterval to [1s] as node commission status = [true] for local node [{remoteIntegTestWithSecurity-0}{btMNjbSoQhaoyX6yd_b-ag}{bEkvrc8IS1WO1oPji-h_Gw}{127.0.0.1}{127.0.0.1:49303}{dimr}{testattr=test, shard_indexing_pressure_enabled=true}]
+[2025-08-30T16:59:09,222][INFO ][o.o.g.GatewayService     ] [remoteIntegTestWithSecurity-0] recovered [0] indices into cluster_state
+[2025-08-30T16:59:10,075][INFO ][o.o.c.s.ClusterManagerTaskThrottler] [remoteIntegTestWithSecurity-0] Starting cluster manager throttling as all nodes are higher than or equal to 2.5.0
+[2025-08-30T16:59:10,092][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:10,209][INFO ][o.o.c.m.MetadataCreateIndexService] [remoteIntegTestWithSecurity-0] [.opendistro_security] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T16:59:10,219][INFO ][o.o.c.r.a.AllocationService] [remoteIntegTestWithSecurity-0] updating number_of_replicas to [0] for indices [.opendistro_security]
+[2025-08-30T16:59:10,290][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:10,542][INFO ][o.o.c.r.a.AllocationService] [remoteIntegTestWithSecurity-0] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[.opendistro_security][0]]]).
+[2025-08-30T16:59:10,592][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Index .opendistro_security created?: true
+[2025-08-30T16:59:10,593][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Node started, try to initialize it. Wait for at least yellow cluster state....
+[2025-08-30T16:59:10,600][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'config' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/config.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:10,715][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:10,723][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] create_mapping
+[2025-08-30T16:59:10,896][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'config' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:10,896][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'roles' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/roles.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:10,914][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:10,922][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,048][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'roles' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,048][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'rolesmapping' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/roles_mapping.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:11,062][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,073][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,177][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'rolesmapping' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,177][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'internalusers' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/internal_users.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:11,190][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,200][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,272][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'internalusers' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,273][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'actiongroups' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/action_groups.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:11,281][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,290][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,364][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'actiongroups' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,365][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'tenants' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/tenants.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:11,371][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,378][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,451][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'tenants' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,451][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'nodesdn' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/nodes_dn.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=true
+[2025-08-30T16:59:11,457][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,466][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,533][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'nodesdn' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,534][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'allowlist' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/allowlist.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=true
+[2025-08-30T16:59:11,539][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,547][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,612][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'allowlist' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,613][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Will update 'audit' with /Users/runner/work/sql/sql/integ-test/build/testclusters/remoteIntegTestWithSecurity-0/config/opensearch-security/audit.yml and populate it with empty doc if file missing and populateEmptyIfFileMissing=false
+[2025-08-30T16:59:11,627][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ]
+[2025-08-30T16:59:11,635][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [.opendistro_security/SOqSiwTmSUKEWQbmJT1klQ] update_mapping [_doc]
+[2025-08-30T16:59:11,706][INFO ][o.o.s.s.ConfigHelper     ] [remoteIntegTestWithSecurity-0] Doc with id 'audit' and version 2 is updated in .opendistro_security index.
+[2025-08-30T16:59:11,924][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing on REST API is enabled.
+[2025-08-30T16:59:11,924][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] [AUTHENTICATED, GRANTED_PRIVILEGES] are excluded from REST API auditing.
+[2025-08-30T16:59:11,924][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing on Transport API is enabled.
+[2025-08-30T16:59:11,924][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] [AUTHENTICATED, GRANTED_PRIVILEGES] are excluded from Transport API auditing.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing of request body is enabled.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Bulk requests resolution is disabled during request auditing.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Index resolution is enabled during request auditing.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Sensitive headers exclusion from auditing is enabled.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing requests from kibanaserver users is disabled.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing request headers <NONE> is disabled.
+[2025-08-30T16:59:11,925][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing request url params <NONE> is disabled.
+[2025-08-30T16:59:11,929][WARN ][o.o.s.a.r.AuditMessageRouter] [remoteIntegTestWithSecurity-0] No endpoint configured for categories [BAD_HEADERS, FAILED_LOGIN, MISSING_PRIVILEGES, GRANTED_PRIVILEGES, OPENDISTRO_SECURITY_INDEX_ATTEMPT, SSL_EXCEPTION, AUTHENTICATED, INDEX_EVENT, COMPLIANCE_DOC_READ, COMPLIANCE_DOC_WRITE, COMPLIANCE_EXTERNAL_CONFIG, COMPLIANCE_INTERNAL_CONFIG_READ, COMPLIANCE_INTERNAL_CONFIG_WRITE], using default endpoint
+[2025-08-30T16:59:11,929][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing of external configuration is disabled.
+[2025-08-30T16:59:11,929][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing of internal configuration is enabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing only metadata information for read request is enabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing will watch {} for read requests.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing read operation requests from kibanaserver users is disabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing only metadata information for write request is enabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing diffs for write requests is disabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing write operation requests from kibanaserver users is disabled.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Auditing will watch <NONE> for write requests.
+[2025-08-30T16:59:11,930][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] .opendistro_security is used as internal security index.
+[2025-08-30T16:59:11,931][INFO ][o.o.s.a.i.AuditLogImpl   ] [remoteIntegTestWithSecurity-0] Internal index used for posting audit logs is null
+[2025-08-30T16:59:11,931][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Hot-reloading of audit configuration is enabled
+[2025-08-30T16:59:11,931][INFO ][o.o.s.c.ConfigurationRepository] [remoteIntegTestWithSecurity-0] Node 'remoteIntegTestWithSecurity-0' initialized
+[2025-08-30T16:59:24,899][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:24,904][INFO ][o.o.c.m.MetadataCreateIndexService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T16:59:24,905][INFO ][o.o.c.r.a.AllocationService] [remoteIntegTestWithSecurity-0] updating number_of_replicas to [0] for indices [security-auditlog-2025.08.30]
+[2025-08-30T16:59:24,955][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:24,977][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[opensearch-sql_test_index_bank/XW5Un6WqQPmKydF6B7PX8w]
+[2025-08-30T16:59:24,997][INFO ][o.o.c.m.MetadataCreateIndexService] [remoteIntegTestWithSecurity-0] [opensearch-sql_test_index_bank] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T16:59:25,072][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[opensearch-sql_test_index_bank/XW5Un6WqQPmKydF6B7PX8w]
+[2025-08-30T16:59:25,104][INFO ][o.o.s.a.s.InternalOpenSearchSink] [remoteIntegTestWithSecurity-0] Index security-auditlog-2025.08.30 already exists
+[2025-08-30T16:59:25,185][INFO ][o.o.s.a.s.InternalOpenSearchSink] [remoteIntegTestWithSecurity-0] Index security-auditlog-2025.08.30 created?: true
+[2025-08-30T16:59:25,213][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:25,224][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ] create_mapping
+[2025-08-30T16:59:25,343][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:25,359][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ] update_mapping [_doc]
+[2025-08-30T16:59:25,458][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:25,866][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[opensearch-sql_test_index_dog/5jNip3XxTwCYwxNiImZFTg]
+[2025-08-30T16:59:25,871][INFO ][o.o.c.m.MetadataCreateIndexService] [remoteIntegTestWithSecurity-0] [opensearch-sql_test_index_dog] creating index, cause [api], templates [], shards [1]/[1]
+[2025-08-30T16:59:25,989][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[opensearch-sql_test_index_dog/5jNip3XxTwCYwxNiImZFTg]
+[2025-08-30T16:59:26,140][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[opensearch-sql_test_index_dog/5jNip3XxTwCYwxNiImZFTg]
+[2025-08-30T16:59:26,146][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [opensearch-sql_test_index_dog/5jNip3XxTwCYwxNiImZFTg] update_mapping [_doc]
+[2025-08-30T16:59:26,207][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:26,216][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ] update_mapping [_doc]
+[2025-08-30T16:59:28,053][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:28,065][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ] update_mapping [_doc]
+[2025-08-30T16:59:29,004][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:29,017][INFO ][o.o.c.m.MetadataMappingService] [remoteIntegTestWithSecurity-0] [security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ] update_mapping [_doc]
+[2025-08-30T16:59:29,074][INFO ][o.o.p.PluginsService     ] [remoteIntegTestWithSecurity-0] PluginService:onIndexModule index:[security-auditlog-2025.08.30/OSI83cgWRviqvUVLAoY9BQ]
+[2025-08-30T16:59:39,231][WARN ][o.o.c.InternalClusterInfoService] [remoteIntegTestWithSecurity-0] No resource usage stats available for node: remoteIntegTestWithSecurity-0
