@@ -1,8 +1,9 @@
 name: Publish HTML Reports
 on:
   workflow_run:
-    workflows: ["*"]
+    workflows: ["Generate Test Reports (Quick Test)"]
     types: [completed]
+  push:  # Also trigger on direct pushes
   workflow_dispatch:  # Manual trigger for testing
 
 permissions:
