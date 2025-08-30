@@ -3,6 +3,7 @@ on:
   workflow_run:
     workflows: ["Generate Test Reports (Quick Test)"]
     types: [completed]
+  push:  # Temporary: to test the workflow
   workflow_dispatch:  # Manual trigger for testing
 
 permissions:
@@ -17,8 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Download artifacts from the triggering workflow
-      - name: Download HTML Report Artifacts
+      # Download artifacts from the triggering workflow (only when triggered by workflow_run)
+      - name: Download HTML Report Artifacts (from workflow_run)
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           pattern: html-reports-*
@@ -26,6 +28,16 @@ jobs:
           merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # Download artifacts from current workflow (when triggered by push or manual)
+      - name: Download HTML Report Artifacts (from current run)
+        if: github.event_name != 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: html-reports-*
+          path: downloaded-artifacts
+          merge-multiple: true
         continue-on-error: true
 
       # Debug and collect all HTML reports from any build/reports directories AND artifacts
