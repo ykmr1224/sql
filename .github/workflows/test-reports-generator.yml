@@ -383,26 +383,55 @@ jobs:
           sed -i "s/COMMIT_PLACEHOLDER/${{ github.sha }}/g" site/index.html
           sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -u)/g" site/index.html
           
-          # Generate reports list
-          reports_html=""
-          if find site -name "*.html" ! -name "index.html" | head -1 | grep -q .; then
-              reports_html="<ul class=\"reports-list\">"
+          # Generate reports list - fix the logic
+          echo "🔍 Generating reports list..."
+          
+          # Count HTML files (excluding index.html)
+          html_count=$(find site -name "*.html" ! -name "index.html" | wc -l)
+          echo "Found $html_count HTML files to list"
+          
+          if [ "$html_count" -gt 0 ]; then
+              echo "Creating reports list HTML..."
+              
+              # Start the list
+              echo "<ul class=\"reports-list\">" > site/reports.tmp
+              
+              # Add each file to the list
               find site -name "*.html" ! -name "index.html" | sort | while read file; do
                   relative_path="${file#site/}"
                   display_name=$(basename "$file" .html)
                   dir_name=$(dirname "$relative_path")
-                  reports_html="$reports_html<li><a href=\"$relative_path\">$display_name</a><span class=\"file-path\">$dir_name</span></li>"
+                  echo "Adding to list: $file -> $relative_path"
+                  echo "<li><a href=\"$relative_path\">$display_name</a><span class=\"file-path\">$dir_name</span></li>" >> site/reports.tmp
               done
-              reports_html="$reports_html</ul>"
+              
+              # Close the list
+              echo "</ul>" >> site/reports.tmp
+              
+              echo "Reports list generated:"
+              cat site/reports.tmp
           else
-              reports_html="<div class=\"no-reports\"><h2>ℹ️ No HTML Reports Found</h2><p>No HTML reports were found in build directories. Reports will appear here after CI jobs complete.</p></div>"
+              echo "No HTML files found, creating no-reports message..."
+              echo "<div class=\"no-reports\"><h2>ℹ️ No HTML Reports Found</h2><p>No HTML reports were found in build directories. Reports will appear here after CI jobs complete.</p></div>" > site/reports.tmp
           fi
           
-          # Replace reports list placeholder
-          # Use a temporary file for multiline replacement
-          echo "$reports_html" > site/reports.tmp
-          perl -i -pe 'BEGIN{undef $/;} s/REPORTS_LIST_PLACEHOLDER/`cat site\/reports.tmp`/smge' site/index.html
-          rm site/reports.tmp
+          # Replace the placeholder in index.html
+          echo "🔍 Replacing placeholder in index.html..."
+          if [ -f "site/reports.tmp" ]; then
+              # Use sed to replace the placeholder
+              sed -i '/REPORTS_LIST_PLACEHOLDER/r site/reports.tmp' site/index.html
+              sed -i '/REPORTS_LIST_PLACEHOLDER/d' site/index.html
+              echo "Placeholder replaced successfully"
+          else
+              echo "❌ reports.tmp file not found!"
+          fi
+          
+          # Clean up
+          rm -f site/reports.tmp
+          
+          # Show final index.html content for debugging
+          echo "🔍 Final index.html content (first 50 lines):"
+          head -50 site/index.html
           
           # Create a summary of what was collected
           echo "## HTML Reports Summary" > site/SUMMARY.md
