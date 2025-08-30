@@ -1,0 +1,95 @@
+# Reusable workflow for publishing HTML reports to GitHub Pages
+#
+# This workflow automatically collects HTML artifacts from other workflows and publishes them
+# to GitHub Pages for easy access and review.
+
+name: Publish HTML Reports
+
+on:
+  workflow_call:
+    inputs:
+      artifact-pattern:
+        description: 'Pattern to match artifact names to download (e.g., "test-reports-*" or "html-reports-*")'
+        required: false
+        type: string
+        default: 'test-reports-*'
+      destination-dir:
+        description: 'Directory name for GitHub Pages deployment (e.g., "12345678" or "revision-abc123")'
+        required: false
+        type: string
+        default: '${{ github.run_id }}'
+      keep-files:
+        description: 'Whether to keep existing files in gh-pages branch'
+        required: false
+        type: boolean
+        default: true
+      needs-jobs:
+        description: 'Comma-separated list of job names that this workflow depends on'
+        required: false
+        type: string
+        default: ''
+      filename-pattern:
+        description: 'Pattern to match HTML files for index generation (e.g., "index.html" or "*.html")'
+        required: false
+        type: string
+        default: 'index.html'
+
+jobs:
+  publish-html-reports:
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download HTML Report Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ inputs.artifact-pattern }}
+        path: downloaded-artifacts
+        merge-multiple: false
+
+    - name: Collect artifacts
+      run: |
+        mkdir -p site
+        cp -r downloaded-artifacts/* site/
+        echo "Collected all artifacts into 'site' directory."
+
+    - name: Generate index
+      run: |
+        file=site/index.html
+        pattern="${{ inputs.filename-pattern }}"
+        template="<li><a href=\"%s\">%s</a></li>"
+        links=$(cd site && find . -type f -name "$pattern" | sort | awk -v tmpl="$template" '{ printf tmpl, $0, $0 }')
+        
+        cat > $file << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>HTML Reports Index</title>
+          <link rel="stylesheet" href="https://unpkg.com/mvp.css">
+        </head>
+        <body>
+            <p>Generated on: $(date)</p>
+            <p>Listing files matching: $pattern</p>
+            <ul>$links</ul>
+        </body>
+        </html>
+        EOF
+        
+        echo "Generated index with pattern='$pattern' at: $file"
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: site
+        destination_dir: ${{ inputs.destination-dir }}
+        keep_files: ${{ inputs.keep-files }}
+
+    - name: Summary
+      run: |
+        URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ inputs.destination-dir }}/"
+        
+        {
+          echo "- **📋 Dashboard:** [$URL]($URL)"
+          echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
+        } >> "$GITHUB_STEP_SUMMARY"
