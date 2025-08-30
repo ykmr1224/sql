@@ -172,11 +172,21 @@ jobs:
           echo "✅ Generated fake HTML reports in multiple locations:"
           find . -name "*.html" -type f | sort
 
+      - name: Upload HTML Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-reports-${{ github.run_id }}
+          path: |
+            build/reports/**/*.html
+            target/**/*.html
+            custom/reports/**/*.html
+          retention-days: 1
+
       - name: List Generated Reports
         run: |
           echo "## 📊 Generated Test Reports" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The following HTML reports were generated for testing:" >> $GITHUB_STEP_SUMMARY
+          echo "The following HTML reports were generated and uploaded as artifacts:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           find . -name "*.html" -type f | sort | while read file; do
             echo "- \`$file\`" >> $GITHUB_STEP_SUMMARY

@@ -1,11 +1,9 @@
 name: Publish HTML Reports
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-  push:
   workflow_run:
     workflows: ["*"]
     types: [completed]
+  workflow_dispatch:  # Manual trigger for testing
 
 permissions:
   contents: write   # needed to push to gh-pages
@@ -19,13 +17,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Collect all HTML reports from any build/reports directories
+      # Download artifacts from the triggering workflow
+      - name: Download HTML Report Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: html-reports-*
+          path: downloaded-artifacts
+          merge-multiple: true
+        continue-on-error: true
+
+      # Collect all HTML reports from any build/reports directories AND artifacts
       - name: Collect HTML Reports
         run: |
           mkdir -p site
           
-          # Find and copy all HTML files from build/reports directories
-          echo "🔍 Searching for HTML reports..."
+          # Copy artifacts first (from other workflows)
+          echo "🔍 Searching for HTML reports in artifacts..."
+          if [ -d "downloaded-artifacts" ]; then
+            find downloaded-artifacts -name "*.html" -type f | while read file; do
+              echo "Found artifact: $file"
+              # Create directory structure and copy file
+              relative_path="${file#downloaded-artifacts/}"
+              target_dir="site/$(dirname "$relative_path")"
+              mkdir -p "$target_dir"
+              cp "$file" "$target_dir/$relative_path"
+            done
+          fi
+          
+          # Find and copy all HTML files from build/reports directories (current workspace)
+          echo "🔍 Searching for HTML reports in workspace..."
           find . -name "*.html" -path "*/build/reports/*" -type f | while read file; do
             echo "Found: $file"
             # Create directory structure and copy file
