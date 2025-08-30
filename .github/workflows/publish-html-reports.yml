@@ -37,58 +37,13 @@ jobs:
         merge-multiple: true
 
     # Collect all HTML reports from artifacts and workspace
-    - name: Collect HTML reports
+    - name: Collect artifacts
       run: |
         mkdir -p site
-        
-        # Copy artifacts from downloaded artifacts
-        if [ -d "downloaded-artifacts" ]; then
-          echo "📦 Copying artifacts from downloaded-artifacts/"
-          cp -r downloaded-artifacts/* site/ 2>/dev/null || true
-        fi
-        
-        # Find and copy all HTML files from common report directories
-        echo "🔍 Searching for HTML reports in common locations..."
-        
-        # Common patterns for HTML reports
-        patterns=(
-          "*/build/reports/**/*.html"
-          "*/build/test-results/**/*.html"
-          "*/target/surefire-reports/*.html"
-          "*/target/site/**/*.html"
-          "**/coverage/**/*.html"
-          "**/jacoco/**/*.html"
-          "*/integ-test/build/reports/**/*.html"
-        )
-        
-        for pattern in "${patterns[@]}"; do
-          find . -path "$pattern" -type f 2>/dev/null | while read file; do
-            if [ -f "$file" ]; then
-              target_dir="site/$(dirname "${file#./}")"
-              mkdir -p "$target_dir"
-              cp "$file" "$target_dir/"
-              echo "  📄 Copied: $file"
-            fi
-          done
-        done
-        
-        echo "✅ Collected all artifacts and reports into 'site' directory."
-        
-        # Show what we collected
-        report_count=$(find site -name "*.html" -type f | wc -l)
-        echo "📊 Total HTML files collected: $report_count"
-        
-        if [ "$report_count" -gt 0 ]; then
-          echo "📋 HTML files found:"
-          find site -name "*.html" -type f | sort | head -20 | while read file; do
-            echo "  - ${file#site/}"
-          done
-          if [ "$report_count" -gt 20 ]; then
-            echo "  ... and $((report_count - 20)) more files"
-          fi
-        fi
+        cp -r downloaded-artifacts/* site/
+        echo "Collected all artifacts into 'site' directory."
 
-    # Generate an index.html that links every folder/file
+    # 👇 generate an index.html that links every folder/file
     - name: Generate directory listing
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
@@ -118,20 +73,4 @@ jobs:
           echo "- **🔍 Revision:** ${SHORT_COMMIT}"
           echo "- **🌿 Branch:** ${{ github.head_ref || github.ref_name }}"
           echo "- **📅 Generated:** $(date -u)"
-          echo "- **📁 Destination:** ${{ inputs.destination-dir }}"
-          echo ""
-          
-          # Show artifact pattern used
-          echo "**Artifact Pattern:** \`${{ inputs.artifact-pattern }}\`"
-          echo ""
-          
-          # Show search locations
-          echo "**Search Locations:**"
-          echo "- \`*/build/reports/**/*.html\`"
-          echo "- \`*/build/test-results/**/*.html\`"
-          echo "- \`*/target/surefire-reports/*.html\`"
-          echo "- \`*/target/site/**/*.html\`"
-          echo "- \`**/coverage/**/*.html\`"
-          echo "- \`**/jacoco/**/*.html\`"
-          echo "- \`*/integ-test/build/reports/**/*.html\`"
         } >> "$GITHUB_STEP_SUMMARY"
