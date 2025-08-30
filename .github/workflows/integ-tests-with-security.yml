@@ -88,13 +88,3 @@ jobs:
           integ-test/build/reports/**
           integ-test/build/testclusters/*/logs/*
           integ-test/build/testclusters/*/config/*
-
-  publish-html-reports:
-    needs:
-      - security-it-linux
-      - security-it-windows-macos
-    uses: ./.github/workflows/publish-html-reports.yml
-    with:
-      artifact-pattern: 'test-reports-*'
-      destination-dir: '${{ github.run_id }}'
-      keep-files: true

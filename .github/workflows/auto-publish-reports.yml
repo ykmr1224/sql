@@ -1,0 +1,92 @@
+name: Auto Publish Test Reports
+
+on:
+  workflow_run:
+    workflows: ["Security Plugin IT", "Generate Test Reports and Publish"]
+    types: [completed]
+    branches:  # Adjust branches as needed
+
+permissions:
+  contents: write   # needed to push to gh-pages
+  actions: read     # needed to download artifacts from other workflows
+
+jobs:
+  publish-reports:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+    - name: Download artifacts from workflow run
+      uses: actions/github-script@v7
+      with:
+        script: |
+          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             run_id: context.payload.workflow_run.id,
+          });
+          
+          let matchArtifacts = allArtifacts.data.artifacts.filter((artifact) => {
+            return artifact.name.startsWith('test-reports-')
+          });
+          
+          let downloadPromises = matchArtifacts.map(async (artifact) => {
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: artifact.id,
+               archive_format: 'zip',
+            });
+            
+            let fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/${artifact.name}.zip`, Buffer.from(download.data));
+            
+            return artifact.name;
+          });
+          
+          let artifactNames = await Promise.all(downloadPromises);
+          console.log('Downloaded artifacts:', artifactNames);
+
+    - name: Extract artifacts
+      run: |
+        mkdir -p site
+        for zip in *.zip; do
+          if [ -f "$zip" ]; then
+            echo "Extracting $zip..."
+            unzip -q "$zip" -d "site/"
+            rm "$zip"
+          fi
+        done
+        echo "Extracted all artifacts into 'site' directory."
+
+    - name: Generate directory listing
+      uses: yKicchan/generate-directory-listing-action@v1
+      with:
+        target: site
+        viewType: table
+        showHiddenFiles: false
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: site
+        destination_dir: '${{ github.event.workflow_run.id }}'
+        keep_files: true
+
+    - name: Summary
+      run: |
+        SHORT_COMMIT="${{ github.event.workflow_run.head_sha }}"
+        SHORT_COMMIT="${SHORT_COMMIT:0:8}"
+        URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ github.event.workflow_run.id }}/"
+        
+        {
+          echo "### 📊 HTML Reports Auto-Published"
+          echo ""
+          echo "- **📋 Dashboard:** [$URL]($URL)"
+          echo "- **🔍 Revision:** ${SHORT_COMMIT}"
+          echo "- **🌿 Branch:** ${{ github.event.workflow_run.head_branch }}"
+          echo "- **📅 Generated:** $(date -u)"
+          echo "- **🏃 Triggered by:** ${{ github.event.workflow_run.name }} (#${{ github.event.workflow_run.run_number }})"
+        } >> "$GITHUB_STEP_SUMMARY"
