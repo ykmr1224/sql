@@ -9,10 +9,10 @@ on:
         type: string
         default: 'test-reports-*'
       destination-dir:
-        description: 'Directory name for GitHub Pages deployment (e.g., "run-123-abc123" or "revision-abc123")'
+        description: 'Directory name for GitHub Pages deployment (e.g., "12345678" or "revision-abc123")'
         required: false
         type: string
-        default: '${{ github.run_number }}-${{ github.sha }}'
+        default: '${{ github.run_id }}'
       keep-files:
         description: 'Whether to keep existing files in gh-pages branch'
         required: false
