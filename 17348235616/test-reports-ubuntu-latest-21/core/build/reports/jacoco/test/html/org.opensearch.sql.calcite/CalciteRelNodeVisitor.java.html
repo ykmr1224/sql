@@ -1,0 +1,1626 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteRelNodeVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite</a> &gt; <span class="el_source">CalciteRelNodeVisitor.java</span></div><h1>CalciteRelNodeVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite;
+
+import static org.apache.calcite.sql.SqlKind.AS;
+import static org.opensearch.sql.ast.tree.Join.JoinType.ANTI;
+import static org.opensearch.sql.ast.tree.Join.JoinType.SEMI;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
+import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilder.AggCall;
+import org.apache.calcite.util.Holder;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
+import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
+import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.utils.BinUtils;
+import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
+import org.opensearch.sql.common.patterns.PatternUtils;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.utils.ParseUtils;
+
+public class CalciteRelNodeVisitor extends AbstractNodeVisitor&lt;RelNode, CalcitePlanContext&gt; {
+
+  private final CalciteRexNodeVisitor rexVisitor;
+  private final CalciteAggCallVisitor aggVisitor;
+
+<span class="fc" id="L132">  public CalciteRelNodeVisitor() {</span>
+<span class="fc" id="L133">    this.rexVisitor = new CalciteRexNodeVisitor(this);</span>
+<span class="fc" id="L134">    this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);</span>
+<span class="fc" id="L135">  }</span>
+
+  public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
+<span class="nc" id="L138">    return unresolved.accept(this, context);</span>
+  }
+
+  @Override
+  public RelNode visitRelation(Relation node, CalcitePlanContext context) {
+<span class="nc" id="L143">    context.relBuilder.scan(node.getTableQualifiedName().getParts());</span>
+<span class="nc" id="L144">    return context.relBuilder.peek();</span>
+  }
+
+  // This is a tool method to add an existed RelOptTable to builder stack, not used for now
+  private RelBuilder scan(RelOptTable tableSchema, CalcitePlanContext context) {
+<span class="nc" id="L149">    final RelNode scan =</span>
+        context
+            .relBuilder
+<span class="nc" id="L152">            .getScanFactory()</span>
+<span class="nc" id="L153">            .createScan(ViewExpanders.simpleContext(context.relBuilder.getCluster()), tableSchema);</span>
+<span class="nc" id="L154">    context.relBuilder.push(scan);</span>
+<span class="nc" id="L155">    return context.relBuilder;</span>
+  }
+
+  @Override
+  public RelNode visitFilter(Filter node, CalcitePlanContext context) {
+<span class="nc" id="L160">    visitChildren(node, context);</span>
+<span class="nc" id="L161">    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());</span>
+<span class="nc" id="L162">    final Holder&lt;@Nullable RexCorrelVariable&gt; v = Holder.empty();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">    if (containsSubqueryExpression) {</span>
+<span class="nc" id="L164">      context.relBuilder.variable(v::set);</span>
+<span class="nc" id="L165">      context.pushCorrelVar(v.get());</span>
+    }
+<span class="nc" id="L167">    RexNode condition = rexVisitor.analyze(node.getCondition(), context);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">    if (containsSubqueryExpression) {</span>
+<span class="nc" id="L169">      context.relBuilder.filter(ImmutableList.of(v.get().id), condition);</span>
+<span class="nc" id="L170">      context.popCorrelVar();</span>
+    } else {
+<span class="nc" id="L172">      context.relBuilder.filter(condition);</span>
+    }
+<span class="nc" id="L174">    return context.relBuilder.peek();</span>
+  }
+
+  private boolean containsSubqueryExpression(Node expr) {
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    if (expr == null) {</span>
+<span class="nc" id="L179">      return false;</span>
+    }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">    if (expr instanceof SubqueryExpression) {</span>
+<span class="nc" id="L182">      return true;</span>
+    }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (expr instanceof Let l) {</span>
+<span class="nc" id="L185">      return containsSubqueryExpression(l.getExpression());</span>
+    }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    for (Node child : expr.getChild()) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (containsSubqueryExpression(child)) {</span>
+<span class="nc" id="L189">        return true;</span>
+      }
+<span class="nc" id="L191">    }</span>
+<span class="nc" id="L192">    return false;</span>
+  }
+
+  @Override
+  public RelNode visitProject(Project node, CalcitePlanContext context) {
+<span class="nc" id="L197">    visitChildren(node, context);</span>
+
+<span class="nc bnc" id="L199" title="All 2 branches missed.">    if (isSingleAllFieldsProject(node)) {</span>
+<span class="nc" id="L200">      return handleAllFieldsProject(node, context);</span>
+    }
+
+<span class="nc" id="L203">    List&lt;String&gt; currentFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L204">    List&lt;RexNode&gt; expandedFields =</span>
+<span class="nc" id="L205">        expandProjectFields(node.getProjectList(), currentFields, context);</span>
+
+<span class="nc bnc" id="L207" title="All 2 branches missed.">    if (node.isExcluded()) {</span>
+<span class="nc" id="L208">      validateExclusion(expandedFields, currentFields);</span>
+<span class="nc" id="L209">      context.relBuilder.projectExcept(expandedFields);</span>
+    } else {
+<span class="nc bnc" id="L211" title="All 2 branches missed.">      if (!context.isResolvingSubquery()) {</span>
+<span class="nc" id="L212">        context.setProjectVisited(true);</span>
+      }
+<span class="nc" id="L214">      context.relBuilder.project(expandedFields);</span>
+    }
+<span class="nc" id="L216">    return context.relBuilder.peek();</span>
+  }
+
+  private boolean isSingleAllFieldsProject(Project node) {
+<span class="nc bnc" id="L220" title="All 2 branches missed.">    return node.getProjectList().size() == 1</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        &amp;&amp; node.getProjectList().getFirst() instanceof AllFields;</span>
+  }
+
+  private RelNode handleAllFieldsProject(Project node, CalcitePlanContext context) {
+<span class="nc bnc" id="L225" title="All 2 branches missed.">    if (node.isExcluded()) {</span>
+<span class="nc" id="L226">      throw new IllegalArgumentException(</span>
+          &quot;Invalid field exclusion: operation would exclude all fields from the result set&quot;);
+    }
+<span class="nc" id="L229">    AllFields allFields = (AllFields) node.getProjectList().getFirst();</span>
+<span class="nc" id="L230">    tryToRemoveNestedFields(context);</span>
+<span class="nc" id="L231">    tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);</span>
+<span class="nc" id="L232">    return context.relBuilder.peek();</span>
+  }
+
+  private List&lt;RexNode&gt; expandProjectFields(
+      List&lt;UnresolvedExpression&gt; projectList,
+      List&lt;String&gt; currentFields,
+      CalcitePlanContext context) {
+<span class="nc" id="L239">    List&lt;RexNode&gt; expandedFields = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L240">    Set&lt;String&gt; addedFields = new HashSet&lt;&gt;();</span>
+
+<span class="nc bnc" id="L242" title="All 2 branches missed.">    for (UnresolvedExpression expr : projectList) {</span>
+<span class="nc bnc" id="L243" title="All 3 branches missed.">      switch (expr) {</span>
+<span class="nc" id="L244">        case Field field -&gt; {</span>
+<span class="nc" id="L245">          String fieldName = field.getField().toString();</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">          if (WildcardUtils.containsWildcard(fieldName)) {</span>
+<span class="nc" id="L247">            List&lt;String&gt; matchingFields =</span>
+<span class="nc" id="L248">                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">                    .filter(f -&gt; !isMetadataField(f))</span>
+<span class="nc" id="L250">                    .filter(addedFields::add)</span>
+<span class="nc" id="L251">                    .toList();</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">            if (matchingFields.isEmpty()) {</span>
+<span class="nc" id="L253">              continue;</span>
+            }
+<span class="nc" id="L255">            matchingFields.forEach(f -&gt; expandedFields.add(context.relBuilder.field(f)));</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">          } else if (addedFields.add(fieldName)) {</span>
+<span class="nc" id="L257">            expandedFields.add(rexVisitor.analyze(field, context));</span>
+          }
+<span class="nc" id="L259">        }</span>
+<span class="nc" id="L260">        case AllFields ignored -&gt; {</span>
+<span class="nc" id="L261">          currentFields.stream()</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">              .filter(field -&gt; !isMetadataField(field))</span>
+<span class="nc" id="L263">              .filter(addedFields::add)</span>
+<span class="nc" id="L264">              .forEach(field -&gt; expandedFields.add(context.relBuilder.field(field)));</span>
+<span class="nc" id="L265">        }</span>
+<span class="nc" id="L266">        default -&gt; throw new IllegalStateException(</span>
+<span class="nc" id="L267">            &quot;Unexpected expression type in project list: &quot; + expr.getClass().getSimpleName());</span>
+      }
+<span class="nc" id="L269">    }</span>
+
+<span class="nc bnc" id="L271" title="All 2 branches missed.">    if (expandedFields.isEmpty()) {</span>
+<span class="nc" id="L272">      validateWildcardPatterns(projectList, currentFields);</span>
+    }
+
+<span class="nc" id="L275">    return expandedFields;</span>
+  }
+
+  private void validateExclusion(List&lt;RexNode&gt; fieldsToExclude, List&lt;String&gt; currentFields) {
+<span class="nc" id="L279">    Set&lt;String&gt; nonMetaFields =</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">        currentFields.stream().filter(field -&gt; !isMetadataField(field)).collect(Collectors.toSet());</span>
+
+<span class="nc bnc" id="L282" title="All 2 branches missed.">    if (fieldsToExclude.size() &gt;= nonMetaFields.size()) {</span>
+<span class="nc" id="L283">      throw new IllegalArgumentException(</span>
+          &quot;Invalid field exclusion: operation would exclude all fields from the result set&quot;);
+    }
+<span class="nc" id="L286">  }</span>
+
+  private void validateWildcardPatterns(
+      List&lt;UnresolvedExpression&gt; projectList, List&lt;String&gt; currentFields) {
+<span class="nc" id="L290">    String firstWildcardPattern =</span>
+<span class="nc" id="L291">        projectList.stream()</span>
+<span class="nc" id="L292">            .filter(</span>
+                expr -&gt;
+<span class="nc" id="L294">                    expr instanceof Field field</span>
+<span class="nc bnc" id="L295" title="All 4 branches missed.">                        &amp;&amp; WildcardUtils.containsWildcard(field.getField().toString()))</span>
+<span class="nc" id="L296">            .map(expr -&gt; ((Field) expr).getField().toString())</span>
+<span class="nc" id="L297">            .findFirst()</span>
+<span class="nc" id="L298">            .orElse(null);</span>
+
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    if (firstWildcardPattern != null) {</span>
+<span class="nc" id="L301">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L302">          String.format(&quot;wildcard pattern [%s] matches no fields&quot;, firstWildcardPattern));</span>
+    }
+<span class="nc" id="L304">  }</span>
+
+  private boolean isMetadataField(String fieldName) {
+<span class="nc" id="L307">    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);</span>
+  }
+
+  /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
+  private static void tryToRemoveNestedFields(CalcitePlanContext context) {
+<span class="nc" id="L312">    Set&lt;String&gt; allFields = new HashSet&lt;&gt;(context.relBuilder.peek().getRowType().getFieldNames());</span>
+<span class="nc" id="L313">    List&lt;RexNode&gt; duplicatedNestedFields =</span>
+<span class="nc" id="L314">        allFields.stream()</span>
+<span class="nc" id="L315">            .filter(</span>
+                field -&gt; {
+<span class="nc" id="L317">                  int lastDot = field.lastIndexOf(&quot;.&quot;);</span>
+<span class="nc bnc" id="L318" title="All 4 branches missed.">                  return -1 != lastDot &amp;&amp; allFields.contains(field.substring(0, lastDot));</span>
+                })
+<span class="nc" id="L320">            .map(field -&gt; (RexNode) context.relBuilder.field(field))</span>
+<span class="nc" id="L321">            .toList();</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">    if (!duplicatedNestedFields.isEmpty()) {</span>
+      // This is a workaround to avoid the bug in Calcite:
+      // In {@link RelBuilder#project_(Iterable, Iterable, Iterable, boolean, Iterable)},
+      // the check `RexUtil.isIdentity(nodeList, inputRowType)` will pass when the input
+      // and the output nodeList refer to the same fields, even if the field name list
+      // is different. As a result, renaming operation will not be applied. This makes
+      // the logical plan for the flatten command incorrect, where the operation is
+      // equivalent to renaming the flattened sub-fields. E.g. emp.name -&gt; name.
+<span class="nc" id="L330">      forceProjectExcept(context.relBuilder, duplicatedNestedFields);</span>
+    }
+<span class="nc" id="L332">  }</span>
+
+  /**
+   * Project except with force.
+   *
+   * &lt;p&gt;This method is copied from {@link RelBuilder#projectExcept(Iterable)} and modified with the
+   * force flag in project set to true. It is subject to future changes in Calcite.
+   *
+   * @param relBuilder RelBuilder
+   * @param expressions Expressions to exclude from the project
+   */
+  private static void forceProjectExcept(RelBuilder relBuilder, Iterable&lt;RexNode&gt; expressions) {
+<span class="nc" id="L344">    List&lt;RexNode&gt; allExpressions = new ArrayList&lt;&gt;(relBuilder.fields());</span>
+<span class="nc" id="L345">    Set&lt;RexNode&gt; excludeExpressions = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">    for (RexNode excludeExp : expressions) {</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">      if (!excludeExpressions.add(excludeExp)) {</span>
+<span class="nc" id="L348">        throw new IllegalArgumentException(</span>
+            &quot;Input list contains duplicates. Expression &quot; + excludeExp + &quot; exists multiple times.&quot;);
+      }
+<span class="nc bnc" id="L351" title="All 2 branches missed.">      if (!allExpressions.remove(excludeExp)) {</span>
+<span class="nc" id="L352">        throw new IllegalArgumentException(&quot;Expression &quot; + excludeExp.toString() + &quot; not found.&quot;);</span>
+      }
+<span class="nc" id="L354">    }</span>
+<span class="nc" id="L355">    relBuilder.project(allExpressions, ImmutableList.of(), true);</span>
+<span class="nc" id="L356">  }</span>
+
+  /**
+   * Try to remove metadata fields in two cases:
+   *
+   * &lt;p&gt;1. It's explicitly specified excluding by force, usually for join or subquery.
+   *
+   * &lt;p&gt;2. There is no other project ever visited in the main query
+   *
+   * @param context CalcitePlanContext
+   * @param excludeByForce whether exclude metadata fields by force
+   */
+  private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+<span class="nc bnc" id="L369" title="All 4 branches missed.">    if (excludeByForce || !context.isProjectVisited()) {</span>
+<span class="nc" id="L370">      List&lt;String&gt; originalFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L371">      List&lt;RexNode&gt; metaFieldsRef =</span>
+<span class="nc" id="L372">          originalFields.stream()</span>
+<span class="nc" id="L373">              .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)</span>
+<span class="nc" id="L374">              .map(metaField -&gt; (RexNode) context.relBuilder.field(metaField))</span>
+<span class="nc" id="L375">              .toList();</span>
+      // Remove metadata fields if there is and ensure there are other fields.
+<span class="nc bnc" id="L377" title="All 4 branches missed.">      if (!metaFieldsRef.isEmpty() &amp;&amp; metaFieldsRef.size() != originalFields.size()) {</span>
+<span class="nc" id="L378">        context.relBuilder.projectExcept(metaFieldsRef);</span>
+      }
+    }
+<span class="nc" id="L381">  }</span>
+
+  @Override
+  public RelNode visitRename(Rename node, CalcitePlanContext context) {
+<span class="nc" id="L385">    visitChildren(node, context);</span>
+<span class="nc" id="L386">    List&lt;String&gt; originalNames = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L387">    List&lt;String&gt; newNames = new ArrayList&lt;&gt;(originalNames);</span>
+<span class="nc bnc" id="L388" title="All 2 branches missed.">    for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">      if (renameMap.getTarget() instanceof Field t) {</span>
+<span class="nc" id="L390">        String newName = t.getField().toString();</span>
+<span class="nc" id="L391">        RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        if (check instanceof RexInputRef ref) {</span>
+<span class="nc" id="L393">          newNames.set(ref.getIndex(), newName);</span>
+        } else {
+<span class="nc" id="L395">          throw new SemanticCheckException(</span>
+<span class="nc" id="L396">              String.format(&quot;the original field %s cannot be resolved&quot;, renameMap.getOrigin()));</span>
+        }
+<span class="nc" id="L398">      } else {</span>
+<span class="nc" id="L399">        throw new SemanticCheckException(</span>
+<span class="nc" id="L400">            String.format(&quot;the target expected to be field, but is %s&quot;, renameMap.getTarget()));</span>
+      }
+<span class="nc" id="L402">    }</span>
+<span class="nc" id="L403">    context.relBuilder.rename(newNames);</span>
+<span class="nc" id="L404">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitSort(Sort node, CalcitePlanContext context) {
+<span class="nc" id="L409">    visitChildren(node, context);</span>
+<span class="nc" id="L410">    List&lt;RexNode&gt; sortList =</span>
+<span class="nc" id="L411">        node.getSortList().stream()</span>
+<span class="nc" id="L412">            .map(</span>
+                expr -&gt; {
+<span class="nc" id="L414">                  RexNode sortField = rexVisitor.analyze(expr, context);</span>
+<span class="nc" id="L415">                  SortOption sortOption = analyzeSortOption(expr.getFieldArgs());</span>
+                  // Default is ASC
+<span class="nc bnc" id="L417" title="All 2 branches missed.">                  if (sortOption.getSortOrder() == DESC) {</span>
+<span class="nc" id="L418">                    sortField = context.relBuilder.desc(sortField);</span>
+                  }
+<span class="nc bnc" id="L420" title="All 2 branches missed.">                  if (sortOption.getNullOrder() == NULL_LAST) {</span>
+<span class="nc" id="L421">                    sortField = context.relBuilder.nullsLast(sortField);</span>
+                  } else {
+<span class="nc" id="L423">                    sortField = context.relBuilder.nullsFirst(sortField);</span>
+                  }
+<span class="nc" id="L425">                  return sortField;</span>
+                })
+<span class="nc" id="L427">            .collect(Collectors.toList());</span>
+<span class="nc" id="L428">    context.relBuilder.sort(sortList);</span>
+    // Apply count parameter as limit
+<span class="nc bnc" id="L430" title="All 2 branches missed.">    if (node.getCount() != 0) {</span>
+<span class="nc" id="L431">      context.relBuilder.limit(0, node.getCount());</span>
+    }
+
+<span class="nc" id="L434">    return context.relBuilder.peek();</span>
+  }
+
+  private SortOption analyzeSortOption(List&lt;Argument&gt; fieldArgs) {
+<span class="nc" id="L438">    Boolean asc = (Boolean) fieldArgs.get(0).getValue().getValue();</span>
+<span class="nc" id="L439">    Optional&lt;Argument&gt; nullFirst =</span>
+<span class="nc" id="L440">        fieldArgs.stream().filter(option -&gt; &quot;nullFirst&quot;.equals(option.getArgName())).findFirst();</span>
+
+<span class="nc bnc" id="L442" title="All 2 branches missed.">    if (nullFirst.isPresent()) {</span>
+<span class="nc" id="L443">      Boolean isNullFirst = (Boolean) nullFirst.get().getValue().getValue();</span>
+<span class="nc bnc" id="L444" title="All 4 branches missed.">      return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));</span>
+    }
+<span class="nc bnc" id="L446" title="All 2 branches missed.">    return asc ? SortOption.DEFAULT_ASC : DEFAULT_DESC;</span>
+  }
+
+  @Override
+  public RelNode visitHead(Head node, CalcitePlanContext context) {
+<span class="nc" id="L451">    visitChildren(node, context);</span>
+<span class="nc" id="L452">    context.relBuilder.limit(node.getFrom(), node.getSize());</span>
+<span class="nc" id="L453">    return context.relBuilder.peek();</span>
+  }
+
+  private static final String REVERSE_ROW_NUM = &quot;__reverse_row_num__&quot;;
+
+  @Override
+  public RelNode visitReverse(
+      org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
+<span class="nc" id="L461">    visitChildren(node, context);</span>
+    // Add ROW_NUMBER() column
+<span class="nc" id="L463">    RexNode rowNumber =</span>
+        context
+            .relBuilder
+<span class="nc" id="L466">            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)</span>
+<span class="nc" id="L467">            .over()</span>
+<span class="nc" id="L468">            .rowsTo(RexWindowBounds.CURRENT_ROW)</span>
+<span class="nc" id="L469">            .as(REVERSE_ROW_NUM);</span>
+<span class="nc" id="L470">    context.relBuilder.projectPlus(rowNumber);</span>
+    // Sort by row number descending
+<span class="nc" id="L472">    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));</span>
+    // Remove row number column
+<span class="nc" id="L474">    context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));</span>
+<span class="nc" id="L475">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+<span class="nc" id="L480">    visitChildren(node, context);</span>
+
+<span class="nc" id="L482">    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);</span>
+<span class="nc" id="L483">    String fieldName = BinUtils.extractFieldName(node);</span>
+
+<span class="nc" id="L485">    RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);</span>
+
+<span class="nc bnc" id="L487" title="All 2 branches missed.">    String alias = node.getAlias() != null ? node.getAlias() : fieldName;</span>
+<span class="nc" id="L488">    projectPlusOverriding(List.of(binExpression), List.of(alias), context);</span>
+
+<span class="nc" id="L490">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitParse(Parse node, CalcitePlanContext context) {
+<span class="nc" id="L495">    visitChildren(node, context);</span>
+<span class="nc" id="L496">    buildParseRelNode(node, context);</span>
+<span class="nc" id="L497">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitSpath(SPath node, CalcitePlanContext context) {
+<span class="nc" id="L502">    return visitEval(node.rewriteAsEval(), context);</span>
+  }
+
+  @Override
+  public RelNode visitPatterns(Patterns node, CalcitePlanContext context) {
+<span class="nc" id="L507">    visitChildren(node, context);</span>
+<span class="nc bnc" id="L508" title="All 2 branches missed.">    if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {</span>
+<span class="nc" id="L509">      Parse parseNode =</span>
+          new Parse(
+              ParseMethod.PATTERNS,
+<span class="nc" id="L512">              node.getSourceField(),</span>
+<span class="nc" id="L513">              node.getArguments().getOrDefault(PatternUtils.PATTERN, AstDSL.stringLiteral(&quot;&quot;)),</span>
+<span class="nc" id="L514">              node.getArguments());</span>
+<span class="nc" id="L515">      buildParseRelNode(parseNode, context);</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">      if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {</span>
+<span class="nc" id="L517">        Field patternField = AstDSL.field(node.getAlias());</span>
+<span class="nc" id="L518">        List&lt;AggCall&gt; aggCalls =</span>
+<span class="nc" id="L519">            Stream.of(</span>
+                    new Alias(
+                        PatternUtils.PATTERN_COUNT,
+<span class="nc" id="L522">                        new AggregateFunction(BuiltinFunctionName.COUNT.name(), patternField)),</span>
+                    new Alias(
+                        PatternUtils.SAMPLE_LOGS,
+                        new AggregateFunction(
+<span class="nc" id="L526">                            BuiltinFunctionName.TAKE.name(),</span>
+<span class="nc" id="L527">                            node.getSourceField(),</span>
+<span class="nc" id="L528">                            ImmutableList.of(node.getPatternMaxSampleCount()))))</span>
+<span class="nc" id="L529">                .map(aggFun -&gt; aggVisitor.analyze(aggFun, context))</span>
+<span class="nc" id="L530">                .toList();</span>
+<span class="nc" id="L531">        List&lt;RexNode&gt; groupByList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L532">        groupByList.add(rexVisitor.analyze(patternField, context));</span>
+<span class="nc" id="L533">        groupByList.addAll(</span>
+<span class="nc" id="L534">            node.getPartitionByList().stream()</span>
+<span class="nc" id="L535">                .map(expr -&gt; rexVisitor.analyze(expr, context))</span>
+<span class="nc" id="L536">                .toList());</span>
+<span class="nc" id="L537">        context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCalls);</span>
+
+<span class="nc" id="L539">        RexNode parsedNode =</span>
+<span class="nc" id="L540">            PPLFuncImpTable.INSTANCE.resolve(</span>
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+<span class="nc" id="L543">                context.relBuilder.field(node.getAlias()),</span>
+<span class="nc" id="L544">                context.relBuilder.field(PatternUtils.SAMPLE_LOGS));</span>
+<span class="nc" id="L545">        flattenParsedPattern(node.getAlias(), parsedNode, context, false);</span>
+<span class="nc" id="L546">        context.relBuilder.projectExcept(context.relBuilder.field(PatternUtils.SAMPLE_LOGS));</span>
+<span class="nc" id="L547">      } else {</span>
+<span class="nc" id="L548">        RexNode parsedNode =</span>
+<span class="nc" id="L549">            PPLFuncImpTable.INSTANCE.resolve(</span>
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+<span class="nc" id="L552">                context.relBuilder.field(node.getAlias()),</span>
+<span class="nc" id="L553">                rexVisitor.analyze(node.getSourceField(), context));</span>
+<span class="nc" id="L554">        flattenParsedPattern(node.getAlias(), parsedNode, context, false);</span>
+      }
+<span class="nc" id="L556">    } else {</span>
+<span class="nc" id="L557">      List&lt;UnresolvedExpression&gt; funcParamList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L558">      funcParamList.add(node.getSourceField());</span>
+<span class="nc" id="L559">      funcParamList.add(node.getPatternMaxSampleCount());</span>
+<span class="nc" id="L560">      funcParamList.add(node.getPatternBufferLimit());</span>
+<span class="nc" id="L561">      funcParamList.addAll(</span>
+<span class="nc" id="L562">          node.getArguments().entrySet().stream()</span>
+<span class="nc" id="L563">              .map(entry -&gt; new Argument(entry.getKey(), entry.getValue()))</span>
+<span class="nc" id="L564">              .sorted(Comparator.comparing(Argument::getArgName))</span>
+<span class="nc" id="L565">              .toList());</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">      if (PatternMode.LABEL.equals(</span>
+<span class="nc" id="L567">          node.getPatternMode())) { // Label mode, resolve the plan as window function</span>
+<span class="nc" id="L568">        RexNode windowNode =</span>
+<span class="nc" id="L569">            rexVisitor.analyze(</span>
+                new WindowFunction(
+                    new Function(
+<span class="nc" id="L572">                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),</span>
+                        funcParamList),
+<span class="nc" id="L574">                    node.getPartitionByList(),</span>
+<span class="nc" id="L575">                    List.of()),</span>
+                context);
+<span class="nc" id="L577">        RexNode nestedNode =</span>
+<span class="nc" id="L578">            context.relBuilder.alias(</span>
+<span class="nc" id="L579">                PPLFuncImpTable.INSTANCE.resolve(</span>
+                    context.rexBuilder,
+                    BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+<span class="nc" id="L582">                    rexVisitor.analyze(node.getSourceField(), context),</span>
+                    windowNode),
+<span class="nc" id="L584">                node.getAlias());</span>
+<span class="nc" id="L585">        context.relBuilder.projectPlus(nestedNode);</span>
+<span class="nc" id="L586">        flattenParsedPattern(</span>
+<span class="nc" id="L587">            node.getAlias(), context.relBuilder.field(node.getAlias()), context, false);</span>
+<span class="nc" id="L588">      } else { // Aggregation mode, resolve plan as aggregation</span>
+<span class="nc" id="L589">        AggCall aggCall =</span>
+            aggVisitor
+<span class="nc" id="L591">                .analyze(</span>
+                    new Function(
+<span class="nc" id="L593">                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),</span>
+                        funcParamList),
+                    context)
+<span class="nc" id="L596">                .as(node.getAlias());</span>
+<span class="nc" id="L597">        List&lt;RexNode&gt; groupByList =</span>
+<span class="nc" id="L598">            node.getPartitionByList().stream()</span>
+<span class="nc" id="L599">                .map(expr -&gt; rexVisitor.analyze(expr, context))</span>
+<span class="nc" id="L600">                .toList();</span>
+<span class="nc" id="L601">        context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);</span>
+<span class="nc" id="L602">        buildExpandRelNode(</span>
+<span class="nc" id="L603">            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);</span>
+<span class="nc" id="L604">        flattenParsedPattern(</span>
+<span class="nc" id="L605">            node.getAlias(), context.relBuilder.field(node.getAlias()), context, true);</span>
+      }
+    }
+<span class="nc" id="L608">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitEval(Eval node, CalcitePlanContext context) {
+<span class="nc" id="L613">    visitChildren(node, context);</span>
+<span class="nc" id="L614">    node.getExpressionList()</span>
+<span class="nc" id="L615">        .forEach(</span>
+            expr -&gt; {
+<span class="nc" id="L617">              boolean containsSubqueryExpression = containsSubqueryExpression(expr);</span>
+<span class="nc" id="L618">              final Holder&lt;@Nullable RexCorrelVariable&gt; v = Holder.empty();</span>
+<span class="nc bnc" id="L619" title="All 2 branches missed.">              if (containsSubqueryExpression) {</span>
+<span class="nc" id="L620">                context.relBuilder.variable(v::set);</span>
+<span class="nc" id="L621">                context.pushCorrelVar(v.get());</span>
+              }
+<span class="nc" id="L623">              RexNode eval = rexVisitor.analyze(expr, context);</span>
+<span class="nc bnc" id="L624" title="All 2 branches missed.">              if (containsSubqueryExpression) {</span>
+                // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
+                // projectPlus(Iterable&lt;CorrelationId&gt; variablesSet, RexNode... nodes)
+<span class="nc" id="L627">                context.relBuilder.project(</span>
+<span class="nc" id="L628">                    Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),</span>
+<span class="nc" id="L629">                    ImmutableList.of(),</span>
+                    false,
+<span class="nc" id="L631">                    ImmutableList.of(v.get().id));</span>
+<span class="nc" id="L632">                context.popCorrelVar();</span>
+              } else {
+                // Overriding the existing field if the alias has the same name with original field.
+<span class="nc" id="L635">                String alias =</span>
+<span class="nc" id="L636">                    ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);</span>
+<span class="nc" id="L637">                projectPlusOverriding(List.of(eval), List.of(alias), context);</span>
+              }
+<span class="nc" id="L639">            });</span>
+<span class="nc" id="L640">    return context.relBuilder.peek();</span>
+  }
+
+  private void projectPlusOverriding(
+      List&lt;RexNode&gt; newFields, List&lt;String&gt; newNames, CalcitePlanContext context) {
+<span class="nc" id="L645">    List&lt;String&gt; originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L646">    List&lt;RexNode&gt; toOverrideList =</span>
+<span class="nc" id="L647">        originalFieldNames.stream()</span>
+<span class="nc" id="L648">            .filter(newNames::contains)</span>
+<span class="nc" id="L649">            .map(a -&gt; (RexNode) context.relBuilder.field(a))</span>
+<span class="nc" id="L650">            .toList();</span>
+    // 1. add the new fields, For example &quot;age0, country0&quot;
+<span class="nc" id="L652">    context.relBuilder.projectPlus(newFields);</span>
+    // 2. drop the overriding field list, it's duplicated now. For example &quot;age, country&quot;
+<span class="nc bnc" id="L654" title="All 2 branches missed.">    if (!toOverrideList.isEmpty()) {</span>
+<span class="nc" id="L655">      context.relBuilder.projectExcept(toOverrideList);</span>
+    }
+    // 3. get current fields list, the &quot;age0, country0&quot; should include in it.
+<span class="nc" id="L658">    List&lt;String&gt; currentFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L659">    int length = currentFields.size();</span>
+    // 4. add new names &quot;age, country&quot; to the end of rename list.
+<span class="nc" id="L661">    List&lt;String&gt; expectedRenameFields =</span>
+<span class="nc" id="L662">        new ArrayList&lt;&gt;(currentFields.subList(0, length - newNames.size()));</span>
+<span class="nc" id="L663">    expectedRenameFields.addAll(newNames);</span>
+    // 5. rename
+<span class="nc" id="L665">    context.relBuilder.rename(expectedRenameFields);</span>
+<span class="nc" id="L666">  }</span>
+
+  /**
+   * Resolve the aggregation with trimming unused fields to avoid bugs in {@link
+   * org.apache.calcite.sql2rel.RelDecorrelator#decorrelateRel(Aggregate, boolean)}
+   *
+   * @param groupExprList group by expression list
+   * @param aggExprList aggregate expression list
+   * @param context CalcitePlanContext
+   * @return Pair of (group-by list, field list, aggregate list)
+   */
+  private Pair&lt;List&lt;RexNode&gt;, List&lt;AggCall&gt;&gt; aggregateWithTrimming(
+      List&lt;UnresolvedExpression&gt; groupExprList,
+      List&lt;UnresolvedExpression&gt; aggExprList,
+      CalcitePlanContext context) {
+    // Example 1: source=t | where a &gt; 1 | stats avg(b + 1) by c
+    // Before: Aggregate(avg(b + 1))
+    //         \- Filter(a &gt; 1)
+    //            \- Scan t
+    // After: Aggregate(avg(b + 1))
+    //        \- Project([c, b])
+    //           \- Filter(a &gt; 1)
+    //              \- Scan t
+    //
+    // Example 2: source=t | where a &gt; 1 | top b by c
+    // Before: Aggregate(count)
+    //         \-Filter(a &gt; 1)
+    //           \- Scan t
+    // After: Aggregate(count)
+    //        \- Project([c, b])
+    //           \- Filter(a &gt; 1)
+    //              \- Scan t
+    // Example 3: source=t | stats count(): no project added for count()
+    // Before: Aggregate(count)
+    //           \- Scan t
+    // After: Aggregate(count)
+    //           \- Scan t
+<span class="nc" id="L703">    Pair&lt;List&lt;RexNode&gt;, List&lt;AggCall&gt;&gt; resolved =</span>
+<span class="nc" id="L704">        resolveAttributesForAggregation(groupExprList, aggExprList, context);</span>
+<span class="nc" id="L705">    List&lt;RexInputRef&gt; trimmedRefs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L706">    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getLeft())); // group-by keys first</span>
+<span class="nc" id="L707">    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getRight()));</span>
+<span class="nc" id="L708">    context.relBuilder.project(trimmedRefs);</span>
+
+    // Re-resolve all attributes based on adding trimmed Project.
+    // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
+    // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
+<span class="nc" id="L713">    Pair&lt;List&lt;RexNode&gt;, List&lt;AggCall&gt;&gt; reResolved =</span>
+<span class="nc" id="L714">        resolveAttributesForAggregation(groupExprList, aggExprList, context);</span>
+<span class="nc" id="L715">    context.relBuilder.aggregate(</span>
+<span class="nc" id="L716">        context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());</span>
+<span class="nc" id="L717">    return Pair.of(reResolved.getLeft(), reResolved.getRight());</span>
+  }
+
+  /**
+   * Resolve attributes for aggregation.
+   *
+   * @param groupExprList group by expression list
+   * @param aggExprList aggregate expression list
+   * @param context CalcitePlanContext
+   * @return Pair of (group-by list, aggregate list)
+   */
+  private Pair&lt;List&lt;RexNode&gt;, List&lt;AggCall&gt;&gt; resolveAttributesForAggregation(
+      List&lt;UnresolvedExpression&gt; groupExprList,
+      List&lt;UnresolvedExpression&gt; aggExprList,
+      CalcitePlanContext context) {
+<span class="nc" id="L732">    List&lt;AggCall&gt; aggCallList =</span>
+<span class="nc" id="L733">        aggExprList.stream().map(expr -&gt; aggVisitor.analyze(expr, context)).toList();</span>
+<span class="nc" id="L734">    List&lt;RexNode&gt; groupByList =</span>
+<span class="nc" id="L735">        groupExprList.stream().map(expr -&gt; rexVisitor.analyze(expr, context)).toList();</span>
+<span class="nc" id="L736">    return Pair.of(groupByList, aggCallList);</span>
+  }
+
+  @Override
+  public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+<span class="nc" id="L741">    visitChildren(node, context);</span>
+
+<span class="nc" id="L743">    List&lt;UnresolvedExpression&gt; aggExprList = node.getAggExprList();</span>
+<span class="nc" id="L744">    List&lt;UnresolvedExpression&gt; groupExprList = new ArrayList&lt;&gt;();</span>
+    // The span column is always the first column in result whatever
+    // the order of span in query is first or last one
+<span class="nc" id="L747">    UnresolvedExpression span = node.getSpan();</span>
+<span class="nc bnc" id="L748" title="All 2 branches missed.">    if (!Objects.isNull(span)) {</span>
+<span class="nc" id="L749">      groupExprList.add(span);</span>
+    }
+<span class="nc" id="L751">    groupExprList.addAll(node.getGroupExprList());</span>
+<span class="nc" id="L752">    Pair&lt;List&lt;RexNode&gt;, List&lt;AggCall&gt;&gt; aggregationAttributes =</span>
+<span class="nc" id="L753">        aggregateWithTrimming(groupExprList, aggExprList, context);</span>
+
+    // schema reordering
+    // As an example, in command `stats count() by colA, colB`,
+    // the sequence of output schema is &quot;count, colA, colB&quot;.
+<span class="nc" id="L758">    List&lt;RexNode&gt; outputFields = context.relBuilder.fields();</span>
+<span class="nc" id="L759">    int numOfOutputFields = outputFields.size();</span>
+<span class="nc" id="L760">    int numOfAggList = aggExprList.size();</span>
+<span class="nc" id="L761">    List&lt;RexNode&gt; reordered = new ArrayList&lt;&gt;(numOfOutputFields);</span>
+    // Add aggregation results first
+<span class="nc" id="L763">    List&lt;RexNode&gt; aggRexList =</span>
+<span class="nc" id="L764">        outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);</span>
+<span class="nc" id="L765">    reordered.addAll(aggRexList);</span>
+    // Add group by columns
+<span class="nc" id="L767">    List&lt;RexNode&gt; aliasedGroupByList =</span>
+<span class="nc" id="L768">        aggregationAttributes.getLeft().stream()</span>
+<span class="nc" id="L769">            .map(this::extractAliasLiteral)</span>
+<span class="nc" id="L770">            .flatMap(Optional::stream)</span>
+<span class="nc" id="L771">            .map(ref -&gt; ((RexLiteral) ref).getValueAs(String.class))</span>
+<span class="nc" id="L772">            .map(context.relBuilder::field)</span>
+<span class="nc" id="L773">            .map(f -&gt; (RexNode) f)</span>
+<span class="nc" id="L774">            .toList();</span>
+<span class="nc" id="L775">    reordered.addAll(aliasedGroupByList);</span>
+<span class="nc" id="L776">    context.relBuilder.project(reordered);</span>
+
+<span class="nc" id="L778">    return context.relBuilder.peek();</span>
+  }
+
+  /** extract the RexLiteral of Alias from a node */
+  private Optional&lt;RexLiteral&gt; extractAliasLiteral(RexNode node) {
+<span class="nc bnc" id="L783" title="All 2 branches missed.">    if (node == null) {</span>
+<span class="nc" id="L784">      return Optional.empty();</span>
+<span class="nc bnc" id="L785" title="All 2 branches missed.">    } else if (node.getKind() == AS) {</span>
+<span class="nc" id="L786">      return Optional.of((RexLiteral) ((RexCall) node).getOperands().get(1));</span>
+    } else {
+<span class="nc" id="L788">      return Optional.empty();</span>
+    }
+  }
+
+  @Override
+  public RelNode visitJoin(Join node, CalcitePlanContext context) {
+<span class="nc" id="L794">    List&lt;UnresolvedPlan&gt; children = node.getChildren();</span>
+<span class="nc" id="L795">    children.forEach(c -&gt; analyze(c, context));</span>
+<span class="nc" id="L796">    RexNode joinCondition =</span>
+<span class="nc" id="L797">        node.getJoinCondition()</span>
+<span class="nc" id="L798">            .map(c -&gt; rexVisitor.analyzeJoinCondition(c, context))</span>
+<span class="nc" id="L799">            .orElse(context.relBuilder.literal(true));</span>
+<span class="nc bnc" id="L800" title="All 4 branches missed.">    if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {</span>
+      // semi and anti join only return left table outputs
+<span class="nc" id="L802">      context.relBuilder.join(</span>
+<span class="nc" id="L803">          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);</span>
+    } else {
+      // Join condition could contain duplicated column name, Calcite will rename the duplicated
+      // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
+      // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
+      // or `tableIdentifier.id`:
+<span class="nc" id="L809">      List&lt;String&gt; leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();</span>
+<span class="nc" id="L810">      List&lt;String&gt; rightColumns = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L811">      List&lt;String&gt; rightTableName =</span>
+<span class="nc" id="L812">          PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();</span>
+      // Using `table.column` instead of `catalog.database.table.column` as column prefix because
+      // the schema for OpenSearch index is always `OpenSearch`. But if we reuse this logic in other
+      // query engines, the column can only be searched in current schema namespace. For example,
+      // If the plan convert to Spark plan, and there are two table1: database1.table1 and
+      // database2.table1. The query with column `table1.id` can only be resolved in the namespace
+      // of &quot;database1&quot;. User should run `using database1` before the query which access `table1.id`
+<span class="nc" id="L819">      String rightTableQualifiedName = rightTableName.getLast();</span>
+      // new columns with alias or table;
+<span class="nc" id="L821">      List&lt;String&gt; rightColumnsWithAliasIfConflict =</span>
+<span class="nc" id="L822">          rightColumns.stream()</span>
+<span class="nc" id="L823">              .map(</span>
+                  col -&gt;
+<span class="nc bnc" id="L825" title="All 2 branches missed.">                      leftColumns.contains(col)</span>
+<span class="nc" id="L826">                          ? node.getRightAlias()</span>
+<span class="nc" id="L827">                              .map(a -&gt; a + &quot;.&quot; + col)</span>
+<span class="nc" id="L828">                              .orElse(rightTableQualifiedName + &quot;.&quot; + col)</span>
+<span class="nc" id="L829">                          : col)</span>
+<span class="nc" id="L830">              .toList();</span>
+<span class="nc" id="L831">      context.relBuilder.join(</span>
+<span class="nc" id="L832">          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);</span>
+<span class="nc" id="L833">      JoinAndLookupUtils.renameToExpectedFields(</span>
+<span class="nc" id="L834">          rightColumnsWithAliasIfConflict, leftColumns.size(), context);</span>
+    }
+<span class="nc" id="L836">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitSubqueryAlias(SubqueryAlias node, CalcitePlanContext context) {
+<span class="nc" id="L841">    visitChildren(node, context);</span>
+<span class="nc" id="L842">    context.relBuilder.as(node.getAlias());</span>
+<span class="nc" id="L843">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitLookup(Lookup node, CalcitePlanContext context) {
+    // 1. resolve source side
+<span class="nc" id="L849">    visitChildren(node, context);</span>
+    // get sourceOutputFields from top of stack which is used to build final output
+<span class="nc" id="L851">    List&lt;String&gt; sourceFieldsNames = context.relBuilder.peek().getRowType().getFieldNames();</span>
+
+    // 2. resolve lookup table
+<span class="nc" id="L854">    analyze(node.getLookupRelation(), context);</span>
+
+    // 3. Add projection for lookup table if needed
+<span class="nc" id="L857">    JoinAndLookupUtils.addProjectionIfNecessary(node, context);</span>
+
+    // Get lookupColumns from top of stack (after above potential projection).
+<span class="nc" id="L860">    List&lt;String&gt; lookupTableFieldNames = context.relBuilder.peek().getRowType().getFieldNames();</span>
+
+    // 3. Find fields which should be removed in lookup-table.
+    // For lookup table, the mapping fields should be dropped after join
+    // unless they are explicitly put in the output fields
+<span class="nc" id="L865">    List&lt;String&gt; toBeRemovedLookupFieldNames =</span>
+<span class="nc" id="L866">        node.getMappingAliasMap().keySet().stream()</span>
+<span class="nc bnc" id="L867" title="All 2 branches missed.">            .filter(k -&gt; !node.getOutputAliasMap().containsKey(k))</span>
+<span class="nc" id="L868">            .toList();</span>
+<span class="nc" id="L869">    List&lt;String&gt; providedFieldNames =</span>
+<span class="nc" id="L870">        lookupTableFieldNames.stream()</span>
+<span class="nc bnc" id="L871" title="All 2 branches missed.">            .filter(k -&gt; !toBeRemovedLookupFieldNames.contains(k))</span>
+<span class="nc" id="L872">            .toList();</span>
+<span class="nc" id="L873">    List&lt;RexNode&gt; toBeRemovedLookupFields =</span>
+<span class="nc" id="L874">        toBeRemovedLookupFieldNames.stream()</span>
+<span class="nc" id="L875">            .map(d -&gt; (RexNode) context.relBuilder.field(2, 1, d))</span>
+<span class="nc" id="L876">            .toList();</span>
+<span class="nc" id="L877">    List&lt;RexNode&gt; toBeRemovedFields = new ArrayList&lt;&gt;(toBeRemovedLookupFields);</span>
+
+    // 4. Find duplicated fields between source table fields and lookup table provided fields.
+    // Key: source fields names, value: lookup table provided field names
+<span class="nc" id="L881">    Map&lt;String, String&gt; duplicatedFieldNamesMap =</span>
+<span class="nc" id="L882">        JoinAndLookupUtils.findDuplicatedFields(node, sourceFieldsNames, providedFieldNames);</span>
+
+<span class="nc" id="L884">    List&lt;RexNode&gt; duplicatedSourceFields =</span>
+<span class="nc" id="L885">        duplicatedFieldNamesMap.keySet().stream()</span>
+<span class="nc" id="L886">            .map(field -&gt; JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))</span>
+<span class="nc" id="L887">            .toList();</span>
+    // Duplicated fields in source-field should always be removed.
+<span class="nc" id="L889">    toBeRemovedFields.addAll(duplicatedSourceFields);</span>
+    // Construct a new field name for the new provided-fields.
+<span class="nc" id="L891">    List&lt;String&gt; expectedProvidedFieldNames =</span>
+<span class="nc" id="L892">        providedFieldNames.stream().map(k -&gt; node.getOutputAliasMap().getOrDefault(k, k)).toList();</span>
+
+<span class="nc" id="L894">    List&lt;RexNode&gt; newCoalesceList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L895" title="All 4 branches missed.">    if (!duplicatedFieldNamesMap.isEmpty() &amp;&amp; node.getOutputStrategy() == OutputStrategy.APPEND) {</span>
+<span class="nc" id="L896">      List&lt;RexNode&gt; duplicatedProvidedFields =</span>
+<span class="nc" id="L897">          duplicatedFieldNamesMap.values().stream()</span>
+<span class="nc" id="L898">              .map(field -&gt; JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))</span>
+<span class="nc" id="L899">              .toList();</span>
+<span class="nc bnc" id="L900" title="All 2 branches missed.">      for (int i = 0; i &lt; duplicatedProvidedFields.size(); ++i) {</span>
+<span class="nc" id="L901">        newCoalesceList.add(</span>
+<span class="nc" id="L902">            context.rexBuilder.coalesce(</span>
+<span class="nc" id="L903">                duplicatedSourceFields.get(i), duplicatedProvidedFields.get(i)));</span>
+      }
+
+      // For APPEND strategy, it needs to replace duplicated provided-fields with the new
+      // constructed coalesced fields.
+      // Hence, we need to remove the duplicated provided-fields as well and adjust the expected
+      // provided-field names since new added fields are appended to the end of the project list.
+<span class="nc" id="L910">      toBeRemovedFields.addAll(duplicatedProvidedFields);</span>
+<span class="nc" id="L911">      List&lt;String&gt; newExpectedFieldNames =</span>
+          new ArrayList&lt;&gt;(
+<span class="nc" id="L913">              expectedProvidedFieldNames.stream()</span>
+<span class="nc bnc" id="L914" title="All 2 branches missed.">                  .filter(k -&gt; !duplicatedFieldNamesMap.containsKey(k))</span>
+<span class="nc" id="L915">                  .toList());</span>
+<span class="nc" id="L916">      newExpectedFieldNames.addAll(duplicatedFieldNamesMap.keySet());</span>
+<span class="nc" id="L917">      expectedProvidedFieldNames = newExpectedFieldNames;</span>
+    }
+
+    // 5. Resolve join condition. Note, this operation should be done after finishing all analyze.
+<span class="nc" id="L921">    JoinAndLookupUtils.addJoinForLookUp(node, context);</span>
+
+    // 6. Add projection for coalesce fields if there is.
+<span class="nc bnc" id="L924" title="All 2 branches missed.">    if (!newCoalesceList.isEmpty()) {</span>
+<span class="nc" id="L925">      context.relBuilder.projectPlus(newCoalesceList);</span>
+    }
+
+    // 7. Add projection to remove unnecessary fields
+    // NOTE: Need to lazy invoke projectExcept until finishing all analyzing,
+    // otherwise the field names may have changed because of field name duplication.
+<span class="nc bnc" id="L931" title="All 2 branches missed.">    if (!toBeRemovedFields.isEmpty()) {</span>
+<span class="nc" id="L932">      context.relBuilder.projectExcept(toBeRemovedFields);</span>
+    }
+
+    // 7. Rename the fields to the expected names.
+<span class="nc" id="L936">    JoinAndLookupUtils.renameToExpectedFields(</span>
+        expectedProvidedFieldNames,
+<span class="nc" id="L938">        sourceFieldsNames.size() - duplicatedSourceFields.size(),</span>
+        context);
+
+<span class="nc" id="L941">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitDedupe(Dedupe node, CalcitePlanContext context) {
+<span class="nc" id="L946">    visitChildren(node, context);</span>
+<span class="nc" id="L947">    List&lt;Argument&gt; options = node.getOptions();</span>
+<span class="nc" id="L948">    Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();</span>
+<span class="nc" id="L949">    Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();</span>
+<span class="nc" id="L950">    Boolean consecutive = (Boolean) options.get(2).getValue().getValue();</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">    if (allowedDuplication &lt;= 0) {</span>
+<span class="nc" id="L952">      throw new IllegalArgumentException(&quot;Number of duplicate events must be greater than 0&quot;);</span>
+    }
+<span class="nc bnc" id="L954" title="All 2 branches missed.">    if (consecutive) {</span>
+<span class="nc" id="L955">      throw new UnsupportedOperationException(&quot;Consecutive deduplication is not supported&quot;);</span>
+    }
+    // Columns to deduplicate
+<span class="nc" id="L958">    List&lt;RexNode&gt; dedupeFields =</span>
+<span class="nc" id="L959">        node.getFields().stream().map(f -&gt; rexVisitor.analyze(f, context)).toList();</span>
+<span class="nc bnc" id="L960" title="All 2 branches missed.">    if (keepEmpty) {</span>
+      /*
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_dedup_)
+       * +- Filter ('_row_number_dedup_ &lt;= n OR isnull('a) OR isnull('b))
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *        +- ...
+       */
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
+      // ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+<span class="nc" id="L972">      RexNode rowNumber =</span>
+          context
+              .relBuilder
+<span class="nc" id="L975">              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)</span>
+<span class="nc" id="L976">              .over()</span>
+<span class="nc" id="L977">              .partitionBy(dedupeFields)</span>
+<span class="nc" id="L978">              .orderBy(dedupeFields)</span>
+<span class="nc" id="L979">              .rowsTo(RexWindowBounds.CURRENT_ROW)</span>
+<span class="nc" id="L980">              .as(ROW_NUMBER_COLUMN_FOR_DEDUP);</span>
+<span class="nc" id="L981">      context.relBuilder.projectPlus(rowNumber);</span>
+<span class="nc" id="L982">      RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);</span>
+      // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ &lt;= n)
+<span class="nc" id="L984">      context.relBuilder.filter(</span>
+<span class="nc" id="L985">          context.relBuilder.or(</span>
+<span class="nc" id="L986">              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),</span>
+<span class="nc" id="L987">              context.relBuilder.lessThanOrEqual(</span>
+<span class="nc" id="L988">                  _row_number_dedup_, context.relBuilder.literal(allowedDuplication))));</span>
+      // DropColumns('_row_number_)
+<span class="nc" id="L990">      context.relBuilder.projectExcept(_row_number_dedup_);</span>
+<span class="nc" id="L991">    } else {</span>
+      /*
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_dedup_)
+       * +- Filter ('_row_number_dedup_ &lt;= n)
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *       +- Filter (isnotnull('a) AND isnotnull('b))
+       *          +- ...
+       */
+      // Filter (isnotnull('a) AND isnotnull('b))
+<span class="nc" id="L1001">      context.relBuilder.filter(</span>
+<span class="nc" id="L1002">          context.relBuilder.and(</span>
+<span class="nc" id="L1003">              dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));</span>
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
+      // ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+<span class="nc" id="L1008">      RexNode rowNumber =</span>
+          context
+              .relBuilder
+<span class="nc" id="L1011">              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)</span>
+<span class="nc" id="L1012">              .over()</span>
+<span class="nc" id="L1013">              .partitionBy(dedupeFields)</span>
+<span class="nc" id="L1014">              .orderBy(dedupeFields)</span>
+<span class="nc" id="L1015">              .rowsTo(RexWindowBounds.CURRENT_ROW)</span>
+<span class="nc" id="L1016">              .as(ROW_NUMBER_COLUMN_FOR_DEDUP);</span>
+<span class="nc" id="L1017">      context.relBuilder.projectPlus(rowNumber);</span>
+<span class="nc" id="L1018">      RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);</span>
+      // Filter ('_row_number_dedup_ &lt;= n)
+<span class="nc" id="L1020">      context.relBuilder.filter(</span>
+<span class="nc" id="L1021">          context.relBuilder.lessThanOrEqual(</span>
+<span class="nc" id="L1022">              _row_number_dedup_, context.relBuilder.literal(allowedDuplication)));</span>
+      // DropColumns('_row_number_dedup_)
+<span class="nc" id="L1024">      context.relBuilder.projectExcept(_row_number_dedup_);</span>
+    }
+<span class="nc" id="L1026">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitWindow(Window node, CalcitePlanContext context) {
+<span class="nc" id="L1031">    visitChildren(node, context);</span>
+<span class="nc" id="L1032">    List&lt;RexNode&gt; overExpressions =</span>
+<span class="nc" id="L1033">        node.getWindowFunctionList().stream().map(w -&gt; rexVisitor.analyze(w, context)).toList();</span>
+<span class="nc" id="L1034">    context.relBuilder.projectPlus(overExpressions);</span>
+<span class="nc" id="L1035">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitFillNull(FillNull node, CalcitePlanContext context) {
+<span class="nc" id="L1040">    visitChildren(node, context);</span>
+<span class="nc" id="L1041">    if (node.getFields().size()</span>
+<span class="nc" id="L1042">        != new HashSet&lt;&gt;(node.getFields().stream().map(f -&gt; f.getField().toString()).toList())</span>
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">            .size()) {</span>
+<span class="nc" id="L1044">      throw new IllegalArgumentException(&quot;The field list cannot be duplicated in fillnull&quot;);</span>
+    }
+<span class="nc" id="L1046">    List&lt;RexNode&gt; projects = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1047">    List&lt;RelDataTypeField&gt; fieldsList = context.relBuilder.peek().getRowType().getFieldList();</span>
+<span class="nc bnc" id="L1048" title="All 2 branches missed.">    for (RelDataTypeField field : fieldsList) {</span>
+<span class="nc" id="L1049">      RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());</span>
+<span class="nc" id="L1050">      boolean toReplace = false;</span>
+<span class="nc bnc" id="L1051" title="All 2 branches missed.">      for (Pair&lt;Field, UnresolvedExpression&gt; pair : node.getReplacementPairs()) {</span>
+<span class="nc bnc" id="L1052" title="All 2 branches missed.">        if (field.getName().equalsIgnoreCase(pair.getLeft().getField().toString())) {</span>
+<span class="nc" id="L1053">          RexNode replacement = rexVisitor.analyze(pair.getRight(), context);</span>
+<span class="nc" id="L1054">          RexNode coalesce = context.rexBuilder.coalesce(fieldRef, replacement);</span>
+<span class="nc" id="L1055">          RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, field.getName());</span>
+<span class="nc" id="L1056">          projects.add(coalesceWithAlias);</span>
+<span class="nc" id="L1057">          toReplace = true;</span>
+<span class="nc" id="L1058">          break;</span>
+        }
+<span class="nc" id="L1060">      }</span>
+<span class="nc bnc" id="L1061" title="All 4 branches missed.">      if (!toReplace &amp;&amp; node.getReplacementForAll().isEmpty()) {</span>
+<span class="nc" id="L1062">        projects.add(fieldRef);</span>
+<span class="nc bnc" id="L1063" title="All 2 branches missed.">      } else if (node.getReplacementForAll().isPresent()) {</span>
+<span class="nc" id="L1064">        RexNode replacement = rexVisitor.analyze(node.getReplacementForAll().get(), context);</span>
+<span class="nc" id="L1065">        RexNode coalesce = context.rexBuilder.coalesce(fieldRef, replacement);</span>
+<span class="nc" id="L1066">        RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, field.getName());</span>
+<span class="nc" id="L1067">        projects.add(coalesceWithAlias);</span>
+      }
+<span class="nc" id="L1069">    }</span>
+<span class="nc" id="L1070">    context.relBuilder.project(projects);</span>
+<span class="nc" id="L1071">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
+    // 1. resolve main plan
+<span class="nc" id="L1077">    visitChildren(node, context);</span>
+    // 2. add row_number() column to main
+<span class="nc" id="L1079">    RexNode mainRowNumber =</span>
+<span class="nc" id="L1080">        PlanUtils.makeOver(</span>
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+<span class="nc" id="L1084">            List.of(),</span>
+<span class="nc" id="L1085">            List.of(),</span>
+<span class="nc" id="L1086">            List.of(),</span>
+<span class="nc" id="L1087">            WindowFrame.toCurrentRow());</span>
+<span class="nc" id="L1088">    context.relBuilder.projectPlus(</span>
+<span class="nc" id="L1089">        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_NAME_MAIN));</span>
+
+    // 3. build subsearch tree (attach relation to subsearch)
+<span class="nc" id="L1092">    UnresolvedPlan relation = getRelation(node);</span>
+<span class="nc" id="L1093">    transformPlanToAttachChild(node.getSubSearch(), relation);</span>
+    // 4. resolve subsearch plan
+<span class="nc" id="L1095">    node.getSubSearch().accept(this, context);</span>
+    // 5. add row_number() column to subsearch
+<span class="nc" id="L1097">    RexNode subsearchRowNumber =</span>
+<span class="nc" id="L1098">        PlanUtils.makeOver(</span>
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+<span class="nc" id="L1102">            List.of(),</span>
+<span class="nc" id="L1103">            List.of(),</span>
+<span class="nc" id="L1104">            List.of(),</span>
+<span class="nc" id="L1105">            WindowFrame.toCurrentRow());</span>
+<span class="nc" id="L1106">    context.relBuilder.projectPlus(</span>
+<span class="nc" id="L1107">        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));</span>
+
+<span class="nc" id="L1109">    List&lt;String&gt; subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc" id="L1110">    List&lt;String&gt; mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();</span>
+<span class="nc bnc" id="L1111" title="All 2 branches missed.">    if (!node.isOverride()) {</span>
+      // 6. if override = false, drop all the duplicated columns in subsearch before join
+<span class="nc" id="L1113">      List&lt;String&gt; subsearchProjectList =</span>
+<span class="nc bnc" id="L1114" title="All 2 branches missed.">          subsearchFields.stream().filter(r -&gt; !mainFields.contains(r)).toList();</span>
+<span class="nc" id="L1115">      context.relBuilder.project(context.relBuilder.fields(subsearchProjectList));</span>
+    }
+
+    // 7. join with condition `_row_number_main_ = _row_number_subsearch_`
+<span class="nc" id="L1119">    RexNode joinCondition =</span>
+<span class="nc" id="L1120">        context.relBuilder.equals(</span>
+<span class="nc" id="L1121">            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_NAME_MAIN),</span>
+<span class="nc" id="L1122">            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));</span>
+<span class="nc" id="L1123">    context.relBuilder.join(</span>
+<span class="nc" id="L1124">        JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);</span>
+
+<span class="nc bnc" id="L1126" title="All 2 branches missed.">    if (!node.isOverride()) {</span>
+      // 8. if override = false, drop both _row_number_ columns
+<span class="nc" id="L1128">      context.relBuilder.projectExcept(</span>
+<span class="nc" id="L1129">          List.of(</span>
+<span class="nc" id="L1130">              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),</span>
+<span class="nc" id="L1131">              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)));</span>
+<span class="nc" id="L1132">      return context.relBuilder.peek();</span>
+    } else {
+      // 9. if override = true, override the duplicated columns in main by subsearch values
+      // when join condition matched.
+<span class="nc" id="L1136">      List&lt;RexNode&gt; finalProjections = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1137">      List&lt;String&gt; finalFieldNames = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1138">      int mainFieldCount = mainFields.size();</span>
+<span class="nc" id="L1139">      Set&lt;String&gt; duplicatedFields =</span>
+<span class="nc" id="L1140">          mainFields.stream().filter(subsearchFields::contains).collect(Collectors.toSet());</span>
+<span class="nc" id="L1141">      RexNode caseCondition =</span>
+<span class="nc" id="L1142">          context.relBuilder.equals(</span>
+<span class="nc" id="L1143">              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),</span>
+<span class="nc" id="L1144">              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH));</span>
+<span class="nc bnc" id="L1145" title="All 2 branches missed.">      for (int mainFieldIndex = 0; mainFieldIndex &lt; mainFields.size(); mainFieldIndex++) {</span>
+<span class="nc" id="L1146">        String mainFieldName = mainFields.get(mainFieldIndex);</span>
+<span class="nc bnc" id="L1147" title="All 2 branches missed.">        if (mainFieldName.equals(ROW_NUMBER_COLUMN_NAME_MAIN)) {</span>
+<span class="nc" id="L1148">          continue;</span>
+        }
+<span class="nc" id="L1150">        finalFieldNames.add(mainFieldName);</span>
+<span class="nc bnc" id="L1151" title="All 2 branches missed.">        if (duplicatedFields.contains(mainFieldName)) {</span>
+<span class="nc" id="L1152">          int subsearchFieldIndex = mainFieldCount + subsearchFields.indexOf(mainFieldName);</span>
+          // build case(&quot;_row_number_main_&quot; = &quot;_row_number_subsearch_&quot;, subsearchField, mainField)
+          // using subsearch value when join condition matched, otherwise main value
+<span class="nc" id="L1155">          RexNode caseExpr =</span>
+<span class="nc" id="L1156">              context.relBuilder.call(</span>
+                  SqlStdOperatorTable.CASE,
+                  caseCondition,
+<span class="nc" id="L1159">                  context.relBuilder.field(subsearchFieldIndex),</span>
+<span class="nc" id="L1160">                  context.relBuilder.field(mainFieldIndex));</span>
+<span class="nc" id="L1161">          finalProjections.add(caseExpr);</span>
+<span class="nc" id="L1162">        } else {</span>
+          // keep main fields for non duplicated fields
+<span class="nc" id="L1164">          finalProjections.add(context.relBuilder.field(mainFieldIndex));</span>
+        }
+      }
+      // add non duplicated fields of subsearch
+<span class="nc" id="L1168">      for (int subsearchFieldIndex = 0;</span>
+<span class="nc bnc" id="L1169" title="All 2 branches missed.">          subsearchFieldIndex &lt; subsearchFields.size();</span>
+<span class="nc" id="L1170">          subsearchFieldIndex++) {</span>
+<span class="nc" id="L1171">        String subsearchFieldName = subsearchFields.get(subsearchFieldIndex);</span>
+<span class="nc bnc" id="L1172" title="All 2 branches missed.">        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)) {</span>
+<span class="nc" id="L1173">          continue;</span>
+        }
+<span class="nc bnc" id="L1175" title="All 2 branches missed.">        if (!duplicatedFields.contains(subsearchFieldName)) {</span>
+<span class="nc" id="L1176">          finalProjections.add(context.relBuilder.field(mainFieldCount + subsearchFieldIndex));</span>
+<span class="nc" id="L1177">          finalFieldNames.add(subsearchFieldName);</span>
+        }
+      }
+<span class="nc" id="L1180">      context.relBuilder.project(finalProjections, finalFieldNames);</span>
+<span class="nc" id="L1181">      return context.relBuilder.peek();</span>
+    }
+  }
+
+  /*
+   * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
+  @Override
+  public RelNode visitAD(AD node, CalcitePlanContext context) {
+<span class="nc" id="L1190">    throw new CalciteUnsupportedException(&quot;AD command is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitCloseCursor(CloseCursor closeCursor, CalcitePlanContext context) {
+<span class="nc" id="L1195">    throw new CalciteUnsupportedException(&quot;Close cursor operation is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitFetchCursor(FetchCursor cursor, CalcitePlanContext context) {
+<span class="nc" id="L1200">    throw new CalciteUnsupportedException(&quot;Fetch cursor operation is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitML(ML node, CalcitePlanContext context) {
+<span class="nc" id="L1205">    throw new CalciteUnsupportedException(&quot;ML command is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitPaginate(Paginate paginate, CalcitePlanContext context) {
+<span class="nc" id="L1210">    throw new CalciteUnsupportedException(&quot;Paginate operation is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitKmeans(Kmeans node, CalcitePlanContext context) {
+<span class="nc" id="L1215">    throw new CalciteUnsupportedException(&quot;Kmeans command is unsupported in Calcite&quot;);</span>
+  }
+
+  @Override
+  public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
+<span class="nc" id="L1220">    visitChildren(node, context);</span>
+
+<span class="nc" id="L1222">    ArgumentMap arguments = ArgumentMap.of(node.getArguments());</span>
+<span class="nc" id="L1223">    String countFieldName = (String) arguments.get(&quot;countField&quot;).getValue();</span>
+<span class="nc bnc" id="L1224" title="All 2 branches missed.">    if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {</span>
+<span class="nc" id="L1225">      throw new IllegalArgumentException(</span>
+          &quot;Field `&quot;
+              + countFieldName
+              + &quot;` is existed, change the count field by setting countfield='xyz'&quot;);
+    }
+
+    // 1. group the group-by list + field list and add a count() aggregation
+<span class="nc" id="L1232">    List&lt;UnresolvedExpression&gt; groupExprList = new ArrayList&lt;&gt;(node.getGroupExprList());</span>
+<span class="nc" id="L1233">    List&lt;UnresolvedExpression&gt; fieldList =</span>
+<span class="nc" id="L1234">        node.getFields().stream().map(f -&gt; (UnresolvedExpression) f).toList();</span>
+<span class="nc" id="L1235">    groupExprList.addAll(fieldList);</span>
+<span class="nc" id="L1236">    List&lt;UnresolvedExpression&gt; aggExprList =</span>
+<span class="nc" id="L1237">        List.of(AstDSL.alias(countFieldName, AstDSL.aggregate(&quot;count&quot;, null)));</span>
+<span class="nc" id="L1238">    aggregateWithTrimming(groupExprList, aggExprList, context);</span>
+
+    // 2. add a window column
+<span class="nc" id="L1241">    List&lt;RexNode&gt; partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);</span>
+    RexNode countField;
+<span class="nc bnc" id="L1243" title="All 2 branches missed.">    if (node.getCommandType() == RareTopN.CommandType.TOP) {</span>
+<span class="nc" id="L1244">      countField = context.relBuilder.desc(context.relBuilder.field(countFieldName));</span>
+    } else {
+<span class="nc" id="L1246">      countField = context.relBuilder.field(countFieldName);</span>
+    }
+<span class="nc" id="L1248">    RexNode rowNumberWindowOver =</span>
+<span class="nc" id="L1249">        PlanUtils.makeOver(</span>
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+<span class="nc" id="L1253">            List.of(),</span>
+            partitionKeys,
+<span class="nc" id="L1255">            List.of(countField),</span>
+<span class="nc" id="L1256">            WindowFrame.toCurrentRow());</span>
+<span class="nc" id="L1257">    context.relBuilder.projectPlus(</span>
+<span class="nc" id="L1258">        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));</span>
+
+    // 3. filter row_number() &lt;= k in each partition
+<span class="nc" id="L1261">    Integer N = (Integer) arguments.get(&quot;noOfResults&quot;).getValue();</span>
+<span class="nc" id="L1262">    context.relBuilder.filter(</span>
+<span class="nc" id="L1263">        context.relBuilder.lessThanOrEqual(</span>
+<span class="nc" id="L1264">            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));</span>
+
+    // 4. project final output. the default output is group by list + field list
+<span class="nc" id="L1267">    Boolean showCount = (Boolean) arguments.get(&quot;showCount&quot;).getValue();</span>
+<span class="nc bnc" id="L1268" title="All 2 branches missed.">    if (showCount) {</span>
+<span class="nc" id="L1269">      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME));</span>
+    } else {
+<span class="nc" id="L1271">      context.relBuilder.projectExcept(</span>
+<span class="nc" id="L1272">          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME),</span>
+<span class="nc" id="L1273">          context.relBuilder.field(countFieldName));</span>
+    }
+<span class="nc" id="L1275">    return context.relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
+<span class="nc" id="L1280">    throw new CalciteUnsupportedException(&quot;Table function is unsupported in Calcite&quot;);</span>
+  }
+
+  /**
+   * Visit flatten command.
+   *
+   * &lt;p&gt;The flatten command is used to flatten a struct field into multiple fields. This
+   * implementation simply projects the flattened fields and renames them according to the provided
+   * aliases or the field names in the struct. This is possible because the struct / object field
+   * are always read in a flattened manner in OpenSearch.
+   *
+   * @param node Flatten command node
+   * @param context CalcitePlanContext
+   * @return RelNode representing the visited logical plan
+   */
+  @Override
+  public RelNode visitFlatten(Flatten node, CalcitePlanContext context) {
+<span class="nc" id="L1297">    visitChildren(node, context);</span>
+<span class="nc" id="L1298">    RelBuilder relBuilder = context.relBuilder;</span>
+<span class="nc" id="L1299">    String fieldName = node.getField().getField().toString();</span>
+    // Match the sub-field names with &quot;field.*&quot;
+<span class="nc" id="L1301">    List&lt;RelDataTypeField&gt; fieldsToExpand =</span>
+<span class="nc" id="L1302">        relBuilder.peek().getRowType().getFieldList().stream()</span>
+<span class="nc" id="L1303">            .filter(f -&gt; f.getName().startsWith(fieldName + &quot;.&quot;))</span>
+<span class="nc" id="L1304">            .toList();</span>
+
+    List&lt;String&gt; expandedFieldNames;
+<span class="nc bnc" id="L1307" title="All 2 branches missed.">    if (node.getAliases() != null) {</span>
+<span class="nc bnc" id="L1308" title="All 2 branches missed.">      if (node.getAliases().size() != fieldsToExpand.size()) {</span>
+<span class="nc" id="L1309">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L1310">            String.format(</span>
+                &quot;The number of aliases has to match the number of flattened fields. Expected %d&quot;
+                    + &quot; (%s), got %d (%s)&quot;,
+<span class="nc" id="L1313">                fieldsToExpand.size(),</span>
+<span class="nc" id="L1314">                fieldsToExpand.stream()</span>
+<span class="nc" id="L1315">                    .map(RelDataTypeField::getName)</span>
+<span class="nc" id="L1316">                    .collect(Collectors.joining(&quot;, &quot;)),</span>
+<span class="nc" id="L1317">                node.getAliases().size(),</span>
+<span class="nc" id="L1318">                String.join(&quot;, &quot;, node.getAliases())));</span>
+      }
+<span class="nc" id="L1320">      expandedFieldNames = node.getAliases();</span>
+    } else {
+      // If no aliases provided, name the flattened fields to the key name in the struct.
+      // E.g. message.author --renamed-to--&gt; author
+<span class="nc" id="L1324">      expandedFieldNames =</span>
+<span class="nc" id="L1325">          fieldsToExpand.stream()</span>
+<span class="nc" id="L1326">              .map(RelDataTypeField::getName)</span>
+<span class="nc" id="L1327">              .map(name -&gt; name.substring(fieldName.length() + 1))</span>
+<span class="nc" id="L1328">              .collect(Collectors.toList());</span>
+    }
+<span class="nc" id="L1330">    List&lt;RexNode&gt; expandedFields =</span>
+<span class="nc" id="L1331">        Streams.zip(</span>
+<span class="nc" id="L1332">                fieldsToExpand.stream(),</span>
+<span class="nc" id="L1333">                expandedFieldNames.stream(),</span>
+<span class="nc" id="L1334">                (f, n) -&gt; relBuilder.alias(relBuilder.field(f.getName()), n))</span>
+<span class="nc" id="L1335">            .collect(Collectors.toList());</span>
+<span class="nc" id="L1336">    relBuilder.projectPlus(expandedFields);</span>
+<span class="nc" id="L1337">    return relBuilder.peek();</span>
+  }
+
+  @Override
+  public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
+<span class="nc" id="L1342">    visitChildren(node, context);</span>
+
+<span class="nc" id="L1344">    node.getSortByField()</span>
+<span class="nc" id="L1345">        .ifPresent(</span>
+            sortField -&gt; {
+<span class="nc" id="L1347">              SortOption sortOption = analyzeSortOption(sortField.getFieldArgs());</span>
+<span class="nc" id="L1348">              RexNode field = rexVisitor.analyze(sortField, context);</span>
+<span class="nc bnc" id="L1349" title="All 2 branches missed.">              if (sortOption == DEFAULT_DESC) {</span>
+<span class="nc" id="L1350">                context.relBuilder.sort(context.relBuilder.desc(field));</span>
+              } else {
+<span class="nc" id="L1352">                context.relBuilder.sort(field);</span>
+              }
+<span class="nc" id="L1354">            });</span>
+
+<span class="nc" id="L1356">    List&lt;RexNode&gt; trendlineNodes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1357">    List&lt;String&gt; aliases = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1358">    node.getComputations()</span>
+<span class="nc" id="L1359">        .forEach(</span>
+            trendlineComputation -&gt; {
+<span class="nc" id="L1361">              RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);</span>
+<span class="nc" id="L1362">              context.relBuilder.filter(context.relBuilder.isNotNull(field));</span>
+
+<span class="nc" id="L1364">              WindowFrame windowFrame =</span>
+<span class="nc" id="L1365">                  WindowFrame.of(</span>
+                      FrameType.ROWS,
+<span class="nc" id="L1367">                      StringUtils.format(</span>
+<span class="nc" id="L1368">                          &quot;%d PRECEDING&quot;, trendlineComputation.getNumberOfDataPoints() - 1),</span>
+                      &quot;CURRENT ROW&quot;);
+<span class="nc" id="L1370">              RexNode countExpr =</span>
+<span class="nc" id="L1371">                  PlanUtils.makeOver(</span>
+                      context,
+                      BuiltinFunctionName.COUNT,
+                      null,
+<span class="nc" id="L1375">                      List.of(),</span>
+<span class="nc" id="L1376">                      List.of(),</span>
+<span class="nc" id="L1377">                      List.of(),</span>
+                      windowFrame);
+              // CASE WHEN count() over (ROWS (windowSize-1) PRECEDING) &gt; windowSize - 1
+<span class="nc" id="L1380">              RexNode whenConditionExpr =</span>
+<span class="nc" id="L1381">                  PPLFuncImpTable.INSTANCE.resolve(</span>
+                      context.rexBuilder,
+                      &quot;&gt;&quot;,
+                      countExpr,
+<span class="nc" id="L1385">                      context.relBuilder.literal(trendlineComputation.getNumberOfDataPoints() - 1));</span>
+
+              RexNode thenExpr;
+<span class="nc bnc" id="L1388" title="All 3 branches missed.">              switch (trendlineComputation.getComputationType()) {</span>
+                case TrendlineType.SMA:
+                  // THEN avg(field) over (ROWS (windowSize-1) PRECEDING)
+<span class="nc" id="L1391">                  thenExpr =</span>
+<span class="nc" id="L1392">                      PlanUtils.makeOver(</span>
+                          context,
+                          BuiltinFunctionName.AVG,
+                          field,
+<span class="nc" id="L1396">                          List.of(),</span>
+<span class="nc" id="L1397">                          List.of(),</span>
+<span class="nc" id="L1398">                          List.of(),</span>
+                          windowFrame);
+<span class="nc" id="L1400">                  break;</span>
+                case TrendlineType.WMA:
+                  // THEN wma expression
+<span class="nc" id="L1403">                  thenExpr =</span>
+<span class="nc" id="L1404">                      buildWmaRexNode(</span>
+                          field,
+<span class="nc" id="L1406">                          trendlineComputation.getNumberOfDataPoints(),</span>
+                          windowFrame,
+                          context);
+<span class="nc" id="L1409">                  break;</span>
+                default:
+<span class="nc" id="L1411">                  throw new IllegalStateException(&quot;Unsupported trendline type&quot;);</span>
+              }
+
+              // ELSE NULL
+<span class="nc" id="L1415">              RexNode elseExpr = context.relBuilder.literal(null);</span>
+
+<span class="nc" id="L1417">              List&lt;RexNode&gt; caseOperands = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1418">              caseOperands.add(whenConditionExpr);</span>
+<span class="nc" id="L1419">              caseOperands.add(thenExpr);</span>
+<span class="nc" id="L1420">              caseOperands.add(elseExpr);</span>
+<span class="nc" id="L1421">              RexNode trendlineNode =</span>
+<span class="nc" id="L1422">                  context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);</span>
+<span class="nc" id="L1423">              trendlineNodes.add(trendlineNode);</span>
+<span class="nc" id="L1424">              aliases.add(trendlineComputation.getAlias());</span>
+<span class="nc" id="L1425">            });</span>
+
+<span class="nc" id="L1427">    projectPlusOverriding(trendlineNodes, aliases, context);</span>
+<span class="nc" id="L1428">    return context.relBuilder.peek();</span>
+  }
+
+  private RexNode buildWmaRexNode(
+      RexNode field,
+      Integer numberOfDataPoints,
+      WindowFrame windowFrame,
+      CalcitePlanContext context) {
+
+    // Divisor: 1 + 2 + 3 + ... + windowSize, aka (windowSize * (windowSize + 1) / 2)
+<span class="nc" id="L1438">    RexNode divisor = context.relBuilder.literal(numberOfDataPoints * (numberOfDataPoints + 1) / 2);</span>
+
+    // Divider: 1 * NTH_VALUE(field, 1) + 2 * NTH_VALUE(field, 2) + ... + windowSize *
+    // NTH_VALUE(field, windowSize)
+<span class="nc" id="L1442">    RexNode divider = context.relBuilder.literal(0);</span>
+<span class="nc bnc" id="L1443" title="All 2 branches missed.">    for (int i = 1; i &lt;= numberOfDataPoints; i++) {</span>
+<span class="nc" id="L1444">      RexNode nthValueExpr =</span>
+<span class="nc" id="L1445">          PlanUtils.makeOver(</span>
+              context,
+              BuiltinFunctionName.NTH_VALUE,
+              field,
+<span class="nc" id="L1449">              List.of(context.relBuilder.literal(i)),</span>
+<span class="nc" id="L1450">              List.of(),</span>
+<span class="nc" id="L1451">              List.of(),</span>
+              windowFrame);
+<span class="nc" id="L1453">      divider =</span>
+<span class="nc" id="L1454">          context.relBuilder.call(</span>
+              SqlStdOperatorTable.PLUS,
+              divider,
+<span class="nc" id="L1457">              context.relBuilder.call(</span>
+<span class="nc" id="L1458">                  SqlStdOperatorTable.MULTIPLY, nthValueExpr, context.relBuilder.literal(i)));</span>
+    }
+    // Divider / CAST(Divisor, DOUBLE)
+<span class="nc" id="L1461">    return context.relBuilder.call(</span>
+<span class="nc" id="L1462">        SqlStdOperatorTable.DIVIDE, divider, context.relBuilder.cast(divisor, SqlTypeName.DOUBLE));</span>
+  }
+
+  /**
+   * Expand command visitor to handle array field expansion. 1. Unnest 2. Join with the original
+   * table to get all fields
+   *
+   * &lt;p&gt;S = π_{field, other_fields}(R ⨝ UNNEST_field(R))
+   *
+   * @param expand Expand command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and other context
+   * @return RelNode representing records with the expanded array field
+   */
+  @Override
+  public RelNode visitExpand(Expand expand, CalcitePlanContext context) {
+    // 1. Visit Children
+<span class="nc" id="L1478">    visitChildren(expand, context);</span>
+
+    // 2. Get the field to expand and an optional alias.
+<span class="nc" id="L1481">    Field arrayField = expand.getField();</span>
+<span class="nc" id="L1482">    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);</span>
+<span class="nc" id="L1483">    String alias = expand.getAlias();</span>
+
+<span class="nc" id="L1485">    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);</span>
+
+<span class="nc" id="L1487">    return context.relBuilder.peek();</span>
+  }
+
+  private void buildParseRelNode(Parse node, CalcitePlanContext context) {
+<span class="nc" id="L1491">    RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);</span>
+<span class="nc" id="L1492">    ParseMethod parseMethod = node.getParseMethod();</span>
+<span class="nc" id="L1493">    java.util.Map&lt;String, Literal&gt; arguments = node.getArguments();</span>
+<span class="nc" id="L1494">    String patternValue = (String) node.getPattern().getValue();</span>
+    String pattern =
+<span class="nc bnc" id="L1496" title="All 4 branches missed.">        ParseMethod.PATTERNS.equals(parseMethod) &amp;&amp; Strings.isNullOrEmpty(patternValue)</span>
+<span class="nc" id="L1497">            ? &quot;[a-zA-Z0-9]+&quot;</span>
+<span class="nc" id="L1498">            : patternValue;</span>
+<span class="nc" id="L1499">    List&lt;String&gt; groupCandidates =</span>
+<span class="nc" id="L1500">        ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);</span>
+<span class="nc" id="L1501">    RexNode[] rexNodeList =</span>
+        new RexNode[] {
+          sourceField,
+<span class="nc" id="L1504">          context.rexBuilder.makeLiteral(</span>
+<span class="nc" id="L1505">              pattern, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true)</span>
+        };
+<span class="nc bnc" id="L1507" title="All 2 branches missed.">    if (ParseMethod.PATTERNS.equals(parseMethod)) {</span>
+<span class="nc" id="L1508">      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal(&quot;&lt;*&gt;&quot;));</span>
+    }
+<span class="nc" id="L1510">    List&lt;RexNode&gt; newFields = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1511" title="All 2 branches missed.">    for (String groupCandidate : groupCandidates) {</span>
+<span class="nc" id="L1512">      RexNode innerRex =</span>
+<span class="nc" id="L1513">          PPLFuncImpTable.INSTANCE.resolve(</span>
+<span class="nc" id="L1514">              context.rexBuilder, ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod), rexNodeList);</span>
+<span class="nc bnc" id="L1515" title="All 2 branches missed.">      if (ParseMethod.GROK.equals(parseMethod)) {</span>
+<span class="nc" id="L1516">        newFields.add(</span>
+<span class="nc" id="L1517">            PPLFuncImpTable.INSTANCE.resolve(</span>
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                innerRex,
+<span class="nc" id="L1521">                context.relBuilder.literal(groupCandidate)));</span>
+      } else {
+<span class="nc" id="L1523">        newFields.add(innerRex);</span>
+      }
+<span class="nc" id="L1525">    }</span>
+<span class="nc" id="L1526">    projectPlusOverriding(newFields, groupCandidates, context);</span>
+<span class="nc" id="L1527">  }</span>
+
+  private void flattenParsedPattern(
+      String originalPatternResultAlias,
+      RexNode parsedNode,
+      CalcitePlanContext context,
+      boolean flattenPatternCount) {
+<span class="nc" id="L1534">    List&lt;RexNode&gt; fattenedNodes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1535">    List&lt;String&gt; projectNames = new ArrayList&lt;&gt;();</span>
+    // Flatten map struct fields
+<span class="nc" id="L1537">    RexNode patternExpr =</span>
+<span class="nc" id="L1538">        context.rexBuilder.makeCast(</span>
+<span class="nc" id="L1539">            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),</span>
+<span class="nc" id="L1540">            PPLFuncImpTable.INSTANCE.resolve(</span>
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                parsedNode,
+<span class="nc" id="L1544">                context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),</span>
+            true,
+            true);
+<span class="nc" id="L1547">    fattenedNodes.add(context.relBuilder.alias(patternExpr, originalPatternResultAlias));</span>
+<span class="nc" id="L1548">    projectNames.add(originalPatternResultAlias);</span>
+<span class="nc bnc" id="L1549" title="All 2 branches missed.">    if (flattenPatternCount) {</span>
+<span class="nc" id="L1550">      RexNode patternCountExpr =</span>
+<span class="nc" id="L1551">          context.rexBuilder.makeCast(</span>
+<span class="nc" id="L1552">              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT),</span>
+<span class="nc" id="L1553">              PPLFuncImpTable.INSTANCE.resolve(</span>
+                  context.rexBuilder,
+                  BuiltinFunctionName.INTERNAL_ITEM,
+                  parsedNode,
+<span class="nc" id="L1557">                  context.rexBuilder.makeLiteral(PatternUtils.PATTERN_COUNT)),</span>
+              true,
+              true);
+<span class="nc" id="L1560">      fattenedNodes.add(context.relBuilder.alias(patternCountExpr, PatternUtils.PATTERN_COUNT));</span>
+<span class="nc" id="L1561">      projectNames.add(PatternUtils.PATTERN_COUNT);</span>
+    }
+<span class="nc" id="L1563">    RexNode tokensExpr =</span>
+<span class="nc" id="L1564">        context.rexBuilder.makeCast(</span>
+            UserDefinedFunctionUtils.tokensMap,
+<span class="nc" id="L1566">            PPLFuncImpTable.INSTANCE.resolve(</span>
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                parsedNode,
+<span class="nc" id="L1570">                context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),</span>
+            true,
+            true);
+<span class="nc" id="L1573">    fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));</span>
+<span class="nc" id="L1574">    projectNames.add(PatternUtils.TOKENS);</span>
+<span class="nc" id="L1575">    projectPlusOverriding(fattenedNodes, projectNames, context);</span>
+<span class="nc" id="L1576">  }</span>
+
+  private void buildExpandRelNode(
+      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+    // 3. Capture the outer row in a CorrelationId
+<span class="nc" id="L1581">    Holder&lt;RexCorrelVariable&gt; correlVariable = Holder.empty();</span>
+<span class="nc" id="L1582">    context.relBuilder.variable(correlVariable::set);</span>
+
+    // 4. Create RexFieldAccess to access left node's array field with correlationId and build join
+    // left node
+<span class="nc" id="L1586">    RexNode correlArrayFieldAccess =</span>
+<span class="nc" id="L1587">        context.relBuilder.field(</span>
+<span class="nc" id="L1588">            context.rexBuilder.makeCorrel(</span>
+<span class="nc" id="L1589">                context.relBuilder.peek().getRowType(), correlVariable.get().id),</span>
+<span class="nc" id="L1590">            arrayFieldRex.getIndex());</span>
+<span class="nc" id="L1591">    RelNode leftNode = context.relBuilder.build();</span>
+
+    // 5. Build join right node and expand the array field using uncollect
+<span class="nc" id="L1594">    RelNode rightNode =</span>
+        context
+            .relBuilder
+            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+<span class="nc" id="L1598">            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))</span>
+<span class="nc" id="L1599">            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))</span>
+<span class="nc" id="L1600">            .uncollect(List.of(), false)</span>
+<span class="nc" id="L1601">            .build();</span>
+
+    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
+    // array field.
+    // The last parameter has to refer to the array to be expanded on the left side. It will
+    // be used by the right side to correlate with the left side.
+<span class="nc" id="L1607">    context</span>
+        .relBuilder
+<span class="nc" id="L1609">        .push(leftNode)</span>
+<span class="nc" id="L1610">        .push(rightNode)</span>
+<span class="nc" id="L1611">        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))</span>
+        // 7. Remove the original array field from the output.
+        // TODO: RFC: should we keep the original array field when alias is present?
+<span class="nc" id="L1614">        .projectExcept(arrayFieldRex);</span>
+
+<span class="nc bnc" id="L1616" title="All 2 branches missed.">    if (alias != null) {</span>
+      // Sub-nested fields cannot be removed after renaming the nested field.
+<span class="nc" id="L1618">      tryToRemoveNestedFields(context);</span>
+<span class="nc" id="L1619">      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);</span>
+<span class="nc" id="L1620">      List&lt;String&gt; names = new ArrayList&lt;&gt;(context.relBuilder.peek().getRowType().getFieldNames());</span>
+<span class="nc" id="L1621">      names.set(expandedField.getIndex(), alias);</span>
+<span class="nc" id="L1622">      context.relBuilder.rename(names);</span>
+    }
+<span class="nc" id="L1624">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

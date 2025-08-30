@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BuiltinFunctionRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">BuiltinFunctionRepository.java</span></div><h1>BuiltinFunctionRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
+import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
+
+import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.aggregation.AggregatorFunctions;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.datetime.IntervalClause;
+import org.opensearch.sql.expression.ip.IPFunctions;
+import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunctions;
+import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunctions;
+import org.opensearch.sql.expression.operator.convert.TypeCastOperators;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperators;
+import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperators;
+import org.opensearch.sql.expression.system.SystemFunctions;
+import org.opensearch.sql.expression.text.TextFunctions;
+import org.opensearch.sql.expression.window.WindowFunctions;
+import org.opensearch.sql.storage.StorageEngine;
+
+/**
+ * Builtin Function Repository. Repository registers datasource specific functions under datasource
+ * namespace and universal functions under default namespace.
+ */
+public class BuiltinFunctionRepository {
+
+  private final Map&lt;FunctionName, FunctionResolver&gt; functionResolverMap;
+
+  /** The singleton instance. */
+  private static BuiltinFunctionRepository instance;
+
+  /**
+   * Construct a function repository with the given function registered. This is only used in test.
+   *
+   * @param functionResolverMap function supported
+   */
+  @VisibleForTesting
+<span class="fc" id="L58">  BuiltinFunctionRepository(Map&lt;FunctionName, FunctionResolver&gt; functionResolverMap) {</span>
+<span class="fc" id="L59">    this.functionResolverMap = functionResolverMap;</span>
+<span class="fc" id="L60">  }</span>
+
+  /**
+   * Get singleton instance of the function repository. Initialize it with all built-in functions
+   * for the first time in synchronized way.
+   *
+   * @return singleton instance
+   */
+  public static synchronized BuiltinFunctionRepository getInstance() {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    if (instance == null) {</span>
+<span class="fc" id="L70">      instance = new BuiltinFunctionRepository(new HashMap&lt;&gt;());</span>
+
+      // Register all built-in functions
+<span class="fc" id="L73">      ArithmeticFunctions.register(instance);</span>
+<span class="fc" id="L74">      BinaryPredicateOperators.register(instance);</span>
+<span class="fc" id="L75">      MathematicalFunctions.register(instance);</span>
+<span class="fc" id="L76">      UnaryPredicateOperators.register(instance);</span>
+<span class="fc" id="L77">      AggregatorFunctions.register(instance);</span>
+<span class="fc" id="L78">      DateTimeFunctions.register(instance);</span>
+<span class="fc" id="L79">      IntervalClause.register(instance);</span>
+<span class="fc" id="L80">      WindowFunctions.register(instance);</span>
+<span class="fc" id="L81">      TextFunctions.register(instance);</span>
+<span class="fc" id="L82">      TypeCastOperators.register(instance);</span>
+<span class="fc" id="L83">      SystemFunctions.register(instance);</span>
+<span class="fc" id="L84">      OpenSearchFunctions.register(instance);</span>
+<span class="fc" id="L85">      IPFunctions.register(instance);</span>
+    }
+<span class="fc" id="L87">    return instance;</span>
+  }
+
+  /**
+   * Register {@link DefaultFunctionResolver} to the Builtin Function Repository.
+   *
+   * @param resolver {@link DefaultFunctionResolver} to be registered
+   */
+  public void register(FunctionResolver resolver) {
+<span class="fc" id="L96">    functionResolverMap.put(resolver.getFunctionName(), resolver);</span>
+<span class="fc" id="L97">  }</span>
+
+  /** Compile FunctionExpression using core function resolver. */
+  public FunctionImplementation compile(
+      FunctionProperties functionProperties,
+      FunctionName functionName,
+      List&lt;Expression&gt; expressions) {
+<span class="fc" id="L104">    return compile(functionProperties, Collections.emptyList(), functionName, expressions);</span>
+  }
+
+  /** Compile FunctionExpression within {@link StorageEngine} provided {@link FunctionResolver}. */
+  public FunctionImplementation compile(
+      FunctionProperties functionProperties,
+      Collection&lt;FunctionResolver&gt; dataSourceFunctionResolver,
+      FunctionName functionName,
+      List&lt;Expression&gt; expressions) {
+<span class="fc" id="L113">    FunctionBuilder resolvedFunctionBuilder =</span>
+<span class="fc" id="L114">        resolve(</span>
+            dataSourceFunctionResolver,
+            new FunctionSignature(
+                functionName,
+<span class="fc" id="L118">                expressions.stream().map(Expression::type).collect(Collectors.toList())));</span>
+<span class="fc" id="L119">    return resolvedFunctionBuilder.apply(functionProperties, expressions);</span>
+  }
+
+  /**
+   * Resolve the {@link FunctionBuilder} in repository under a list of namespaces. Returns the First
+   * FunctionBuilder found. So list of namespaces is also the priority of namespaces.
+   *
+   * @param functionSignature {@link FunctionSignature} functionsignature.
+   * @return Original function builder if it's a cast function or all arguments have expected types
+   *     or otherwise wrap its arguments by cast function as needed.
+   */
+  @VisibleForTesting
+  public FunctionBuilder resolve(
+      Collection&lt;FunctionResolver&gt; dataSourceFunctionResolver,
+      FunctionSignature functionSignature) {
+<span class="fc" id="L134">    Map&lt;FunctionName, FunctionResolver&gt; dataSourceFunctionMap =</span>
+<span class="fc" id="L135">        dataSourceFunctionResolver.stream()</span>
+<span class="fc" id="L136">            .collect(Collectors.toMap(FunctionResolver::getFunctionName, t -&gt; t));</span>
+
+    // first, resolve in datasource provide function resolver.
+    // second, resolve in builtin function resolver.
+<span class="fc" id="L140">    return resolve(functionSignature, dataSourceFunctionMap)</span>
+<span class="fc" id="L141">        .or(() -&gt; resolve(functionSignature, functionResolverMap))</span>
+<span class="fc" id="L142">        .orElseThrow(</span>
+            () -&gt;
+<span class="fc" id="L144">                new ExpressionEvaluationException(</span>
+<span class="fc" id="L145">                    String.format(</span>
+<span class="fc" id="L146">                        &quot;unsupported function name: %s&quot;, functionSignature.getFunctionName())));</span>
+  }
+
+  private Optional&lt;FunctionBuilder&gt; resolve(
+      FunctionSignature functionSignature,
+      Map&lt;FunctionName, FunctionResolver&gt; functionResolverMap) {
+<span class="fc" id="L152">    FunctionName functionName = functionSignature.getFunctionName();</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (functionResolverMap.containsKey(functionName)) {</span>
+<span class="fc" id="L154">      Pair&lt;FunctionSignature, FunctionBuilder&gt; resolvedSignature =</span>
+<span class="fc" id="L155">          functionResolverMap.get(functionName).resolve(functionSignature);</span>
+
+<span class="fc" id="L157">      List&lt;ExprType&gt; sourceTypes = functionSignature.getParamTypeList();</span>
+<span class="fc" id="L158">      List&lt;ExprType&gt; targetTypes = resolvedSignature.getKey().getParamTypeList();</span>
+<span class="fc" id="L159">      FunctionBuilder funcBuilder = resolvedSignature.getValue();</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (isCastFunction(functionName)</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">          || FunctionSignature.isVarArgFunction(targetTypes)</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">          || sourceTypes.equals(targetTypes)) {</span>
+<span class="fc" id="L163">        return Optional.of(funcBuilder);</span>
+      }
+<span class="fc" id="L165">      return Optional.of(castArguments(sourceTypes, targetTypes, funcBuilder));</span>
+    } else {
+<span class="fc" id="L167">      return Optional.empty();</span>
+    }
+  }
+
+  /**
+   * Wrap resolved function builder's arguments by cast function to cast input expression value to
+   * value of target type at runtime. For example, suppose unresolved signature is
+   * equal(BOOL,STRING) and its resolved function builder is F with signature equal(BOOL,BOOL). In
+   * this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
+   */
+  private FunctionBuilder castArguments(
+      List&lt;ExprType&gt; sourceTypes, List&lt;ExprType&gt; targetTypes, FunctionBuilder funcBuilder) {
+<span class="fc" id="L179">    return (fp, arguments) -&gt; {</span>
+<span class="fc" id="L180">      List&lt;Expression&gt; argsCasted = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">      for (int i = 0; i &lt; arguments.size(); i++) {</span>
+<span class="fc" id="L182">        Expression arg = arguments.get(i);</span>
+<span class="fc" id="L183">        ExprType sourceType = sourceTypes.get(i);</span>
+<span class="fc" id="L184">        ExprType targetType = targetTypes.get(i);</span>
+
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (isCastRequired(sourceType, targetType)) {</span>
+<span class="fc" id="L187">          argsCasted.add(cast(arg, targetType).apply(fp));</span>
+        } else {
+<span class="fc" id="L189">          argsCasted.add(arg);</span>
+        }
+      }
+<span class="fc" id="L192">      return funcBuilder.apply(fp, argsCasted);</span>
+    };
+  }
+
+  private boolean isCastRequired(ExprType sourceType, ExprType targetType) {
+    // TODO: Remove this special case after fixing all failed UTs
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (ExprCoreType.numberTypes().contains(sourceType)</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        &amp;&amp; ExprCoreType.numberTypes().contains(targetType)) {</span>
+<span class="fc" id="L200">      return false;</span>
+    }
+<span class="fc" id="L202">    return sourceType.shouldCast(targetType);</span>
+  }
+
+  private Function&lt;FunctionProperties, Expression&gt; cast(Expression arg, ExprType targetType) {
+<span class="fc" id="L206">    FunctionName castFunctionName = getCastFunctionName(targetType);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">    if (castFunctionName == null) {</span>
+<span class="fc" id="L208">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L209">          StringUtils.format(&quot;Type conversion to type %s is not supported&quot;, targetType));</span>
+    }
+<span class="fc" id="L211">    return functionProperties -&gt;</span>
+<span class="fc" id="L212">        (Expression) compile(functionProperties, castFunctionName, List.of(arg));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

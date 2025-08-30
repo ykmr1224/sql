@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecToTimeFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">SecToTimeFunction.java</span></div><h1>SecToTimeFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecToTime;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecToTimeWithNanos;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * &lt;code&gt;sec_to_time(number)&lt;/code&gt; converts the number of seconds to time in HH:mm:ssss[.nnnnnn]
+ * format.
+ *
+ * &lt;p&gt;Signature:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(INTEGER/LONG/DOUBLE/FLOAT) -&gt; TIME
+ * &lt;/ul&gt;
+ */
+public class SecToTimeFunction extends ImplementorUDF {
+  public SecToTimeFunction() {
+<span class="fc" id="L39">    super(new SecToTimeImplementor(), NullPolicy.ARG0);</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L44">    return PPLReturnTypes.TIME_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L49">    return PPLOperandTypes.NUMERIC;</span>
+  }
+
+<span class="fc" id="L52">  public static class SecToTimeImplementor implements NotNullImplementor {</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L57">      return Expressions.call(</span>
+          SecToTimeImplementor.class,
+          &quot;secToTime&quot;,
+<span class="nc" id="L60">          Expressions.convert_(translatedOperands.getFirst(), Number.class));</span>
+    }
+
+    public static String secToTime(Number seconds) {
+      ExprValue returnTimeValue;
+<span class="nc" id="L65">      ExprValue transferredValue = ExprValueUtils.fromObjectValue(seconds);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">      if (MathUtils.isIntegral(seconds)) {</span>
+<span class="nc" id="L67">        returnTimeValue = exprSecToTime(transferredValue);</span>
+      } else {
+<span class="nc" id="L69">        returnTimeValue = exprSecToTimeWithNanos(transferredValue);</span>
+      }
+<span class="nc" id="L71">      return (String) returnTimeValue.valueForCalcite();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

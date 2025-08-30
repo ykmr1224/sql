@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExtendedRexBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite</a> &gt; <span class="el_source">ExtendedRexBuilder.java</span></div><h1>ExtendedRexBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite;
+
+import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+public class ExtendedRexBuilder extends RexBuilder {
+
+  public ExtendedRexBuilder(RexBuilder rexBuilder) {
+<span class="fc" id="L33">    super(rexBuilder.getTypeFactory());</span>
+<span class="fc" id="L34">  }</span>
+
+  public RexNode coalesce(RexNode... nodes) {
+<span class="nc" id="L37">    return this.makeCall(SqlStdOperatorTable.COALESCE, nodes);</span>
+  }
+
+  public RexNode equals(RexNode n1, RexNode n2) {
+<span class="nc" id="L41">    return this.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);</span>
+  }
+
+  public RexNode and(RexNode left, RexNode right) {
+<span class="nc" id="L45">    final RelDataType booleanType = this.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);</span>
+<span class="nc" id="L46">    return this.makeCall(booleanType, SqlStdOperatorTable.AND, List.of(left, right));</span>
+  }
+
+  public RelDataType commonType(RexNode... nodes) {
+<span class="nc" id="L50">    return this.getTypeFactory()</span>
+<span class="nc" id="L51">        .leastRestrictive(Arrays.stream(nodes).map(RexNode::getType).toList());</span>
+  }
+
+  public SqlIntervalQualifier createIntervalUntil(SpanUnit unit) {
+    TimeUnit timeUnit;
+<span class="nc bnc" id="L56" title="All 10 branches missed.">    switch (unit) {</span>
+      case MILLISECOND:
+      case MS:
+<span class="nc" id="L59">        timeUnit = TimeUnit.MILLISECOND;</span>
+<span class="nc" id="L60">        break;</span>
+      case SECOND:
+      case S:
+<span class="nc" id="L63">        timeUnit = TimeUnit.SECOND;</span>
+<span class="nc" id="L64">        break;</span>
+      case MINUTE:
+      case m:
+<span class="nc" id="L67">        timeUnit = TimeUnit.MINUTE;</span>
+<span class="nc" id="L68">        break;</span>
+      case HOUR:
+      case H:
+<span class="nc" id="L71">        timeUnit = TimeUnit.HOUR;</span>
+<span class="nc" id="L72">        break;</span>
+      case DAY:
+      case D:
+<span class="nc" id="L75">        timeUnit = TimeUnit.DAY;</span>
+<span class="nc" id="L76">        break;</span>
+      case WEEK:
+      case W:
+<span class="nc" id="L79">        timeUnit = TimeUnit.WEEK;</span>
+<span class="nc" id="L80">        break;</span>
+      case MONTH:
+      case M:
+<span class="nc" id="L83">        timeUnit = TimeUnit.MONTH;</span>
+<span class="nc" id="L84">        break;</span>
+      case QUARTER:
+      case Q:
+<span class="nc" id="L87">        timeUnit = TimeUnit.QUARTER;</span>
+<span class="nc" id="L88">        break;</span>
+      case YEAR:
+      case Y:
+<span class="nc" id="L91">        timeUnit = TimeUnit.YEAR;</span>
+<span class="nc" id="L92">        break;</span>
+      default:
+<span class="nc" id="L94">        timeUnit = TimeUnit.EPOCH;</span>
+    }
+<span class="nc" id="L96">    return new SqlIntervalQualifier(timeUnit, timeUnit, SqlParserPos.ZERO);</span>
+  }
+
+  @Override
+  public RexNode makeCast(
+      SqlParserPos pos,
+      RelDataType type,
+      RexNode exp,
+      boolean matchNullability,
+      boolean safe,
+      RexLiteral format) {
+<span class="nc" id="L107">    final SqlTypeName sqlType = type.getSqlTypeName();</span>
+<span class="nc" id="L108">    RelDataType sourceType = exp.getType();</span>
+    // Calcite bug which doesn't consider to cast literal to boolean
+<span class="nc bnc" id="L110" title="All 4 branches missed.">    if (exp instanceof RexLiteral &amp;&amp; sqlType == SqlTypeName.BOOLEAN) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">      if (exp.equals(makeLiteral(&quot;1&quot;, typeFactory.createSqlType(SqlTypeName.CHAR, 1)))) {</span>
+<span class="nc" id="L112">        return makeLiteral(true, type);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      } else if (exp.equals(makeLiteral(&quot;0&quot;, typeFactory.createSqlType(SqlTypeName.CHAR, 1)))) {</span>
+<span class="nc" id="L114">        return makeLiteral(false, type);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">      } else if (SqlTypeUtil.isExactNumeric(sourceType)) {</span>
+<span class="nc" id="L116">        return makeCall(</span>
+            type,
+            SqlStdOperatorTable.NOT_EQUALS,
+<span class="nc" id="L119">            ImmutableList.of(exp, makeZeroLiteral(sourceType)));</span>
+        // TODO https://github.com/opensearch-project/sql/issues/3443
+        // Current, we align the behaviour of Spark and Postgres, to align with OpenSearch V2,
+        // enable following commented codes.
+        //      } else {
+        //        return makeCall(type,
+        //            SqlStdOperatorTable.NOT_EQUALS,
+        //            ImmutableList.of(exp, makeZeroLiteral(sourceType)));
+      }
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {</span>
+<span class="nc" id="L129">      var udt = ((AbstractExprRelDataType&lt;?&gt;) type).getUdt();</span>
+<span class="nc" id="L130">      var argExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(sourceType);</span>
+<span class="nc bnc" id="L131" title="All 5 branches missed.">      return switch (udt) {</span>
+<span class="nc" id="L132">        case EXPR_DATE -&gt; makeCall(type, PPLBuiltinOperators.DATE, List.of(exp));</span>
+<span class="nc" id="L133">        case EXPR_TIME -&gt; makeCall(type, PPLBuiltinOperators.TIME, List.of(exp));</span>
+<span class="nc" id="L134">        case EXPR_TIMESTAMP -&gt; makeCall(type, PPLBuiltinOperators.TIMESTAMP, List.of(exp));</span>
+        case EXPR_IP -&gt; {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">          if (argExprType == ExprCoreType.IP) {</span>
+<span class="nc" id="L137">            yield exp;</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">          } else if (argExprType == ExprCoreType.STRING) {</span>
+<span class="nc" id="L139">            yield makeCall(type, PPLBuiltinOperators.IP, List.of(exp));</span>
+          }
+          // Throwing error inside implementation will be suppressed by Calcite, thus
+          // throwing 500 error. Therefore, we throw error here to ensure the error
+          // information is displayed properly.
+<span class="nc" id="L144">          throw new ExpressionEvaluationException(</span>
+<span class="nc" id="L145">              String.format(</span>
+                  Locale.ROOT,
+                  &quot;Cannot convert %s to IP, only STRING and IP types are supported&quot;,
+                  argExprType));
+        }
+<span class="nc" id="L150">        default -&gt; throw new SemanticCheckException(</span>
+<span class="nc" id="L151">            String.format(Locale.ROOT, &quot;Cannot cast from %s to %s&quot;, argExprType, udt.name()));</span>
+      };
+    }
+    // Use a custom operator when casting floating point or decimal number to a character type.
+    // This patch is necessary because in Calcite, 0.0F is cast to 0E0, decimal 0.x to x
+<span class="nc bnc" id="L156" title="All 4 branches missed.">    else if ((SqlTypeUtil.isApproximateNumeric(sourceType) || SqlTypeUtil.isDecimal(sourceType))</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        &amp;&amp; SqlTypeUtil.isCharacter(type)) {</span>
+      // NUMBER_TO_STRING uses java's built-in method to get the string representation of a number
+<span class="nc" id="L159">      return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));</span>
+    }
+<span class="nc" id="L161">    return super.makeCast(pos, type, exp, matchNullability, safe, format);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

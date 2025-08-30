@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLLangSpec.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.lang</a> &gt; <span class="el_source">PPLLangSpec.java</span></div><h1>PPLLangSpec.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.lang;
+
+import java.util.HashMap;
+import java.util.Map;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
+
+/**
+ * PPL language specification implementation.
+ *
+ * &lt;p&gt;This class provides a singleton implementation of {@link LangSpec} for PPL. It defines a
+ * custom mapping from expression types to PPL type names.
+ */
+public class PPLLangSpec implements LangSpec {
+
+<span class="fc" id="L22">  public static final PPLLangSpec PPL_SPEC = new PPLLangSpec();</span>
+
+<span class="fc" id="L24">  private static Map&lt;ExprType, String&gt; exprTypeToPPLType = new HashMap&lt;&gt;();</span>
+
+  static {
+<span class="fc" id="L27">    exprTypeToPPLType.put(ExprCoreType.BYTE, &quot;tinyint&quot;);</span>
+<span class="fc" id="L28">    exprTypeToPPLType.put(ExprCoreType.SHORT, &quot;smallint&quot;);</span>
+<span class="fc" id="L29">    exprTypeToPPLType.put(ExprCoreType.INTEGER, &quot;int&quot;);</span>
+<span class="fc" id="L30">    exprTypeToPPLType.put(ExprCoreType.LONG, &quot;bigint&quot;);</span>
+<span class="fc" id="L31">  }</span>
+
+  private PPLLangSpec() {}
+
+  @Override
+  public QueryType language() {
+<span class="fc" id="L37">    return QueryType.PPL;</span>
+  }
+
+  /**
+   * Returns the corresponding PPL type name for the given expression type. If the expression type
+   * is not mapped, it returns the default type name.
+   *
+   * @param exprType the expression type.
+   * @return the PPL type name associated with the expression type, or the default type name.
+   */
+  @Override
+  public String typeName(ExprType exprType) {
+<span class="fc" id="L49">    return exprTypeToPPLType.getOrDefault(exprType, exprType.typeName());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ErrorMessage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.response.error</a> &gt; <span class="el_source">ErrorMessage.java</span></div><h1>ErrorMessage.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.response.error;
+
+import lombok.Getter;
+import org.json.JSONObject;
+import org.opensearch.core.rest.RestStatus;
+
+/** Error Message. */
+public class ErrorMessage {
+
+  protected final Throwable exception;
+
+  private final int status;
+
+  @Getter private final String type;
+
+  @Getter private final String reason;
+
+  @Getter private final String details;
+
+  /** Error Message Constructor. */
+<span class="fc" id="L26">  public ErrorMessage(Throwable exception, int status) {</span>
+<span class="fc" id="L27">    this.exception = exception;</span>
+<span class="fc" id="L28">    this.status = status;</span>
+
+<span class="fc" id="L30">    this.type = fetchType();</span>
+<span class="fc" id="L31">    this.reason = fetchReason();</span>
+<span class="fc" id="L32">    this.details = fetchDetails();</span>
+<span class="fc" id="L33">  }</span>
+
+  private String fetchType() {
+<span class="fc" id="L36">    return exception.getClass().getSimpleName();</span>
+  }
+
+  protected String fetchReason() {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    return status == RestStatus.BAD_REQUEST.getStatus()</span>
+<span class="fc" id="L41">        ? &quot;Invalid Query&quot;</span>
+<span class="fc" id="L42">        : &quot;There was internal problem at backend&quot;;</span>
+  }
+
+  protected String fetchDetails() {
+    // Some exception prints internal information (full class name) which is security concern
+<span class="fc" id="L47">    return emptyStringIfNull(exception.getLocalizedMessage());</span>
+  }
+
+  private String emptyStringIfNull(String str) {
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    return str != null ? str : &quot;&quot;;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L56">    JSONObject output = new JSONObject();</span>
+
+<span class="fc" id="L58">    output.put(&quot;status&quot;, status);</span>
+<span class="fc" id="L59">    output.put(&quot;error&quot;, getErrorAsJson());</span>
+
+<span class="fc" id="L61">    return output.toString(2);</span>
+  }
+
+  private JSONObject getErrorAsJson() {
+<span class="fc" id="L65">    JSONObject errorJson = new JSONObject();</span>
+
+<span class="fc" id="L67">    errorJson.put(&quot;type&quot;, type);</span>
+<span class="fc" id="L68">    errorJson.put(&quot;reason&quot;, reason);</span>
+<span class="fc" id="L69">    errorJson.put(&quot;details&quot;, details);</span>
+
+<span class="fc" id="L71">    return errorJson;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

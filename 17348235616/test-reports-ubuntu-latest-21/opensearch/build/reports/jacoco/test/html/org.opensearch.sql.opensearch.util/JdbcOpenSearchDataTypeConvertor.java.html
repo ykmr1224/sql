@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcOpenSearchDataTypeConvertor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.util</a> &gt; <span class="el_source">JdbcOpenSearchDataTypeConvertor.java</span></div><h1>JdbcOpenSearchDataTypeConvertor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.util;
+
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import lombok.experimental.UtilityClass;
+import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.geom.Point;
+import org.opensearch.sql.calcite.type.ExprJavaType;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
+
+/** This class is used to convert the data type from JDBC to OpenSearch data type. */
+@UtilityClass
+public class JdbcOpenSearchDataTypeConvertor {
+<span class="nc" id="L34">  private static final Logger LOG = LogManager.getLogger();</span>
+
+  public static ExprType getExprTypeFromSqlType(int sqlType) {
+<span class="nc bnc" id="L37" title="All 9 branches missed.">    switch (sqlType) {</span>
+      case Types.INTEGER:
+<span class="nc" id="L39">        return ExprCoreType.INTEGER;</span>
+      case Types.BIGINT:
+<span class="nc" id="L41">        return ExprCoreType.LONG;</span>
+      case Types.DOUBLE:
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+<span class="nc" id="L45">        return ExprCoreType.DOUBLE;</span>
+      case Types.FLOAT:
+<span class="nc" id="L47">        return ExprCoreType.FLOAT;</span>
+      case Types.DATE:
+<span class="nc" id="L49">        return ExprCoreType.DATE;</span>
+      case Types.TIMESTAMP:
+<span class="nc" id="L51">        return ExprCoreType.TIMESTAMP;</span>
+      case Types.BOOLEAN:
+<span class="nc" id="L53">        return ExprCoreType.BOOLEAN;</span>
+      case Types.VARCHAR:
+      case Types.CHAR:
+      case Types.LONGVARCHAR:
+<span class="nc" id="L57">        return ExprCoreType.STRING;</span>
+      default:
+        // TODO unchecked OpenSearchDataType
+<span class="nc" id="L60">        return ExprCoreType.UNKNOWN;</span>
+    }
+  }
+
+  public static ExprValue getExprValueFromSqlType(
+      ResultSet rs, int i, int sqlType, RelDataType fieldType, String fieldName)
+      throws SQLException {
+<span class="nc" id="L67">    Object value = rs.getObject(i);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L69">      return ExprNullValue.of();</span>
+    }
+
+<span class="nc bnc" id="L72" title="All 4 branches missed.">    if (fieldType instanceof ExprJavaType &amp;&amp; value instanceof ExprValue) {</span>
+<span class="nc" id="L73">      return (ExprValue) value;</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    } else if (fieldType.getSqlTypeName() == SqlTypeName.GEOMETRY) {</span>
+      // Use getObject by name instead of index to avoid Avatica's transformation on the accessor.
+      // Otherwise, Avatica will transform Geometry to String.
+<span class="nc" id="L77">      Point geoPoint = (Point) rs.getObject(fieldName);</span>
+<span class="nc" id="L78">      return new OpenSearchExprGeoPointValue(geoPoint.getY(), geoPoint.getX());</span>
+    }
+
+    try {
+<span class="nc bnc" id="L82" title="All 11 branches missed.">      switch (sqlType) {</span>
+        case Types.VARCHAR:
+        case Types.CHAR:
+        case Types.LONGVARCHAR:
+<span class="nc" id="L86">          return ExprValueUtils.fromObjectValue(rs.getString(i));</span>
+
+        case Types.INTEGER:
+<span class="nc" id="L89">          return ExprValueUtils.fromObjectValue(rs.getInt(i));</span>
+
+        case Types.BIGINT:
+<span class="nc" id="L92">          return ExprValueUtils.fromObjectValue(rs.getLong(i));</span>
+
+        case Types.FLOAT:
+        case Types.REAL:
+<span class="nc" id="L96">          return ExprValueUtils.fromObjectValue(rs.getFloat(i));</span>
+
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+        case Types.DOUBLE:
+<span class="nc" id="L101">          return ExprValueUtils.fromObjectValue(rs.getDouble(i));</span>
+
+        case Types.DATE:
+<span class="nc" id="L104">          String dateStr = rs.getString(i);</span>
+<span class="nc" id="L105">          return new ExprDateValue(dateStr);</span>
+
+        case Types.TIME:
+<span class="nc" id="L108">          String timeStr = rs.getString(i);</span>
+<span class="nc" id="L109">          return new ExprTimeValue(timeStr);</span>
+
+        case Types.TIMESTAMP:
+<span class="nc" id="L112">          String timestampStr = rs.getString(i);</span>
+<span class="nc" id="L113">          return new ExprTimestampValue(timestampStr);</span>
+
+        case Types.BOOLEAN:
+<span class="nc" id="L116">          return ExprValueUtils.fromObjectValue(rs.getBoolean(i));</span>
+
+        case Types.ARRAY:
+<span class="nc" id="L119">          Array array = rs.getArray(i);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">          if (array instanceof ArrayImpl) {</span>
+<span class="nc" id="L121">            return ExprValueUtils.fromObjectValue(</span>
+<span class="nc" id="L122">                Arrays.asList((Object[]) ((ArrayImpl) value).getArray()));</span>
+          }
+<span class="nc" id="L124">          return ExprValueUtils.fromObjectValue(array);</span>
+
+        default:
+<span class="nc" id="L127">          LOG.debug(</span>
+              &quot;Unchecked sql type: {}, return Object type {}&quot;,
+<span class="nc" id="L129">              sqlType,</span>
+<span class="nc" id="L130">              value.getClass().getTypeName());</span>
+<span class="nc" id="L131">          return ExprValueUtils.fromObjectValue(value);</span>
+      }
+<span class="nc" id="L133">    } catch (SQLException e) {</span>
+<span class="nc" id="L134">      LOG.error(&quot;Error converting SQL type {}: {}&quot;, sqlType, e.getMessage());</span>
+<span class="nc" id="L135">      throw e;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

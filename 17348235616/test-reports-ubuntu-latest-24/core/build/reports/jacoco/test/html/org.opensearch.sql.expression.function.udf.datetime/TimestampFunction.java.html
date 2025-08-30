@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimestampFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">TimestampFunction.java</span></div><h1>TimestampFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils.convertToTimestampValue;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * It constructs a timestamp based on the input datetime value. If a second argument is provided, it
+ * adds the time of the second argument to the first datetime.
+ *
+ * &lt;p&gt;Signatures:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(STRING/DATE/TIME/TIMESTAMP) -&gt; TIMESTAMP
+ *   &lt;li&gt;(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -&gt; TIMESTAMP
+ * &lt;/ul&gt;
+ */
+public class TimestampFunction extends ImplementorUDF {
+  public TimestampFunction() {
+<span class="fc" id="L42">    super(new TimestampImplementor(), NullPolicy.ALL);</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L47">    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L52">    return UDFOperandMetadata.wrap(</span>
+        (CompositeOperandTypeChecker)
+            OperandTypes.CHARACTER
+<span class="fc" id="L55">                .or(OperandTypes.DATETIME)</span>
+<span class="fc" id="L56">                .or(OperandTypes.CHARACTER_CHARACTER)</span>
+<span class="fc" id="L57">                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))</span>
+<span class="fc" id="L58">                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME))</span>
+<span class="fc" id="L59">                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)));</span>
+  }
+
+<span class="fc" id="L62">  public static class TimestampImplementor implements NotNullImplementor {</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator rexToLixTranslator, RexCall rexCall, List&lt;Expression&gt; list) {
+<span class="nc" id="L67">      List&lt;Expression&gt; operands = convertToExprValues(list, rexCall);</span>
+<span class="nc" id="L68">      List&lt;Expression&gt; operandsWithProperties =</span>
+<span class="nc" id="L69">          prependFunctionProperties(operands, rexToLixTranslator);</span>
+<span class="nc" id="L70">      return Expressions.call(TimestampFunction.class, &quot;timestamp&quot;, operandsWithProperties);</span>
+    }
+  }
+
+  public static String timestamp(FunctionProperties properties, ExprValue datetime) {
+<span class="nc" id="L75">    return (String) convertToTimestampValue(datetime, properties).valueForCalcite();</span>
+  }
+
+  public static String timestamp(
+      FunctionProperties properties, ExprValue datetime, ExprValue addTime) {
+<span class="nc" id="L80">    ExprValue dateTimeBase = convertToTimestampValue(datetime, properties);</span>
+<span class="nc" id="L81">    ExprValue addTimeValue = convertToTimestampValue(addTime, properties);</span>
+<span class="nc" id="L82">    return (String) exprAddTime(properties, dateTimeBase, addTimeValue).valueForCalcite();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

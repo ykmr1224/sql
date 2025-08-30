@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchCatIndicesRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request.system</a> &gt; <span class="el_source">OpenSearchCatIndicesRequest.java</span></div><h1>OpenSearchCatIndicesRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request.system;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+
+/** Cat indices request. */
+@RequiredArgsConstructor
+public class OpenSearchCatIndicesRequest implements OpenSearchSystemRequest {
+
+  private static final String DEFAULT_TABLE_CAT = &quot;opensearch&quot;;
+
+  private static final String DEFAULT_TABLE_TAPE = &quot;BASE TABLE&quot;;
+
+  /** OpenSearch client connection. */
+  private final OpenSearchClient client;
+
+  /**
+   * search all the index in the data store.
+   *
+   * @return list of {@link ExprValue}
+   */
+  @Override
+  public List&lt;ExprValue&gt; search() {
+<span class="fc" id="L38">    List&lt;ExprValue&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L39">    final Map&lt;String, String&gt; meta = client.meta();</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    for (String index : client.indices()) {</span>
+<span class="fc" id="L41">      results.add(row(index, clusterName(meta)));</span>
+<span class="fc" id="L42">    }</span>
+<span class="fc" id="L43">    return results;</span>
+  }
+
+  private ExprTupleValue row(String indexName, String clusterName) {
+<span class="fc" id="L47">    LinkedHashMap&lt;String, ExprValue&gt; valueMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L48">    valueMap.put(&quot;TABLE_CAT&quot;, stringValue(clusterName));</span>
+<span class="fc" id="L49">    valueMap.put(&quot;TABLE_NAME&quot;, stringValue(indexName));</span>
+<span class="fc" id="L50">    valueMap.put(&quot;TABLE_TYPE&quot;, stringValue(DEFAULT_TABLE_TAPE));</span>
+<span class="fc" id="L51">    return new ExprTupleValue(valueMap);</span>
+  }
+
+  private String clusterName(Map&lt;String, String&gt; meta) {
+<span class="fc" id="L55">    return meta.getOrDefault(META_CLUSTER_NAME, DEFAULT_TABLE_CAT);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L60">    return &quot;OpenSearchCatIndicesRequest{}&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

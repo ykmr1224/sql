@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LuceneQuery.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.filter.lucene</a> &gt; <span class="el_source">LuceneQuery.java</span></div><h1>LuceneQuery.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.filter.lucene;
+
+import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+
+import com.google.common.collect.ImmutableMap;
+import java.time.ZonedDateTime;
+import java.util.Map;
+import java.util.function.BiFunction;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprByteValue;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+
+/** Lucene query abstraction that builds Lucene query from function expression. */
+<span class="fc" id="L40">public abstract class LuceneQuery {</span>
+
+  /**
+   * Check if function expression supported by current Lucene query. Default behavior is that report
+   * supported if:
+   *
+   * &lt;ol&gt;
+   *   &lt;li&gt;Left is a reference
+   *   &lt;li&gt;Right side is a literal
+   * &lt;/ol&gt;
+   *
+   * @param func function
+   * @return return true if supported, otherwise false.
+   */
+  public boolean canSupport(FunctionExpression func) {
+<span class="fc bfc" id="L55" title="All 2 branches covered.">    return (func.getArguments().size() == 2)</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            &amp;&amp; (func.getArguments().get(0) instanceof ReferenceExpression)</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            &amp;&amp; (func.getArguments().get(1) instanceof LiteralExpression</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">                || literalExpressionWrappedByCast(func))</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        || isMultiParameterQuery(func);</span>
+  }
+
+  /**
+   * Check if predicate expression has nested function on left side of predicate expression.
+   * Validation for right side being a `LiteralExpression` is done in NestedQuery.
+   *
+   * @param func function.
+   * @return return true if function has supported nested function expression.
+   */
+  public boolean isNestedPredicate(FunctionExpression func) {
+<span class="fc" id="L70">    return isNestedFunction(func.getArguments().get(0));</span>
+  }
+
+  /**
+   * Check if the function expression has multiple named argument expressions as the parameters.
+   *
+   * @param func function
+   * @return return true if the expression is a multi-parameter function.
+   */
+  private boolean isMultiParameterQuery(FunctionExpression func) {
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    for (Expression expr : func.getArguments()) {</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (!(expr instanceof NamedArgumentExpression)) {</span>
+<span class="fc" id="L82">        return false;</span>
+      }
+<span class="fc" id="L84">    }</span>
+<span class="fc" id="L85">    return true;</span>
+  }
+
+  /**
+   * Check if the second argument of the function is a literal expression wrapped by cast function.
+   */
+  protected boolean literalExpressionWrappedByCast(FunctionExpression func) {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (func.getArguments().get(1) instanceof FunctionExpression) {</span>
+<span class="fc" id="L93">      FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">      return castMap.containsKey(expr.getFunctionName())</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">          &amp;&amp; expr.getArguments().get(0) instanceof LiteralExpression;</span>
+    }
+<span class="fc" id="L97">    return false;</span>
+  }
+
+  /**
+   * Build Lucene query from function expression. The cast function is converted to literal
+   * expressions before generating DSL.
+   *
+   * @param func function
+   * @return query
+   */
+  public QueryBuilder build(FunctionExpression func) {
+<span class="fc" id="L108">    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);</span>
+<span class="fc" id="L109">    Expression expr = func.getArguments().get(1);</span>
+    ExprValue literalValue =
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);</span>
+<span class="fc" id="L112">    return doBuild(ref.getRawPath(), ref.type(), literalValue);</span>
+  }
+
+  private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
+<span class="fc" id="L116">    return castMap</span>
+<span class="fc" id="L117">        .get(castFunction.getFunctionName())</span>
+<span class="fc" id="L118">        .apply((LiteralExpression) castFunction.getArguments().get(0), ref);</span>
+  }
+
+  /** Type converting map. */
+<span class="fc" id="L122">  private final Map&lt;FunctionName, BiFunction&lt;LiteralExpression, ReferenceExpression, ExprValue&gt;&gt;</span>
+      castMap =
+          ImmutableMap
+              .&lt;FunctionName, BiFunction&lt;LiteralExpression, ReferenceExpression, ExprValue&gt;&gt;
+<span class="fc" id="L126">                  builder()</span>
+<span class="fc" id="L127">              .put(</span>
+<span class="fc" id="L128">                  BuiltinFunctionName.CAST_TO_STRING.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                    if (!expr.type().equals(ExprCoreType.STRING)) {</span>
+<span class="fc" id="L131">                      return new ExprStringValue(String.valueOf(expr.valueOf().value()));</span>
+                    } else {
+<span class="fc" id="L133">                      return expr.valueOf();</span>
+                    }
+                  })
+<span class="fc" id="L136">              .put(</span>
+<span class="fc" id="L137">                  BuiltinFunctionName.CAST_TO_BYTE.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L139" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L140">                      return new ExprByteValue(expr.valueOf().byteValue());</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">                      return new ExprByteValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L144">                      return new ExprByteValue(Byte.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L147">              .put(</span>
+<span class="fc" id="L148">                  BuiltinFunctionName.CAST_TO_SHORT.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L151">                      return new ExprShortValue(expr.valueOf().shortValue());</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">                      return new ExprShortValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L155">                      return new ExprShortValue(Short.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L158">              .put(</span>
+<span class="fc" id="L159">                  BuiltinFunctionName.CAST_TO_INT.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L161" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L162">                      return new ExprIntegerValue(expr.valueOf().integerValue());</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                      return new ExprIntegerValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L166">                      return new ExprIntegerValue(Integer.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L169">              .put(</span>
+<span class="fc" id="L170">                  BuiltinFunctionName.CAST_TO_LONG.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L173">                      return new ExprLongValue(expr.valueOf().longValue());</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">                      return new ExprLongValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L177">                      return new ExprLongValue(Long.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L180">              .put(</span>
+<span class="fc" id="L181">                  BuiltinFunctionName.CAST_TO_FLOAT.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L184">                      return new ExprFloatValue(expr.valueOf().floatValue());</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">                      return new ExprFloatValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L188">                      return new ExprFloatValue(Float.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L191">              .put(</span>
+<span class="fc" id="L192">                  BuiltinFunctionName.CAST_TO_DOUBLE.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L194" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc" id="L195">                      return new ExprDoubleValue(expr.valueOf().doubleValue());</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">                      return new ExprDoubleValue(expr.valueOf().booleanValue() ? 1 : 0);</span>
+                    } else {
+<span class="fc" id="L199">                      return new ExprDoubleValue(Double.valueOf(expr.valueOf().stringValue()));</span>
+                    }
+                  })
+<span class="fc" id="L202">              .put(</span>
+<span class="fc" id="L203">                  BuiltinFunctionName.CAST_TO_BOOLEAN.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L205" title="All 2 branches covered.">                    if (ExprCoreType.numberTypes().contains(expr.type())) {</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">                      return expr.valueOf().doubleValue() != 0</span>
+<span class="fc" id="L207">                          ? ExprBooleanValue.of(true)</span>
+<span class="fc" id="L208">                          : ExprBooleanValue.of(false);</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">                    } else if (expr.type().equals(ExprCoreType.STRING)) {</span>
+<span class="fc" id="L210">                      return ExprBooleanValue.of(Boolean.valueOf(expr.valueOf().stringValue()));</span>
+                    } else {
+<span class="fc" id="L212">                      return expr.valueOf();</span>
+                    }
+                  })
+<span class="fc" id="L215">              .put(</span>
+<span class="fc" id="L216">                  BuiltinFunctionName.CAST_TO_IP.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc" id="L218">                    return new ExprIpValue(expr.valueOf().stringValue());</span>
+                  })
+<span class="fc" id="L220">              .put(</span>
+<span class="fc" id="L221">                  BuiltinFunctionName.CAST_TO_DATE.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L223" title="All 2 branches covered.">                    if (expr.type().equals(ExprCoreType.STRING)) {</span>
+<span class="fc" id="L224">                      ZonedDateTime zonedDateTime = getParsedDateTime(expr, ref);</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">                      if (zonedDateTime != null) {</span>
+<span class="fc" id="L226">                        return new ExprDateValue(zonedDateTime.toLocalDate());</span>
+                      }
+<span class="fc" id="L228">                      return new ExprDateValue(expr.valueOf().stringValue());</span>
+                    } else {
+<span class="fc" id="L230">                      return new ExprDateValue(expr.valueOf().dateValue());</span>
+                    }
+                  })
+<span class="fc" id="L233">              .put(</span>
+<span class="fc" id="L234">                  BuiltinFunctionName.CAST_TO_TIME.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L236" title="All 2 branches covered.">                    if (expr.type().equals(ExprCoreType.STRING)) {</span>
+<span class="fc" id="L237">                      ZonedDateTime zonedDateTime = getParsedDateTime(expr, ref);</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">                      if (zonedDateTime != null) {</span>
+<span class="fc" id="L239">                        return new ExprTimeValue(zonedDateTime.toLocalTime());</span>
+                      }
+<span class="fc" id="L241">                      return new ExprTimeValue(expr.valueOf().stringValue());</span>
+                    } else {
+<span class="fc" id="L243">                      return new ExprTimeValue(expr.valueOf().timeValue());</span>
+                    }
+                  })
+<span class="fc" id="L246">              .put(</span>
+<span class="fc" id="L247">                  BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),</span>
+                  (expr, ref) -&gt; {
+<span class="fc bfc" id="L249" title="All 2 branches covered.">                    if (expr.type().equals(ExprCoreType.STRING)) {</span>
+<span class="fc" id="L250">                      ZonedDateTime zonedDateTime = getParsedDateTime(expr, ref);</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">                      if (zonedDateTime != null) {</span>
+<span class="fc" id="L252">                        return new ExprTimestampValue(zonedDateTime.toInstant());</span>
+                      }
+<span class="fc" id="L254">                      return new ExprTimestampValue(expr.valueOf().stringValue());</span>
+                    } else {
+<span class="fc" id="L256">                      return new ExprTimestampValue(expr.valueOf().timestampValue());</span>
+                    }
+                  })
+<span class="fc" id="L259">              .build();</span>
+
+  /**
+   * Parses the date/time from the given expression if the reference type is an instance of
+   * OpenSearchDateType.
+   *
+   * @param expr The expression to parse.
+   * @return The parsed ZonedDateTime or null if the conditions are not met.
+   */
+  private ZonedDateTime getParsedDateTime(LiteralExpression expr, ReferenceExpression ref) {
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    if (ref.type() instanceof OpenSearchDateType) {</span>
+<span class="fc" id="L270">      return ((OpenSearchDateType) ref.type()).getParsedDateTime(expr.valueOf().stringValue());</span>
+    }
+<span class="fc" id="L272">    return null;</span>
+  }
+
+  /**
+   * Build method that subclass implements by default which is to build query from reference and
+   * literal in function arguments.
+   *
+   * @param fieldName field name
+   * @param fieldType field type
+   * @param literal field value literal
+   * @return query
+   */
+  protected QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
+<span class="fc" id="L285">    throw new UnsupportedOperationException(</span>
+        &quot;Subclass doesn't implement this and build method either&quot;);
+  }
+
+  /**
+   * Converts a literal value to a formatted date or time value based on the specified field type.
+   *
+   * &lt;p&gt;If the field type is an instance of {@link OpenSearchDateType}, this method checks the type
+   * of the literal value and converts it to a formatted date or time if necessary. The formatting
+   * is applied if the {@link OpenSearchDateType} has a formatter. Otherwise, the raw value is
+   * returned.
+   *
+   * @param literal the literal value to be converted
+   * @param fieldType the field type to determine the conversion logic
+   * @return the formatted date or time value if the field type requires it, otherwise the raw value
+   */
+  protected Object value(ExprValue literal, ExprType fieldType) {
+<span class="fc bfc" id="L302" title="All 2 branches covered.">    if (fieldType instanceof OpenSearchDateType) {</span>
+<span class="fc" id="L303">      OpenSearchDateType openSearchDateType = (OpenSearchDateType) fieldType;</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">      if (literal.type().equals(ExprCoreType.TIMESTAMP)) {</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">        return openSearchDateType.hasNoFormatter()</span>
+<span class="fc" id="L306">            ? literal.timestampValue().toEpochMilli()</span>
+<span class="fc" id="L307">            : openSearchDateType.getFormattedDate(literal.timestampValue());</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">      } else if (literal.type().equals(ExprCoreType.DATE)) {</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">        return openSearchDateType.hasNoFormatter()</span>
+<span class="fc" id="L310">            ? literal.value()</span>
+<span class="fc" id="L311">            : openSearchDateType.getFormattedDate(literal.dateValue());</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">      } else if (literal.type().equals(ExprCoreType.TIME)) {</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">        return openSearchDateType.hasNoFormatter()</span>
+<span class="fc" id="L314">            ? literal.value()</span>
+<span class="fc" id="L315">            : openSearchDateType.getFormattedDate(literal.timeValue());</span>
+      }
+    }
+<span class="fc" id="L318">    return literal.value();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

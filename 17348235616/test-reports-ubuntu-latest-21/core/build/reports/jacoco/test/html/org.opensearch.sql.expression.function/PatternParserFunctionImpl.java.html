@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PatternParserFunctionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">PatternParserFunctionImpl.java</span></div><h1>PatternParserFunctionImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import com.google.common.collect.ImmutableMap;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.linq4j.function.Strict;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.logging.log4j.util.Strings;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.patterns.BrainLogParser;
+import org.opensearch.sql.common.patterns.PatternUtils;
+import org.opensearch.sql.common.patterns.PatternUtils.ParseResult;
+
+public class PatternParserFunctionImpl extends ImplementorUDF {
+  protected PatternParserFunctionImpl() {
+<span class="fc" id="L41">    super(new PatternParserImplementor(), NullPolicy.ARG0);</span>
+<span class="fc" id="L42">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L46">    return ReturnTypes.explicit(UserDefinedFunctionUtils.patternStruct);</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L51">    return UDFOperandMetadata.wrap(</span>
+        (CompositeOperandTypeChecker)
+<span class="fc" id="L53">            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY)</span>
+<span class="fc" id="L54">                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER))</span>
+<span class="fc" id="L55">                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ARRAY)));</span>
+  }
+
+<span class="fc" id="L58">  public static class PatternParserImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      assert call.getOperands().size() == 2 : &quot;PATTERN_PARSER should have 2 arguments&quot;;</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">      assert translatedOperands.size() == 2 : &quot;PATTERN_PARSER should have 2 arguments&quot;;</span>
+
+<span class="nc" id="L65">      RelDataType inputType = call.getOperands().get(1).getType();</span>
+<span class="nc" id="L66">      Method method = resolveEvaluationMethod(inputType);</span>
+
+<span class="nc" id="L68">      ScalarFunctionImpl function = (ScalarFunctionImpl) ScalarFunctionImpl.create(method);</span>
+<span class="nc" id="L69">      return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);</span>
+    }
+
+    private Method resolveEvaluationMethod(RelDataType inputType) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">      if (inputType.getSqlTypeName() == SqlTypeName.VARCHAR) {</span>
+<span class="nc" id="L74">        return getMethod(String.class, &quot;evalField&quot;);</span>
+      }
+
+<span class="nc" id="L77">      RelDataType componentType = inputType.getComponentType();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">      return (componentType.getSqlTypeName() == SqlTypeName.MAP)</span>
+<span class="nc" id="L79">          ? getMethod(Object.class, &quot;evalAgg&quot;)</span>
+<span class="nc" id="L80">          : getMethod(List.class, &quot;evalSamples&quot;);</span>
+    }
+
+    private Method getMethod(Class&lt;?&gt; paramType, String methodName) {
+<span class="nc" id="L84">      return Types.lookupMethod(</span>
+          PatternParserFunctionImpl.class, methodName, String.class, paramType);
+    }
+  }
+
+  /*
+   * A simple and general label pattern algorithm given aggregated patterns, which is adopted from
+   * Drain algorithm(see https://ieeexplore.ieee.org/document/8029742).
+   */
+  @Strict
+  public static Object evalAgg(
+      @Parameter(name = &quot;field&quot;) String field, @Parameter(name = &quot;aggObject&quot;) Object aggObject) {
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (Strings.isBlank(field)) {</span>
+<span class="nc" id="L97">      return ImmutableMap.of();</span>
+    }
+<span class="nc" id="L99">    List&lt;Map&lt;String, Object&gt;&gt; aggResult = (List&lt;Map&lt;String, Object&gt;&gt;) aggObject;</span>
+<span class="nc" id="L100">    List&lt;String&gt; preprocessedTokens =</span>
+<span class="nc" id="L101">        BrainLogParser.preprocess(</span>
+            field,
+            BrainLogParser.DEFAULT_FILTER_PATTERN_VARIABLE_MAP,
+            BrainLogParser.DEFAULT_DELIMITERS);
+<span class="nc" id="L105">    List&lt;List&lt;String&gt;&gt; candidates =</span>
+<span class="nc" id="L106">        aggResult.stream()</span>
+<span class="nc" id="L107">            .map(m -&gt; (String) m.get(PatternUtils.PATTERN))</span>
+<span class="nc" id="L108">            .map(pattern -&gt; pattern.split(&quot; &quot;))</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            .filter(splitPattern -&gt; splitPattern.length == preprocessedTokens.size())</span>
+<span class="nc" id="L110">            .map(Arrays::asList)</span>
+<span class="nc" id="L111">            .toList();</span>
+<span class="nc" id="L112">    List&lt;String&gt; bestCandidate = findBestCandidate(candidates, preprocessedTokens);</span>
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (bestCandidate != null) {</span>
+<span class="nc" id="L115">      String bestCandidatePattern = String.join(&quot; &quot;, bestCandidate);</span>
+<span class="nc" id="L116">      Map&lt;String, List&lt;String&gt;&gt; tokensMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L117">      ParseResult parseResult =</span>
+<span class="nc" id="L118">          PatternUtils.parsePattern(bestCandidatePattern, PatternUtils.TOKEN_PATTERN);</span>
+<span class="nc" id="L119">      PatternUtils.extractVariables(parseResult, field, tokensMap, PatternUtils.TOKEN_PREFIX);</span>
+<span class="nc" id="L120">      return ImmutableMap.of(</span>
+          PatternUtils.PATTERN, bestCandidatePattern,
+          PatternUtils.TOKENS, tokensMap);
+    } else {
+<span class="nc" id="L124">      return ImmutableMap.of();</span>
+    }
+  }
+
+  @Strict
+  public static Object evalField(
+      @Parameter(name = &quot;pattern&quot;) String pattern, @Parameter(name = &quot;field&quot;) String field) {
+<span class="nc bnc" id="L131" title="All 2 branches missed.">    if (Strings.isBlank(field)) {</span>
+<span class="nc" id="L132">      return ImmutableMap.of();</span>
+    }
+
+<span class="nc" id="L135">    Map&lt;String, List&lt;String&gt;&gt; tokensMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L136">    ParseResult parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);</span>
+
+<span class="nc" id="L138">    PatternUtils.extractVariables(parseResult, field, tokensMap, PatternUtils.WILDCARD_PREFIX);</span>
+<span class="nc" id="L139">    return ImmutableMap.of(</span>
+        PatternUtils.PATTERN,
+<span class="nc" id="L141">        parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX),</span>
+        PatternUtils.TOKENS,
+        tokensMap);
+  }
+
+  @Strict
+  public static Object evalSamples(
+      @Parameter(name = &quot;pattern&quot;) String pattern,
+      @Parameter(name = &quot;sample_logs&quot;) List&lt;String&gt; sampleLogs) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (sampleLogs.isEmpty()) {</span>
+<span class="nc" id="L151">      return ImmutableMap.of();</span>
+    }
+<span class="nc" id="L153">    Map&lt;String, List&lt;String&gt;&gt; tokensMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L154">    ParseResult parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);</span>
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">    for (String sampleLog : sampleLogs) {</span>
+<span class="nc" id="L157">      PatternUtils.extractVariables(</span>
+          parseResult, sampleLog, tokensMap, PatternUtils.WILDCARD_PREFIX);
+<span class="nc" id="L159">    }</span>
+<span class="nc" id="L160">    return ImmutableMap.of(</span>
+        PatternUtils.PATTERN,
+<span class="nc" id="L162">        parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX),</span>
+        PatternUtils.TOKENS,
+        tokensMap);
+  }
+
+  private static List&lt;String&gt; findBestCandidate(
+      List&lt;List&lt;String&gt;&gt; candidates, List&lt;String&gt; tokens) {
+<span class="nc" id="L169">    return candidates.stream()</span>
+<span class="nc" id="L170">        .max(Comparator.comparingDouble(candidate -&gt; calculateScore(tokens, candidate)))</span>
+<span class="nc" id="L171">        .orElse(null);</span>
+  }
+
+  private static float calculateScore(List&lt;String&gt; tokens, List&lt;String&gt; candidate) {
+<span class="nc" id="L175">    int score = 0;</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">    for (int i = 0; i &lt; tokens.size(); i++) {</span>
+<span class="nc" id="L177">      String preprocessedToken = tokens.get(i);</span>
+<span class="nc" id="L178">      String candidateToken = candidate.get(i);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      if (Objects.equals(preprocessedToken, candidateToken)) {</span>
+<span class="nc" id="L180">        score += 1;</span>
+<span class="nc bnc" id="L181" title="All 4 branches missed.">      } else if (preprocessedToken.startsWith(&quot;&lt;*&quot;) &amp;&amp; candidateToken.startsWith(&quot;&lt;token&quot;)) {</span>
+<span class="nc" id="L182">        score += 1;</span>
+      }
+    }
+<span class="nc" id="L185">    return (float) score / tokens.size();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

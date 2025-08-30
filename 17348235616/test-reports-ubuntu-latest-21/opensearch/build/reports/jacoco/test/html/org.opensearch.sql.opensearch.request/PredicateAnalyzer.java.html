@@ -1,0 +1,1780 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PredicateAnalyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">PredicateAnalyzer.java</span></div><h1>PredicateAnalyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This file contains code from the Apache Spark project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.opensearch.sql.opensearch.request;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static org.opensearch.index.query.QueryBuilders.boolQuery;
+import static org.opensearch.index.query.QueryBuilders.existsQuery;
+import static org.opensearch.index.query.QueryBuilders.matchQuery;
+import static org.opensearch.index.query.QueryBuilders.rangeQuery;
+import static org.opensearch.index.query.QueryBuilders.regexpQuery;
+import static org.opensearch.index.query.QueryBuilders.termQuery;
+import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+
+import com.google.common.collect.BoundType;
+import com.google.common.collect.Range;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.calcite.DataContext.Variable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.RangeSets;
+import org.apache.calcite.util.Sarg;
+import org.opensearch.index.mapper.DateFieldMapper;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.script.Script;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+
+/**
+ * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
+ * {@link QueryBuilder}
+ *
+ * &lt;p&gt;Major part of this class have been copied from &lt;a
+ * href=&quot;https://calcite.apache.org/&quot;&gt;calcite&lt;/a&gt; ES adapter, but it has been changed to support the
+ * OpenSearch QueryBuilder.
+ *
+ * &lt;p&gt;And that file was also sourced from &lt;a href=&quot;https://www.dremio.com/&quot;&gt;dremio&lt;/a&gt; ES adapter
+ * (thanks to their team for improving calcite-ES integration).
+ */
+public class PredicateAnalyzer {
+
+  /** Internal exception. */
+  @SuppressWarnings(&quot;serial&quot;)
+  public static final class PredicateAnalyzerException extends RuntimeException {
+
+    PredicateAnalyzerException(String message) {
+<span class="fc" id="L130">      super(message);</span>
+<span class="fc" id="L131">    }</span>
+
+    PredicateAnalyzerException(Throwable cause) {
+<span class="nc" id="L134">      super(cause);</span>
+<span class="nc" id="L135">    }</span>
+  }
+
+  /**
+   * Exception that is thrown when a {@link RelNode} expression cannot be processed (or converted
+   * into an OpenSearch query).
+   */
+  public static class ExpressionNotAnalyzableException extends Exception {
+    ExpressionNotAnalyzableException(String message, Throwable cause) {
+<span class="nc" id="L144">      super(message, cause);</span>
+<span class="nc" id="L145">    }</span>
+  }
+
+  private PredicateAnalyzer() {}
+
+  /**
+   * Walks the expression tree, attempting to convert the entire tree into an equivalent OpenSearch
+   * query filter. If an error occurs, or if it is determined that the expression cannot be
+   * converted, an exception is thrown and an error message logged.
+   *
+   * &lt;p&gt;Callers should catch ExpressionNotAnalyzableException and fall back to not using push-down
+   * filters.
+   *
+   * @param expression expression to analyze
+   * @param schema current schema of scan operator
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @return search query which can be used to query OS cluster
+   * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
+   */
+  public static QueryBuilder analyze(
+      RexNode expression, List&lt;String&gt; schema, Map&lt;String, ExprType&gt; fieldTypes)
+      throws ExpressionNotAnalyzableException {
+<span class="fc" id="L167">    return analyze(expression, schema, fieldTypes, null, null);</span>
+  }
+
+  public static QueryBuilder analyze(
+      RexNode expression,
+      List&lt;String&gt; schema,
+      Map&lt;String, ExprType&gt; fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
+<span class="fc" id="L177">    return analyzeExpression(expression, schema, fieldTypes, rowType, cluster).builder();</span>
+  }
+
+  /**
+   * Analyzes the expression and returns a {@link QueryExpression}.
+   *
+   * @param expression expression to analyze
+   * @param schema current schema of scan operator
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @return search query which can be used to query OS cluster
+   * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
+   */
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List&lt;String&gt; schema,
+      Map&lt;String, ExprType&gt; fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
+<span class="fc" id="L196">    requireNonNull(expression, &quot;expression&quot;);</span>
+<span class="fc" id="L197">    return analyzeExpression(</span>
+        expression,
+        schema,
+        fieldTypes,
+        rowType,
+        cluster,
+        new Visitor(schema, fieldTypes, rowType, cluster));
+  }
+
+  /** For test only, passing a customer Visitor */
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List&lt;String&gt; schema,
+      Map&lt;String, ExprType&gt; fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster,
+      Visitor visitor)
+      throws ExpressionNotAnalyzableException {
+<span class="fc" id="L215">    requireNonNull(expression, &quot;expression&quot;);</span>
+    try {
+      // visits expression tree
+<span class="fc" id="L218">      QueryExpression queryExpression = (QueryExpression) expression.accept(visitor);</span>
+<span class="fc" id="L219">      return queryExpression;</span>
+<span class="fc" id="L220">    } catch (Throwable e) {</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">      if (e instanceof UnsupportedScriptException) {</span>
+<span class="nc" id="L222">        throw new ExpressionNotAnalyzableException(&quot;Can't convert &quot; + expression, e);</span>
+      }
+      try {
+<span class="fc" id="L225">        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);</span>
+<span class="nc" id="L226">      } catch (Throwable e2) {</span>
+<span class="nc" id="L227">        throw new ExpressionNotAnalyzableException(&quot;Can't convert &quot; + expression, e2);</span>
+      }
+    }
+  }
+
+  /** Traverses {@link RexNode} tree and builds OpenSearch query. */
+  static class Visitor extends RexVisitorImpl&lt;Expression&gt; {
+
+    List&lt;String&gt; schema;
+    Map&lt;String, ExprType&gt; fieldTypes;
+    RelDataType rowType;
+    RelOptCluster cluster;
+
+    Visitor(
+        List&lt;String&gt; schema,
+        Map&lt;String, ExprType&gt; fieldTypes,
+        RelDataType rowType,
+        RelOptCluster cluster) {
+<span class="fc" id="L245">      super(true);</span>
+<span class="fc" id="L246">      this.schema = schema;</span>
+<span class="fc" id="L247">      this.fieldTypes = fieldTypes;</span>
+<span class="fc" id="L248">      this.rowType = rowType;</span>
+<span class="fc" id="L249">      this.cluster = cluster;</span>
+<span class="fc" id="L250">    }</span>
+
+    @Override
+    public Expression visitInputRef(RexInputRef inputRef) {
+<span class="fc" id="L254">      return new NamedFieldExpression(inputRef, schema, fieldTypes);</span>
+    }
+
+    @Override
+    public Expression visitLiteral(RexLiteral literal) {
+<span class="fc" id="L259">      return new LiteralExpression(literal);</span>
+    }
+
+    private static boolean supportedRexCall(RexCall call) {
+<span class="fc" id="L263">      final SqlSyntax syntax = call.getOperator().getSyntax();</span>
+<span class="pc bpc" id="L264" title="1 of 7 branches missed.">      switch (syntax) {</span>
+        case BINARY:
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">          switch (call.getKind()) {</span>
+            case CONTAINS:
+            case AND:
+            case OR:
+            case LIKE:
+            case EQUALS:
+            case NOT_EQUALS:
+            case GREATER_THAN:
+            case GREATER_THAN_OR_EQUAL:
+            case LESS_THAN:
+            case LESS_THAN_OR_EQUAL:
+<span class="fc" id="L277">              return true;</span>
+            default:
+<span class="nc" id="L279">              return false;</span>
+          }
+        case SPECIAL:
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">          switch (call.getKind()) {</span>
+            case CAST:
+            case LIKE:
+            case ITEM:
+            case OTHER_FUNCTION:
+<span class="fc" id="L287">              return true;</span>
+            case CASE:
+            case SIMILAR:
+            default:
+<span class="nc" id="L291">              return false;</span>
+          }
+        case FUNCTION:
+<span class="fc" id="L294">          return true;</span>
+        case POSTFIX:
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">          switch (call.getKind()) {</span>
+            case IS_NOT_NULL:
+            case IS_NULL:
+<span class="fc" id="L299">              return true;</span>
+            default:
+<span class="nc" id="L301">              return false;</span>
+          }
+        case PREFIX: // NOT()
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">          switch (call.getKind()) {</span>
+            case NOT:
+<span class="fc" id="L306">              return true;</span>
+            default:
+<span class="nc" id="L308">              return false;</span>
+          }
+        case INTERNAL:
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">          switch (call.getKind()) {</span>
+            case SEARCH:
+<span class="fc" id="L313">              return true;</span>
+            default:
+<span class="nc" id="L315">              return false;</span>
+          }
+        case FUNCTION_ID:
+        case FUNCTION_STAR:
+        default:
+<span class="nc" id="L320">          return false;</span>
+      }
+    }
+
+    static boolean isSearchWithPoints(RexCall search) {
+<span class="fc" id="L325">      RexLiteral literal = (RexLiteral) search.getOperands().get(1);</span>
+<span class="fc" id="L326">      final Sarg&lt;?&gt; sarg = requireNonNull(literal.getValueAs(Sarg.class), &quot;Sarg&quot;);</span>
+<span class="fc" id="L327">      return sarg.isPoints();</span>
+    }
+
+    static boolean isSearchWithComplementedPoints(RexCall search) {
+<span class="fc" id="L331">      RexLiteral literal = (RexLiteral) search.getOperands().get(1);</span>
+<span class="fc" id="L332">      final Sarg&lt;?&gt; sarg = requireNonNull(literal.getValueAs(Sarg.class), &quot;Sarg&quot;);</span>
+<span class="fc" id="L333">      return sarg.isComplementedPoints();</span>
+    }
+
+    static RexUnknownAs getNullAsForSearch(RexCall search) {
+<span class="fc" id="L337">      RexLiteral literal = (RexLiteral) search.getOperands().get(1);</span>
+<span class="fc" id="L338">      final Sarg&lt;?&gt; sarg = requireNonNull(literal.getValueAs(Sarg.class), &quot;Sarg&quot;);</span>
+<span class="fc" id="L339">      return sarg.nullAs;</span>
+    }
+
+    @Override
+    public Expression visitCall(RexCall call) {
+
+<span class="fc" id="L345">      SqlSyntax syntax = call.getOperator().getSyntax();</span>
+<span class="pc bpc" id="L346" title="1 of 2 branches missed.">      if (!supportedRexCall(call)) {</span>
+<span class="nc" id="L347">        String message = format(Locale.ROOT, &quot;Unsupported call: [%s]&quot;, call);</span>
+<span class="nc" id="L348">        throw new PredicateAnalyzerException(message);</span>
+      }
+
+<span class="pc bpc" id="L351" title="1 of 6 branches missed.">      switch (syntax) {</span>
+        case BINARY, INTERNAL:
+<span class="fc" id="L353">          return binary(call);</span>
+        case POSTFIX:
+<span class="fc" id="L355">          return postfix(call);</span>
+        case PREFIX:
+<span class="fc" id="L357">          return prefix(call);</span>
+        case SPECIAL:
+<span class="pc bpc" id="L359" title="3 of 4 branches missed.">          return switch (call.getKind()) {</span>
+<span class="nc" id="L360">            case CAST -&gt; toCastExpression(call);</span>
+<span class="nc" id="L361">            case CONTAINS -&gt; binary(call);</span>
+<span class="fc" id="L362">            case LIKE -&gt; like(call);</span>
+            default -&gt; {
+<span class="nc" id="L364">              String message = format(Locale.ROOT, &quot;Unsupported call: [%s]&quot;, call);</span>
+<span class="nc" id="L365">              throw new PredicateAnalyzerException(message);</span>
+            }
+          };
+        case FUNCTION:
+<span class="fc" id="L369">          String functionName = call.getOperator().getName().toLowerCase(Locale.ROOT);</span>
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">          if (functionName.equalsIgnoreCase(UserDefinedFunctionUtils.IP_FUNCTION_NAME)) {</span>
+<span class="nc" id="L371">            return visitIpFunction(call);</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">          } else if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(functionName)</span>
+<span class="pc bpc" id="L373" title="1 of 2 branches missed.">              || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {</span>
+<span class="fc" id="L374">            return visitRelevanceFunc(call);</span>
+          }
+          // fall through
+        default:
+<span class="nc" id="L378">          String message =</span>
+<span class="nc" id="L379">              format(Locale.ROOT, &quot;Unsupported syntax [%s] for call: [%s]&quot;, syntax, call);</span>
+<span class="nc" id="L380">          throw new PredicateAnalyzerException(message);</span>
+      }
+    }
+
+    private QueryExpression visitRelevanceFunc(RexCall call) {
+<span class="fc" id="L385">      String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L386">      List&lt;RexNode&gt; ops = call.getOperands();</span>
+
+      // Validate minimum operand count based on function type
+<span class="pc bpc" id="L389" title="1 of 4 branches missed.">      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName) &amp;&amp; ops.size() &lt; 2) {</span>
+<span class="nc" id="L390">        throw new PredicateAnalyzerException(</span>
+            &quot;Single field relevance query function should at least have 2 operands (field and&quot;
+                + &quot; query)&quot;);
+<span class="pc bpc" id="L393" title="1 of 4 branches missed.">      } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName) &amp;&amp; ops.size() &lt; 1) {</span>
+<span class="nc" id="L394">        throw new PredicateAnalyzerException(</span>
+            &quot;Multi field relevance query function should at least have 1 operand (query)&quot;);
+      }
+
+<span class="fc bfc" id="L398" title="All 2 branches covered.">      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {</span>
+<span class="fc" id="L399">        List&lt;Expression&gt; fieldQueryOperands =</span>
+<span class="fc" id="L400">            visitList(</span>
+<span class="fc" id="L401">                List.of(</span>
+<span class="fc" id="L402">                    AliasPair.from(ops.get(0), funcName).value,</span>
+<span class="fc" id="L403">                    AliasPair.from(ops.get(1), funcName).value));</span>
+<span class="fc" id="L404">        NamedFieldExpression namedFieldExpression =</span>
+<span class="fc" id="L405">            (NamedFieldExpression) fieldQueryOperands.get(0);</span>
+<span class="fc" id="L406">        String queryLiteralOperand = ((LiteralExpression) fieldQueryOperands.get(1)).stringValue();</span>
+<span class="fc" id="L407">        Map&lt;String, String&gt; optionalArguments =</span>
+<span class="fc" id="L408">            parseRelevanceFunctionOptionalArguments(ops, funcName);</span>
+
+<span class="fc" id="L410">        return SINGLE_FIELD_RELEVANCE_FUNCTION_HANDLERS</span>
+<span class="fc" id="L411">            .get(funcName)</span>
+<span class="fc" id="L412">            .apply(namedFieldExpression, queryLiteralOperand, optionalArguments);</span>
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">      } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {</span>
+        // Handle both syntaxes:
+        // 1. func([fieldExpressions], query, option) - fields are present
+        // 2. func(query, optional) - fields are not present
+<span class="fc" id="L417">        RexCall fieldsRexCall = null;</span>
+        String queryLiteralOperand;
+        Map&lt;String, String&gt; optionalArguments;
+
+        // Check if the first argument is fields or query by looking for &quot;fields&quot; key
+<span class="fc" id="L422">        AliasPair firstPair = AliasPair.from(ops.get(0), funcName);</span>
+<span class="fc" id="L423">        String firstKey = ((RexLiteral) firstPair.alias).getValueAs(String.class);</span>
+
+<span class="fc bfc" id="L425" title="All 2 branches covered.">        if (&quot;fields&quot;.equals(firstKey)) {</span>
+          // Syntax 1: func([fieldExpressions], query, option)
+<span class="fc" id="L427">          fieldsRexCall = (RexCall) firstPair.value;</span>
+<span class="fc" id="L428">          queryLiteralOperand =</span>
+              ((LiteralExpression)
+<span class="fc" id="L430">                      visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))</span>
+<span class="fc" id="L431">                  .stringValue();</span>
+<span class="fc" id="L432">          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 2);</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">        } else if (&quot;query&quot;.equals(firstKey)) {</span>
+          // Syntax 2: func(query, optional) - no fields parameter
+<span class="fc" id="L435">          queryLiteralOperand =</span>
+<span class="fc" id="L436">              ((LiteralExpression) visitList(List.of(firstPair.value)).get(0)).stringValue();</span>
+<span class="fc" id="L437">          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 1);</span>
+        } else {
+<span class="nc" id="L439">          throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L440">              format(</span>
+                  Locale.ROOT,
+                  &quot;Invalid first parameter for function [%s]: expected 'fields' or 'query', got&quot;
+                      + &quot; '%s'&quot;,
+                  funcName,
+                  firstKey));
+        }
+
+<span class="fc" id="L448">        return MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS</span>
+<span class="fc" id="L449">            .get(funcName)</span>
+<span class="fc" id="L450">            .apply(fieldsRexCall, queryLiteralOperand, optionalArguments);</span>
+      }
+
+<span class="nc" id="L453">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L454">          format(Locale.ROOT, &quot;Unsupported search relevance function: [%s]&quot;, funcName));</span>
+    }
+
+    private LiteralExpression visitIpFunction(RexCall call) {
+<span class="nc" id="L458">      return new LiteralExpression((RexLiteral) call.getOperands().getFirst());</span>
+    }
+
+    @FunctionalInterface
+    private interface SingleFieldRelevanceFunctionHandler {
+      QueryExpression apply(NamedFieldExpression field, String query, Map&lt;String, String&gt; opts);
+    }
+
+    @FunctionalInterface
+    private interface MultiFieldsRelevanceFunctionHandler {
+      QueryExpression apply(RexCall fields, String query, Map&lt;String, String&gt; opts);
+    }
+
+    private static final Map&lt;String, SingleFieldRelevanceFunctionHandler&gt;
+<span class="fc" id="L472">        SINGLE_FIELD_RELEVANCE_FUNCTION_HANDLERS =</span>
+<span class="fc" id="L473">            Map.of(</span>
+<span class="fc" id="L474">                &quot;match&quot;, (f, q, o) -&gt; QueryExpression.create(f).match(q, o),</span>
+<span class="fc" id="L475">                &quot;match_phrase&quot;, (f, q, o) -&gt; QueryExpression.create(f).matchPhrase(q, o),</span>
+<span class="fc" id="L476">                &quot;match_bool_prefix&quot;, (f, q, o) -&gt; QueryExpression.create(f).matchBoolPrefix(q, o),</span>
+                &quot;match_phrase_prefix&quot;,
+<span class="fc" id="L478">                    (f, q, o) -&gt; QueryExpression.create(f).matchPhrasePrefix(q, o));</span>
+
+    private static final Map&lt;String, MultiFieldsRelevanceFunctionHandler&gt;
+<span class="fc" id="L481">        MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS =</span>
+<span class="fc" id="L482">            Map.of(</span>
+                &quot;simple_query_string&quot;,
+                    (c, q, o) -&gt;
+<span class="fc" id="L485">                        QueryExpression.create(new NamedFieldExpression())</span>
+<span class="fc" id="L486">                            .simpleQueryString(c, q, o),</span>
+                &quot;query_string&quot;,
+                    (c, q, o) -&gt;
+<span class="fc" id="L489">                        QueryExpression.create(new NamedFieldExpression()).queryString(c, q, o),</span>
+                &quot;multi_match&quot;,
+                    (c, q, o) -&gt;
+<span class="fc" id="L492">                        QueryExpression.create(new NamedFieldExpression()).multiMatch(c, q, o));</span>
+
+    private Map&lt;String, String&gt; parseRelevanceFunctionOptionalArguments(
+        List&lt;RexNode&gt; operands, String funcName) {
+<span class="fc" id="L496">      return parseRelevanceFunctionOptionalArguments(operands, funcName, 2);</span>
+    }
+
+    private Map&lt;String, String&gt; parseRelevanceFunctionOptionalArguments(
+        List&lt;RexNode&gt; operands, String funcName, int startIndex) {
+<span class="fc" id="L501">      Map&lt;String, String&gt; optionalArguments = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L503" title="All 2 branches covered.">      for (int i = startIndex; i &lt; operands.size(); i++) {</span>
+<span class="fc" id="L504">        AliasPair aliasPair = AliasPair.from(operands.get(i), funcName);</span>
+<span class="fc" id="L505">        String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);</span>
+<span class="pc bpc" id="L506" title="1 of 2 branches missed.">        if (optionalArguments.containsKey(key)) {</span>
+<span class="nc" id="L507">          throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L508">              format(</span>
+                  Locale.ROOT,
+                  &quot;Parameter '%s' can only be specified once for function [%s].&quot;,
+                  key,
+                  funcName));
+        }
+<span class="fc" id="L514">        optionalArguments.put(key, ((RexLiteral) aliasPair.value).getValueAs(String.class));</span>
+      }
+
+<span class="fc" id="L517">      return optionalArguments;</span>
+    }
+
+    private static RexCall expectCall(RexNode node, SqlOperator op, String funcName) {
+<span class="pc bpc" id="L521" title="2 of 4 branches missed.">      if (!(node instanceof RexCall call) || call.getOperator() != op) {</span>
+<span class="nc" id="L522">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L523">            format(</span>
+                Locale.ROOT,
+                &quot;Expect [%s] RexCall but get [%s] for function [%s]&quot;,
+<span class="nc" id="L526">                op.getName(),</span>
+<span class="nc" id="L527">                node.toString(),</span>
+                funcName));
+      }
+<span class="fc" id="L530">      return call;</span>
+    }
+
+    private static class AliasPair {
+      final RexNode value;
+      final RexNode alias;
+
+      static AliasPair from(RexNode node, String funcName) {
+<span class="fc" id="L538">        RexCall mapCall = expectCall(node, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, funcName);</span>
+<span class="fc" id="L539">        return new AliasPair(mapCall.getOperands().get(1), mapCall.getOperands().get(0));</span>
+      }
+
+<span class="fc" id="L542">      private AliasPair(RexNode value, RexNode alias) {</span>
+<span class="fc" id="L543">        this.value = value;</span>
+<span class="fc" id="L544">        this.alias = alias;</span>
+<span class="fc" id="L545">      }</span>
+    }
+
+    private QueryExpression prefix(RexCall call) {
+<span class="fc" id="L549">      checkArgument(</span>
+<span class="pc bpc" id="L550" title="1 of 2 branches missed.">          call.getKind() == SqlKind.NOT, &quot;Expected %s got %s&quot;, SqlKind.NOT, call.getKind());</span>
+
+<span class="pc bpc" id="L552" title="1 of 2 branches missed.">      if (call.getOperands().size() != 1) {</span>
+<span class="nc" id="L553">        String message = format(Locale.ROOT, &quot;Unsupported NOT operator: [%s]&quot;, call);</span>
+<span class="nc" id="L554">        throw new PredicateAnalyzerException(message);</span>
+      }
+
+<span class="fc" id="L557">      QueryExpression expr = (QueryExpression) call.getOperands().get(0).accept(this);</span>
+<span class="fc" id="L558">      return expr.not();</span>
+    }
+
+    private QueryExpression postfix(RexCall call) {
+<span class="pc bpc" id="L562" title="1 of 4 branches missed.">      checkArgument(call.getKind() == SqlKind.IS_NULL || call.getKind() == SqlKind.IS_NOT_NULL);</span>
+<span class="pc bpc" id="L563" title="1 of 2 branches missed.">      if (call.getOperands().size() != 1) {</span>
+<span class="nc" id="L564">        String message = format(Locale.ROOT, &quot;Unsupported operator: [%s]&quot;, call);</span>
+<span class="nc" id="L565">        throw new PredicateAnalyzerException(message);</span>
+      }
+
+      // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
+<span class="fc" id="L569">      checkForNestedFieldOperands(call);</span>
+
+<span class="fc" id="L571">      Expression a = call.getOperands().get(0).accept(this);</span>
+      // OpenSearch does not want is null/is not null (exists query)
+      // for _id and _index, although it supports for all other metadata column
+<span class="fc" id="L574">      isColumn(a, call, OpenSearchConstants.METADATA_FIELD_ID, true);</span>
+<span class="fc" id="L575">      isColumn(a, call, OpenSearchConstants.METADATA_FIELD_INDEX, true);</span>
+<span class="fc" id="L576">      QueryExpression operand = QueryExpression.create((TerminalExpression) a);</span>
+<span class="fc bfc" id="L577" title="All 2 branches covered.">      return call.getKind() == SqlKind.IS_NOT_NULL ? operand.exists() : operand.notExists();</span>
+    }
+
+    /**
+     * Process a call which is a binary operation, transforming into an equivalent query expression.
+     * Note that the incoming call may be either a simple binary expression, such as {@code foo &gt;
+     * 5}, or it may be several simple expressions connected by {@code AND} or {@code OR} operators,
+     * such as {@code foo &gt; 5 AND bar = 'abc' AND 'rot' &lt; 1}
+     *
+     * @param call existing call
+     * @return evaluated expression
+     */
+    private QueryExpression binary(RexCall call) {
+
+      // if AND/OR, do special handling
+<span class="fc bfc" id="L592" title="All 4 branches covered.">      if (call.getKind() == SqlKind.AND || call.getKind() == SqlKind.OR) {</span>
+<span class="fc" id="L593">        return andOr(call);</span>
+      }
+
+<span class="fc" id="L596">      checkForIncompatibleDateTimeOperands(call);</span>
+
+<span class="pc bpc" id="L598" title="1 of 2 branches missed.">      checkState(call.getOperands().size() == 2);</span>
+<span class="fc" id="L599">      final Expression a = call.getOperands().get(0).accept(this);</span>
+<span class="fc" id="L600">      final Expression b = call.getOperands().get(1).accept(this);</span>
+
+<span class="fc" id="L602">      final SwapResult pair = swap(a, b);</span>
+<span class="fc" id="L603">      final boolean swapped = pair.isSwapped();</span>
+
+      // For _id and _index columns, only equals/not_equals work!
+<span class="pc bpc" id="L606" title="1 of 2 branches missed.">      if (isColumn(pair.getKey(), call, OpenSearchConstants.METADATA_FIELD_ID, false)</span>
+<span class="pc bpc" id="L607" title="1 of 2 branches missed.">          || isColumn(pair.getKey(), call, OpenSearchConstants.METADATA_FIELD_INDEX, false)</span>
+<span class="pc bpc" id="L608" title="1 of 2 branches missed.">          || isColumn(pair.getKey(), call, OpenSearchConstants.METADATA_FIELD_UID, false)) {</span>
+<span class="nc bnc" id="L609" title="All 2 branches missed.">        switch (call.getKind()) {</span>
+          case EQUALS:
+          case NOT_EQUALS:
+<span class="nc" id="L612">            break;</span>
+          default:
+<span class="nc" id="L614">            throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L615">                &quot;Cannot handle &quot; + call.getKind() + &quot; expression for _id field, &quot; + call);</span>
+        }
+      }
+
+<span class="pc bpc" id="L619" title="1 of 9 branches missed.">      switch (call.getKind()) {</span>
+        case CONTAINS:
+<span class="fc" id="L621">          return QueryExpression.create(pair.getKey()).contains(pair.getValue());</span>
+        case EQUALS:
+<span class="fc" id="L623">          return QueryExpression.create(pair.getKey()).equals(pair.getValue());</span>
+        case NOT_EQUALS:
+<span class="fc" id="L625">          return QueryExpression.create(pair.getKey()).notEquals(pair.getValue());</span>
+        case GREATER_THAN:
+<span class="pc bpc" id="L627" title="1 of 2 branches missed.">          if (swapped) {</span>
+<span class="nc" id="L628">            return QueryExpression.create(pair.getKey()).lt(pair.getValue());</span>
+          }
+<span class="fc" id="L630">          return QueryExpression.create(pair.getKey()).gt(pair.getValue());</span>
+        case GREATER_THAN_OR_EQUAL:
+<span class="pc bpc" id="L632" title="1 of 2 branches missed.">          if (swapped) {</span>
+<span class="nc" id="L633">            return QueryExpression.create(pair.getKey()).lte(pair.getValue());</span>
+          }
+<span class="fc" id="L635">          return QueryExpression.create(pair.getKey()).gte(pair.getValue());</span>
+        case LESS_THAN:
+<span class="pc bpc" id="L637" title="1 of 2 branches missed.">          if (swapped) {</span>
+<span class="nc" id="L638">            return QueryExpression.create(pair.getKey()).gt(pair.getValue());</span>
+          }
+<span class="fc" id="L640">          return QueryExpression.create(pair.getKey()).lt(pair.getValue());</span>
+        case LESS_THAN_OR_EQUAL:
+<span class="pc bpc" id="L642" title="1 of 2 branches missed.">          if (swapped) {</span>
+<span class="nc" id="L643">            return QueryExpression.create(pair.getKey()).gte(pair.getValue());</span>
+          }
+<span class="fc" id="L645">          return QueryExpression.create(pair.getKey()).lte(pair.getValue());</span>
+        case SEARCH:
+<span class="fc" id="L647">          QueryExpression expression = constructQueryExpressionForSearch(call, pair);</span>
+<span class="fc" id="L648">          RexUnknownAs nullAs = getNullAsForSearch(call);</span>
+<span class="pc bpc" id="L649" title="2 of 3 branches missed.">          return switch (nullAs) {</span>
+              // e.g. where isNotNull(a) and (a = 1 or a = 2)
+              // TODO: For this case, seems return `expression` should be equivalent
+<span class="nc" id="L652">            case FALSE -&gt; CompoundQueryExpression.and(</span>
+<span class="nc" id="L653">                false, expression, QueryExpression.create(pair.getKey()).exists());</span>
+              // e.g. where isNull(a) or a = 1 or a = 2
+<span class="nc" id="L655">            case TRUE -&gt; CompoundQueryExpression.or(</span>
+<span class="nc" id="L656">                expression, QueryExpression.create(pair.getKey()).notExists());</span>
+              // e.g. where a = 1 or a = 2
+<span class="fc" id="L658">            case UNKNOWN -&gt; expression;</span>
+          };
+        default:
+          break;
+      }
+<span class="nc" id="L663">      String message = format(Locale.ROOT, &quot;Unable to handle call: [%s]&quot;, call);</span>
+<span class="nc" id="L664">      throw new PredicateAnalyzerException(message);</span>
+    }
+
+    private QueryExpression like(RexCall call) {
+      // The third default escape is not used here. It's handled by
+      // StringUtils.convertSqlWildcardToLucene
+<span class="pc bpc" id="L670" title="1 of 2 branches missed.">      checkState(call.getOperands().size() == 3);</span>
+<span class="fc" id="L671">      final Expression a = call.getOperands().get(0).accept(this);</span>
+<span class="fc" id="L672">      final Expression b = call.getOperands().get(1).accept(this);</span>
+<span class="fc" id="L673">      final SwapResult pair = swap(a, b);</span>
+<span class="fc" id="L674">      return QueryExpression.create(pair.getKey()).like(pair.getValue());</span>
+    }
+
+    private static QueryExpression constructQueryExpressionForSearch(
+        RexCall call, SwapResult pair) {
+<span class="pc bpc" id="L679" title="1 of 2 branches missed.">      if (isSearchWithComplementedPoints(call)) {</span>
+<span class="nc" id="L680">        return QueryExpression.create(pair.getKey()).notIn(pair.getValue());</span>
+<span class="pc bpc" id="L681" title="1 of 2 branches missed.">      } else if (isSearchWithPoints(call)) {</span>
+<span class="fc" id="L682">        return QueryExpression.create(pair.getKey()).in(pair.getValue());</span>
+      } else {
+<span class="nc" id="L684">        Sarg&lt;?&gt; sarg = pair.getValue().literal.getValueAs(Sarg.class);</span>
+<span class="nc" id="L685">        Set&lt;? extends Range&lt;?&gt;&gt; rangeSet = requireNonNull(sarg).rangeSet.asRanges();</span>
+        boolean isTimeStamp =
+<span class="nc bnc" id="L687" title="All 2 branches missed.">            (pair.getKey() instanceof NamedFieldExpression namedField)</span>
+<span class="nc bnc" id="L688" title="All 2 branches missed.">                &amp;&amp; namedField.isTimeStampType();</span>
+<span class="nc" id="L689">        List&lt;QueryExpression&gt; queryExpressions =</span>
+<span class="nc" id="L690">            rangeSet.stream()</span>
+<span class="nc" id="L691">                .map(</span>
+                    range -&gt;
+<span class="nc bnc" id="L693" title="All 2 branches missed.">                        RangeSets.isPoint(range)</span>
+<span class="nc" id="L694">                            ? QueryExpression.create(pair.getKey())</span>
+<span class="nc" id="L695">                                .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)</span>
+<span class="nc" id="L696">                            : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))</span>
+<span class="nc" id="L697">                .toList();</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">        if (queryExpressions.size() == 1) {</span>
+<span class="nc" id="L699">          return queryExpressions.getFirst();</span>
+        } else {
+<span class="nc" id="L701">          return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));</span>
+        }
+      }
+    }
+
+    private boolean containIsEmptyFunction(RexCall call) {
+<span class="fc bfc" id="L707" title="All 2 branches covered.">      return call.getKind() == SqlKind.OR</span>
+<span class="fc bfc" id="L708" title="All 4 branches covered.">          &amp;&amp; call.getOperands().stream().anyMatch(o -&gt; o.getKind() == SqlKind.IS_NULL)</span>
+<span class="fc" id="L709">          &amp;&amp; call.getOperands().stream()</span>
+<span class="pc bpc" id="L710" title="1 of 2 branches missed.">              .anyMatch(</span>
+                  o -&gt;
+<span class="fc bfc" id="L712" title="All 2 branches covered.">                      o.getKind() == SqlKind.OTHER</span>
+<span class="pc bpc" id="L713" title="1 of 2 branches missed.">                          &amp;&amp; ((RexCall) o).getOperator().equals(SqlStdOperatorTable.IS_EMPTY));</span>
+    }
+
+    private QueryExpression andOr(RexCall call) {
+      // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
+      // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
+<span class="fc bfc" id="L719" title="All 2 branches covered.">      if (containIsEmptyFunction(call)) {</span>
+<span class="fc" id="L720">        throw new PredicateAnalyzerException(</span>
+            &quot;DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE&quot;);
+      }
+
+<span class="fc" id="L724">      QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];</span>
+<span class="fc" id="L725">      PredicateAnalyzerException firstError = null;</span>
+<span class="fc" id="L726">      boolean partial = false;</span>
+<span class="fc" id="L727">      int failedCount = 0;</span>
+<span class="fc bfc" id="L728" title="All 2 branches covered.">      for (int i = 0; i &lt; call.getOperands().size(); i++) {</span>
+<span class="fc" id="L729">        RexNode operand = call.getOperands().get(i);</span>
+        try {
+<span class="fc" id="L731">          Expression expr = tryAnalyzeOperand(operand);</span>
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">          if (expr instanceof QueryExpression) {</span>
+<span class="fc" id="L733">            expressions[i] = (QueryExpression) expr;</span>
+<span class="fc" id="L734">            partial |= expressions[i].isPartial();</span>
+          }
+<span class="fc" id="L736">        } catch (PredicateAnalyzerException e) {</span>
+<span class="pc bpc" id="L737" title="1 of 2 branches missed.">          if (firstError == null) {</span>
+<span class="fc" id="L738">            firstError = e;</span>
+          }
+<span class="fc" id="L740">          partial = true;</span>
+<span class="fc" id="L741">          ++failedCount;</span>
+          // If we cannot analyze the operand, wrap the RexNode with UnAnalyzableQueryExpression and
+          // record them in the array. We will reuse them later.
+<span class="fc" id="L744">          expressions[i] = new UnAnalyzableQueryExpression(operand);</span>
+<span class="fc" id="L745">        }</span>
+      }
+
+<span class="pc bpc" id="L748" title="1 of 3 branches missed.">      switch (call.getKind()) {</span>
+        case OR:
+<span class="fc bfc" id="L750" title="All 2 branches covered.">          if (partial) {</span>
+<span class="pc bpc" id="L751" title="1 of 2 branches missed.">            if (firstError != null) {</span>
+<span class="fc" id="L752">              throw firstError;</span>
+            } else {
+<span class="nc" id="L754">              final String message = format(Locale.ROOT, &quot;Unable to handle call: [%s]&quot;, call);</span>
+<span class="nc" id="L755">              throw new PredicateAnalyzerException(message);</span>
+            }
+          }
+<span class="fc" id="L758">          return CompoundQueryExpression.or(expressions);</span>
+        case AND:
+<span class="pc bpc" id="L760" title="1 of 2 branches missed.">          if (failedCount == call.getOperands().size()) {</span>
+            // If all operands failed, we cannot analyze the AND expression.
+<span class="nc" id="L762">            throw new PredicateAnalyzerException(</span>
+                &quot;All expressions in AND failed to analyze: &quot; + call);
+          }
+<span class="fc" id="L765">          return CompoundQueryExpression.and(partial, expressions);</span>
+        default:
+<span class="nc" id="L767">          String message = format(Locale.ROOT, &quot;Unable to handle call: [%s]&quot;, call);</span>
+<span class="nc" id="L768">          throw new PredicateAnalyzerException(message);</span>
+      }
+    }
+
+    public Expression tryAnalyzeOperand(RexNode node) {
+      try {
+<span class="fc" id="L774">        Expression expr = node.accept(this);</span>
+<span class="pc bpc" id="L775" title="1 of 2 branches missed.">        if (expr instanceof NamedFieldExpression) {</span>
+<span class="nc" id="L776">          return expr;</span>
+        }
+<span class="fc" id="L778">        QueryExpression qe = (QueryExpression) expr;</span>
+<span class="pc bpc" id="L779" title="1 of 2 branches missed.">        if (!qe.isPartial()) {</span>
+<span class="fc" id="L780">          qe.updateAnalyzedNodes(node);</span>
+        }
+<span class="fc" id="L782">        return qe;</span>
+<span class="nc" id="L783">      } catch (PredicateAnalyzerException firstFailed) {</span>
+        try {
+<span class="nc" id="L785">          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);</span>
+<span class="nc bnc" id="L786" title="All 2 branches missed.">          if (!qe.isPartial()) {</span>
+<span class="nc" id="L787">            qe.updateAnalyzedNodes(node);</span>
+          }
+<span class="nc" id="L789">          return qe;</span>
+<span class="nc" id="L790">        } catch (UnsupportedScriptException secondFailed) {</span>
+<span class="nc" id="L791">          throw new PredicateAnalyzerException(secondFailed);</span>
+        }
+      }
+    }
+
+    /**
+     * Holder class for a pair of expressions. Used to convert {@code 1 = foo} into {@code foo = 1}
+     */
+    private static class SwapResult {
+      final boolean swapped;
+      final TerminalExpression terminal;
+      final LiteralExpression literal;
+
+      SwapResult(boolean swapped, TerminalExpression terminal, LiteralExpression literal) {
+<span class="fc" id="L805">        super();</span>
+<span class="fc" id="L806">        this.swapped = swapped;</span>
+<span class="fc" id="L807">        this.terminal = terminal;</span>
+<span class="fc" id="L808">        this.literal = literal;</span>
+<span class="fc" id="L809">      }</span>
+
+      TerminalExpression getKey() {
+<span class="fc" id="L812">        return terminal;</span>
+      }
+
+      LiteralExpression getValue() {
+<span class="fc" id="L816">        return literal;</span>
+      }
+
+      boolean isSwapped() {
+<span class="fc" id="L820">        return swapped;</span>
+      }
+    }
+
+    /**
+     * Swap order of operands such that the literal expression is always on the right.
+     *
+     * &lt;p&gt;NOTE: Some combinations of operands are implicitly not supported and will cause an
+     * exception to be thrown. For example, we currently do not support comparing a literal to
+     * another literal as convention {@code 5 = 5}. Nor do we support comparing named fields to
+     * other named fields as convention {@code $0 = $1}.
+     *
+     * @param left left expression
+     * @param right right expression
+     */
+    private static SwapResult swap(Expression left, Expression right) {
+
+      TerminalExpression terminal;
+<span class="fc" id="L838">      LiteralExpression literal = expressAsLiteral(left);</span>
+<span class="fc" id="L839">      boolean swapped = false;</span>
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">      if (literal != null) {</span>
+<span class="nc" id="L841">        swapped = true;</span>
+<span class="nc" id="L842">        terminal = (TerminalExpression) right;</span>
+      } else {
+<span class="fc" id="L844">        literal = expressAsLiteral(right);</span>
+<span class="fc" id="L845">        terminal = (TerminalExpression) left;</span>
+      }
+
+<span class="pc bpc" id="L848" title="2 of 4 branches missed.">      if (literal == null || terminal == null) {</span>
+<span class="nc" id="L849">        String message =</span>
+<span class="nc" id="L850">            format(</span>
+                Locale.ROOT,
+                &quot;Unexpected combination of expressions [left: %s] [right: %s]&quot;,
+                left,
+                right);
+<span class="nc" id="L855">        throw new PredicateAnalyzerException(message);</span>
+      }
+
+<span class="pc bpc" id="L858" title="1 of 2 branches missed.">      if (CastExpression.isCastExpression(terminal)) {</span>
+<span class="nc" id="L859">        terminal = CastExpression.unpack(terminal);</span>
+      }
+
+<span class="fc" id="L862">      return new SwapResult(swapped, terminal, literal);</span>
+    }
+
+    private CastExpression toCastExpression(RexCall call) {
+<span class="nc" id="L866">      TerminalExpression argument = (TerminalExpression) call.getOperands().get(0).accept(this);</span>
+<span class="nc" id="L867">      return new CastExpression(call.getType(), argument);</span>
+    }
+
+    private static NamedFieldExpression toNamedField(RexLiteral literal) {
+<span class="nc" id="L871">      return new NamedFieldExpression(literal);</span>
+    }
+
+    /** Try to convert a generic expression into a literal expression. */
+    private static LiteralExpression expressAsLiteral(Expression exp) {
+
+<span class="fc bfc" id="L877" title="All 2 branches covered.">      if (exp instanceof LiteralExpression) {</span>
+<span class="fc" id="L878">        return (LiteralExpression) exp;</span>
+      }
+
+<span class="fc" id="L881">      return null;</span>
+    }
+
+    private static boolean isColumn(
+        Expression exp, RexNode node, String columnName, boolean throwException) {
+<span class="pc bpc" id="L886" title="1 of 2 branches missed.">      if (!(exp instanceof NamedFieldExpression)) {</span>
+<span class="nc" id="L887">        return false;</span>
+      }
+
+<span class="fc" id="L890">      final NamedFieldExpression termExp = (NamedFieldExpression) exp;</span>
+<span class="pc bpc" id="L891" title="1 of 2 branches missed.">      if (columnName.equals(termExp.getRootName())) {</span>
+<span class="nc bnc" id="L892" title="All 2 branches missed.">        if (throwException) {</span>
+<span class="nc" id="L893">          throw new PredicateAnalyzerException(&quot;Cannot handle _id field in &quot; + node);</span>
+        }
+<span class="nc" id="L895">        return true;</span>
+      }
+<span class="fc" id="L897">      return false;</span>
+    }
+  }
+
+  /** Empty interface; exists only to define the type hierarchy. */
+  interface Expression {}
+
+  /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
+<span class="fc" id="L905">  public abstract static class QueryExpression implements Expression {</span>
+
+    public abstract QueryBuilder builder();
+
+    public abstract List&lt;RexNode&gt; getAnalyzedNodes();
+
+    public abstract void updateAnalyzedNodes(RexNode rexNode);
+
+    public abstract List&lt;RexNode&gt; getUnAnalyzableNodes();
+
+    public boolean isPartial() {
+<span class="fc" id="L916">      return false;</span>
+    }
+
+    /** Negate {@code this} QueryExpression (not the next one). */
+    QueryExpression not() {
+<span class="nc" id="L921">      throw new PredicateAnalyzerException(&quot;not cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression exists() {
+<span class="nc" id="L925">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L926">          &quot;SqlOperatorImpl ['exists'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression notExists() {
+<span class="nc" id="L930">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L931">          &quot;SqlOperatorImpl ['notExists'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression contains(LiteralExpression literal) {
+<span class="nc" id="L935">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L936">          &quot;SqlOperatorImpl ['contains'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression between(Range&lt;?&gt; literal, boolean isTimeStamp) {
+<span class="nc" id="L940">      throw new PredicateAnalyzerException(&quot;between cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression like(LiteralExpression literal) {
+<span class="nc" id="L944">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L945">          &quot;SqlOperatorImpl ['like'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression notLike(LiteralExpression literal) {
+<span class="nc" id="L949">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L950">          &quot;SqlOperatorImpl ['notLike'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression equals(LiteralExpression literal) {
+<span class="nc" id="L954">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L955">          &quot;SqlOperatorImpl ['='] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression equals(Object point, boolean isTimeStamp) {
+<span class="nc" id="L959">      throw new PredicateAnalyzerException(&quot;equals cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression notEquals(LiteralExpression literal) {
+<span class="nc" id="L963">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L964">          &quot;SqlOperatorImpl ['not'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression gt(LiteralExpression literal) {
+<span class="nc" id="L968">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L969">          &quot;SqlOperatorImpl ['&gt;'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression gte(LiteralExpression literal) {
+<span class="nc" id="L973">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L974">          &quot;SqlOperatorImpl ['&gt;='] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression lt(LiteralExpression literal) {
+<span class="nc" id="L978">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L979">          &quot;SqlOperatorImpl ['&lt;'] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression lte(LiteralExpression literal) {
+<span class="nc" id="L983">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L984">          &quot;SqlOperatorImpl ['&lt;='] &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression match(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L988">      throw new PredicateAnalyzerException(&quot;Match &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression matchPhrase(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L992">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L993">          &quot;MatchPhrase &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression matchBoolPrefix(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L997">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L998">          &quot;MatchBoolPrefix &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression matchPhrasePrefix(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L1002">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1003">          &quot;MatchPhrasePrefix &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L1008">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1009">          &quot;SimpleQueryString &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L1014">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1015">          &quot;QueryString &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="nc" id="L1020">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1021">          &quot;MultiMatch &quot; + &quot;cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression isTrue() {
+<span class="nc" id="L1025">      throw new PredicateAnalyzerException(&quot;isTrue cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression in(LiteralExpression literal) {
+<span class="nc" id="L1029">      throw new PredicateAnalyzerException(&quot;in cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    QueryExpression notIn(LiteralExpression literal) {
+<span class="nc" id="L1033">      throw new PredicateAnalyzerException(&quot;notIn cannot be applied to &quot; + this.getClass());</span>
+    }
+
+    static QueryExpression create(TerminalExpression expression) {
+<span class="pc bpc" id="L1037" title="1 of 2 branches missed.">      if (expression instanceof CastExpression) {</span>
+<span class="nc" id="L1038">        expression = CastExpression.unpack(expression);</span>
+      }
+
+<span class="pc bpc" id="L1041" title="1 of 2 branches missed.">      if (expression instanceof NamedFieldExpression) {</span>
+<span class="fc" id="L1042">        return new SimpleQueryExpression((NamedFieldExpression) expression);</span>
+      } else {
+<span class="nc" id="L1044">        String message = format(Locale.ROOT, &quot;Unsupported expression: [%s]&quot;, expression);</span>
+<span class="nc" id="L1045">        throw new PredicateAnalyzerException(message);</span>
+      }
+    }
+
+    public static boolean containsScript(QueryExpression expression) {
+<span class="pc bpc" id="L1050" title="1 of 4 branches missed.">      return expression instanceof ScriptQueryExpression</span>
+          || (expression instanceof CompoundQueryExpression
+<span class="pc bpc" id="L1052" title="1 of 2 branches missed.">              &amp;&amp; ((CompoundQueryExpression) expression).containsScript());</span>
+    }
+  }
+
+  @Getter
+  static class UnAnalyzableQueryExpression extends QueryExpression {
+    final RexNode unAnalyzableRexNode;
+
+<span class="fc" id="L1060">    public UnAnalyzableQueryExpression(RexNode rexNode) {</span>
+<span class="fc" id="L1061">      this.unAnalyzableRexNode = requireNonNull(rexNode, &quot;rexNode&quot;);</span>
+<span class="fc" id="L1062">    }</span>
+
+    @Override
+    public QueryBuilder builder() {
+<span class="nc" id="L1066">      return null;</span>
+    }
+
+    @Override
+    public List&lt;RexNode&gt; getUnAnalyzableNodes() {
+<span class="fc" id="L1071">      return List.of(unAnalyzableRexNode);</span>
+    }
+
+    @Override
+    public List&lt;RexNode&gt; getAnalyzedNodes() {
+<span class="fc" id="L1076">      return List.of();</span>
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+<span class="nc" id="L1081">      throw new IllegalStateException(</span>
+          &quot;UnAnalyzableQueryExpression does not support unAnalyzableNodes&quot;);
+    }
+  }
+
+  /** Builds conjunctions / disjunctions based on existing expressions. */
+  public static class CompoundQueryExpression extends QueryExpression {
+
+    private final boolean partial;
+    private final BoolQueryBuilder builder;
+<span class="fc" id="L1091">    @Getter private List&lt;RexNode&gt; analyzedNodes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L1092">    @Getter private final List&lt;RexNode&gt; unAnalyzableNodes = new ArrayList&lt;&gt;();</span>
+    @Setter private boolean containsScript;
+
+    public static CompoundQueryExpression or(QueryExpression... expressions) {
+<span class="fc" id="L1096">      CompoundQueryExpression bqe = new CompoundQueryExpression(false);</span>
+<span class="fc bfc" id="L1097" title="All 2 branches covered.">      for (QueryExpression expression : expressions) {</span>
+<span class="fc" id="L1098">        bqe.builder.should(expression.builder());</span>
+<span class="pc bpc" id="L1099" title="1 of 2 branches missed.">        if (QueryExpression.containsScript(expression)) {</span>
+<span class="nc" id="L1100">          bqe.setContainsScript(true);</span>
+        }
+      }
+<span class="fc" id="L1103">      return bqe;</span>
+    }
+
+    /**
+     * If partial expression, we will need to complete it with a full filter.
+     *
+     * @param partial whether we partially converted a and for push down purposes
+     * @param expressions list of expressions to join with {@code and} boolean
+     * @return new instance of expression
+     */
+    public static CompoundQueryExpression and(boolean partial, QueryExpression... expressions) {
+<span class="fc" id="L1114">      CompoundQueryExpression bqe = new CompoundQueryExpression(partial);</span>
+<span class="fc bfc" id="L1115" title="All 2 branches covered.">      for (QueryExpression expression : expressions) {</span>
+<span class="fc" id="L1116">        bqe.analyzedNodes.addAll(expression.getAnalyzedNodes());</span>
+<span class="fc" id="L1117">        bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());</span>
+<span class="fc bfc" id="L1118" title="All 2 branches covered.">        if (!(expression instanceof UnAnalyzableQueryExpression)) {</span>
+<span class="fc" id="L1119">          bqe.builder.must(expression.builder());</span>
+<span class="pc bpc" id="L1120" title="1 of 2 branches missed.">          if (QueryExpression.containsScript(expression)) {</span>
+<span class="nc" id="L1121">            bqe.setContainsScript(true);</span>
+          }
+        }
+      }
+<span class="fc" id="L1125">      return bqe;</span>
+    }
+
+    private CompoundQueryExpression(boolean partial) {
+<span class="fc" id="L1129">      this(partial, boolQuery(), false);</span>
+<span class="fc" id="L1130">    }</span>
+
+    private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
+<span class="fc" id="L1133">      this(partial, builder, false);</span>
+<span class="fc" id="L1134">    }</span>
+
+    private CompoundQueryExpression(
+<span class="fc" id="L1137">        boolean partial, BoolQueryBuilder builder, boolean containsScript) {</span>
+<span class="fc" id="L1138">      this.partial = partial;</span>
+<span class="fc" id="L1139">      this.builder = requireNonNull(builder, &quot;builder&quot;);</span>
+<span class="fc" id="L1140">      this.containsScript = containsScript;</span>
+<span class="fc" id="L1141">    }</span>
+
+    @Override
+    public boolean isPartial() {
+<span class="fc" id="L1145">      return partial;</span>
+    }
+
+    public boolean containsScript() {
+<span class="fc" id="L1149">      return containsScript;</span>
+    }
+
+    @Override
+    public QueryBuilder builder() {
+<span class="fc" id="L1154">      return builder;</span>
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+<span class="fc" id="L1159">      this.analyzedNodes = List.of(rexNode);</span>
+<span class="fc" id="L1160">    }</span>
+
+    @Override
+    public QueryExpression not() {
+<span class="fc" id="L1164">      return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));</span>
+    }
+  }
+
+  /** Usually basic expression of type {@code a = 'val'} or {@code b &gt; 42}. */
+  static class SimpleQueryExpression extends QueryExpression {
+
+    private RexNode analyzedRexNode;
+    private final NamedFieldExpression rel;
+    private QueryBuilder builder;
+
+    private String getFieldReference() {
+<span class="fc" id="L1176">      return rel.getReference();</span>
+    }
+
+    private String getFieldReferenceForTermQuery() {
+<span class="fc" id="L1180">      String reference = rel.getReferenceForTermQuery();</span>
+      // Throw exception in advance of method builder() to trigger partial push down.
+<span class="fc bfc" id="L1182" title="All 2 branches covered.">      if (reference == null) {</span>
+<span class="fc" id="L1183">        throw new PredicateAnalyzerException(</span>
+<span class="fc" id="L1184">            &quot;Field reference for term query cannot be null for &quot; + rel.getRootName());</span>
+      }
+<span class="fc" id="L1186">      return reference;</span>
+    }
+
+<span class="fc" id="L1189">    private SimpleQueryExpression(NamedFieldExpression rel) {</span>
+<span class="fc" id="L1190">      this.rel = rel;</span>
+<span class="fc" id="L1191">    }</span>
+
+<span class="nc" id="L1193">    public SimpleQueryExpression(QueryBuilder builder) {</span>
+<span class="nc" id="L1194">      this.builder = builder;</span>
+<span class="nc" id="L1195">      this.rel = null;</span>
+<span class="nc" id="L1196">    }</span>
+
+    @Override
+    public QueryBuilder builder() {
+<span class="pc bpc" id="L1200" title="1 of 2 branches missed.">      if (builder == null) {</span>
+<span class="nc" id="L1201">        throw new IllegalStateException(&quot;Builder was not initialized&quot;);</span>
+      }
+<span class="fc" id="L1203">      return builder;</span>
+    }
+
+    @Override
+    public List&lt;RexNode&gt; getUnAnalyzableNodes() {
+<span class="fc" id="L1208">      return List.of();</span>
+    }
+
+    @Override
+    public List&lt;RexNode&gt; getAnalyzedNodes() {
+<span class="fc" id="L1213">      return List.of(analyzedRexNode);</span>
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+<span class="fc" id="L1218">      this.analyzedRexNode = rexNode;</span>
+<span class="fc" id="L1219">    }</span>
+
+    @Override
+    public QueryExpression not() {
+<span class="nc" id="L1223">      builder = boolQuery().mustNot(builder());</span>
+<span class="nc" id="L1224">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression exists() {
+<span class="fc" id="L1229">      builder = existsQuery(getFieldReference());</span>
+<span class="fc" id="L1230">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression notExists() {
+      // Even though Lucene doesn't allow a stand alone mustNot boolean query,
+      // OpenSearch handles this problem transparently on its end
+<span class="fc" id="L1237">      builder = boolQuery().mustNot(existsQuery(getFieldReference()));</span>
+<span class="fc" id="L1238">      return this;</span>
+    }
+
+    /*
+     * Prefer to run wildcard query for keyword type field. For text type field, it doesn't support
+     * cross term match because OpenSearch internally break text to multiple terms and apply wildcard
+     * matching one by one, which is not same behavior with regular like function without pushdown.
+     */
+    @Override
+    public QueryExpression like(LiteralExpression literal) {
+<span class="fc" id="L1248">      String fieldName = getFieldReference();</span>
+<span class="fc" id="L1249">      String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());</span>
+<span class="fc bfc" id="L1250" title="All 2 branches covered.">      boolean isKeywordField = keywordField != null;</span>
+<span class="fc bfc" id="L1251" title="All 2 branches covered.">      if (isKeywordField) {</span>
+<span class="fc" id="L1252">        builder =</span>
+<span class="fc" id="L1253">            wildcardQuery(</span>
+<span class="fc" id="L1254">                    keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))</span>
+<span class="fc" id="L1255">                .caseInsensitive(true);</span>
+<span class="fc" id="L1256">        return this;</span>
+      }
+<span class="fc" id="L1258">      throw new UnsupportedOperationException(&quot;Like query is not supported for text field&quot;);</span>
+    }
+
+    @Override
+    public QueryExpression contains(LiteralExpression literal) {
+<span class="fc" id="L1263">      builder = matchQuery(getFieldReference(), literal.value());</span>
+<span class="fc" id="L1264">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression notLike(LiteralExpression literal) {
+<span class="nc" id="L1269">      builder =</span>
+<span class="nc" id="L1270">          boolQuery()</span>
+              // NOT LIKE should return false when field is NULL
+<span class="nc" id="L1272">              .must(existsQuery(getFieldReference()))</span>
+<span class="nc" id="L1273">              .mustNot(regexpQuery(getFieldReference(), literal.stringValue()));</span>
+<span class="nc" id="L1274">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression equals(LiteralExpression literal) {
+<span class="fc" id="L1279">      Object value = literal.value();</span>
+<span class="pc bpc" id="L1280" title="1 of 2 branches missed.">      if (value instanceof GregorianCalendar) {</span>
+<span class="nc" id="L1281">        builder =</span>
+<span class="nc" id="L1282">            boolQuery()</span>
+<span class="nc" id="L1283">                .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))</span>
+<span class="nc" id="L1284">                .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));</span>
+      } else {
+<span class="fc" id="L1286">        builder = termQuery(getFieldReferenceForTermQuery(), value);</span>
+      }
+<span class="fc" id="L1288">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression notEquals(LiteralExpression literal) {
+<span class="fc" id="L1293">      Object value = literal.value();</span>
+<span class="pc bpc" id="L1294" title="1 of 2 branches missed.">      if (value instanceof GregorianCalendar) {</span>
+<span class="nc" id="L1295">        builder =</span>
+<span class="nc" id="L1296">            boolQuery()</span>
+<span class="nc" id="L1297">                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value)))</span>
+<span class="nc" id="L1298">                .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value)));</span>
+      } else {
+<span class="fc" id="L1300">        builder =</span>
+<span class="fc" id="L1301">            boolQuery()</span>
+                // NOT LIKE should return false when field is NULL
+<span class="fc" id="L1303">                .must(existsQuery(getFieldReference()))</span>
+<span class="fc" id="L1304">                .mustNot(termQuery(getFieldReferenceForTermQuery(), value));</span>
+      }
+<span class="fc" id="L1306">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression gt(LiteralExpression literal) {
+<span class="fc" id="L1311">      Object value = literal.value();</span>
+<span class="fc" id="L1312">      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value));</span>
+<span class="fc" id="L1313">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression gte(LiteralExpression literal) {
+<span class="fc" id="L1318">      Object value = literal.value();</span>
+<span class="fc" id="L1319">      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value));</span>
+<span class="fc" id="L1320">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression lt(LiteralExpression literal) {
+<span class="fc" id="L1325">      Object value = literal.value();</span>
+<span class="fc" id="L1326">      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value));</span>
+<span class="fc" id="L1327">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression lte(LiteralExpression literal) {
+<span class="fc" id="L1332">      Object value = literal.value();</span>
+<span class="fc" id="L1333">      builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value));</span>
+<span class="fc" id="L1334">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression match(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1339">      builder = new MatchQuery().build(getFieldReference(), query, optionalArguments);</span>
+<span class="fc" id="L1340">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1345">      builder = new MatchPhraseQuery().build(getFieldReference(), query, optionalArguments);</span>
+<span class="fc" id="L1346">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1351">      builder = new MatchBoolPrefixQuery().build(getFieldReference(), query, optionalArguments);</span>
+<span class="fc" id="L1352">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1357">      builder = new MatchPhrasePrefixQuery().build(getFieldReference(), query, optionalArguments);</span>
+<span class="fc" id="L1358">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1364">      builder = new SimpleQueryStringQuery().build(fieldsRexCall, query, optionalArguments);</span>
+<span class="fc" id="L1365">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1371">      builder = new QueryStringQuery().build(fieldsRexCall, query, optionalArguments);</span>
+<span class="fc" id="L1372">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map&lt;String, String&gt; optionalArguments) {
+<span class="fc" id="L1378">      builder = new MultiMatchQuery().build(fieldsRexCall, query, optionalArguments);</span>
+<span class="fc" id="L1379">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression isTrue() {
+<span class="nc" id="L1384">      builder = termQuery(getFieldReferenceForTermQuery(), true);</span>
+<span class="nc" id="L1385">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression in(LiteralExpression literal) {
+<span class="fc" id="L1390">      Collection&lt;?&gt; collection = (Collection&lt;?&gt;) literal.value();</span>
+<span class="fc" id="L1391">      builder = termsQuery(getFieldReferenceForTermQuery(), collection);</span>
+<span class="fc" id="L1392">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression notIn(LiteralExpression literal) {
+<span class="nc" id="L1397">      Collection&lt;?&gt; collection = (Collection&lt;?&gt;) literal.value();</span>
+<span class="nc" id="L1398">      builder = boolQuery().mustNot(termsQuery(getFieldReferenceForTermQuery(), collection));</span>
+<span class="nc" id="L1399">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression equals(Object point, boolean isTimeStamp) {
+<span class="nc" id="L1404">      builder =</span>
+<span class="nc" id="L1405">          termQuery(getFieldReferenceForTermQuery(), convertEndpointValue(point, isTimeStamp));</span>
+<span class="nc" id="L1406">      return this;</span>
+    }
+
+    @Override
+    public QueryExpression between(Range&lt;?&gt; range, boolean isTimeStamp) {
+      Object lowerBound =
+<span class="nc bnc" id="L1412" title="All 2 branches missed.">          range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint(), isTimeStamp) : null;</span>
+      Object upperBound =
+<span class="nc bnc" id="L1414" title="All 2 branches missed.">          range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint(), isTimeStamp) : null;</span>
+<span class="nc" id="L1415">      RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());</span>
+      rangeQueryBuilder =
+<span class="nc bnc" id="L1417" title="All 2 branches missed.">          range.lowerBoundType() == BoundType.CLOSED</span>
+<span class="nc" id="L1418">              ? rangeQueryBuilder.gte(lowerBound)</span>
+<span class="nc" id="L1419">              : rangeQueryBuilder.gt(lowerBound);</span>
+      rangeQueryBuilder =
+<span class="nc bnc" id="L1421" title="All 2 branches missed.">          range.upperBoundType() == BoundType.CLOSED</span>
+<span class="nc" id="L1422">              ? rangeQueryBuilder.lte(upperBound)</span>
+<span class="nc" id="L1423">              : rangeQueryBuilder.lt(upperBound);</span>
+<span class="nc" id="L1424">      builder = rangeQueryBuilder;</span>
+<span class="nc" id="L1425">      return this;</span>
+    }
+
+    private Object convertEndpointValue(Object value, boolean isTimeStamp) {
+<span class="nc" id="L1429">      value = sargPointValue(value);</span>
+<span class="nc bnc" id="L1430" title="All 2 branches missed.">      return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;</span>
+    }
+  }
+
+  private static String timestampValueForPushDown(String value) {
+<span class="nc" id="L1435">    ExprTimestampValue exprTimestampValue = new ExprTimestampValue(value);</span>
+<span class="nc" id="L1436">    return DateFieldMapper.getDefaultDateTimeFormatter()</span>
+<span class="nc" id="L1437">        .format(exprTimestampValue.timestampValue());</span>
+    // https://github.com/opensearch-project/sql/pull/3442
+  }
+
+  private static String ipValueForPushDown(String value) {
+<span class="nc" id="L1442">    ExprIpValue exprIpValue = new ExprIpValue(value);</span>
+<span class="nc" id="L1443">    return exprIpValue.value();</span>
+  }
+
+  public static class ScriptQueryExpression extends QueryExpression {
+    private RexNode analyzedNode;
+    // use lambda to generate code lazily to avoid store generated code
+    private final Supplier&lt;String&gt; codeGenerator;
+
+    public ScriptQueryExpression(
+        RexNode rexNode,
+        RelDataType rowType,
+        Map&lt;String, ExprType&gt; fieldTypes,
+<span class="fc" id="L1455">        RelOptCluster cluster) {</span>
+      // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
+      // access nested fields for the time being
+<span class="pc bpc" id="L1458" title="1 of 2 branches missed.">      if (rexNode instanceof RexCall</span>
+<span class="pc bpc" id="L1459" title="1 of 2 branches missed.">          &amp;&amp; (rexNode.getKind().equals(SqlKind.IS_NULL)</span>
+<span class="fc bfc" id="L1460" title="All 2 branches covered.">              || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {</span>
+<span class="fc" id="L1461">        checkForNestedFieldOperands((RexCall) rexNode);</span>
+      }
+<span class="fc" id="L1463">      RelJsonSerializer serializer = new RelJsonSerializer(cluster);</span>
+<span class="fc" id="L1464">      this.codeGenerator =</span>
+          () -&gt;
+<span class="fc" id="L1466">              SerializationWrapper.wrapWithLangType(</span>
+<span class="fc" id="L1467">                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));</span>
+<span class="fc" id="L1468">    }</span>
+
+    @Override
+    public QueryBuilder builder() {
+<span class="fc" id="L1472">      return new ScriptQueryBuilder(getScript());</span>
+    }
+
+    public Script getScript() {
+<span class="fc" id="L1476">      long currentTime = Hook.CURRENT_TIME.get(-1L);</span>
+<span class="pc bpc" id="L1477" title="1 of 2 branches missed.">      if (currentTime &lt; 0) {</span>
+<span class="nc" id="L1478">        throw new UnsupportedScriptException(</span>
+            &quot;ScriptQueryExpression requires a valid current time from hook, but it is not set&quot;);
+      }
+<span class="fc" id="L1481">      return new Script(</span>
+          DEFAULT_SCRIPT_TYPE,
+          COMPOUNDED_LANG_NAME,
+<span class="fc" id="L1484">          codeGenerator.get(),</span>
+<span class="fc" id="L1485">          Collections.emptyMap(),</span>
+<span class="fc" id="L1486">          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));</span>
+    }
+
+    @Override
+    public List&lt;RexNode&gt; getAnalyzedNodes() {
+<span class="nc" id="L1491">      return List.of(analyzedNode);</span>
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+<span class="nc" id="L1496">      this.analyzedNode = rexNode;</span>
+<span class="nc" id="L1497">    }</span>
+
+    @Override
+    public List&lt;RexNode&gt; getUnAnalyzableNodes() {
+<span class="nc" id="L1501">      return List.of();</span>
+    }
+  }
+
+  /**
+   * By default, range queries on date/time need use the format of the source to parse the literal.
+   * So we need to specify that the literal has &quot;date_time&quot; format
+   *
+   * @param literal literal value
+   * @param rangeQueryBuilder query builder to optionally add {@code format} expression
+   * @return existing builder with possible {@code format} attribute
+   */
+  private static RangeQueryBuilder addFormatIfNecessary(
+      LiteralExpression literal, RangeQueryBuilder rangeQueryBuilder) {
+<span class="pc bpc" id="L1515" title="1 of 2 branches missed.">    if (literal.value() instanceof GregorianCalendar) {</span>
+<span class="nc" id="L1516">      rangeQueryBuilder.format(&quot;date_time&quot;);</span>
+    }
+<span class="fc" id="L1518">    return rangeQueryBuilder;</span>
+  }
+
+  /** Empty interface; exists only to define the type hierarchy. */
+  interface TerminalExpression extends Expression {}
+
+  /** SQL cast. For example, {@code cast(col as INTEGER)}. */
+  static final class CastExpression implements TerminalExpression {
+    @SuppressWarnings(&quot;unused&quot;)
+    private final RelDataType type;
+
+    private final TerminalExpression argument;
+
+<span class="nc" id="L1531">    private CastExpression(RelDataType type, TerminalExpression argument) {</span>
+<span class="nc" id="L1532">      this.type = type;</span>
+<span class="nc" id="L1533">      this.argument = argument;</span>
+<span class="nc" id="L1534">    }</span>
+
+    public boolean isCastFromLiteral() {
+<span class="nc" id="L1537">      return argument instanceof LiteralExpression;</span>
+    }
+
+    static TerminalExpression unpack(TerminalExpression exp) {
+<span class="nc bnc" id="L1541" title="All 2 branches missed.">      if (!(exp instanceof CastExpression)) {</span>
+<span class="nc" id="L1542">        return exp;</span>
+      }
+<span class="nc" id="L1544">      return ((CastExpression) exp).argument;</span>
+    }
+
+    static boolean isCastExpression(Expression exp) {
+<span class="fc" id="L1548">      return exp instanceof CastExpression;</span>
+    }
+  }
+
+  /** Used for bind variables. */
+  public static final class NamedFieldExpression implements TerminalExpression {
+
+    private final String name;
+    private final ExprType type;
+
+    public NamedFieldExpression(
+<span class="fc" id="L1559">        int refIndex, List&lt;String&gt; schema, Map&lt;String, ExprType&gt; filedTypes) {</span>
+<span class="pc bpc" id="L1560" title="1 of 2 branches missed.">      this.name = refIndex &gt;= schema.size() ? null : schema.get(refIndex);</span>
+<span class="fc" id="L1561">      this.type = filedTypes.get(name);</span>
+<span class="fc" id="L1562">    }</span>
+
+<span class="nc" id="L1564">    public NamedFieldExpression(String name, ExprType type) {</span>
+<span class="nc" id="L1565">      this.name = name;</span>
+<span class="nc" id="L1566">      this.type = type;</span>
+<span class="nc" id="L1567">    }</span>
+
+<span class="fc" id="L1569">    private NamedFieldExpression() {</span>
+<span class="fc" id="L1570">      this.name = null;</span>
+<span class="fc" id="L1571">      this.type = null;</span>
+<span class="fc" id="L1572">    }</span>
+
+    private NamedFieldExpression(
+<span class="fc" id="L1575">        RexInputRef ref, List&lt;String&gt; schema, Map&lt;String, ExprType&gt; filedTypes) {</span>
+<span class="fc" id="L1576">      this.name =</span>
+<span class="pc bpc" id="L1577" title="1 of 4 branches missed.">          (ref == null || ref.getIndex() &gt;= schema.size()) ? null : schema.get(ref.getIndex());</span>
+<span class="fc" id="L1578">      this.type = filedTypes.get(name);</span>
+<span class="fc" id="L1579">    }</span>
+
+<span class="nc" id="L1581">    private NamedFieldExpression(RexLiteral literal) {</span>
+<span class="nc bnc" id="L1582" title="All 2 branches missed.">      this.name = literal == null ? null : RexLiteral.stringValue(literal);</span>
+<span class="nc" id="L1583">      this.type = null;</span>
+<span class="nc" id="L1584">    }</span>
+
+    public String getRootName() {
+<span class="fc" id="L1587">      return name;</span>
+    }
+
+    ExprType getExprType() {
+<span class="fc" id="L1591">      return type;</span>
+    }
+
+    boolean isTimeStampType() {
+<span class="nc" id="L1595">      return type != null</span>
+<span class="nc bnc" id="L1596" title="All 4 branches missed.">          &amp;&amp; ExprCoreType.TIMESTAMP.equals(</span>
+<span class="nc bnc" id="L1597" title="All 2 branches missed.">              type.getOriginalExprType() instanceof OpenSearchDataType osType</span>
+<span class="nc" id="L1598">                  ? osType.getExprCoreType()</span>
+<span class="nc" id="L1599">                  : type.getOriginalExprType());</span>
+    }
+
+    boolean isTextType() {
+<span class="nc bnc" id="L1603" title="All 4 branches missed.">      return type != null &amp;&amp; type.getOriginalExprType() instanceof OpenSearchTextType;</span>
+    }
+
+    boolean isMetaField() {
+<span class="nc" id="L1607">      return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());</span>
+    }
+
+    String getReference() {
+<span class="fc" id="L1611">      return getRootName();</span>
+    }
+
+    public String getReferenceForTermQuery() {
+<span class="fc" id="L1615">      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);</span>
+    }
+  }
+
+  /** Literal like {@code 'foo' or 42 or true} etc. */
+  static final class LiteralExpression implements TerminalExpression {
+
+    final RexLiteral literal;
+
+<span class="fc" id="L1624">    LiteralExpression(RexLiteral literal) {</span>
+<span class="fc" id="L1625">      this.literal = literal;</span>
+<span class="fc" id="L1626">    }</span>
+
+    Object value() {
+
+<span class="fc bfc" id="L1630" title="All 2 branches covered.">      if (isSarg()) {</span>
+<span class="fc" id="L1631">        return sargValue();</span>
+<span class="fc bfc" id="L1632" title="All 2 branches covered.">      } else if (isIntegral()) {</span>
+<span class="fc" id="L1633">        return longValue();</span>
+<span class="pc bpc" id="L1634" title="1 of 2 branches missed.">      } else if (isFractional()) {</span>
+<span class="nc" id="L1635">        return doubleValue();</span>
+<span class="pc bpc" id="L1636" title="1 of 2 branches missed.">      } else if (isBoolean()) {</span>
+<span class="nc" id="L1637">        return booleanValue();</span>
+<span class="pc bpc" id="L1638" title="1 of 2 branches missed.">      } else if (isTimestamp()) {</span>
+<span class="nc" id="L1639">        return timestampValueForPushDown(RexLiteral.stringValue(literal));</span>
+<span class="pc bpc" id="L1640" title="1 of 2 branches missed.">      } else if (isString()) {</span>
+<span class="fc" id="L1641">        return RexLiteral.stringValue(literal);</span>
+<span class="nc bnc" id="L1642" title="All 2 branches missed.">      } else if (isIp()) {</span>
+<span class="nc" id="L1643">        return ipValueForPushDown(RexLiteral.stringValue(literal));</span>
+      } else {
+<span class="nc" id="L1645">        return rawValue();</span>
+      }
+    }
+
+    boolean isIntegral() {
+<span class="fc" id="L1650">      return SqlTypeName.INT_TYPES.contains(literal.getType().getSqlTypeName());</span>
+    }
+
+    boolean isFractional() {
+<span class="fc" id="L1654">      return SqlTypeName.FRACTIONAL_TYPES.contains(literal.getType().getSqlTypeName());</span>
+    }
+
+    boolean isDecimal() {
+<span class="nc bnc" id="L1658" title="All 2 branches missed.">      return SqlTypeName.DECIMAL == literal.getType().getSqlTypeName();</span>
+    }
+
+    boolean isBoolean() {
+<span class="fc" id="L1662">      return SqlTypeName.BOOLEAN_TYPES.contains(literal.getType().getSqlTypeName());</span>
+    }
+
+    public boolean isString() {
+<span class="fc" id="L1666">      return SqlTypeName.CHAR_TYPES.contains(literal.getType().getSqlTypeName());</span>
+    }
+
+    public boolean isSarg() {
+<span class="fc" id="L1670">      return SqlTypeName.SARG.getName().equalsIgnoreCase(literal.getTypeName().getName());</span>
+    }
+
+    public boolean isTimestamp() {
+<span class="pc bpc" id="L1674" title="1 of 2 branches missed.">      if (literal.getType() instanceof ExprSqlType exprSqlType) {</span>
+<span class="nc bnc" id="L1675" title="All 2 branches missed.">        return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;</span>
+      }
+<span class="fc" id="L1677">      return false;</span>
+    }
+
+    public boolean isIp() {
+<span class="nc" id="L1681">      return literal.getType() instanceof ExprIPType;</span>
+    }
+
+    long longValue() {
+<span class="fc" id="L1685">      return ((Number) literal.getValue()).longValue();</span>
+    }
+
+    double doubleValue() {
+<span class="nc" id="L1689">      return ((Number) literal.getValue()).doubleValue();</span>
+    }
+
+    boolean booleanValue() {
+<span class="nc" id="L1693">      return RexLiteral.booleanValue(literal);</span>
+    }
+
+    String stringValue() {
+<span class="fc" id="L1697">      return RexLiteral.stringValue(literal);</span>
+    }
+
+    List&lt;Object&gt; sargValue() {
+<span class="fc" id="L1701">      final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), &quot;Sarg&quot;);</span>
+<span class="fc" id="L1702">      List&lt;Object&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L1703" title="1 of 2 branches missed.">      if (sarg.isPoints()) {</span>
+<span class="fc" id="L1704">        Set&lt;Range&gt; ranges = sarg.rangeSet.asRanges();</span>
+<span class="fc" id="L1705">        ranges.forEach(range -&gt; values.add(sargPointValue(range.lowerEndpoint())));</span>
+<span class="pc bnc" id="L1706" title="All 2 branches missed.">      } else if (sarg.isComplementedPoints()) {</span>
+<span class="nc" id="L1707">        Set&lt;Range&gt; ranges = sarg.negate().rangeSet.asRanges();</span>
+<span class="nc" id="L1708">        ranges.forEach(range -&gt; values.add(sargPointValue(range.lowerEndpoint())));</span>
+      }
+<span class="fc" id="L1710">      return values;</span>
+    }
+
+    Object rawValue() {
+<span class="nc" id="L1714">      return literal.getValue();</span>
+    }
+  }
+
+  /**
+   * If the sarg point is a NlsString, we should get the value from it. For BigDecimal type, we
+   * should get the double value from the literal. That's because there is no decimal type in
+   * OpenSearch.
+   */
+  public static Object sargPointValue(Object point) {
+<span class="pc bpc" id="L1724" title="1 of 2 branches missed.">    if (point instanceof NlsString) {</span>
+<span class="nc" id="L1725">      return ((NlsString) point).getValue();</span>
+<span class="pc bpc" id="L1726" title="1 of 2 branches missed.">    } else if (point instanceof BigDecimal) {</span>
+<span class="fc" id="L1727">      return ((BigDecimal) point).doubleValue();</span>
+    } else {
+<span class="nc" id="L1729">      return point;</span>
+    }
+  }
+
+  /**
+   * If one operand in a binary operator is a DateTime type, but the other isn't, we should not push
+   * down the predicate.
+   *
+   * @param call Current node being evaluated
+   */
+  private static void checkForIncompatibleDateTimeOperands(RexCall call) {
+<span class="fc" id="L1740">    RelDataType op1 = call.getOperands().get(0).getType();</span>
+<span class="fc" id="L1741">    RelDataType op2 = call.getOperands().get(1).getType();</span>
+<span class="pc bpc" id="L1742" title="3 of 4 branches missed.">    if ((SqlTypeFamily.DATETIME.contains(op1) &amp;&amp; !SqlTypeFamily.DATETIME.contains(op2))</span>
+<span class="pc bpc" id="L1743" title="3 of 4 branches missed.">        || (SqlTypeFamily.DATETIME.contains(op2) &amp;&amp; !SqlTypeFamily.DATETIME.contains(op1))</span>
+<span class="pc bpc" id="L1744" title="3 of 4 branches missed.">        || (SqlTypeFamily.DATE.contains(op1) &amp;&amp; !SqlTypeFamily.DATE.contains(op2))</span>
+<span class="pc bpc" id="L1745" title="3 of 4 branches missed.">        || (SqlTypeFamily.DATE.contains(op2) &amp;&amp; !SqlTypeFamily.DATE.contains(op1))</span>
+<span class="pc bpc" id="L1746" title="3 of 4 branches missed.">        || (SqlTypeFamily.TIMESTAMP.contains(op1) &amp;&amp; !SqlTypeFamily.TIMESTAMP.contains(op2))</span>
+<span class="pc bpc" id="L1747" title="3 of 4 branches missed.">        || (SqlTypeFamily.TIMESTAMP.contains(op2) &amp;&amp; !SqlTypeFamily.TIMESTAMP.contains(op1))</span>
+<span class="pc bpc" id="L1748" title="3 of 4 branches missed.">        || (SqlTypeFamily.TIME.contains(op1) &amp;&amp; !SqlTypeFamily.TIME.contains(op2))</span>
+<span class="pc bpc" id="L1749" title="3 of 4 branches missed.">        || (SqlTypeFamily.TIME.contains(op2) &amp;&amp; !SqlTypeFamily.TIME.contains(op1))) {</span>
+<span class="nc" id="L1750">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1751">          &quot;Cannot handle &quot; + call.getKind() + &quot; expression for _id field, &quot; + call);</span>
+    }
+<span class="fc" id="L1753">  }</span>
+
+  /**
+   * Examines the operands of a RexCall to check for nested fields and throws an exception if any
+   * are found.
+   *
+   * &lt;p&gt;This check prevents operations (IS_NULL, IS_NOT_NULL) that would produce incorrect results
+   * in OpenSearch when pushed down as either DSL queries or scripts.
+   *
+   * @param call The RexCall to check for nested field operands
+   * @throws PredicateAnalyzerException if any nested fields are detected in the operands
+   */
+  private static void checkForNestedFieldOperands(RexCall call) throws PredicateAnalyzerException {
+<span class="fc" id="L1766">    boolean conditionContainsNestedField =</span>
+<span class="fc" id="L1767">        call.getOperands().stream()</span>
+<span class="fc" id="L1768">            .map(RexNode::getType)</span>
+            // Nested fields are of type ArraySqlType
+<span class="fc" id="L1770">            .anyMatch(type -&gt; type instanceof ArraySqlType);</span>
+<span class="pc bpc" id="L1771" title="1 of 2 branches missed.">    if (conditionContainsNestedField) {</span>
+<span class="nc" id="L1772">      throw new PredicateAnalyzerException(</span>
+<span class="nc" id="L1773">          format(</span>
+              Locale.ROOT,
+              &quot;OpenSearch DSL does not handle %s on nested fields correctly&quot;,
+<span class="nc" id="L1776">              call.getKind()));</span>
+    }
+<span class="fc" id="L1778">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

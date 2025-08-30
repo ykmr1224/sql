@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PercentileApproximateAggregator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.aggregation</a> &gt; <span class="el_source">PercentileApproximateAggregator.java</span></div><h1>PercentileApproximateAggregator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.aggregation;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
+import static org.opensearch.sql.utils.ExpressionUtils.format;
+
+import com.tdunning.math.stats.MergingDigest;
+import java.util.List;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+
+/** Aggregator to calculate approximate percentile. */
+public class PercentileApproximateAggregator
+    extends Aggregator&lt;PercentileApproximateAggregator.PercentileApproximateState&gt; {
+
+  public static Aggregator percentileApprox(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L25">    return new PercentileApproximateAggregator(arguments, returnType);</span>
+  }
+
+  public PercentileApproximateAggregator(List&lt;Expression&gt; arguments, ExprCoreType returnType) {
+<span class="fc" id="L29">    super(BuiltinFunctionName.PERCENTILE_APPROX.getName(), arguments, returnType);</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">    if (!ExprCoreType.numberTypes().contains(returnType)) {</span>
+<span class="fc" id="L31">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L32">          String.format(&quot;percentile aggregation over %s type is not supported&quot;, returnType));</span>
+    }
+<span class="fc" id="L34">  }</span>
+
+  @Override
+  public PercentileApproximateState create() {
+<span class="fc bfc" id="L38" title="All 2 branches covered.">    if (getArguments().size() == 2) {</span>
+<span class="fc" id="L39">      return new PercentileApproximateState(getArguments().get(1).valueOf().doubleValue());</span>
+    } else {
+<span class="fc" id="L41">      return new PercentileApproximateState(</span>
+<span class="fc" id="L42">          getArguments().get(1).valueOf().doubleValue(),</span>
+<span class="fc" id="L43">          getArguments().get(2).valueOf().doubleValue());</span>
+    }
+  }
+
+  @Override
+  protected PercentileApproximateState iterate(ExprValue value, PercentileApproximateState state) {
+<span class="fc" id="L49">    state.evaluate(value);</span>
+<span class="fc" id="L50">    return state;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L55">    return StringUtils.format(&quot;%s(%s)&quot;, &quot;percentile&quot;, format(getArguments()));</span>
+  }
+
+  /**
+   * PercentileApproximateState is used to store the MergingDigest state for percentile estimation.
+   */
+  protected static class PercentileApproximateState extends MergingDigest
+      implements AggregationState {
+    // The compression level for the MergingDigest, keep the same default value as OpenSearch core.
+    public static final double DEFAULT_COMPRESSION = 100.0;
+    private final double percent;
+
+    PercentileApproximateState(double percent) {
+<span class="fc" id="L68">      super(DEFAULT_COMPRESSION);</span>
+<span class="fc bfc" id="L69" title="All 4 branches covered.">      if (percent &lt; 0.0 || percent &gt; 100.0) {</span>
+<span class="fc" id="L70">        throw new IllegalArgumentException(&quot;out of bounds percent value, must be in [0, 100]&quot;);</span>
+      }
+<span class="fc" id="L72">      this.percent = percent / 100.0;</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Constructor for specifying both percent and compression level.
+     *
+     * @param percent the percent to compute, must be in [0, 100]
+     * @param compression the compression factor of the t-digest sketches used
+     */
+    PercentileApproximateState(double percent, double compression) {
+<span class="fc" id="L82">      super(compression);</span>
+<span class="fc bfc" id="L83" title="All 4 branches covered.">      if (percent &lt; 0.0 || percent &gt; 100.0) {</span>
+<span class="fc" id="L84">        throw new IllegalArgumentException(&quot;out of bounds percent value, must be in [0, 100]&quot;);</span>
+      }
+<span class="fc" id="L86">      this.percent = percent / 100.0;</span>
+<span class="fc" id="L87">    }</span>
+
+    public void evaluate(ExprValue value) {
+<span class="fc" id="L90">      this.add(value.doubleValue());</span>
+<span class="fc" id="L91">    }</span>
+
+    @Override
+    public ExprValue result() {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">      return this.size() == 0 ? ExprNullValue.of() : doubleValue(this.quantile(percent));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

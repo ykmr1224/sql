@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultFunctionResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">DefaultFunctionResolver.java</span></div><h1>DefaultFunctionResolver.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Singular;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+/**
+ * The Function Resolver hold the overload {@link FunctionBuilder} implementation. is composed by
+ * {@link FunctionName} which identified the function name and a map of {@link FunctionSignature}
+ * and {@link FunctionBuilder} to represent the overloaded implementation
+ */
+@Builder
+@RequiredArgsConstructor
+public class DefaultFunctionResolver implements FunctionResolver {
+  @Getter private final FunctionName functionName;
+
+  @Singular(&quot;functionBundle&quot;)
+  private final Map&lt;FunctionSignature, FunctionBuilder&gt; functionBundle;
+
+  /**
+   * Resolve the {@link FunctionBuilder} by using input {@link FunctionSignature}. If the {@link
+   * FunctionBuilder} exactly match the input {@link FunctionSignature}, return it. If applying the
+   * widening rule, found the most match one, return it. If nothing found, throw {@link
+   * ExpressionEvaluationException}
+   *
+   * @return function signature and its builder
+   */
+  @Override
+  public Pair&lt;FunctionSignature, FunctionBuilder&gt; resolve(FunctionSignature unresolvedSignature) {
+<span class="fc" id="L43">    PriorityQueue&lt;Map.Entry&lt;Integer, FunctionSignature&gt;&gt; functionMatchQueue =</span>
+<span class="fc" id="L44">        new PriorityQueue&lt;&gt;(Map.Entry.comparingByKey());</span>
+
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    for (FunctionSignature functionSignature : functionBundle.keySet()) {</span>
+<span class="fc" id="L47">      functionMatchQueue.add(</span>
+          new AbstractMap.SimpleEntry&lt;&gt;(
+<span class="fc" id="L49">              unresolvedSignature.match(functionSignature), functionSignature));</span>
+<span class="fc" id="L50">    }</span>
+<span class="fc" id="L51">    Map.Entry&lt;Integer, FunctionSignature&gt; bestMatchEntry = functionMatchQueue.peek();</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">    if (FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        &amp;&amp; (unresolvedSignature.getParamTypeList().isEmpty()</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            || unresolvedSignature.getParamTypeList().size() &gt; 9)) {</span>
+<span class="fc" id="L55">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L56">          String.format(</span>
+              &quot;%s function expected 1-9 arguments, but got %d&quot;,
+<span class="fc" id="L58">              functionName, unresolvedSignature.getParamTypeList().size()));</span>
+    }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        &amp;&amp; !FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {</span>
+<span class="fc" id="L62">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L63">          String.format(</span>
+              &quot;%s function expected %s, but got %s&quot;,
+              functionName,
+<span class="fc" id="L66">              formatFunctions(functionBundle.keySet()),</span>
+<span class="fc" id="L67">              unresolvedSignature.formatTypes()));</span>
+    } else {
+<span class="fc" id="L69">      FunctionSignature resolvedSignature = bestMatchEntry.getValue();</span>
+<span class="fc" id="L70">      return Pair.of(resolvedSignature, functionBundle.get(resolvedSignature));</span>
+    }
+  }
+
+  private String formatFunctions(Set&lt;FunctionSignature&gt; functionSignatures) {
+<span class="fc" id="L75">    return functionSignatures.stream()</span>
+<span class="fc" id="L76">        .map(FunctionSignature::formatTypes)</span>
+<span class="fc" id="L77">        .collect(Collectors.joining(&quot;,&quot;, &quot;{&quot;, &quot;}&quot;));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

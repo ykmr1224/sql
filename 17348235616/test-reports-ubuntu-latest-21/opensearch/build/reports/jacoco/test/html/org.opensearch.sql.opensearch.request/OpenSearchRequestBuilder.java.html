@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchRequestBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.request</a> &gt; <span class="el_source">OpenSearchRequestBuilder.java</span></div><h1>OpenSearchRequestBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.request;
+
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.join.ScoreMode;
+import org.opensearch.action.search.CreatePitRequest;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.InnerHitBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.collapse.CollapseBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+
+/** OpenSearch search request builder. */
+@EqualsAndHashCode
+@Getter
+@ToString
+public class OpenSearchRequestBuilder {
+
+  /** Search request source builder. */
+  private final SearchSourceBuilder sourceBuilder;
+
+  /** Query size of the request -- how many rows will be returned. */
+<span class="fc" id="L63">  private int requestedTotalSize = Integer.MAX_VALUE;</span>
+
+  /** Size of each page request to return. */
+<span class="fc" id="L66">  private Integer pageSize = null;</span>
+
+  /** OpenSearchExprValueFactory. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude
+  private final OpenSearchExprValueFactory exprValueFactory;
+
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final int maxResultWindow;
+
+<span class="fc" id="L74">  private int startFrom = 0;</span>
+
+  @ToString.Exclude private final Settings settings;
+
+  public static class PushDownUnSupportedException extends RuntimeException {
+    public PushDownUnSupportedException(String message) {
+<span class="fc" id="L80">      super(message);</span>
+<span class="fc" id="L81">    }</span>
+  }
+
+  /** Constructor. */
+  public OpenSearchRequestBuilder(
+<span class="fc" id="L86">      OpenSearchExprValueFactory exprValueFactory, int maxResultWindow, Settings settings) {</span>
+<span class="fc" id="L87">    this.settings = settings;</span>
+<span class="fc" id="L88">    this.maxResultWindow = maxResultWindow;</span>
+<span class="fc" id="L89">    this.sourceBuilder =</span>
+        new SearchSourceBuilder()
+<span class="fc" id="L91">            .from(startFrom)</span>
+<span class="fc" id="L92">            .timeout(OpenSearchRequest.DEFAULT_QUERY_TIMEOUT)</span>
+<span class="fc" id="L93">            .trackScores(false);</span>
+<span class="fc" id="L94">    this.exprValueFactory = exprValueFactory;</span>
+<span class="fc" id="L95">  }</span>
+
+  /**
+   * Build DSL request.
+   *
+   * @return query request with PIT or scroll request
+   */
+  public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+<span class="fc" id="L104">    return build(indexName, cursorKeepAlive, client, false);</span>
+  }
+
+  public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName,
+      TimeValue cursorKeepAlive,
+      OpenSearchClient client,
+      boolean isMappingEmpty) {
+    /* Don't use PIT search:
+     * 1. If the size of source is 0. It means this is an aggregation request and no need to use pit.
+     * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
+     */
+<span class="pc bpc" id="L116" title="1 of 4 branches missed.">    if (sourceBuilder.size() == 0 || isMappingEmpty) {</span>
+<span class="fc" id="L117">      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());</span>
+    }
+<span class="fc" id="L119">    return buildRequestWithPit(indexName, cursorKeepAlive, client);</span>
+  }
+
+  private OpenSearchRequest buildRequestWithPit(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+<span class="fc" id="L124">    int size = requestedTotalSize;</span>
+<span class="fc" id="L125">    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    List&lt;String&gt; includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();</span>
+
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (pageSize == null) {</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">      if (startFrom + size &gt; maxResultWindow) {</span>
+<span class="fc" id="L130">        sourceBuilder.size(maxResultWindow - startFrom);</span>
+        // Search with PIT request
+<span class="fc" id="L132">        String pitId = createPit(indexName, cursorKeepAlive, client);</span>
+<span class="fc" id="L133">        return new OpenSearchQueryRequest(</span>
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+      } else {
+<span class="fc" id="L136">        sourceBuilder.from(startFrom);</span>
+<span class="fc" id="L137">        sourceBuilder.size(size);</span>
+        // Search with non-Pit request
+<span class="fc" id="L139">        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);</span>
+      }
+    } else {
+<span class="fc bfc" id="L142" title="All 2 branches covered.">      if (startFrom != 0) {</span>
+<span class="fc" id="L143">        throw new UnsupportedOperationException(&quot;Non-zero offset is not supported with pagination&quot;);</span>
+      }
+<span class="fc" id="L145">      sourceBuilder.size(pageSize);</span>
+      // Search with PIT request
+<span class="fc" id="L147">      String pitId = createPit(indexName, cursorKeepAlive, client);</span>
+<span class="fc" id="L148">      return new OpenSearchQueryRequest(</span>
+          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+    }
+  }
+
+  private String createPit(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    // Create PIT ID for request
+<span class="fc" id="L156">    CreatePitRequest createPitRequest =</span>
+<span class="fc" id="L157">        new CreatePitRequest(cursorKeepAlive, false, indexName.getIndexNames());</span>
+<span class="fc" id="L158">    return client.createPit(createPitRequest);</span>
+  }
+
+  boolean isBoolFilterQuery(QueryBuilder current) {
+<span class="fc" id="L162">    return (current instanceof BoolQueryBuilder);</span>
+  }
+
+  /**
+   * Push down query to DSL request.
+   *
+   * @param query query request
+   */
+  public void pushDownFilter(QueryBuilder query) {
+<span class="fc" id="L171">    QueryBuilder current = sourceBuilder.query();</span>
+
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (current == null) {</span>
+<span class="fc" id="L174">      sourceBuilder.query(query);</span>
+    } else {
+<span class="fc bfc" id="L176" title="All 2 branches covered.">      if (isBoolFilterQuery(current)) {</span>
+<span class="fc" id="L177">        ((BoolQueryBuilder) current).filter(query);</span>
+      } else {
+<span class="fc" id="L179">        sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));</span>
+      }
+    }
+
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (sourceBuilder.sorts() == null) {</span>
+<span class="fc" id="L184">      sourceBuilder.sort(DOC_FIELD_NAME, ASC); // Make sure consistent order</span>
+    }
+<span class="fc" id="L186">  }</span>
+
+  /**
+   * Push down aggregation to DSL request.
+   *
+   * @param aggregationBuilder pair of aggregation query and aggregation parser.
+   */
+  public void pushDownAggregation(
+      Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt; aggregationBuilder) {
+<span class="fc" id="L195">    aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);</span>
+<span class="fc" id="L196">    sourceBuilder.size(0);</span>
+<span class="fc" id="L197">    exprValueFactory.setParser(aggregationBuilder.getRight());</span>
+<span class="fc" id="L198">  }</span>
+
+  /**
+   * Push down sort to DSL request.
+   *
+   * @param sortBuilders sortBuilders.
+   */
+  public void pushDownSort(List&lt;SortBuilder&lt;?&gt;&gt; sortBuilders) {
+    // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
+<span class="fc bfc" id="L207" title="All 2 branches covered.">    if (isSortByDocOnly()) {</span>
+<span class="fc" id="L208">      sourceBuilder.sorts().clear();</span>
+    }
+
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    for (SortBuilder&lt;?&gt; sortBuilder : sortBuilders) {</span>
+<span class="fc" id="L212">      sourceBuilder.sort(sortBuilder);</span>
+<span class="fc" id="L213">    }</span>
+<span class="fc" id="L214">  }</span>
+
+  /** Pushdown size (limit) and from (offset) to DSL request. */
+  public void pushDownLimit(Integer limit, Integer offset) {
+    // If there are multiple limit, we take the minimum among them
+    // E.g. for `source=t | head 10 | head 5`, we take 5
+    // This also ensures that the limit won't exceed the initial default value. (set to
+    // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
+    // Besides, there may be cases when the existing requestedTotalSize does not satisfy the
+    // new limit and offset. E.g. for `head 11 | head 10 from 2`, the new requested total size
+    // is 9. We need to adjust it accordingly.
+<span class="fc" id="L225">    int newRequestedTotalSize = Math.min(limit, requestedTotalSize - offset);</span>
+    // If there are multiple offset, we aggregate the offset
+    // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
+<span class="fc" id="L228">    int newStartFrom = startFrom + offset;</span>
+
+<span class="fc bfc" id="L230" title="All 2 branches covered.">    if (newStartFrom &gt;= maxResultWindow) {</span>
+<span class="fc" id="L231">      throw new PushDownUnSupportedException(</span>
+<span class="fc" id="L232">          String.format(</span>
+              &quot;Requested offset %d should be less than the max result window %d&quot;,
+<span class="fc" id="L234">              newStartFrom, maxResultWindow));</span>
+    }
+
+<span class="fc" id="L237">    requestedTotalSize = newRequestedTotalSize;</span>
+<span class="fc" id="L238">    startFrom = newStartFrom;</span>
+<span class="fc" id="L239">    sourceBuilder.from(startFrom).size(requestedTotalSize);</span>
+<span class="fc" id="L240">  }</span>
+
+  public void pushDownTrackedScore(boolean trackScores) {
+<span class="fc" id="L243">    sourceBuilder.trackScores(trackScores);</span>
+<span class="fc" id="L244">  }</span>
+
+  public void pushDownPageSize(int pageSize) {
+<span class="fc" id="L247">    this.pageSize = pageSize;</span>
+<span class="fc" id="L248">  }</span>
+
+  /**
+   * Add highlight to DSL requests.
+   *
+   * @param field name of the field to highlight
+   */
+  public void pushDownHighlight(String field, Map&lt;String, Literal&gt; arguments) {
+<span class="fc" id="L256">    String unquotedField = StringUtils.unquoteText(field);</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">    if (sourceBuilder.highlighter() != null) {</span>
+      // OS does not allow duplicates of highlight fields
+<span class="fc" id="L259">      if (sourceBuilder.highlighter().fields().stream()</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">          .anyMatch(f -&gt; f.name().equals(unquotedField))) {</span>
+<span class="fc" id="L261">        throw new SemanticCheckException(String.format(&quot;Duplicate field %s in highlight&quot;, field));</span>
+      }
+
+<span class="fc" id="L264">      sourceBuilder.highlighter().field(unquotedField);</span>
+    } else {
+<span class="fc" id="L266">      HighlightBuilder highlightBuilder = new HighlightBuilder().field(unquotedField);</span>
+<span class="fc" id="L267">      sourceBuilder.highlighter(highlightBuilder);</span>
+    }
+
+    // lastFieldIndex denotes previously set highlighter with field parameter
+<span class="fc" id="L271">    int lastFieldIndex = sourceBuilder.highlighter().fields().size() - 1;</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">    if (arguments.containsKey(&quot;pre_tags&quot;)) {</span>
+<span class="fc" id="L273">      sourceBuilder</span>
+<span class="fc" id="L274">          .highlighter()</span>
+<span class="fc" id="L275">          .fields()</span>
+<span class="fc" id="L276">          .get(lastFieldIndex)</span>
+<span class="fc" id="L277">          .preTags(arguments.get(&quot;pre_tags&quot;).toString());</span>
+    }
+<span class="fc bfc" id="L279" title="All 2 branches covered.">    if (arguments.containsKey(&quot;post_tags&quot;)) {</span>
+<span class="fc" id="L280">      sourceBuilder</span>
+<span class="fc" id="L281">          .highlighter()</span>
+<span class="fc" id="L282">          .fields()</span>
+<span class="fc" id="L283">          .get(lastFieldIndex)</span>
+<span class="fc" id="L284">          .postTags(arguments.get(&quot;post_tags&quot;).toString());</span>
+    }
+<span class="fc" id="L286">  }</span>
+
+  /** Push down project list to DSL requests. */
+  public void pushDownProjects(Set&lt;ReferenceExpression&gt; projects) {
+<span class="fc" id="L290">    pushDownProjectStream(projects.stream().map(ReferenceExpression::getRawPath));</span>
+<span class="fc" id="L291">  }</span>
+
+  public void pushDownProjectStream(Stream&lt;String&gt; projects) {
+<span class="fc" id="L294">    sourceBuilder.fetchSource(projects.distinct().toArray(String[]::new), new String[0]);</span>
+<span class="fc" id="L295">  }</span>
+
+  public void pushTypeMapping(Map&lt;String, OpenSearchDataType&gt; typeMapping) {
+<span class="fc" id="L298">    exprValueFactory.extendTypeMapping(typeMapping);</span>
+<span class="fc" id="L299">  }</span>
+
+  public void pushDownCollapse(String field) {
+<span class="nc" id="L302">    sourceBuilder.collapse(new CollapseBuilder(field));</span>
+<span class="nc" id="L303">  }</span>
+
+  private boolean isSortByDocOnly() {
+<span class="fc" id="L306">    List&lt;SortBuilder&lt;?&gt;&gt; sorts = sourceBuilder.sorts();</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">    if (sorts != null) {</span>
+<span class="fc" id="L308">      return sorts.equals(List.of(SortBuilders.fieldSort(DOC_FIELD_NAME)));</span>
+    }
+<span class="fc" id="L310">    return false;</span>
+  }
+
+  /**
+   * Push down nested to sourceBuilder.
+   *
+   * @param nestedArgs : Nested arguments to push down.
+   */
+  public void pushDownNested(List&lt;Map&lt;String, ReferenceExpression&gt;&gt; nestedArgs) {
+<span class="fc" id="L319">    initBoolQueryFilter();</span>
+<span class="fc" id="L320">    List&lt;NestedQueryBuilder&gt; nestedQueries = extractNestedQueries(query());</span>
+<span class="fc" id="L321">    groupFieldNamesByPath(nestedArgs)</span>
+<span class="fc" id="L322">        .forEach(</span>
+            (path, fieldNames) -&gt;
+<span class="fc" id="L324">                buildInnerHit(fieldNames, findNestedQueryWithSamePath(nestedQueries, path)));</span>
+<span class="fc" id="L325">  }</span>
+
+  /**
+   * InnerHit must be added to the NestedQueryBuilder. We need to extract the nested queries
+   * currently in the query if there is already a filter push down with nested query.
+   *
+   * @param query : current query.
+   * @return : grouped nested queries currently in query.
+   */
+  private List&lt;NestedQueryBuilder&gt; extractNestedQueries(QueryBuilder query) {
+<span class="fc" id="L335">    List&lt;NestedQueryBuilder&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L336" title="All 2 branches covered.">    if (query instanceof NestedQueryBuilder) {</span>
+<span class="fc" id="L337">      result.add((NestedQueryBuilder) query);</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">    } else if (query instanceof BoolQueryBuilder) {</span>
+<span class="fc" id="L339">      BoolQueryBuilder boolQ = (BoolQueryBuilder) query;</span>
+<span class="fc" id="L340">      Stream.of(boolQ.filter(), boolQ.must(), boolQ.should())</span>
+<span class="fc" id="L341">          .flatMap(Collection::stream)</span>
+<span class="fc" id="L342">          .forEach(q -&gt; result.addAll(extractNestedQueries(q)));</span>
+    }
+<span class="fc" id="L344">    return result;</span>
+  }
+
+  public int getMaxResponseSize() {
+<span class="fc bfc" id="L348" title="All 2 branches covered.">    return pageSize == null ? requestedTotalSize : pageSize;</span>
+  }
+
+  /** Initialize bool query for push down. */
+  private void initBoolQueryFilter() {
+<span class="fc bfc" id="L353" title="All 2 branches covered.">    if (sourceBuilder.query() == null) {</span>
+<span class="fc" id="L354">      sourceBuilder.query(QueryBuilders.boolQuery());</span>
+    } else {
+<span class="fc" id="L356">      sourceBuilder.query(QueryBuilders.boolQuery().must(sourceBuilder.query()));</span>
+    }
+
+<span class="fc" id="L359">    sourceBuilder.query(QueryBuilders.boolQuery().filter(sourceBuilder.query()));</span>
+<span class="fc" id="L360">  }</span>
+
+  /**
+   * Map all field names in nested queries that use same path.
+   *
+   * @param fields : Fields for nested queries.
+   * @return : Map of path and associated field names.
+   */
+  private Map&lt;String, List&lt;String&gt;&gt; groupFieldNamesByPath(
+      List&lt;Map&lt;String, ReferenceExpression&gt;&gt; fields) {
+    // TODO filter out reverse nested when supported - .filter(not(isReverseNested()))
+<span class="fc" id="L371">    return fields.stream()</span>
+<span class="fc" id="L372">        .collect(</span>
+<span class="fc" id="L373">            Collectors.groupingBy(</span>
+<span class="fc" id="L374">                m -&gt; m.get(&quot;path&quot;).toString(), mapping(m -&gt; m.get(&quot;field&quot;).toString(), toList())));</span>
+  }
+
+  /**
+   * Build inner hits portion to nested query.
+   *
+   * @param paths : Set of all paths used in nested queries.
+   * @param query : Current pushDown query.
+   */
+  private void buildInnerHit(List&lt;String&gt; paths, NestedQueryBuilder query) {
+<span class="fc" id="L384">    query.innerHit(</span>
+        new InnerHitBuilder()
+<span class="fc" id="L386">            .setFetchSourceContext(</span>
+<span class="fc" id="L387">                new FetchSourceContext(true, paths.toArray(new String[0]), null)));</span>
+<span class="fc" id="L388">  }</span>
+
+  /**
+   * We need to group nested queries with same path for adding new fields with same path of inner
+   * hits. If we try to add additional inner hits with same path we get an OS error.
+   *
+   * @param nestedQueries Current list of nested queries in query.
+   * @param path path comparing with current nested queries.
+   * @return Query with same path or new empty nested query.
+   */
+  private NestedQueryBuilder findNestedQueryWithSamePath(
+      List&lt;NestedQueryBuilder&gt; nestedQueries, String path) {
+<span class="fc" id="L400">    return nestedQueries.stream()</span>
+<span class="fc" id="L401">        .filter(query -&gt; isSamePath(path, query))</span>
+<span class="fc" id="L402">        .findAny()</span>
+<span class="fc" id="L403">        .orElseGet(createEmptyNestedQuery(path));</span>
+  }
+
+  /**
+   * Check if is nested query is of the same path value.
+   *
+   * @param path Value of path to compare with nested query.
+   * @param query nested query builder to compare with path.
+   * @return true if nested query has same path.
+   */
+  private boolean isSamePath(String path, NestedQueryBuilder query) {
+<span class="fc" id="L414">    return nestedQuery(path, query.query(), query.scoreMode()).equals(query);</span>
+  }
+
+  /** Create a nested query with match all filter to place inner hits. */
+  private Supplier&lt;NestedQueryBuilder&gt; createEmptyNestedQuery(String path) {
+<span class="fc" id="L419">    return () -&gt; {</span>
+<span class="fc" id="L420">      NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);</span>
+<span class="fc" id="L421">      ((BoolQueryBuilder) query().filter().get(0)).must(nestedQuery);</span>
+<span class="fc" id="L422">      return nestedQuery;</span>
+    };
+  }
+
+  /**
+   * Return current query.
+   *
+   * @return : Current source builder query.
+   */
+  private BoolQueryBuilder query() {
+<span class="fc" id="L432">    return (BoolQueryBuilder) sourceBuilder.query();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

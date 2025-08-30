@@ -1,0 +1,892 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Analyzer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">Analyzer.java</span></div><h1>Analyzer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.symbol.Namespace;
+import org.opensearch.sql.analysis.symbol.Symbol;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
+import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.RelationSubquery;
+import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalDedupe;
+import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalML;
+import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRareTopN;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalRemove;
+import org.opensearch.sql.planner.logical.LogicalRename;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
+import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWindow;
+import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
+import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ParseUtils;
+
+/**
+ * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
+ * LogicalPlan}.
+ */
+public class Analyzer extends AbstractNodeVisitor&lt;LogicalPlan, AnalysisContext&gt; {
+
+  private final ExpressionAnalyzer expressionAnalyzer;
+
+  private final SelectExpressionAnalyzer selectExpressionAnalyzer;
+
+  private final NamedExpressionAnalyzer namedExpressionAnalyzer;
+
+  private final DataSourceService dataSourceService;
+
+  private final BuiltinFunctionRepository repository;
+
+  /** Constructor. */
+  public Analyzer(
+      ExpressionAnalyzer expressionAnalyzer,
+      DataSourceService dataSourceService,
+<span class="fc" id="L156">      BuiltinFunctionRepository repository) {</span>
+<span class="fc" id="L157">    this.expressionAnalyzer = expressionAnalyzer;</span>
+<span class="fc" id="L158">    this.dataSourceService = dataSourceService;</span>
+<span class="fc" id="L159">    this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);</span>
+<span class="fc" id="L160">    this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);</span>
+<span class="fc" id="L161">    this.repository = repository;</span>
+<span class="fc" id="L162">  }</span>
+
+  public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
+<span class="fc" id="L165">    return unresolved.accept(this, context);</span>
+  }
+
+  @Override
+  public LogicalPlan visitSubqueryAlias(SubqueryAlias node, AnalysisContext context) {
+<span class="fc" id="L170">    LogicalPlan child = analyze(node.getChild().get(0), context);</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (child instanceof LogicalRelation) {</span>
+      // Put index name or its alias in index namespace on type environment so qualifier
+      // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
+<span class="fc" id="L174">      TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L175">      curEnv.define(</span>
+          new Symbol(
+              Namespace.INDEX_NAME,
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">              (node.getAlias() == null)</span>
+<span class="nc" id="L179">                  ? ((LogicalRelation) child).getRelationName()</span>
+<span class="fc" id="L180">                  : node.getAlias()),</span>
+          STRUCT);
+<span class="fc" id="L182">      return child;</span>
+    } else {
+<span class="nc" id="L184">      throw new UnsupportedOperationException(</span>
+<span class="nc" id="L185">          &quot;Subsearch is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+    }
+  }
+
+  @Override
+  public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
+<span class="fc" id="L191">    QualifiedName qualifiedName = node.getTableQualifiedName();</span>
+<span class="fc" id="L192">    DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver =</span>
+<span class="fc" id="L193">        new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());</span>
+<span class="fc" id="L194">    String tableName = dataSourceSchemaIdentifierNameResolver.getIdentifierName();</span>
+<span class="fc" id="L195">    context.push();</span>
+<span class="fc" id="L196">    TypeEnvironment curEnv = context.peek();</span>
+    Table table;
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (DATASOURCES_TABLE_NAME.equals(tableName)) {</span>
+<span class="fc" id="L199">      table = new DataSourceTable(dataSourceService);</span>
+    } else {
+<span class="fc" id="L201">      table =</span>
+          dataSourceService
+<span class="fc" id="L203">              .getDataSource(dataSourceSchemaIdentifierNameResolver.getDataSourceName())</span>
+<span class="fc" id="L204">              .getStorageEngine()</span>
+<span class="fc" id="L205">              .getTable(</span>
+                  new DataSourceSchemaName(
+<span class="fc" id="L207">                      dataSourceSchemaIdentifierNameResolver.getDataSourceName(),</span>
+<span class="fc" id="L208">                      dataSourceSchemaIdentifierNameResolver.getSchemaName()),</span>
+<span class="fc" id="L209">                  dataSourceSchemaIdentifierNameResolver.getIdentifierName());</span>
+    }
+<span class="fc" id="L211">    table.getFieldTypes().forEach((k, v) -&gt; curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));</span>
+<span class="fc" id="L212">    table</span>
+<span class="fc" id="L213">        .getReservedFieldTypes()</span>
+<span class="fc" id="L214">        .forEach((k, v) -&gt; curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));</span>
+
+<span class="fc" id="L216">    return new LogicalRelation(tableName, table);</span>
+  }
+
+  @Override
+  public LogicalPlan visitRelationSubquery(RelationSubquery node, AnalysisContext context) {
+<span class="fc" id="L221">    LogicalPlan subquery = analyze(node.getChild().get(0), context);</span>
+    // inherit the parent environment to keep the subquery fields in current environment
+<span class="fc" id="L223">    TypeEnvironment curEnv = context.peek();</span>
+
+    // Put subquery alias in index namespace so the qualifier can be removed
+    // when analyzing qualified name in the subquery layer
+<span class="fc" id="L227">    curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);</span>
+<span class="fc" id="L228">    return subquery;</span>
+  }
+
+  @Override
+  public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
+<span class="fc" id="L233">    QualifiedName qualifiedName = node.getFunctionName();</span>
+<span class="fc" id="L234">    DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver =</span>
+        new DataSourceSchemaIdentifierNameResolver(
+<span class="fc" id="L236">            this.dataSourceService, qualifiedName.getParts());</span>
+
+<span class="fc" id="L238">    FunctionName functionName =</span>
+<span class="fc" id="L239">        FunctionName.of(dataSourceSchemaIdentifierNameResolver.getIdentifierName());</span>
+<span class="fc" id="L240">    List&lt;Expression&gt; arguments =</span>
+<span class="fc" id="L241">        node.getArguments().stream()</span>
+<span class="fc" id="L242">            .map(</span>
+                unresolvedExpression -&gt;
+<span class="fc" id="L244">                    this.expressionAnalyzer.analyze(unresolvedExpression, context))</span>
+<span class="fc" id="L245">            .collect(Collectors.toList());</span>
+<span class="fc" id="L246">    TableFunctionImplementation tableFunctionImplementation =</span>
+        (TableFunctionImplementation)
+<span class="fc" id="L248">            repository.compile(</span>
+<span class="fc" id="L249">                context.getFunctionProperties(),</span>
+                dataSourceService
+<span class="fc" id="L251">                    .getDataSource(dataSourceSchemaIdentifierNameResolver.getDataSourceName())</span>
+<span class="fc" id="L252">                    .getStorageEngine()</span>
+<span class="fc" id="L253">                    .getFunctions(),</span>
+                functionName,
+                arguments);
+<span class="fc" id="L256">    context.push();</span>
+<span class="fc" id="L257">    TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L258">    Table table = tableFunctionImplementation.applyArguments();</span>
+<span class="fc" id="L259">    table.getFieldTypes().forEach((k, v) -&gt; curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));</span>
+<span class="fc" id="L260">    table</span>
+<span class="fc" id="L261">        .getReservedFieldTypes()</span>
+<span class="fc" id="L262">        .forEach((k, v) -&gt; curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));</span>
+<span class="fc" id="L263">    curEnv.define(</span>
+        new Symbol(
+<span class="fc" id="L265">            Namespace.INDEX_NAME, dataSourceSchemaIdentifierNameResolver.getIdentifierName()),</span>
+        STRUCT);
+<span class="fc" id="L267">    return new LogicalRelation(</span>
+<span class="fc" id="L268">        dataSourceSchemaIdentifierNameResolver.getIdentifierName(),</span>
+<span class="fc" id="L269">        tableFunctionImplementation.applyArguments());</span>
+  }
+
+  @Override
+  public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
+<span class="fc" id="L274">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L275">    return new LogicalLimit(child, node.getLimit(), node.getOffset());</span>
+  }
+
+  @Override
+  public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
+<span class="fc" id="L280">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L281">    Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);</span>
+
+<span class="fc" id="L283">    ExpressionReferenceOptimizer optimizer =</span>
+<span class="fc" id="L284">        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);</span>
+<span class="fc" id="L285">    Expression optimized = optimizer.optimize(condition, context);</span>
+<span class="fc" id="L286">    return new LogicalFilter(child, optimized);</span>
+  }
+
+  private void verifySupportsCondition(Expression condition) {
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    if (condition instanceof FunctionExpression) {</span>
+<span class="fc" id="L291">      if (((FunctionExpression) condition)</span>
+<span class="fc" id="L292">          .getFunctionName()</span>
+<span class="fc" id="L293">          .getFunctionName()</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">          .equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {</span>
+<span class="fc" id="L295">        throw new SyntaxCheckException(</span>
+            &quot;Falling back to legacy engine. Nested function is not supported in WHERE,&quot;
+                + &quot; GROUP BY, and HAVING clauses.&quot;);
+      }
+<span class="fc" id="L299">      ((FunctionExpression) condition)</span>
+<span class="fc" id="L300">          .getArguments().stream().forEach(e -&gt; verifySupportsCondition(e));</span>
+    }
+<span class="fc" id="L302">  }</span>
+
+  /** Build {@link LogicalRename}. */
+  @Override
+  public LogicalPlan visitRename(Rename node, AnalysisContext context) {
+<span class="fc" id="L307">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L308">    ImmutableMap.Builder&lt;ReferenceExpression, ReferenceExpression&gt; renameMapBuilder =</span>
+        new ImmutableMap.Builder&lt;&gt;();
+<span class="fc bfc" id="L310" title="All 2 branches covered.">    for (Map renameMap : node.getRenameList()) {</span>
+<span class="fc" id="L311">      Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);</span>
+      // We should define the new target field in the context instead of analyze it.
+<span class="fc bfc" id="L313" title="All 2 branches covered.">      if (renameMap.getTarget() instanceof Field) {</span>
+<span class="fc" id="L314">        ReferenceExpression target =</span>
+            new ReferenceExpression(
+<span class="fc" id="L316">                ((Field) renameMap.getTarget()).getField().toString(), origin.type());</span>
+<span class="fc" id="L317">        ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());</span>
+<span class="fc" id="L318">        TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L319">        curEnv.remove(originExpr);</span>
+<span class="fc" id="L320">        curEnv.define(target);</span>
+<span class="fc" id="L321">        renameMapBuilder.put(originExpr, target);</span>
+<span class="fc" id="L322">      } else {</span>
+<span class="fc" id="L323">        throw new SemanticCheckException(</span>
+<span class="fc" id="L324">            String.format(&quot;the target expected to be field, but is %s&quot;, renameMap.getTarget()));</span>
+      }
+<span class="fc" id="L326">    }</span>
+
+<span class="fc" id="L328">    return new LogicalRename(child, renameMapBuilder.build());</span>
+  }
+
+  /** Build {@link LogicalAggregation}. */
+  @Override
+  public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
+<span class="fc" id="L334">    final LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L335">    return analyzeAggregation(node, child, context);</span>
+  }
+
+  /** Build {@link LogicalRareTopN}. */
+  @Override
+  public LogicalPlan visitRareTopN(RareTopN node, AnalysisContext context) {
+<span class="fc" id="L341">    final LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+
+<span class="fc" id="L343">    ImmutableList.Builder&lt;Expression&gt; groupbyBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">    for (UnresolvedExpression expr : node.getGroupExprList()) {</span>
+<span class="fc" id="L345">      groupbyBuilder.add(expressionAnalyzer.analyze(expr, context));</span>
+<span class="fc" id="L346">    }</span>
+<span class="fc" id="L347">    ImmutableList&lt;Expression&gt; groupBys = groupbyBuilder.build();</span>
+
+<span class="fc" id="L349">    ImmutableList.Builder&lt;Expression&gt; fieldsBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    for (Field f : node.getFields()) {</span>
+<span class="fc" id="L351">      fieldsBuilder.add(expressionAnalyzer.analyze(f, context));</span>
+<span class="fc" id="L352">    }</span>
+<span class="fc" id="L353">    ImmutableList&lt;Expression&gt; fields = fieldsBuilder.build();</span>
+
+    // new context
+<span class="fc" id="L356">    context.push();</span>
+<span class="fc" id="L357">    TypeEnvironment newEnv = context.peek();</span>
+<span class="fc" id="L358">    groupBys.forEach(</span>
+<span class="fc" id="L359">        group -&gt; newEnv.define(new Symbol(Namespace.FIELD_NAME, group.toString()), group.type()));</span>
+<span class="fc" id="L360">    fields.forEach(</span>
+<span class="fc" id="L361">        field -&gt; newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));</span>
+
+<span class="fc" id="L363">    List&lt;Argument&gt; options = node.getArguments();</span>
+<span class="fc" id="L364">    Integer noOfResults = (Integer) options.get(0).getValue().getValue();</span>
+
+<span class="fc" id="L366">    return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);</span>
+  }
+
+  /**
+   * Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}.
+   *
+   * &lt;p&gt;Todo, the include/exclude fields should change the env definition. The cons of current
+   * implementation is even the query contain the field reference which has been excluded from
+   * fields command. There is no {@link SemanticCheckException} will be thrown. Instead, the during
+   * runtime evaluation, the not exist field will be resolve to {@link ExprMissingValue} which will
+   * not impact the correctness.
+   *
+   * &lt;p&gt;Postpone the implementation when finding more use case.
+   */
+  @Override
+  public LogicalPlan visitProject(Project node, AnalysisContext context) {
+<span class="fc" id="L382">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+
+<span class="fc bfc" id="L384" title="All 2 branches covered.">    if (isExcludeMode(node)) {</span>
+<span class="fc" id="L385">      return buildLogicalRemove(node, child, context);</span>
+    }
+
+<span class="fc" id="L388">    child = processWindowExpressions(node.getProjectList(), child, context);</span>
+<span class="fc" id="L389">    child = processHighlightExpressions(node.getProjectList(), child, context);</span>
+
+<span class="fc" id="L391">    List&lt;NamedExpression&gt; namedExpressions =</span>
+<span class="fc" id="L392">        resolveFieldExpressions(node.getProjectList(), child, context);</span>
+
+<span class="fc" id="L394">    child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);</span>
+
+<span class="fc" id="L396">    context.push();</span>
+<span class="fc" id="L397">    TypeEnvironment newEnv = context.peek();</span>
+<span class="fc" id="L398">    namedExpressions.forEach(</span>
+        expr -&gt;
+<span class="fc" id="L400">            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));</span>
+
+<span class="fc" id="L402">    return new LogicalProject(child, namedExpressions, context.getNamedParseExpressions());</span>
+  }
+
+  private boolean isExcludeMode(Project node) {
+<span class="fc bfc" id="L406" title="All 2 branches covered.">    if (!node.hasArgument()) {</span>
+<span class="fc" id="L407">      return false;</span>
+    }
+    try {
+<span class="fc" id="L410">      Argument argument = node.getArgExprList().get(0);</span>
+<span class="fc" id="L411">      Object value = argument.getValue().getValue();</span>
+<span class="fc" id="L412">      return Boolean.TRUE.equals(value);</span>
+<span class="nc" id="L413">    } catch (IndexOutOfBoundsException | NullPointerException e) {</span>
+<span class="nc" id="L414">      return false;</span>
+    }
+  }
+
+  private LogicalRemove buildLogicalRemove(
+      Project node, LogicalPlan child, AnalysisContext context) {
+<span class="fc" id="L420">    TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L421">    List&lt;ReferenceExpression&gt; referenceExpressions =</span>
+<span class="fc" id="L422">        collectExclusionFields(node.getProjectList(), context);</span>
+
+<span class="fc" id="L424">    Set&lt;String&gt; allFields = curEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();</span>
+<span class="fc" id="L425">    Set&lt;String&gt; fieldsToExclude =</span>
+<span class="fc" id="L426">        referenceExpressions.stream().map(ReferenceExpression::getAttr).collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L428" title="1 of 2 branches missed.">    if (allFields.equals(fieldsToExclude)) {</span>
+<span class="nc" id="L429">      throw new IllegalArgumentException(</span>
+          &quot;Invalid field exclusion: operation would exclude all fields from the result set&quot;);
+    }
+
+<span class="fc" id="L433">    referenceExpressions.forEach(curEnv::remove);</span>
+<span class="fc" id="L434">    return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));</span>
+  }
+
+  private LogicalPlan processWindowExpressions(
+      List&lt;UnresolvedExpression&gt; projectList, LogicalPlan child, AnalysisContext context) {
+<span class="fc bfc" id="L439" title="All 2 branches covered.">    for (UnresolvedExpression expr : projectList) {</span>
+<span class="fc" id="L440">      child = new WindowExpressionAnalyzer(expressionAnalyzer, child).analyze(expr, context);</span>
+<span class="fc" id="L441">    }</span>
+<span class="fc" id="L442">    return child;</span>
+  }
+
+  private LogicalPlan processHighlightExpressions(
+      List&lt;UnresolvedExpression&gt; projectList, LogicalPlan child, AnalysisContext context) {
+<span class="fc bfc" id="L447" title="All 2 branches covered.">    for (UnresolvedExpression expr : projectList) {</span>
+<span class="fc" id="L448">      child = new HighlightAnalyzer(expressionAnalyzer, child).analyze(expr, context);</span>
+<span class="fc" id="L449">    }</span>
+<span class="fc" id="L450">    return child;</span>
+  }
+
+  private List&lt;NamedExpression&gt; resolveFieldExpressions(
+      List&lt;UnresolvedExpression&gt; projectList, LogicalPlan child, AnalysisContext context) {
+<span class="fc" id="L455">    return selectExpressionAnalyzer.analyze(</span>
+        projectList,
+        context,
+<span class="fc" id="L458">        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));</span>
+  }
+
+  private LogicalPlan processNestedAnalysis(
+      List&lt;UnresolvedExpression&gt; projectList,
+      List&lt;NamedExpression&gt; namedExpressions,
+      LogicalPlan child,
+      AnalysisContext context) {
+<span class="fc bfc" id="L466" title="All 2 branches covered.">    for (UnresolvedExpression expr : projectList) {</span>
+<span class="fc" id="L467">      child =</span>
+<span class="fc" id="L468">          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child).analyze(expr, context);</span>
+<span class="fc" id="L469">    }</span>
+<span class="fc" id="L470">    return child;</span>
+  }
+
+  private List&lt;ReferenceExpression&gt; collectExclusionFields(
+      List&lt;UnresolvedExpression&gt; projectList, AnalysisContext context) {
+<span class="fc" id="L475">    List&lt;NamedExpression&gt; namedExpressions =</span>
+<span class="fc" id="L476">        projectList.stream()</span>
+<span class="fc" id="L477">            .map(expr -&gt; expressionAnalyzer.analyze(expr, context))</span>
+<span class="fc" id="L478">            .map(DSL::named)</span>
+<span class="fc" id="L479">            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L481">    return namedExpressions.stream()</span>
+<span class="fc" id="L482">        .map(field -&gt; (ReferenceExpression) field.getDelegated())</span>
+<span class="fc" id="L483">        .collect(Collectors.toList());</span>
+  }
+
+  /** Build {@link LogicalEval}. */
+  @Override
+  public LogicalPlan visitEval(Eval node, AnalysisContext context) {
+<span class="fc" id="L489">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L490">    ImmutableList.Builder&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressionsBuilder =</span>
+        new Builder&lt;&gt;();
+<span class="fc bfc" id="L492" title="All 2 branches covered.">    for (Let let : node.getExpressionList()) {</span>
+<span class="fc" id="L493">      Expression expression = expressionAnalyzer.analyze(let.getExpression(), context);</span>
+<span class="fc" id="L494">      ReferenceExpression ref = DSL.ref(let.getVar().getField().toString(), expression.type());</span>
+<span class="fc" id="L495">      expressionsBuilder.add(ImmutablePair.of(ref, expression));</span>
+<span class="fc" id="L496">      TypeEnvironment typeEnvironment = context.peek();</span>
+      // define the new reference in type env.
+<span class="fc" id="L498">      typeEnvironment.define(ref);</span>
+<span class="fc" id="L499">    }</span>
+<span class="fc" id="L500">    return new LogicalEval(child, expressionsBuilder.build());</span>
+  }
+
+  /** Build {@link ParseExpression} to context and skip to child nodes. */
+  @Override
+  public LogicalPlan visitParse(Parse node, AnalysisContext context) {
+<span class="fc" id="L506">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L507">    analyzeParseNode(node, context);</span>
+<span class="fc" id="L508">    return child;</span>
+  }
+
+  // TODO: We may need to align output structure with Calcite's output structure
+  @Override
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
+<span class="fc" id="L514">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="pc bpc" id="L515" title="1 of 2 branches missed.">    if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {</span>
+<span class="nc" id="L516">      Parse parseNode =</span>
+          new Parse(
+              ParseMethod.PATTERNS,
+<span class="nc" id="L519">              node.getSourceField(),</span>
+<span class="nc" id="L520">              node.getArguments().getOrDefault(&quot;pattern&quot;, AstDSL.stringLiteral(&quot;&quot;)),</span>
+<span class="nc" id="L521">              node.getArguments());</span>
+<span class="nc" id="L522">      analyzeParseNode(parseNode, context);</span>
+<span class="nc" id="L523">    } else {</span>
+<span class="fc" id="L524">      List&lt;UnresolvedExpression&gt; funcParamList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L525">      funcParamList.add(node.getSourceField());</span>
+<span class="fc" id="L526">      funcParamList.addAll(</span>
+<span class="fc" id="L527">          node.getArguments().entrySet().stream()</span>
+<span class="fc" id="L528">              .map(entry -&gt; new Argument(entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L529">              .sorted(Comparator.comparing(Argument::getArgName))</span>
+<span class="fc" id="L530">              .toList());</span>
+<span class="fc" id="L531">      UnresolvedExpression windowFunction =</span>
+          new Alias(
+<span class="fc" id="L533">              node.getAlias(),</span>
+              new WindowFunction(
+<span class="fc" id="L535">                  new Function(node.getPatternMethod().getName(), funcParamList),</span>
+<span class="fc" id="L536">                  node.getPartitionByList(),</span>
+<span class="fc" id="L537">                  List.of()), // ignore sort by list for now as we haven't seen such requirement</span>
+<span class="fc" id="L538">              node.getAlias());</span>
+
+<span class="fc" id="L540">      WindowExpressionAnalyzer windowAnalyzer =</span>
+          new WindowExpressionAnalyzer(expressionAnalyzer, child);
+<span class="fc" id="L542">      child = windowAnalyzer.analyze(windowFunction, context);</span>
+
+<span class="fc" id="L544">      TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L545">      LogicalWindow window = (LogicalWindow) child;</span>
+<span class="fc" id="L546">      curEnv.define(</span>
+<span class="fc" id="L547">          new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),</span>
+<span class="fc" id="L548">          window.getWindowFunction().getDelegated().type());</span>
+    }
+
+<span class="pc bpc" id="L551" title="1 of 2 branches missed.">    if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {</span>
+<span class="nc" id="L552">      Aggregation aggNode = analyzePatternsAgg(node);</span>
+<span class="nc" id="L553">      return analyzeAggregation(aggNode, child, context);</span>
+    }
+<span class="fc" id="L555">    return child;</span>
+  }
+
+  /** Build {@link LogicalSort}. */
+  @Override
+  public LogicalPlan visitSort(Sort node, AnalysisContext context) {
+<span class="fc" id="L561">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L562">    return buildSort(child, context, node.getCount(), node.getSortList());</span>
+  }
+
+  /** Build {@link LogicalDedupe}. */
+  @Override
+  public LogicalPlan visitDedupe(Dedupe node, AnalysisContext context) {
+<span class="fc" id="L568">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L569">    List&lt;Argument&gt; options = node.getOptions();</span>
+    // Todo, refactor the option.
+<span class="fc" id="L571">    Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();</span>
+<span class="fc" id="L572">    Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();</span>
+<span class="fc" id="L573">    Boolean consecutive = (Boolean) options.get(2).getValue().getValue();</span>
+
+<span class="fc" id="L575">    return new LogicalDedupe(</span>
+        child,
+<span class="fc" id="L577">        node.getFields().stream()</span>
+<span class="fc" id="L578">            .map(f -&gt; expressionAnalyzer.analyze(f, context))</span>
+<span class="fc" id="L579">            .collect(Collectors.toList()),</span>
+        allowedDuplication,
+        keepEmpty,
+        consecutive);
+  }
+
+  /** Logical head is identical to {@link LogicalLimit}. */
+  public LogicalPlan visitHead(Head node, AnalysisContext context) {
+<span class="fc" id="L587">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L588">    return new LogicalLimit(child, node.getSize(), node.getFrom());</span>
+  }
+
+  @Override
+  public LogicalPlan visitValues(Values node, AnalysisContext context) {
+<span class="fc" id="L593">    List&lt;List&lt;Literal&gt;&gt; values = node.getValues();</span>
+<span class="fc" id="L594">    List&lt;List&lt;LiteralExpression&gt;&gt; valueExprs = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L595" title="All 2 branches covered.">    for (List&lt;Literal&gt; value : values) {</span>
+<span class="fc" id="L596">      valueExprs.add(</span>
+<span class="fc" id="L597">          value.stream()</span>
+<span class="fc" id="L598">              .map(val -&gt; (LiteralExpression) expressionAnalyzer.analyze(val, context))</span>
+<span class="fc" id="L599">              .collect(Collectors.toList()));</span>
+<span class="fc" id="L600">    }</span>
+<span class="fc" id="L601">    return new LogicalValues(valueExprs);</span>
+  }
+
+  /** Build {@link LogicalMLCommons} for Kmeans command. */
+  @Override
+  public LogicalPlan visitKmeans(Kmeans node, AnalysisContext context) {
+<span class="fc" id="L607">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L608">    java.util.Map&lt;String, Literal&gt; options = node.getArguments();</span>
+
+<span class="fc" id="L610">    TypeEnvironment currentEnv = context.peek();</span>
+<span class="fc" id="L611">    currentEnv.define(new Symbol(Namespace.FIELD_NAME, &quot;ClusterID&quot;), ExprCoreType.INTEGER);</span>
+
+<span class="fc" id="L613">    return new LogicalMLCommons(child, &quot;kmeans&quot;, options);</span>
+  }
+
+  /** Build {@link LogicalAD} for AD command. */
+  @Override
+  public LogicalPlan visitAD(AD node, AnalysisContext context) {
+<span class="fc" id="L619">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L620">    java.util.Map&lt;String, Literal&gt; options = node.getArguments();</span>
+
+<span class="fc" id="L622">    TypeEnvironment currentEnv = context.peek();</span>
+
+<span class="fc" id="L624">    currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_SCORE), ExprCoreType.DOUBLE);</span>
+<span class="fc bfc" id="L625" title="All 2 branches covered.">    if (Objects.isNull(node.getArguments().get(TIME_FIELD))) {</span>
+<span class="fc" id="L626">      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);</span>
+    } else {
+<span class="fc" id="L628">      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);</span>
+<span class="fc" id="L629">      currentEnv.define(</span>
+<span class="fc" id="L630">          new Symbol(Namespace.FIELD_NAME, (String) node.getArguments().get(TIME_FIELD).getValue()),</span>
+          ExprCoreType.TIMESTAMP);
+    }
+<span class="fc" id="L633">    return new LogicalAD(child, options);</span>
+  }
+
+  /** Build {@link LogicalEval} for fillnull command. */
+  @Override
+  public LogicalPlan visitFillNull(final FillNull node, final AnalysisContext context) {
+<span class="fc" id="L639">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+
+<span class="fc" id="L641">    ImmutableList.Builder&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressionsBuilder =</span>
+        new Builder&lt;&gt;();
+<span class="fc bfc" id="L643" title="All 2 branches covered.">    for (Pair&lt;Field, UnresolvedExpression&gt; fieldFill : node.getReplacementPairs()) {</span>
+<span class="fc" id="L644">      Expression fieldExpr = expressionAnalyzer.analyze(fieldFill.getLeft(), context);</span>
+<span class="fc" id="L645">      ReferenceExpression ref =</span>
+<span class="fc" id="L646">          DSL.ref(fieldFill.getLeft().getField().toString(), fieldExpr.type());</span>
+<span class="fc" id="L647">      FunctionExpression ifNullFunction =</span>
+<span class="fc" id="L648">          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getRight(), context));</span>
+<span class="fc" id="L649">      expressionsBuilder.add(new ImmutablePair&lt;&gt;(ref, ifNullFunction));</span>
+<span class="fc" id="L650">      TypeEnvironment typeEnvironment = context.peek();</span>
+      // define the new reference in type env.
+<span class="fc" id="L652">      typeEnvironment.define(ref);</span>
+<span class="fc" id="L653">    }</span>
+<span class="fc" id="L654">    List&lt;Pair&lt;ReferenceExpression, Expression&gt;&gt; expressions = expressionsBuilder.build();</span>
+<span class="pc bpc" id="L655" title="1 of 2 branches missed.">    if (expressions.isEmpty()) {</span>
+<span class="nc" id="L656">      throw new SemanticCheckException(&quot;At least one field is required for fillnull in V2.&quot;);</span>
+    }
+<span class="fc" id="L658">    return new LogicalEval(child, expressions);</span>
+  }
+
+  /** Build {@link LogicalML} for ml command. */
+  @Override
+  public LogicalPlan visitML(ML node, AnalysisContext context) {
+<span class="fc" id="L664">    LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L665">    TypeEnvironment currentEnv = context.peek();</span>
+<span class="fc" id="L666">    node.getOutputSchema(currentEnv).entrySet().stream()</span>
+<span class="fc" id="L667">        .forEach(</span>
+<span class="fc" id="L668">            v -&gt; currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));</span>
+
+<span class="fc" id="L670">    return new LogicalML(child, node.getArguments());</span>
+  }
+
+  @Override
+  public LogicalPlan visitBin(Bin node, AnalysisContext context) {
+<span class="nc" id="L675">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L676">        &quot;Bin command is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
+<span class="nc" id="L681">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L682">        &quot;Expand is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  /** Build {@link LogicalTrendline} for Trendline command. */
+  @Override
+  public LogicalPlan visitTrendline(Trendline node, AnalysisContext context) {
+<span class="fc" id="L688">    final LogicalPlan child = node.getChild().get(0).accept(this, context);</span>
+
+<span class="fc" id="L690">    final TypeEnvironment currEnv = context.peek();</span>
+<span class="fc" id="L691">    final List&lt;Trendline.TrendlineComputation&gt; computations = node.getComputations();</span>
+    final ImmutableList.Builder&lt;Pair&lt;Trendline.TrendlineComputation, ExprCoreType&gt;&gt;
+<span class="fc" id="L693">        computationsAndTypes = ImmutableList.builder();</span>
+<span class="fc" id="L694">    computations.forEach(</span>
+        computation -&gt; {
+<span class="fc" id="L696">          final Expression resolvedField =</span>
+<span class="fc" id="L697">              expressionAnalyzer.analyze(computation.getDataField(), context);</span>
+          final ExprCoreType averageType;
+          // Duplicate the semantics of AvgAggregator#create():
+          // - All numerical types have the DOUBLE type for the moving average.
+          // - All datetime types have the same datetime type for the moving average.
+<span class="fc bfc" id="L702" title="All 2 branches covered.">          if (ExprCoreType.numberTypes().contains(resolvedField.type())) {</span>
+<span class="fc" id="L703">            averageType = ExprCoreType.DOUBLE;</span>
+          } else {
+<span class="fc bfc" id="L705" title="All 2 branches covered.">            switch (resolvedField.type()) {</span>
+              case DATE:
+              case TIME:
+              case TIMESTAMP:
+<span class="fc" id="L709">                averageType = (ExprCoreType) resolvedField.type();</span>
+<span class="fc" id="L710">                break;</span>
+              default:
+<span class="fc" id="L712">                throw new SemanticCheckException(</span>
+<span class="fc" id="L713">                    String.format(</span>
+                        &quot;Invalid field used for trendline computation %s. Source field %s had type&quot;
+                            + &quot; %s but must be a numerical or datetime field.&quot;,
+<span class="fc" id="L716">                        computation.getAlias(),</span>
+<span class="fc" id="L717">                        computation.getDataField().getChild().get(0),</span>
+<span class="fc" id="L718">                        resolvedField.type().typeName()));</span>
+            }
+          }
+<span class="fc" id="L721">          currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);</span>
+<span class="fc" id="L722">          computationsAndTypes.add(Pair.of(computation, averageType));</span>
+<span class="fc" id="L723">        });</span>
+
+<span class="fc bfc" id="L725" title="All 2 branches covered.">    if (node.getSortByField().isEmpty()) {</span>
+<span class="fc" id="L726">      return new LogicalTrendline(child, computationsAndTypes.build());</span>
+    }
+
+<span class="fc" id="L729">    return new LogicalTrendline(</span>
+<span class="fc" id="L730">        buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),</span>
+<span class="fc" id="L731">        computationsAndTypes.build());</span>
+  }
+
+  @Override
+  public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
+<span class="nc" id="L736">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L737">        &quot;FLATTEN is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
+<span class="nc" id="L742">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L743">        &quot;REVERSE is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public LogicalPlan visitPaginate(Paginate paginate, AnalysisContext context) {
+<span class="fc" id="L748">    LogicalPlan child = paginate.getChild().get(0).accept(this, context);</span>
+<span class="fc" id="L749">    return new LogicalPaginate(paginate.getPageSize(), List.of(child));</span>
+  }
+
+  @Override
+  public LogicalPlan visitFetchCursor(FetchCursor cursor, AnalysisContext context) {
+<span class="fc" id="L754">    return new LogicalFetchCursor(</span>
+<span class="fc" id="L755">        cursor.getCursor(),</span>
+<span class="fc" id="L756">        dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());</span>
+  }
+
+  @Override
+  public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
+<span class="fc" id="L761">    return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));</span>
+  }
+
+  @Override
+  public LogicalPlan visitJoin(Join node, AnalysisContext context) {
+<span class="nc" id="L766">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L767">        &quot;Join is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
+<span class="nc" id="L772">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L773">        &quot;Lookup is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  @Override
+  public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
+<span class="nc" id="L778">    throw new UnsupportedOperationException(</span>
+<span class="nc" id="L779">        &quot;AppendCol is supported only when &quot; + CALCITE_ENGINE_ENABLED.getKeyValue() + &quot;=true&quot;);</span>
+  }
+
+  private LogicalSort buildSort(
+      LogicalPlan child, AnalysisContext context, Integer count, List&lt;Field&gt; sortFields) {
+<span class="fc" id="L784">    ExpressionReferenceOptimizer optimizer =</span>
+<span class="fc" id="L785">        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);</span>
+
+<span class="fc" id="L787">    List&lt;Pair&lt;SortOption, Expression&gt;&gt; sortList =</span>
+<span class="fc" id="L788">        sortFields.stream()</span>
+<span class="fc" id="L789">            .map(</span>
+                sortField -&gt; {
+<span class="fc" id="L791">                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);</span>
+<span class="fc bfc" id="L792" title="All 2 branches covered.">                  if (analyzed == null) {</span>
+<span class="fc" id="L793">                    throw new UnsupportedOperationException(</span>
+<span class="fc" id="L794">                        String.format(&quot;Invalid use of expression %s&quot;, sortField.getField()));</span>
+                  }
+<span class="fc" id="L796">                  Expression expression = optimizer.optimize(analyzed, context);</span>
+<span class="fc" id="L797">                  return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);</span>
+                })
+<span class="fc" id="L799">            .collect(Collectors.toList());</span>
+<span class="fc" id="L800">    return new LogicalSort(child, count, sortList);</span>
+  }
+
+  private SortOption analyzeSortOption(List&lt;Argument&gt; fieldArgs) {
+<span class="fc" id="L804">    Boolean asc = (Boolean) fieldArgs.get(0).getValue().getValue();</span>
+<span class="fc" id="L805">    Optional&lt;Argument&gt; nullFirst =</span>
+<span class="fc" id="L806">        fieldArgs.stream().filter(option -&gt; &quot;nullFirst&quot;.equals(option.getArgName())).findFirst();</span>
+
+<span class="fc bfc" id="L808" title="All 2 branches covered.">    if (nullFirst.isPresent()) {</span>
+<span class="fc" id="L809">      Boolean isNullFirst = (Boolean) nullFirst.get().getValue().getValue();</span>
+<span class="fc bfc" id="L810" title="All 4 branches covered.">      return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));</span>
+    }
+<span class="fc bfc" id="L812" title="All 2 branches covered.">    return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;</span>
+  }
+
+  private void analyzeParseNode(Parse node, AnalysisContext context) {
+<span class="fc" id="L816">    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);</span>
+<span class="fc" id="L817">    ParseMethod parseMethod = node.getParseMethod();</span>
+<span class="fc" id="L818">    java.util.Map&lt;String, Literal&gt; arguments = node.getArguments();</span>
+<span class="fc" id="L819">    String pattern = (String) node.getPattern().getValue();</span>
+<span class="fc" id="L820">    Expression patternExpression = DSL.literal(pattern);</span>
+
+<span class="fc" id="L822">    TypeEnvironment curEnv = context.peek();</span>
+<span class="fc" id="L823">    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments)</span>
+<span class="fc" id="L824">        .forEach(</span>
+            group -&gt; {
+<span class="fc" id="L826">              ParseExpression expr =</span>
+<span class="fc" id="L827">                  ParseUtils.createParseExpression(</span>
+<span class="fc" id="L828">                      parseMethod, sourceField, patternExpression, DSL.literal(group));</span>
+<span class="fc" id="L829">              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());</span>
+<span class="fc" id="L830">              context.getNamedParseExpressions().add(new NamedExpression(group, expr));</span>
+<span class="fc" id="L831">            });</span>
+<span class="fc" id="L832">  }</span>
+
+  private LogicalAggregation analyzeAggregation(
+      Aggregation node, LogicalPlan child, AnalysisContext context) {
+<span class="fc" id="L836">    ImmutableList.Builder&lt;NamedAggregator&gt; aggregatorBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+<span class="fc bfc" id="L837" title="All 2 branches covered.">    for (UnresolvedExpression expr : node.getAggExprList()) {</span>
+<span class="fc" id="L838">      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);</span>
+<span class="fc" id="L839">      aggregatorBuilder.add(</span>
+<span class="fc" id="L840">          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));</span>
+<span class="fc" id="L841">    }</span>
+
+<span class="fc" id="L843">    ImmutableList.Builder&lt;NamedExpression&gt; groupbyBuilder = new ImmutableList.Builder&lt;&gt;();</span>
+    // Span should be first expression if exist.
+<span class="fc bfc" id="L845" title="All 2 branches covered.">    if (node.getSpan() != null) {</span>
+<span class="fc" id="L846">      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));</span>
+    }
+
+<span class="fc bfc" id="L849" title="All 2 branches covered.">    for (UnresolvedExpression expr : node.getGroupExprList()) {</span>
+<span class="fc" id="L850">      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);</span>
+<span class="fc" id="L851">      verifySupportsCondition(resolvedExpr.getDelegated());</span>
+<span class="fc" id="L852">      groupbyBuilder.add(resolvedExpr);</span>
+<span class="fc" id="L853">    }</span>
+<span class="fc" id="L854">    ImmutableList&lt;NamedExpression&gt; groupBys = groupbyBuilder.build();</span>
+
+<span class="fc" id="L856">    ImmutableList&lt;NamedAggregator&gt; aggregators = aggregatorBuilder.build();</span>
+    // new context
+<span class="fc" id="L858">    context.push();</span>
+<span class="fc" id="L859">    TypeEnvironment newEnv = context.peek();</span>
+<span class="fc" id="L860">    aggregators.forEach(</span>
+        aggregator -&gt;
+<span class="fc" id="L862">            newEnv.define(</span>
+<span class="fc" id="L863">                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));</span>
+<span class="fc" id="L864">    groupBys.forEach(</span>
+        group -&gt;
+<span class="fc" id="L866">            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));</span>
+<span class="fc" id="L867">    return new LogicalAggregation(child, aggregators, groupBys);</span>
+  }
+
+  private Aggregation analyzePatternsAgg(Patterns node) {
+<span class="nc" id="L871">    UnresolvedExpression patternsField =</span>
+<span class="nc" id="L872">        AstDSL.alias(node.getAlias(), AstDSL.field(node.getAlias()));</span>
+<span class="nc" id="L873">    List&lt;UnresolvedExpression&gt; aggExprs =</span>
+<span class="nc" id="L874">        Stream.of(</span>
+                new Alias(
+                    &quot;pattern_count&quot;,
+<span class="nc" id="L877">                    new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),</span>
+                new Alias(
+                    &quot;sample_logs&quot;,
+                    new AggregateFunction(
+<span class="nc" id="L881">                        BuiltinFunctionName.TAKE.name(),</span>
+<span class="nc" id="L882">                        node.getSourceField(),</span>
+<span class="nc" id="L883">                        ImmutableList.of(node.getPatternMaxSampleCount()))))</span>
+<span class="nc" id="L884">            .map(alias -&gt; (UnresolvedExpression) alias)</span>
+<span class="nc" id="L885">            .toList();</span>
+<span class="nc" id="L886">    List&lt;UnresolvedExpression&gt; groupByList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L887">    groupByList.add(patternsField);</span>
+<span class="nc" id="L888">    groupByList.addAll(node.getPartitionByList());</span>
+<span class="nc" id="L889">    return new Aggregation(aggExprs, ImmutableList.of(), groupByList);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

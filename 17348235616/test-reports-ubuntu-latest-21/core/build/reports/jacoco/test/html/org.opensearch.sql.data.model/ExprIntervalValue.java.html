@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprIntervalValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprIntervalValue.java</span></div><h1>ExprIntervalValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import java.time.temporal.TemporalAmount;
+import java.time.temporal.TemporalUnit;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+@RequiredArgsConstructor
+public class ExprIntervalValue extends AbstractExprValue {
+  private final TemporalAmount interval;
+
+  @Override
+  public TemporalAmount intervalValue() {
+<span class="fc" id="L21">    return interval;</span>
+  }
+
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L26">    TemporalAmount otherInterval = other.intervalValue();</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">    if (!interval.getClass().equals(other.intervalValue().getClass())) {</span>
+<span class="fc" id="L28">      throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L29">          String.format(</span>
+              &quot;invalid to compare intervals with units %s and %s&quot;,
+<span class="fc" id="L31">              unit(), ((ExprIntervalValue) other).unit()));</span>
+    }
+<span class="fc" id="L33">    return Long.compare(</span>
+<span class="fc" id="L34">        interval.get(unit()), otherInterval.get(((ExprIntervalValue) other).unit()));</span>
+  }
+
+  @Override
+  public boolean equal(ExprValue other) {
+<span class="fc" id="L39">    return interval.equals(other.intervalValue());</span>
+  }
+
+  @Override
+  public TemporalAmount value() {
+<span class="fc" id="L44">    return interval;</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L49">    return ExprCoreType.INTERVAL;</span>
+  }
+
+  /** Util method to get temporal unit stored locally. */
+  public TemporalUnit unit() {
+<span class="fc" id="L54">    return interval.getUnits().stream()</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        .filter(v -&gt; interval.get(v) != 0)</span>
+<span class="fc" id="L56">        .findAny()</span>
+<span class="fc" id="L57">        .orElse(interval.getUnits().get(0));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

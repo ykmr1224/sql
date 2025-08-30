@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogicalPlanNodeVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.logical</a> &gt; <span class="el_source">LogicalPlanNodeVisitor.java</span></div><h1>LogicalPlanNodeVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.logical;
+
+import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
+
+/**
+ * The visitor of {@link LogicalPlan}.
+ *
+ * @param &lt;R&gt; return object type.
+ * @param &lt;C&gt; context type.
+ */
+<span class="fc" id="L17">public abstract class LogicalPlanNodeVisitor&lt;R, C&gt; {</span>
+
+  public R visitNode(LogicalPlan plan, C context) {
+<span class="fc" id="L20">    return null;</span>
+  }
+
+  public R visitRelation(LogicalRelation plan, C context) {
+<span class="fc" id="L24">    return visitNode(plan, context);</span>
+  }
+
+  public R visitTableScanBuilder(TableScanBuilder plan, C context) {
+<span class="fc" id="L28">    return visitNode(plan, context);</span>
+  }
+
+  public R visitWrite(LogicalWrite plan, C context) {
+<span class="fc" id="L32">    return visitNode(plan, context);</span>
+  }
+
+  public R visitTableWriteBuilder(TableWriteBuilder plan, C context) {
+<span class="fc" id="L36">    return visitNode(plan, context);</span>
+  }
+
+  public R visitFilter(LogicalFilter plan, C context) {
+<span class="fc" id="L40">    return visitNode(plan, context);</span>
+  }
+
+  public R visitHighlight(LogicalHighlight plan, C context) {
+<span class="fc" id="L44">    return visitNode(plan, context);</span>
+  }
+
+  public R visitAggregation(LogicalAggregation plan, C context) {
+<span class="fc" id="L48">    return visitNode(plan, context);</span>
+  }
+
+  public R visitDedupe(LogicalDedupe plan, C context) {
+<span class="fc" id="L52">    return visitNode(plan, context);</span>
+  }
+
+  public R visitRename(LogicalRename plan, C context) {
+<span class="fc" id="L56">    return visitNode(plan, context);</span>
+  }
+
+  public R visitProject(LogicalProject plan, C context) {
+<span class="fc" id="L60">    return visitNode(plan, context);</span>
+  }
+
+  public R visitWindow(LogicalWindow plan, C context) {
+<span class="fc" id="L64">    return visitNode(plan, context);</span>
+  }
+
+  public R visitRemove(LogicalRemove plan, C context) {
+<span class="fc" id="L68">    return visitNode(plan, context);</span>
+  }
+
+  public R visitEval(LogicalEval plan, C context) {
+<span class="fc" id="L72">    return visitNode(plan, context);</span>
+  }
+
+  public R visitNested(LogicalNested plan, C context) {
+<span class="fc" id="L76">    return visitNode(plan, context);</span>
+  }
+
+  public R visitSort(LogicalSort plan, C context) {
+<span class="fc" id="L80">    return visitNode(plan, context);</span>
+  }
+
+  public R visitValues(LogicalValues plan, C context) {
+<span class="fc" id="L84">    return visitNode(plan, context);</span>
+  }
+
+  public R visitRareTopN(LogicalRareTopN plan, C context) {
+<span class="fc" id="L88">    return visitNode(plan, context);</span>
+  }
+
+  public R visitLimit(LogicalLimit plan, C context) {
+<span class="fc" id="L92">    return visitNode(plan, context);</span>
+  }
+
+  public R visitMLCommons(LogicalMLCommons plan, C context) {
+<span class="fc" id="L96">    return visitNode(plan, context);</span>
+  }
+
+  public R visitML(LogicalML plan, C context) {
+<span class="fc" id="L100">    return visitNode(plan, context);</span>
+  }
+
+  public R visitAD(LogicalAD plan, C context) {
+<span class="fc" id="L104">    return visitNode(plan, context);</span>
+  }
+
+  public R visitTrendline(LogicalTrendline plan, C context) {
+<span class="fc" id="L108">    return visitNode(plan, context);</span>
+  }
+
+  public R visitPaginate(LogicalPaginate plan, C context) {
+<span class="fc" id="L112">    return visitNode(plan, context);</span>
+  }
+
+  public R visitFetchCursor(LogicalFetchCursor plan, C context) {
+<span class="fc" id="L116">    return visitNode(plan, context);</span>
+  }
+
+  public R visitCloseCursor(LogicalCloseCursor plan, C context) {
+<span class="fc" id="L120">    return visitNode(plan, context);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

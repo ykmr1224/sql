@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MicroBatchStreamingExecution.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.executor.streaming</a> &gt; <span class="el_source">MicroBatchStreamingExecution.java</span></div><h1>MicroBatchStreamingExecution.java</h1><pre class="source lang-java linenums">/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+package org.opensearch.sql.executor.streaming;
+
+import com.google.common.base.Preconditions;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.planner.PlanContext;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+
+/** Micro batch streaming execution. */
+public class MicroBatchStreamingExecution {
+
+<span class="fc" id="L26">  private static final Logger log = LogManager.getLogger(MicroBatchStreamingExecution.class);</span>
+
+  static final long INITIAL_LATEST_BATCH_ID = -1L;
+
+  private final StreamingSource source;
+
+  private final LogicalPlan batchPlan;
+
+  private final QueryService queryService;
+
+  /**
+   * A write-ahead-log that records the offsets that are present in each batch. In order to ensure
+   * that a given batch will always consist of the same data, we write to this log before any
+   * processing is done. Thus, the Nth record in this log indicated data that is currently being
+   * processed and the N-1th entry indicates which offsets have been durably committed to the sink.
+   */
+  private final MetadataLog&lt;Offset&gt; offsetLog;
+
+  /** keep track the latest commit batchId. */
+  private final MetadataLog&lt;Offset&gt; committedLog;
+
+  /** Constructor. */
+  public MicroBatchStreamingExecution(
+      StreamingSource source,
+      LogicalPlan batchPlan,
+      QueryService queryService,
+      MetadataLog&lt;Offset&gt; offsetLog,
+<span class="fc" id="L53">      MetadataLog&lt;Offset&gt; committedLog) {</span>
+<span class="fc" id="L54">    this.source = source;</span>
+<span class="fc" id="L55">    this.batchPlan = batchPlan;</span>
+<span class="fc" id="L56">    this.queryService = queryService;</span>
+    // todo. add offsetLog and committedLog offset recovery.
+<span class="fc" id="L58">    this.offsetLog = offsetLog;</span>
+<span class="fc" id="L59">    this.committedLog = committedLog;</span>
+<span class="fc" id="L60">  }</span>
+
+  /** Pull the {@link Batch} from {@link StreamingSource} and execute the {@link Batch}. */
+  public void execute() {
+<span class="fc" id="L64">    Long latestBatchId = offsetLog.getLatest().map(Pair::getKey).orElse(INITIAL_LATEST_BATCH_ID);</span>
+<span class="fc" id="L65">    Long latestCommittedBatchId =</span>
+<span class="fc" id="L66">        committedLog.getLatest().map(Pair::getKey).orElse(INITIAL_LATEST_BATCH_ID);</span>
+<span class="fc" id="L67">    Optional&lt;Offset&gt; committedOffset = offsetLog.get(latestCommittedBatchId);</span>
+<span class="fc" id="L68">    AtomicLong currentBatchId = new AtomicLong(INITIAL_LATEST_BATCH_ID);</span>
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (latestBatchId.equals(latestCommittedBatchId)) {</span>
+      // there are no unhandled Offset.
+<span class="fc" id="L72">      currentBatchId.set(latestCommittedBatchId + 1L);</span>
+    } else {
+<span class="fc" id="L74">      Preconditions.checkArgument(</span>
+<span class="fc" id="L75">          latestBatchId.equals(latestCommittedBatchId + 1L),</span>
+          &quot;[BUG] Expected latestBatchId - latestCommittedBatchId = 0 or 1, &quot;
+              + &quot;but latestBatchId=%d, latestCommittedBatchId=%d&quot;,
+          latestBatchId,
+          latestCommittedBatchId);
+
+      // latestBatchId is not committed yet.
+<span class="fc" id="L82">      currentBatchId.set(latestBatchId);</span>
+    }
+
+<span class="fc" id="L85">    Optional&lt;Offset&gt; availableOffsets = source.getLatestOffset();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (hasNewData(availableOffsets, committedOffset)) {</span>
+<span class="fc" id="L87">      Batch batch = source.getBatch(committedOffset, availableOffsets.get());</span>
+<span class="fc" id="L88">      offsetLog.add(currentBatchId.get(), availableOffsets.get());</span>
+<span class="fc" id="L89">      queryService.executePlan(</span>
+          batchPlan,
+<span class="fc" id="L91">          new PlanContext(batch.getSplit()),</span>
+<span class="fc" id="L92">          new ResponseListener&lt;&gt;() {</span>
+            @Override
+            public void onResponse(ExecutionEngine.QueryResponse response) {
+<span class="fc" id="L95">              long finalBatchId = currentBatchId.get();</span>
+<span class="fc" id="L96">              Offset finalAvailableOffsets = availableOffsets.get();</span>
+<span class="fc" id="L97">              committedLog.add(finalBatchId, finalAvailableOffsets);</span>
+<span class="fc" id="L98">            }</span>
+
+            @Override
+            public void onFailure(Exception e) {
+<span class="fc" id="L102">              log.error(&quot;streaming processing failed. source = {} {}&quot;, source, e);</span>
+<span class="fc" id="L103">            }</span>
+          });
+    }
+<span class="fc" id="L106">  }</span>
+
+  private boolean hasNewData(Optional&lt;Offset&gt; availableOffsets, Optional&lt;Offset&gt; committedOffset) {
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (availableOffsets.equals(committedOffset)) {</span>
+<span class="fc" id="L110">      log.debug(&quot;source does not have new data, exit. source = {}&quot;, source);</span>
+<span class="fc" id="L111">      return false;</span>
+    } else {
+<span class="fc" id="L113">      Preconditions.checkArgument(</span>
+<span class="fc" id="L114">          availableOffsets.isPresent(), &quot;[BUG] available offsets must be no empty&quot;);</span>
+
+<span class="fc" id="L116">      log.debug(</span>
+          &quot;source has new data. source = {}, availableOffsets:{}, committedOffset:{}&quot;,
+          source,
+          availableOffsets,
+          committedOffset);
+<span class="fc" id="L121">      return true;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

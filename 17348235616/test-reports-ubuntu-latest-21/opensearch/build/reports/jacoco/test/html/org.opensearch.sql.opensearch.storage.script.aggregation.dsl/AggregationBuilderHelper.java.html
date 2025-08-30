@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregationBuilderHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation.dsl</a> &gt; <span class="el_source">AggregationBuilderHelper.java</span></div><h1>AggregationBuilderHelper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
+
+import static java.util.Collections.emptyMap;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.script.Script;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+
+/** Abstract Aggregation Builder. */
+@RequiredArgsConstructor
+public class AggregationBuilderHelper {
+
+  private final ExpressionSerializer serializer;
+
+  /**
+   * Build AggregationBuilder from Expression.
+   *
+   * @param expression Expression
+   * @return AggregationBuilder
+   */
+  public &lt;T&gt; T build(
+      Expression expression, Function&lt;String, T&gt; fieldBuilder, Function&lt;Script, T&gt; scriptBuilder) {
+<span class="fc bfc" id="L38" title="All 2 branches covered.">    if (expression instanceof ReferenceExpression) {</span>
+<span class="fc" id="L39">      String fieldName = ((ReferenceExpression) expression).getAttr();</span>
+<span class="fc" id="L40">      return fieldBuilder.apply(</span>
+<span class="fc" id="L41">          OpenSearchTextType.convertTextToKeyword(fieldName, expression.type()));</span>
+<span class="fc bfc" id="L42" title="All 4 branches covered.">    } else if (expression instanceof FunctionExpression</span>
+        || expression instanceof LiteralExpression) {
+<span class="fc" id="L44">      return scriptBuilder.apply(</span>
+          new Script(
+              DEFAULT_SCRIPT_TYPE,
+              COMPOUNDED_LANG_NAME,
+<span class="fc" id="L48">              SerializationWrapper.wrapWithLangType(</span>
+<span class="fc" id="L49">                  ScriptEngineType.V2, serializer.serialize(expression)),</span>
+<span class="fc" id="L50">              emptyMap()));</span>
+    } else {
+<span class="fc" id="L52">      throw new IllegalStateException(</span>
+<span class="fc" id="L53">          String.format(&quot;metric aggregation doesn't support &quot; + &quot;expression %s&quot;, expression));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

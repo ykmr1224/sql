@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TakeAggFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.udf.udaf</a> &gt; <span class="el_source">TakeAggFunction.java</span></div><h1>TakeAggFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.udf.udaf;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
+
+<span class="nc" id="L12">public class TakeAggFunction implements UserDefinedAggFunction&lt;TakeAggFunction.TakeAccumulator&gt; {</span>
+
+  @Override
+  public TakeAccumulator init() {
+<span class="nc" id="L16">    return new TakeAccumulator();</span>
+  }
+
+  @Override
+  public Object result(TakeAccumulator accumulator) {
+<span class="nc" id="L21">    return accumulator.value();</span>
+  }
+
+  @Override
+  public TakeAccumulator add(TakeAccumulator acc, Object... values) {
+<span class="nc" id="L26">    Object candidateValue = values[0];</span>
+    int size;
+<span class="nc bnc" id="L28" title="All 2 branches missed.">    if (values.length &gt; 1) {</span>
+<span class="nc" id="L29">      size = (int) values[1];</span>
+    } else {
+<span class="nc" id="L31">      size = 10;</span>
+    }
+<span class="nc bnc" id="L33" title="All 2 branches missed.">    if (size &gt; acc.size()) {</span>
+<span class="nc" id="L34">      acc.add(candidateValue);</span>
+    }
+<span class="nc" id="L36">    return acc;</span>
+  }
+
+  public static class TakeAccumulator implements Accumulator {
+    private List&lt;Object&gt; hits;
+
+<span class="nc" id="L42">    public TakeAccumulator() {</span>
+<span class="nc" id="L43">      hits = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L44">    }</span>
+
+    @Override
+    public Object value(Object... argList) {
+<span class="nc" id="L48">      return hits;</span>
+    }
+
+    public void add(Object value) {
+<span class="nc" id="L52">      hits.add(value);</span>
+<span class="nc" id="L53">    }</span>
+
+    public int size() {
+<span class="nc" id="L56">      return hits.size();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

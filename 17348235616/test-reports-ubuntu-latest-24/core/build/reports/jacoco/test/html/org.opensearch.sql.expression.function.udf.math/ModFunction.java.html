@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.math</a> &gt; <span class="el_source">ModFunction.java</span></div><h1>ModFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.math;
+
+import java.math.BigDecimal;
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * &lt;code&gt;MOD(dividend, divisor)&lt;/code&gt; returns the remainder of the division of dividend by divisor.
+ */
+public class ModFunction extends ImplementorUDF {
+  public ModFunction() {
+<span class="fc" id="L31">    super(new ModImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L32">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L36">    return ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.FORCE_NULLABLE);</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L41">    return PPLOperandTypes.NUMERIC_NUMERIC;</span>
+  }
+
+<span class="fc" id="L44">  public static class ModImplementor implements NotNullImplementor {</span>
+
+    /**
+     * Implements a call with assumption that all the null-checking is implemented by caller.
+     *
+     * @param translator translator to implement the code
+     * @param call call to implement
+     * @param translatedOperands arguments of a call
+     * @return expression that implements given call
+     */
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L57">      Expression dividend = translatedOperands.get(0);</span>
+<span class="nc" id="L58">      Expression divisor = translatedOperands.get(1);</span>
+<span class="nc" id="L59">      RelDataType dividendType = call.getOperands().get(0).getType();</span>
+<span class="nc" id="L60">      RelDataType divisorType = call.getOperands().get(1).getType();</span>
+      // If both dividend and divisor are integral type, use builtin MOD
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      if (SqlTypeFamily.INTEGER.contains(dividendType)</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">          &amp;&amp; SqlTypeFamily.INTEGER.contains(divisorType)) {</span>
+<span class="nc" id="L64">        return Expressions.call(</span>
+            ModImplementor.class,
+            &quot;integralMod&quot;,
+<span class="nc" id="L67">            Expressions.convert_(dividend, Number.class),</span>
+<span class="nc" id="L68">            Expressions.convert_(divisor, Number.class));</span>
+      } else {
+<span class="nc" id="L70">        return Expressions.call(</span>
+            ModImplementor.class,
+            &quot;floatingMod&quot;,
+<span class="nc" id="L73">            Expressions.convert_(dividend, Number.class),</span>
+<span class="nc" id="L74">            Expressions.convert_(divisor, Number.class));</span>
+      }
+    }
+
+    public static Number integralMod(Number dividend, Number divisor) {
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (divisor.doubleValue() == 0) {</span>
+<span class="nc" id="L80">        return null;</span>
+      }
+<span class="nc" id="L82">      long l0 = dividend.longValue();</span>
+<span class="nc" id="L83">      long l1 = divisor.longValue();</span>
+      // It returns negative values when l0 is negative
+<span class="nc" id="L85">      long result = l0 % l1;</span>
+      // Return the wider type between l0 and l1
+<span class="nc" id="L87">      return MathUtils.coerceToWidestIntegralType(dividend, divisor, result);</span>
+    }
+
+    public static Number floatingMod(Number dividend, Number divisor) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      if (divisor.doubleValue() == 0) {</span>
+<span class="nc" id="L92">        return null;</span>
+      }
+<span class="nc" id="L94">      BigDecimal b0 = new BigDecimal(dividend.toString());</span>
+<span class="nc" id="L95">      BigDecimal b1 = new BigDecimal(divisor.toString());</span>
+<span class="nc" id="L96">      BigDecimal result = b0.remainder(b1);</span>
+<span class="nc" id="L97">      return MathUtils.coerceToWidestFloatingType(dividend, divisor, result.doubleValue());</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

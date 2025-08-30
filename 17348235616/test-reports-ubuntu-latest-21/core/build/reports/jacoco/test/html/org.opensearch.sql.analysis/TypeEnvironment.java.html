@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TypeEnvironment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.analysis</a> &gt; <span class="el_source">TypeEnvironment.java</span></div><h1>TypeEnvironment.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.analysis;
+
+import static org.opensearch.sql.analysis.symbol.Namespace.FIELD_NAME;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import lombok.Getter;
+import org.opensearch.sql.analysis.symbol.Namespace;
+import org.opensearch.sql.analysis.symbol.Symbol;
+import org.opensearch.sql.analysis.symbol.SymbolTable;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.env.Environment;
+
+/** The definition of Type Environment. */
+public class TypeEnvironment implements Environment&lt;Symbol, ExprType&gt; {
+  @Getter private final TypeEnvironment parent;
+  private final SymbolTable symbolTable;
+
+  /**
+   * Constructor with empty symbol tables.
+   *
+   * @param parent parent environment
+   */
+<span class="fc" id="L33">  public TypeEnvironment(TypeEnvironment parent) {</span>
+<span class="fc" id="L34">    this.parent = parent;</span>
+<span class="fc" id="L35">    this.symbolTable = new SymbolTable();</span>
+<span class="fc" id="L36">  }</span>
+
+  /**
+   * Constructor with empty reserved symbol table.
+   *
+   * @param parent parent environment
+   * @param symbolTable type table
+   */
+<span class="fc" id="L44">  public TypeEnvironment(TypeEnvironment parent, SymbolTable symbolTable) {</span>
+<span class="fc" id="L45">    this.parent = parent;</span>
+<span class="fc" id="L46">    this.symbolTable = symbolTable;</span>
+<span class="fc" id="L47">  }</span>
+
+  /**
+   * Resolve the {@link Expression} from environment.
+   *
+   * @param symbol Symbol
+   * @return resolved {@link ExprType}
+   */
+  @Override
+  public ExprType resolve(Symbol symbol) {
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    for (TypeEnvironment cur = this; cur != null; cur = cur.parent) {</span>
+<span class="fc" id="L58">      Optional&lt;ExprType&gt; typeOptional = cur.symbolTable.lookup(symbol);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">      if (typeOptional.isPresent()) {</span>
+<span class="fc" id="L60">        return typeOptional.get();</span>
+      }
+    }
+<span class="fc" id="L63">    throw new SemanticCheckException(String.format(&quot;can't resolve %s in type env&quot;, symbol));</span>
+  }
+
+  /**
+   * Resolve all fields in the current environment.
+   *
+   * @param namespace a namespace
+   * @return all symbols in the namespace
+   */
+  public Map&lt;String, ExprType&gt; lookupAllFields(Namespace namespace) {
+<span class="fc" id="L73">    Map&lt;String, ExprType&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L74">    symbolTable.lookupAllFields(namespace).forEach(result::putIfAbsent);</span>
+<span class="fc" id="L75">    return result;</span>
+  }
+
+  /**
+   * Resolve all fields in the current environment.
+   *
+   * @param namespace a namespace
+   * @return all symbols in the namespace
+   */
+  public Map&lt;String, ExprType&gt; lookupAllTupleFields(Namespace namespace) {
+<span class="fc" id="L85">    Map&lt;String, ExprType&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L86">    symbolTable.lookupAllTupleFields(namespace).forEach(result::putIfAbsent);</span>
+<span class="fc" id="L87">    return result;</span>
+  }
+
+  /**
+   * Define symbol with the type.
+   *
+   * @param symbol symbol to define
+   * @param type type
+   */
+  public void define(Symbol symbol, ExprType type) {
+<span class="fc" id="L97">    symbolTable.store(symbol, type);</span>
+<span class="fc" id="L98">  }</span>
+
+  /**
+   * Define expression with the type.
+   *
+   * @param ref {@link ReferenceExpression}
+   */
+  public void define(ReferenceExpression ref) {
+<span class="fc" id="L106">    define(new Symbol(FIELD_NAME, ref.getAttr()), ref.type());</span>
+<span class="fc" id="L107">  }</span>
+
+  public void remove(Symbol symbol) {
+<span class="fc" id="L110">    symbolTable.remove(symbol);</span>
+<span class="fc" id="L111">  }</span>
+
+  /** Remove ref. */
+  public void remove(ReferenceExpression ref) {
+<span class="fc" id="L115">    remove(new Symbol(FIELD_NAME, ref.getAttr()));</span>
+<span class="fc" id="L116">  }</span>
+
+  /** Clear all fields in the current environment. */
+  public void clearAllFields() {
+<span class="fc" id="L120">    lookupAllFields(FIELD_NAME).keySet().forEach(v -&gt; remove(new Symbol(Namespace.FIELD_NAME, v)));</span>
+<span class="fc" id="L121">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

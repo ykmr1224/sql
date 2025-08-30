@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonDeleteFunctionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.jsonUDF</a> &gt; <span class="el_source">JsonDeleteFunctionImpl.java</span></div><h1>JsonDeleteFunctionImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.jsonUDF;
+
+import static org.apache.calcite.runtime.JsonFunctions.jsonRemove;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+public class JsonDeleteFunctionImpl extends ImplementorUDF {
+  public JsonDeleteFunctionImpl() {
+<span class="fc" id="L29">    super(new JsonDeleteImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L30">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L34">    return STRING_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L39">    return null;</span>
+  }
+
+<span class="fc" id="L42">  public static class JsonDeleteImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L46">      ScalarFunctionImpl function =</span>
+          (ScalarFunctionImpl)
+<span class="nc" id="L48">              ScalarFunctionImpl.create(</span>
+<span class="nc" id="L49">                  Types.lookupMethod(JsonDeleteFunctionImpl.class, &quot;eval&quot;, Object[].class));</span>
+<span class="nc" id="L50">      return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);</span>
+    }
+  }
+
+  public static Object eval(Object... args) throws JsonProcessingException {
+<span class="nc" id="L55">    List&lt;Object&gt; jsonPaths = Arrays.asList(args).subList(1, args.length);</span>
+<span class="nc" id="L56">    String[] pathSpecs =</span>
+<span class="nc" id="L57">        jsonPaths.stream()</span>
+<span class="nc" id="L58">            .map(Object::toString)</span>
+<span class="nc" id="L59">            .map(JsonUtils::convertToJsonPath)</span>
+<span class="nc" id="L60">            .toArray(String[]::new);</span>
+<span class="nc" id="L61">    return jsonRemove(args[0].toString(), pathSpecs);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

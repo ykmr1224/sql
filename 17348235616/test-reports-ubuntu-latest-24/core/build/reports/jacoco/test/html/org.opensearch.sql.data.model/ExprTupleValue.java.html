@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprTupleValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprTupleValue.java</span></div><h1>ExprTupleValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+import org.opensearch.sql.storage.bindingtuple.LazyBindingTuple;
+
+/** Expression Tuple Value. */
+@RequiredArgsConstructor
+public class ExprTupleValue extends AbstractExprValue {
+
+  private final LinkedHashMap&lt;String, ExprValue&gt; valueMap;
+
+  public static ExprTupleValue fromExprValueMap(Map&lt;String, ExprValue&gt; map) {
+<span class="fc" id="L27">    LinkedHashMap&lt;String, ExprValue&gt; linkedHashMap = new LinkedHashMap&lt;&gt;(map);</span>
+<span class="fc" id="L28">    return new ExprTupleValue(linkedHashMap);</span>
+  }
+
+  public static ExprTupleValue empty() {
+<span class="nc" id="L32">    LinkedHashMap&lt;String, ExprValue&gt; linkedHashMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L33">    return new ExprTupleValue(linkedHashMap);</span>
+  }
+
+  @Override
+  public Object value() {
+<span class="fc" id="L38">    LinkedHashMap&lt;String, Object&gt; resultMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    for (Entry&lt;String, ExprValue&gt; entry : valueMap.entrySet()) {</span>
+<span class="fc" id="L40">      resultMap.put(entry.getKey(), entry.getValue().value());</span>
+<span class="fc" id="L41">    }</span>
+<span class="fc" id="L42">    return resultMap;</span>
+  }
+
+  @Override
+  public Object valueForCalcite() {
+<span class="nc" id="L47">    LinkedHashMap&lt;String, Object&gt; resultMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">    for (Entry&lt;String, ExprValue&gt; entry : valueMap.entrySet()) {</span>
+<span class="nc" id="L49">      resultMap.put(entry.getKey(), entry.getValue().valueForCalcite());</span>
+<span class="nc" id="L50">    }</span>
+<span class="nc" id="L51">    return resultMap;</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L56">    return ExprCoreType.STRUCT;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L61">    return valueMap.entrySet().stream()</span>
+<span class="fc" id="L62">        .map(entry -&gt; String.format(&quot;%s:%s&quot;, entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L63">        .collect(Collectors.joining(&quot;,&quot;, &quot;{&quot;, &quot;}&quot;));</span>
+  }
+
+  @Override
+  public BindingTuple bindingTuples() {
+<span class="fc" id="L68">    return new LazyBindingTuple(() -&gt; this);</span>
+  }
+
+  @Override
+  public Map&lt;String, ExprValue&gt; tupleValue() {
+<span class="fc" id="L73">    return valueMap;</span>
+  }
+
+  @Override
+  public ExprValue keyValue(String key) {
+<span class="fc" id="L78">    return valueMap.getOrDefault(key, ExprMissingValue.of());</span>
+  }
+
+  /**
+   * Override the equals method.
+   *
+   * @return true for equal, otherwise false.
+   */
+  public boolean equal(ExprValue o) {
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (!(o instanceof ExprTupleValue)) {</span>
+<span class="fc" id="L88">      return false;</span>
+    } else {
+<span class="fc" id="L90">      ExprTupleValue other = (ExprTupleValue) o;</span>
+<span class="fc" id="L91">      Iterator&lt;Entry&lt;String, ExprValue&gt;&gt; thisIterator = this.valueMap.entrySet().iterator();</span>
+<span class="fc" id="L92">      Iterator&lt;Entry&lt;String, ExprValue&gt;&gt; otherIterator = other.valueMap.entrySet().iterator();</span>
+<span class="fc bfc" id="L93" title="All 4 branches covered.">      while (thisIterator.hasNext() &amp;&amp; otherIterator.hasNext()) {</span>
+<span class="fc" id="L94">        Entry&lt;String, ExprValue&gt; thisEntry = thisIterator.next();</span>
+<span class="fc" id="L95">        Entry&lt;String, ExprValue&gt; otherEntry = otherIterator.next();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (!(thisEntry.getKey().equals(otherEntry.getKey())</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">            &amp;&amp; thisEntry.getValue().equals(otherEntry.getValue()))) {</span>
+<span class="fc" id="L98">          return false;</span>
+        }
+<span class="fc" id="L100">      }</span>
+<span class="fc bfc" id="L101" title="All 4 branches covered.">      return !(thisIterator.hasNext() || otherIterator.hasNext());</span>
+    }
+  }
+
+  /** Only compare the size of the map. */
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L108">    return Integer.compare(valueMap.size(), other.tupleValue().size());</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L113">    return Objects.hashCode(valueMap);</span>
+  }
+
+  /** Implements mergeTo by merging deeply */
+  @Override
+  public ExprTupleValue mergeTo(ExprValue base) {
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (base instanceof ExprTupleValue) {</span>
+<span class="fc" id="L120">      base.tupleValue()</span>
+<span class="fc" id="L121">          .forEach((key, value) -&gt; this.tupleValue().merge(key, value, ExprValue::mergeTo));</span>
+    } else {
+<span class="nc" id="L123">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L124">          String.format(&quot;Cannot merge ExprTupleValue to %s&quot;, base.getClass().getSimpleName()));</span>
+    }
+<span class="fc" id="L126">    return this;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

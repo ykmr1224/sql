@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchTypeFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">OpenSearchTypeFactory.java</span></div><h1>OpenSearchTypeFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.GEO_POINT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+import static org.opensearch.sql.executor.QueryType.PPL;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import lombok.Getter;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprBinaryType;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
+import org.opensearch.sql.calcite.type.ExprTimeType;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.OpenSearchTypeSystem;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.storage.Table;
+
+/** This class is used to create RelDataType and map RelDataType to Java data type */
+public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
+<span class="fc" id="L64">  public static final OpenSearchTypeFactory TYPE_FACTORY =</span>
+      new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
+
+  private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
+<span class="fc" id="L68">    super(typeSystem);</span>
+<span class="fc" id="L69">  }</span>
+
+<span class="fc" id="L71">  @Getter</span>
+  public enum ExprUDT {
+<span class="fc" id="L73">    EXPR_DATE(DATE),</span>
+<span class="fc" id="L74">    EXPR_TIME(TIME),</span>
+<span class="fc" id="L75">    EXPR_TIMESTAMP(TIMESTAMP),</span>
+<span class="fc" id="L76">    EXPR_BINARY(BINARY),</span>
+<span class="fc" id="L77">    EXPR_IP(IP);</span>
+
+    // Associated `ExprCoreType`
+    private final ExprCoreType exprCoreType;
+
+<span class="fc" id="L82">    ExprUDT(ExprCoreType exprCoreType) {</span>
+<span class="fc" id="L83">      this.exprCoreType = exprCoreType;</span>
+<span class="fc" id="L84">    }</span>
+  }
+
+  @Override
+  public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (type instanceof AbstractExprRelDataType&lt;?&gt; udt) {</span>
+<span class="fc" id="L90">      return udt.createWithNullability(this, nullable);</span>
+    }
+<span class="fc" id="L92">    return super.createTypeWithNullability(type, nullable);</span>
+  }
+
+  @Override
+  public RelDataType createTypeWithCharsetAndCollation(
+      RelDataType type, Charset charset, SqlCollation collation) {
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (type instanceof AbstractExprRelDataType&lt;?&gt; udt) {</span>
+<span class="fc" id="L99">      return udt.createWithCharsetAndCollation(this, charset, collation);</span>
+    }
+<span class="fc" id="L101">    return super.createTypeWithCharsetAndCollation(type, charset, collation);</span>
+  }
+
+  public RelDataType createSqlType(SqlTypeName typeName, boolean nullable) {
+<span class="nc" id="L105">    return createTypeWithNullability(super.createSqlType(typeName), nullable);</span>
+  }
+
+  public RelDataType createStructType(
+      List&lt;RelDataType&gt; typeList, List&lt;String&gt; fieldNameList, boolean nullable) {
+<span class="nc" id="L110">    return createTypeWithNullability(super.createStructType(typeList, fieldNameList), nullable);</span>
+  }
+
+  public RelDataType createMultisetType(RelDataType type, long maxCardinality, boolean nullable) {
+<span class="nc" id="L114">    return createTypeWithNullability(super.createMultisetType(type, maxCardinality), nullable);</span>
+  }
+
+  public RelDataType createMapType(RelDataType keyType, RelDataType valueType, boolean nullable) {
+<span class="nc" id="L118">    return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);</span>
+  }
+
+  public RelDataType createUDT(ExprUDT typeName) {
+<span class="fc" id="L122">    RelDataType udt =</span>
+<span class="pc bpc" id="L123" title="1 of 5 branches missed.">        switch (typeName) {</span>
+          case EXPR_DATE:
+<span class="fc" id="L125">            yield new ExprDateType(this);</span>
+          case EXPR_TIME:
+<span class="fc" id="L127">            yield new ExprTimeType(this);</span>
+          case EXPR_TIMESTAMP:
+<span class="fc" id="L129">            yield new ExprTimeStampType(this);</span>
+          case EXPR_BINARY:
+<span class="nc" id="L131">            yield new ExprBinaryType(this);</span>
+          case EXPR_IP:
+<span class="fc" id="L133">            yield new ExprIPType(this);</span>
+        };
+<span class="fc" id="L135">    return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));</span>
+  }
+
+  public RelDataType createUDT(ExprUDT typeName, boolean nullable) {
+<span class="fc" id="L139">    return this.createTypeWithNullability(createUDT(typeName), nullable);</span>
+  }
+
+  public static RelDataType convertExprTypeToRelDataType(ExprType field) {
+<span class="nc" id="L143">    return convertExprTypeToRelDataType(field, true);</span>
+  }
+
+  /** Converts a OpenSearch ExprCoreType field to relational type. */
+  public static RelDataType convertExprTypeToRelDataType(ExprType fieldType, boolean nullable) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    if (fieldType instanceof ExprCoreType) {</span>
+<span class="nc bnc" id="L149" title="All 16 branches missed.">      switch ((ExprCoreType) fieldType) {</span>
+        case UNDEFINED:
+<span class="nc" id="L151">          return TYPE_FACTORY.createSqlType(SqlTypeName.NULL, nullable);</span>
+        case BYTE:
+<span class="nc" id="L153">          return TYPE_FACTORY.createSqlType(SqlTypeName.TINYINT, nullable);</span>
+        case SHORT:
+<span class="nc" id="L155">          return TYPE_FACTORY.createSqlType(SqlTypeName.SMALLINT, nullable);</span>
+        case INTEGER:
+<span class="nc" id="L157">          return TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, nullable);</span>
+        case LONG:
+<span class="nc" id="L159">          return TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, nullable);</span>
+        case FLOAT:
+<span class="nc" id="L161">          return TYPE_FACTORY.createSqlType(SqlTypeName.REAL, nullable);</span>
+        case DOUBLE:
+<span class="nc" id="L163">          return TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, nullable);</span>
+        case IP:
+<span class="nc" id="L165">          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, nullable);</span>
+        case STRING:
+<span class="nc" id="L167">          return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);</span>
+        case BOOLEAN:
+<span class="nc" id="L169">          return TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, nullable);</span>
+        case DATE:
+<span class="nc" id="L171">          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);</span>
+        case TIME:
+<span class="nc" id="L173">          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);</span>
+        case TIMESTAMP:
+<span class="nc" id="L175">          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);</span>
+        case ARRAY:
+<span class="nc" id="L177">          return TYPE_FACTORY.createArrayType(</span>
+<span class="nc" id="L178">              TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);</span>
+        case STRUCT:
+          // TODO: should use RelRecordType instead of MapSqlType here
+          // https://github.com/opensearch-project/sql/issues/3459
+<span class="nc" id="L182">          final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);</span>
+<span class="nc" id="L183">          return TYPE_FACTORY.createMapType(</span>
+<span class="nc" id="L184">              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.BINARY), nullable);</span>
+        case UNKNOWN:
+        default:
+<span class="nc" id="L187">          throw new IllegalArgumentException(</span>
+<span class="nc" id="L188">              &quot;Unsupported conversion for OpenSearch Data type: &quot; + fieldType.typeName());</span>
+      }
+    } else {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">      if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;binary&quot;)) {</span>
+<span class="nc" id="L192">        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY, nullable);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;timestamp&quot;)) {</span>
+<span class="nc" id="L194">        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;date&quot;)) {</span>
+<span class="nc" id="L196">        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;time&quot;)) {</span>
+<span class="nc" id="L198">        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;geo_point&quot;)) {</span>
+<span class="nc" id="L200">        return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;text&quot;)) {</span>
+<span class="nc" id="L202">        return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">      } else if (fieldType.legacyTypeName().equalsIgnoreCase(&quot;ip&quot;)) {</span>
+<span class="nc" id="L204">        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, nullable);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">      } else if (fieldType.getOriginalPath().isPresent()) {</span>
+<span class="nc" id="L206">        return convertExprTypeToRelDataType(fieldType.getOriginalExprType(), nullable);</span>
+      } else {
+<span class="nc" id="L208">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L209">            &quot;Unsupported conversion for OpenSearch Data type: &quot; + fieldType.typeName());</span>
+      }
+    }
+  }
+
+  /**
+   * Usually, {@link this#createSqlType(SqlTypeName, boolean)} is used to create RelDataType, then
+   * convert it to ExprType. This is a util to convert when you don't have typeFactory. So they are
+   * all ExprCoreType.
+   */
+  public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
+<span class="nc bnc" id="L220" title="All 17 branches missed.">    return switch (sqlTypeName) {</span>
+<span class="nc" id="L221">      case TINYINT -&gt; BYTE;</span>
+<span class="nc" id="L222">      case SMALLINT -&gt; SHORT;</span>
+<span class="nc" id="L223">      case INTEGER -&gt; INTEGER;</span>
+<span class="nc" id="L224">      case BIGINT -&gt; LONG;</span>
+<span class="nc" id="L225">      case FLOAT, REAL -&gt; FLOAT;</span>
+<span class="nc" id="L226">      case DOUBLE, DECIMAL -&gt; DOUBLE; // TODO the decimal is only used for literal</span>
+<span class="nc" id="L227">      case CHAR, VARCHAR -&gt; STRING;</span>
+<span class="nc" id="L228">      case BOOLEAN -&gt; BOOLEAN;</span>
+<span class="nc" id="L229">      case DATE -&gt; DATE;</span>
+<span class="nc" id="L230">      case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -&gt; TIME;</span>
+<span class="nc" id="L231">      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -&gt; TIMESTAMP;</span>
+      case INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+          INTERVAL_MONTH,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+<span class="nc" id="L244">          INTERVAL_SECOND -&gt; INTERVAL;</span>
+<span class="nc" id="L245">      case ARRAY -&gt; ARRAY;</span>
+<span class="nc" id="L246">      case MAP -&gt; STRUCT;</span>
+<span class="nc" id="L247">      case GEOMETRY -&gt; GEO_POINT;</span>
+<span class="nc" id="L248">      case NULL, ANY, OTHER -&gt; UNDEFINED;</span>
+<span class="nc" id="L249">      default -&gt; UNKNOWN;</span>
+    };
+  }
+
+  /** Get legacy name for a RelDataType. */
+  public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
+<span class="nc" id="L255">    ExprType type = convertRelDataTypeToExprType(relDataType);</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">    return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())</span>
+<span class="nc" id="L257">        .toUpperCase(Locale.ROOT);</span>
+  }
+
+  /** Converts a Calcite data type to OpenSearch ExprCoreType. */
+  public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+<span class="nc bnc" id="L262" title="All 2 branches missed.">    if (isUserDefinedType(type)) {</span>
+<span class="nc" id="L263">      AbstractExprRelDataType&lt;?&gt; udt = (AbstractExprRelDataType&lt;?&gt;) type;</span>
+<span class="nc" id="L264">      return udt.getExprType();</span>
+    }
+<span class="nc" id="L266">    ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">    if (exprType == UNKNOWN) {</span>
+<span class="nc" id="L268">      throw new IllegalArgumentException(</span>
+<span class="nc" id="L269">          &quot;Unsupported conversion for Relational Data type: &quot; + type.getSqlTypeName());</span>
+    }
+<span class="nc" id="L271">    return exprType;</span>
+  }
+
+  public static ExprValue getExprValueByExprType(ExprType type, Object value) {
+<span class="nc bnc" id="L275" title="All 14 branches missed.">    switch (type) {</span>
+      case UNDEFINED:
+<span class="nc" id="L277">        return ExprValueUtils.nullValue();</span>
+      case BYTE:
+<span class="nc" id="L279">        return ExprValueUtils.byteValue((Byte) value);</span>
+      case SHORT:
+<span class="nc" id="L281">        return ExprValueUtils.shortValue((Short) value);</span>
+      case INTEGER:
+<span class="nc" id="L283">        return ExprValueUtils.integerValue((Integer) value);</span>
+      case LONG:
+<span class="nc" id="L285">        return ExprValueUtils.longValue((Long) value);</span>
+      case FLOAT:
+<span class="nc" id="L287">        return ExprValueUtils.floatValue((Float) value);</span>
+      case DOUBLE:
+<span class="nc" id="L289">        return ExprValueUtils.doubleValue((Double) value);</span>
+      case STRING:
+<span class="nc" id="L291">        return ExprValueUtils.stringValue((String) value);</span>
+      case BOOLEAN:
+<span class="nc" id="L293">        return ExprValueUtils.booleanValue((Boolean) value);</span>
+      case DATE:
+      case TIME:
+      case TIMESTAMP:
+<span class="nc" id="L297">        return ExprValueUtils.fromObjectValue(value);</span>
+      case IP:
+<span class="nc" id="L299">        return ExprValueUtils.ipValue((String) value);</span>
+      case ARRAY:
+<span class="nc" id="L301">        return ExprValueUtils.collectionValue((List&lt;Object&gt;) value);</span>
+      case STRUCT:
+<span class="nc" id="L303">        return ExprValueUtils.tupleValue((Map&lt;String, Object&gt;) value);</span>
+      default:
+<span class="nc" id="L305">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L306">            &quot;Unsupported conversion for OpenSearch Data type: &quot; + type.typeName());</span>
+    }
+  }
+
+  public static RelDataType convertSchema(Table table) {
+<span class="nc" id="L311">    List&lt;String&gt; fieldNameList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L312">    List&lt;RelDataType&gt; typeList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L313">    Map&lt;String, ExprType&gt; fieldTypes = new LinkedHashMap&lt;&gt;(table.getFieldTypes());</span>
+<span class="nc" id="L314">    fieldTypes.putAll(table.getReservedFieldTypes());</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">    for (Entry&lt;String, ExprType&gt; entry : fieldTypes.entrySet()) {</span>
+<span class="nc" id="L316">      fieldNameList.add(entry.getKey());</span>
+<span class="nc" id="L317">      typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));</span>
+<span class="nc" id="L318">    }</span>
+<span class="nc" id="L319">    return TYPE_FACTORY.createStructType(typeList, fieldNameList, true);</span>
+  }
+
+  /** not in use for now, but let's keep this code for future reference. */
+  @Override
+  public Type getJavaClass(RelDataType type) {
+<span class="nc bnc" id="L325" title="All 2 branches missed.">    if (type instanceof AbstractExprRelDataType&lt;?&gt; exprRelDataType) {</span>
+<span class="nc" id="L326">      return exprRelDataType.getJavaType();</span>
+    }
+<span class="nc" id="L328">    return super.getJavaClass(type);</span>
+  }
+
+  /**
+   * Whether a given RelDataType is a user-defined type (UDT)
+   *
+   * @param type the RelDataType to check
+   * @return true if the type is a user-defined type, false otherwise
+   */
+  public static boolean isUserDefinedType(RelDataType type) {
+<span class="nc" id="L338">    return type instanceof AbstractExprRelDataType&lt;?&gt;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

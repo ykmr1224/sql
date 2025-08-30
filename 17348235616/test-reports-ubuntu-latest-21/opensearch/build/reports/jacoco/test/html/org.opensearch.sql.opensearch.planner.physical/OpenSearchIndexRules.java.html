@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchIndexRules.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchIndexRules.java</span></div><h1>OpenSearchIndexRules.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.apache.calcite.plan.RelOptRule;
+
+public class OpenSearchIndexRules {
+<span class="nc" id="L13">  private static final OpenSearchProjectIndexScanRule PROJECT_INDEX_SCAN =</span>
+<span class="nc" id="L14">      OpenSearchProjectIndexScanRule.Config.DEFAULT.toRule();</span>
+<span class="nc" id="L15">  private static final OpenSearchFilterIndexScanRule FILTER_INDEX_SCAN =</span>
+<span class="nc" id="L16">      OpenSearchFilterIndexScanRule.Config.DEFAULT.toRule();</span>
+<span class="nc" id="L17">  private static final OpenSearchAggregateIndexScanRule AGGREGATE_INDEX_SCAN =</span>
+<span class="nc" id="L18">      OpenSearchAggregateIndexScanRule.Config.DEFAULT.toRule();</span>
+<span class="nc" id="L19">  private static final OpenSearchAggregateIndexScanRule COUNT_STAR_INDEX_SCAN =</span>
+<span class="nc" id="L20">      OpenSearchAggregateIndexScanRule.Config.COUNT_STAR.toRule();</span>
+<span class="nc" id="L21">  private static final OpenSearchLimitIndexScanRule LIMIT_INDEX_SCAN =</span>
+<span class="nc" id="L22">      OpenSearchLimitIndexScanRule.Config.DEFAULT.toRule();</span>
+<span class="nc" id="L23">  private static final OpenSearchSortIndexScanRule SORT_INDEX_SCAN =</span>
+<span class="nc" id="L24">      OpenSearchSortIndexScanRule.Config.DEFAULT.toRule();</span>
+<span class="nc" id="L25">  private static final OpenSearchDedupPushdownRule DEDUP_PUSH_DOWN =</span>
+<span class="nc" id="L26">      OpenSearchDedupPushdownRule.Config.DEFAULT.toRule();</span>
+
+<span class="nc" id="L28">  public static final List&lt;RelOptRule&gt; OPEN_SEARCH_INDEX_SCAN_RULES =</span>
+<span class="nc" id="L29">      ImmutableList.of(</span>
+          PROJECT_INDEX_SCAN,
+          FILTER_INDEX_SCAN,
+          AGGREGATE_INDEX_SCAN,
+          COUNT_STAR_INDEX_SCAN,
+          LIMIT_INDEX_SCAN,
+          SORT_INDEX_SCAN,
+          DEDUP_PUSH_DOWN);
+
+  // prevent instantiation
+  private OpenSearchIndexRules() {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

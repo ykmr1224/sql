@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprValue.java</span></div><h1>ExprValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import inet.ipaddr.IPAddress;
+import java.io.Serializable;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAmount;
+import java.util.List;
+import java.util.Map;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+
+/** The definition of the Expression Value. */
+public interface ExprValue extends Serializable, Comparable&lt;ExprValue&gt; {
+  /** Get the Object value of the Expression Value. */
+  Object value();
+
+  /** Get the Object for Calcite engine compatibility */
+  Object valueForCalcite();
+
+  /** Get the {@link ExprCoreType} of the Expression Value. */
+  ExprType type();
+
+  /**
+   * Is null value.
+   *
+   * @return true: is null value, otherwise false
+   */
+  default boolean isNull() {
+<span class="fc" id="L38">    return false;</span>
+  }
+
+  /**
+   * Is missing value.
+   *
+   * @return true: is missing value, otherwise false
+   */
+  default boolean isMissing() {
+<span class="fc" id="L47">    return false;</span>
+  }
+
+  /**
+   * Is Number value.
+   *
+   * @return true: is number value, otherwise false
+   */
+  default boolean isNumber() {
+<span class="fc" id="L56">    return false;</span>
+  }
+
+  /**
+   * Is Datetime value.
+   *
+   * @return true: is a datetime value, otherwise false
+   */
+  default boolean isDateTime() {
+<span class="fc" id="L65">    return false;</span>
+  }
+
+  /** Get the {@link BindingTuple}. */
+  default BindingTuple bindingTuples() {
+<span class="fc" id="L70">    return BindingTuple.EMPTY;</span>
+  }
+
+  /** Get byte value. */
+  default Byte byteValue() {
+<span class="fc" id="L75">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L76">        &quot;invalid to get byteValue from value of type &quot; + type());</span>
+  }
+
+  /** Get short value. */
+  default Short shortValue() {
+<span class="fc" id="L81">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L82">        &quot;invalid to get shortValue from value of type &quot; + type());</span>
+  }
+
+  /** Get integer value. */
+  default Integer integerValue() {
+<span class="fc" id="L87">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L88">        &quot;invalid to get integerValue from value of type &quot; + type());</span>
+  }
+
+  /** Get long value. */
+  default Long longValue() {
+<span class="fc" id="L93">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L94">        &quot;invalid to get longValue from value of type &quot; + type());</span>
+  }
+
+  /** Get float value. */
+  default Float floatValue() {
+<span class="fc" id="L99">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L100">        &quot;invalid to get floatValue from value of type &quot; + type());</span>
+  }
+
+  /** Get float value. */
+  default Double doubleValue() {
+<span class="fc" id="L105">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L106">        &quot;invalid to get doubleValue from value of type &quot; + type());</span>
+  }
+
+  /** Get IP address value. */
+  default IPAddress ipValue() {
+<span class="fc" id="L111">    throw new ExpressionEvaluationException(&quot;invalid to get ipValue from value of type &quot; + type());</span>
+  }
+
+  /** Get string value. */
+  default String stringValue() {
+<span class="fc" id="L116">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L117">        &quot;invalid to get stringValue from value of type &quot; + type());</span>
+  }
+
+  /** Get boolean value. */
+  default Boolean booleanValue() {
+<span class="fc" id="L122">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L123">        &quot;invalid to get booleanValue from value of type &quot; + type());</span>
+  }
+
+  /** Get timestamp value. */
+  default Instant timestampValue() {
+<span class="fc" id="L128">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L129">        &quot;invalid to get timestampValue from value of type &quot; + type());</span>
+  }
+
+  /** Get time value. */
+  default LocalTime timeValue() {
+<span class="fc" id="L134">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L135">        &quot;invalid to get timeValue from value of type &quot; + type());</span>
+  }
+
+  /** Get date value. */
+  default LocalDate dateValue() {
+<span class="fc" id="L140">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L141">        &quot;invalid to get dateValue from value of type &quot; + type());</span>
+  }
+
+  /** Get interval value. */
+  default TemporalAmount intervalValue() {
+<span class="fc" id="L146">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L147">        &quot;invalid to get intervalValue from value of type &quot; + type());</span>
+  }
+
+  /** Get map value. */
+  default Map&lt;String, ExprValue&gt; tupleValue() {
+<span class="fc" id="L152">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L153">        &quot;invalid to get tupleValue from value of type &quot; + type());</span>
+  }
+
+  /** Get collection value. */
+  default List&lt;ExprValue&gt; collectionValue() {
+<span class="fc" id="L158">    throw new ExpressionEvaluationException(</span>
+<span class="fc" id="L159">        &quot;invalid to get collectionValue from value of type &quot; + type());</span>
+  }
+
+  /**
+   * Get the value specified by key from {@link ExprTupleValue}. This method only be implemented in
+   * {@link ExprTupleValue}.
+   */
+  default ExprValue keyValue(String key) {
+<span class="fc" id="L167">    return ExprMissingValue.of();</span>
+  }
+
+  /**
+   * Merge the value to the base value. By default, it overrides the base value with the current
+   *
+   * &lt;p&gt;This method will be called when key conflict happens in the process of populating
+   * ExprTupleValue See {@link OpenSearchExprValueFactory::populateValueRecursive}.
+   *
+   * @param base the target value to merge
+   * @return The merged value
+   */
+  default ExprValue mergeTo(ExprValue base) {
+<span class="nc" id="L180">    return this;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

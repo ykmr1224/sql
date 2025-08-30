@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataSourceTableScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.physical.datasource</a> &gt; <span class="el_source">DataSourceTableScan.java</span></div><h1>DataSourceTableScan.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.planner.physical.datasource;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.storage.TableScanOperator;
+
+/**
+ * This class handles table scan of data source table. Right now these are derived from
+ * dataSourceService thorough static fields. In future this might scan data from underlying
+ * datastore if we start persisting datasource info somewhere.
+ */
+public class DataSourceTableScan extends TableScanOperator {
+
+  private final DataSourceService dataSourceService;
+
+  private Iterator&lt;ExprValue&gt; iterator;
+
+<span class="fc" id="L35">  public DataSourceTableScan(DataSourceService dataSourceService) {</span>
+<span class="fc" id="L36">    this.dataSourceService = dataSourceService;</span>
+<span class="fc" id="L37">    this.iterator = Collections.emptyIterator();</span>
+<span class="fc" id="L38">  }</span>
+
+  @Override
+  public String explain() {
+<span class="fc" id="L42">    return &quot;GetDataSourcesInfoRequest{}&quot;;</span>
+  }
+
+  @Override
+  public void open() {
+<span class="fc" id="L47">    List&lt;ExprValue&gt; exprValues = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L48">    Set&lt;DataSourceMetadata&gt; dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(false);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    for (DataSourceMetadata dataSourceMetadata : dataSourceMetadataSet) {</span>
+<span class="fc" id="L50">      exprValues.add(</span>
+          new ExprTupleValue(
+              new LinkedHashMap&lt;&gt;(
+<span class="fc" id="L53">                  ImmutableMap.of(</span>
+                      &quot;DATASOURCE_NAME&quot;,
+<span class="fc" id="L55">                      ExprValueUtils.stringValue(dataSourceMetadata.getName()),</span>
+                      &quot;CONNECTOR_TYPE&quot;,
+<span class="fc" id="L57">                      ExprValueUtils.stringValue(dataSourceMetadata.getConnector().name())))));</span>
+<span class="fc" id="L58">    }</span>
+<span class="fc" id="L59">    iterator = exprValues.iterator();</span>
+<span class="fc" id="L60">  }</span>
+
+  @Override
+  public boolean hasNext() {
+<span class="fc" id="L64">    return iterator.hasNext();</span>
+  }
+
+  @Override
+  public ExprValue next() {
+<span class="fc" id="L69">    return iterator.next();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

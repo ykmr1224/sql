@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchDedupPushdownRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchDedupPushdownRule.java</span></div><h1>OpenSearchDedupPushdownRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.opensearch.sql.opensearch.planner.physical;
+
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
+
+import java.util.List;
+import java.util.function.Predicate;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+
+@Value.Enclosing
+public class OpenSearchDedupPushdownRule extends RelRule&lt;OpenSearchDedupPushdownRule.Config&gt; {
+<span class="nc" id="L29">  private static final Logger LOG = LogManager.getLogger();</span>
+
+  protected OpenSearchDedupPushdownRule(Config config) {
+<span class="nc" id="L32">    super(config);</span>
+<span class="nc" id="L33">  }</span>
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+<span class="nc" id="L37">    final LogicalProject finalOutput = call.rel(0);</span>
+    // TODO Used when number of duplication is more than 1
+<span class="nc" id="L39">    final LogicalFilter numOfDedupFilter = call.rel(1);</span>
+<span class="nc" id="L40">    final LogicalProject projectWithWindow = call.rel(2);</span>
+<span class="nc" id="L41">    final CalciteLogicalIndexScan scan = call.rel(3);</span>
+<span class="nc" id="L42">    List&lt;RexWindow&gt; windows = PlanUtils.getRexWindowFromProject(projectWithWindow);</span>
+<span class="nc bnc" id="L43" title="All 6 branches missed.">    if (windows.isEmpty() || windows.stream().anyMatch(w -&gt; w.partitionKeys.size() &gt; 1)) {</span>
+      // TODO leverage inner_hits for multiple partition keys
+<span class="nc bnc" id="L45" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L46">        LOG.debug(&quot;Cannot pushdown the dedup with multiple fields&quot;);</span>
+      }
+<span class="nc" id="L48">      return;</span>
+    }
+<span class="nc" id="L50">    final List&lt;String&gt; fieldNameList = projectWithWindow.getInput().getRowType().getFieldNames();</span>
+<span class="nc" id="L51">    List&lt;Integer&gt; selectColumns = PlanUtils.getSelectColumns(windows.getFirst().partitionKeys);</span>
+<span class="nc" id="L52">    String fieldName = fieldNameList.get(selectColumns.getFirst());</span>
+
+<span class="nc" id="L54">    CalciteLogicalIndexScan newScan = scan.pushDownCollapse(finalOutput, fieldName);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (newScan != null) {</span>
+<span class="nc" id="L56">      call.transformTo(newScan);</span>
+    }
+<span class="nc" id="L58">  }</span>
+
+  private static boolean validFilter(LogicalFilter filter) {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    if (filter.getCondition().getKind() != SqlKind.LESS_THAN_OR_EQUAL) {</span>
+<span class="nc" id="L62">      return false;</span>
+    }
+<span class="nc" id="L64">    List&lt;RexNode&gt; operandsOfCondition = ((RexCall) filter.getCondition()).getOperands();</span>
+<span class="nc" id="L65">    RexNode leftOperand = operandsOfCondition.getFirst();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (!(leftOperand instanceof RexInputRef ref)) {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L68">        LOG.debug(&quot;Cannot pushdown the dedup since the left operand is not RexInputRef&quot;);</span>
+      }
+<span class="nc" id="L70">      return false;</span>
+    }
+<span class="nc" id="L72">    String referenceName = filter.getRowType().getFieldNames().get(ref.getIndex());</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    if (!referenceName.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)) {</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L75">        LOG.debug(</span>
+            &quot;Cannot pushdown the dedup since the left operand is not {}&quot;,
+            ROW_NUMBER_COLUMN_FOR_DEDUP);
+      }
+<span class="nc" id="L79">      return false;</span>
+    }
+<span class="nc" id="L81">    RexNode rightOperand = operandsOfCondition.getLast();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">    if (!(rightOperand instanceof RexLiteral numLiteral)) {</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L84">        LOG.debug(&quot;Cannot pushdown the dedup since the right operand is not RexLiteral&quot;);</span>
+      }
+<span class="nc" id="L86">      return false;</span>
+    }
+<span class="nc" id="L88">    Integer num = numLiteral.getValueAs(Integer.class);</span>
+<span class="nc bnc" id="L89" title="All 4 branches missed.">    if (num == null || num &gt; 1) {</span>
+      // TODO leverage inner_hits for num &gt; 1
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      if (LOG.isDebugEnabled()) {</span>
+<span class="nc" id="L92">        LOG.debug(&quot;Cannot pushdown the dedup since number of duplicate events is larger than 1&quot;);</span>
+      }
+<span class="nc" id="L94">      return false;</span>
+    }
+<span class="nc" id="L96">    return true;</span>
+  }
+
+  /**
+   * Match fixed pattern:&lt;br&gt;
+   * LogicalProject(remove _row_number_dedup_) &lt;br&gt;
+   * LogicalFilter(condition=[&lt;=($1, numOfDedup)]) &lt;br&gt;
+   * LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)]) &lt;br&gt;
+   * LogicalFilter(condition=[IS NOT NULL($0)]) &lt;br&gt;
+   */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+<span class="nc" id="L108">    Config DEFAULT =</span>
+<span class="nc" id="L109">        ImmutableOpenSearchDedupPushdownRule.Config.builder()</span>
+<span class="nc" id="L110">            .build()</span>
+<span class="nc" id="L111">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="nc" id="L113">                    b0.operand(LogicalProject.class)</span>
+<span class="nc" id="L114">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="nc" id="L116">                                b1.operand(LogicalFilter.class)</span>
+<span class="nc" id="L117">                                    .predicate(OpenSearchDedupPushdownRule::validFilter)</span>
+<span class="nc" id="L118">                                    .oneInput(</span>
+                                        b2 -&gt;
+<span class="nc" id="L120">                                            b2.operand(LogicalProject.class)</span>
+<span class="nc" id="L121">                                                .predicate(PlanUtils::containsRowNumberDedup)</span>
+<span class="nc" id="L122">                                                .oneInput(</span>
+                                                    b3 -&gt;
+<span class="nc" id="L124">                                                        b3.operand(CalciteLogicalIndexScan.class)</span>
+<span class="nc" id="L125">                                                            .predicate(</span>
+<span class="nc" id="L126">                                                                Predicate.not(</span>
+                                                                        OpenSearchIndexScanRule
+                                                                            ::isLimitPushed)
+<span class="nc" id="L129">                                                                    .and(</span>
+                                                                        OpenSearchIndexScanRule
+                                                                            ::noAggregatePushed))
+<span class="nc" id="L132">                                                            .noInputs()))));</span>
+
+    @Override
+    default OpenSearchDedupPushdownRule toRule() {
+<span class="nc" id="L136">      return new OpenSearchDedupPushdownRule(this);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

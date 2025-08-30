@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JoinAndLookupUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">JoinAndLookupUtils.java</span></div><h1>JoinAndLookupUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Pair;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+
+<span class="nc bnc" id="L20" title="All 2 branches missed.">public interface JoinAndLookupUtils {</span>
+
+  static JoinRelType translateJoinType(Join.JoinType joinType) {
+<span class="nc bnc" id="L23" title="All 6 branches missed.">    switch (joinType) {</span>
+      case LEFT:
+<span class="nc" id="L25">        return JoinRelType.LEFT;</span>
+      case RIGHT:
+<span class="nc" id="L27">        return JoinRelType.RIGHT;</span>
+      case FULL:
+<span class="nc" id="L29">        return JoinRelType.FULL;</span>
+      case SEMI:
+<span class="nc" id="L31">        return JoinRelType.SEMI;</span>
+      case ANTI:
+<span class="nc" id="L33">        return JoinRelType.ANTI;</span>
+      case INNER:
+      default:
+<span class="nc" id="L36">        return JoinRelType.INNER;</span>
+    }
+  }
+
+  /* ------For Lookup------ */
+
+  /**
+   * Construct a duplicated field map: Key comes from providedFieldNames -&gt; Value comes from
+   * sourceFieldsNames. A provided field is detected to be duplicated if it has the same name with a
+   * source field after alias mapping.
+   */
+  static Map&lt;String, String&gt; findDuplicatedFields(
+      Lookup node, List&lt;String&gt; sourceFieldsNames, List&lt;String&gt; providedFieldNames) {
+<span class="nc" id="L49">    return providedFieldNames.stream()</span>
+<span class="nc" id="L50">        .map(k -&gt; Pair.of(node.getOutputAliasMap().getOrDefault(k, k), k))</span>
+<span class="nc" id="L51">        .filter(pair -&gt; sourceFieldsNames.contains(pair.getKey()))</span>
+<span class="nc" id="L52">        .collect(Collectors.toMap(Pair::getKey, Pair::getValue));</span>
+  }
+
+  /**
+   * For lookup table, if the output fields are specified, try to add a project list for it. Note,
+   * join will fail if the mapping fields are excluded.
+   */
+  static void addProjectionIfNecessary(Lookup node, CalcitePlanContext context) {
+<span class="nc" id="L60">    List&lt;String&gt; mappingField = node.getMappingAliasMap().keySet().stream().toList();</span>
+<span class="nc" id="L61">    List&lt;String&gt; outputField = node.getOutputAliasMap().keySet().stream().toList();</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    if (!outputField.isEmpty()) {</span>
+<span class="nc" id="L63">      HashSet&lt;String&gt; lookupMappingFields = new HashSet&lt;&gt;(outputField);</span>
+<span class="nc" id="L64">      lookupMappingFields.addAll(mappingField);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (lookupMappingFields.size() != context.relBuilder.fields().size()) {</span>
+<span class="nc" id="L66">        List&lt;RexNode&gt; projectList =</span>
+<span class="nc" id="L67">            lookupMappingFields.stream()</span>
+<span class="nc" id="L68">                .map(fieldName -&gt; (RexNode) context.relBuilder.field(fieldName))</span>
+<span class="nc" id="L69">                .toList();</span>
+<span class="nc" id="L70">        context.relBuilder.project(projectList);</span>
+      }
+    }
+<span class="nc" id="L73">  }</span>
+
+  static void addJoinForLookUp(Lookup node, CalcitePlanContext context) {
+<span class="nc" id="L76">    RexNode joinCondition =</span>
+<span class="nc" id="L77">        node.getMappingAliasMap().entrySet().stream()</span>
+<span class="nc" id="L78">            .map(</span>
+                entry -&gt; {
+<span class="nc" id="L80">                  RexNode lookupKey = analyzeFieldsForLookUp(entry.getKey(), false, context);</span>
+<span class="nc" id="L81">                  RexNode sourceKey = analyzeFieldsForLookUp(entry.getValue(), true, context);</span>
+<span class="nc" id="L82">                  return context.rexBuilder.equals(sourceKey, lookupKey);</span>
+                })
+<span class="nc" id="L84">            .reduce(context.rexBuilder::and)</span>
+<span class="nc" id="L85">            .orElse(context.relBuilder.literal(true));</span>
+<span class="nc" id="L86">    context.relBuilder.join(JoinRelType.LEFT, joinCondition);</span>
+<span class="nc" id="L87">  }</span>
+
+  static RexNode analyzeFieldsForLookUp(
+      String fieldName, boolean isSourceTable, CalcitePlanContext context) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    return context.relBuilder.field(2, isSourceTable ? 0 : 1, fieldName);</span>
+  }
+
+  static void renameToExpectedFields(
+      List&lt;String&gt; expectedProvidedFieldNames,
+      int sourceFieldsCountLeft,
+      CalcitePlanContext context) {
+<span class="nc" id="L98">    List&lt;String&gt; oldFields = context.relBuilder.peek().getRowType().getFieldNames();</span>
+<span class="nc bnc" id="L99" title="All 4 branches missed.">    assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()</span>
+        : &quot;The source fields count left plus new provided fields count must equal to the output&quot;
+            + &quot; fields count of current plan(i.e project-join).&quot;;
+<span class="nc" id="L102">    List&lt;String&gt; newFields = new ArrayList&lt;&gt;(oldFields.size());</span>
+<span class="nc" id="L103">    newFields.addAll(oldFields.subList(0, sourceFieldsCountLeft));</span>
+<span class="nc" id="L104">    newFields.addAll(expectedProvidedFieldNames);</span>
+<span class="nc" id="L105">    context.relBuilder.rename(newFields);</span>
+<span class="nc" id="L106">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

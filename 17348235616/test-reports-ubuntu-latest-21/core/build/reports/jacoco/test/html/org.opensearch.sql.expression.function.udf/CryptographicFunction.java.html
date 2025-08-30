@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CryptographicFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf</a> &gt; <span class="el_source">CryptographicFunction.java</span></div><h1>CryptographicFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+public abstract class CryptographicFunction extends ImplementorUDF {
+  private CryptographicFunction(NotNullImplementor implementor, NullPolicy nullPolicy) {
+<span class="fc" id="L27">    super(implementor, nullPolicy);</span>
+<span class="fc" id="L28">  }</span>
+
+  public static CryptographicFunction sha2() {
+<span class="fc" id="L31">    return new CryptographicFunction(new Sha2Implementor(), NullPolicy.ANY) {</span>
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L34">        return PPLOperandTypes.STRING_INTEGER;</span>
+      }
+    };
+  }
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L41">    return ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);</span>
+  }
+
+<span class="fc" id="L44">  public static class Sha2Implementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L48">      return Expressions.call(Sha2Implementor.class, &quot;getDigest&quot;, translatedOperands);</span>
+    }
+
+    public static String getDigest(String input, int algorithm) {
+<span class="nc bnc" id="L52" title="All 5 branches missed.">      return switch (algorithm) {</span>
+<span class="nc" id="L53">        case 224 -&gt; Hex.encodeHexString(</span>
+<span class="nc" id="L54">            DigestUtils.getDigest(MessageDigestAlgorithms.SHA_224).digest(input.getBytes()));</span>
+<span class="nc" id="L55">        case 256 -&gt; DigestUtils.sha256Hex(input);</span>
+<span class="nc" id="L56">        case 384 -&gt; DigestUtils.sha384Hex(input);</span>
+<span class="nc" id="L57">        case 512 -&gt; DigestUtils.sha512Hex(input);</span>
+<span class="nc" id="L58">        default -&gt; throw new IllegalArgumentException(</span>
+<span class="nc" id="L59">            String.format(</span>
+                &quot;Unsupported SHA2 algorithm: %d. Only 224, 256, 384, and 512 are supported.&quot;,
+<span class="nc" id="L61">                algorithm));</span>
+      };
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

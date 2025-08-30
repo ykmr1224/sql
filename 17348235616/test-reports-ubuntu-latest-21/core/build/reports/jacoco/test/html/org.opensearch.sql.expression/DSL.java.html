@@ -1,0 +1,1001 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DSL.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression</a> &gt; <span class="el_source">DSL.java</span></div><h1>DSL.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression;
+
+import java.util.Arrays;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.aggregation.Aggregator;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.conditional.cases.CaseClause;
+import org.opensearch.sql.expression.conditional.cases.WhenClause;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionImplementation;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.parse.GrokExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.parse.PatternsExpression;
+import org.opensearch.sql.expression.parse.RegexExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
+
+public class DSL {
+
+  private DSL() {}
+
+  public static LiteralExpression literal(Byte value) {
+<span class="fc" id="L34">    return new LiteralExpression(ExprValueUtils.byteValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Short value) {
+<span class="fc" id="L38">    return new LiteralExpression(new ExprShortValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Integer value) {
+<span class="fc" id="L42">    return new LiteralExpression(ExprValueUtils.integerValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Long value) {
+<span class="fc" id="L46">    return new LiteralExpression(ExprValueUtils.longValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Float value) {
+<span class="fc" id="L50">    return new LiteralExpression(ExprValueUtils.floatValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Double value) {
+<span class="fc" id="L54">    return new LiteralExpression(ExprValueUtils.doubleValue(value));</span>
+  }
+
+  public static LiteralExpression literal(String value) {
+<span class="fc" id="L58">    return new LiteralExpression(ExprValueUtils.stringValue(value));</span>
+  }
+
+  public static LiteralExpression literal(Boolean value) {
+<span class="fc" id="L62">    return new LiteralExpression(ExprValueUtils.booleanValue(value));</span>
+  }
+
+  public static LiteralExpression literal(ExprValue value) {
+<span class="fc" id="L66">    return new LiteralExpression(value);</span>
+  }
+
+  /** Wrap a number to {@link LiteralExpression}. */
+  public static LiteralExpression literal(Number value) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (value instanceof Integer) {</span>
+<span class="fc" id="L72">      return new LiteralExpression(ExprValueUtils.integerValue(value.intValue()));</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    } else if (value instanceof Long) {</span>
+<span class="fc" id="L74">      return new LiteralExpression(ExprValueUtils.longValue(value.longValue()));</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    } else if (value instanceof Float) {</span>
+<span class="fc" id="L76">      return new LiteralExpression(ExprValueUtils.floatValue(value.floatValue()));</span>
+    } else {
+<span class="fc" id="L78">      return new LiteralExpression(ExprValueUtils.doubleValue(value.doubleValue()));</span>
+    }
+  }
+
+  public static ReferenceExpression ref(String ref, ExprType type) {
+<span class="fc" id="L83">    return new ReferenceExpression(ref, type);</span>
+  }
+
+  /**
+   * Wrap a named expression if not yet. The intent is that different languages may use Alias or not
+   * when building AST. This caused either named or unnamed expression is resolved by analyzer. To
+   * make unnamed expression acceptable for logical project, it is required to wrap it by named
+   * expression here before passing to logical project.
+   *
+   * @param expression expression
+   * @return expression if named already or expression wrapped by named expression.
+   */
+  public static NamedExpression named(Expression expression) {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (expression instanceof NamedExpression) {</span>
+<span class="fc" id="L97">      return (NamedExpression) expression;</span>
+    }
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    if (expression instanceof ParseExpression) {</span>
+<span class="fc" id="L100">      return named(</span>
+<span class="fc" id="L101">          ((ParseExpression) expression).getIdentifier().valueOf().stringValue(), expression);</span>
+    }
+<span class="fc" id="L103">    return named(expression.toString(), expression);</span>
+  }
+
+  public static NamedExpression named(String name, Expression expression) {
+<span class="fc" id="L107">    return new NamedExpression(name, expression);</span>
+  }
+
+  @Deprecated
+  public static NamedExpression named(String name, Expression expression, String alias) {
+<span class="fc" id="L112">    return new NamedExpression(name, expression, alias);</span>
+  }
+
+  public static NamedAggregator named(String name, Aggregator aggregator) {
+<span class="fc" id="L116">    return new NamedAggregator(name, aggregator);</span>
+  }
+
+  public static NamedArgumentExpression namedArgument(String argName, Expression value) {
+<span class="fc" id="L120">    return new NamedArgumentExpression(argName, value);</span>
+  }
+
+  public static NamedArgumentExpression namedArgument(String name, String value) {
+<span class="fc" id="L124">    return namedArgument(name, literal(value));</span>
+  }
+
+  public static GrokExpression grok(
+      Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L129">    return new GrokExpression(sourceField, pattern, identifier);</span>
+  }
+
+  public static RegexExpression regex(
+      Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L134">    return new RegexExpression(sourceField, pattern, identifier);</span>
+  }
+
+  public static PatternsExpression patterns(
+      Expression sourceField, Expression pattern, Expression identifier) {
+<span class="fc" id="L139">    return new PatternsExpression(sourceField, pattern, identifier);</span>
+  }
+
+  public static SpanExpression span(Expression field, Expression value, String unit) {
+<span class="fc" id="L143">    return new SpanExpression(field, value, SpanUnit.of(unit));</span>
+  }
+
+  public static FunctionExpression abs(Expression... expressions) {
+<span class="fc" id="L147">    return compile(FunctionProperties.None, BuiltinFunctionName.ABS, expressions);</span>
+  }
+
+  public static FunctionExpression add(Expression... expressions) {
+<span class="fc" id="L151">    return compile(FunctionProperties.None, BuiltinFunctionName.ADD, expressions);</span>
+  }
+
+  public static FunctionExpression addFunction(Expression... expressions) {
+<span class="fc" id="L155">    return compile(FunctionProperties.None, BuiltinFunctionName.ADDFUNCTION, expressions);</span>
+  }
+
+  public static FunctionExpression ceil(Expression... expressions) {
+<span class="fc" id="L159">    return compile(FunctionProperties.None, BuiltinFunctionName.CEIL, expressions);</span>
+  }
+
+  public static FunctionExpression ceiling(Expression... expressions) {
+<span class="fc" id="L163">    return compile(FunctionProperties.None, BuiltinFunctionName.CEILING, expressions);</span>
+  }
+
+  public static FunctionExpression conv(Expression... expressions) {
+<span class="fc" id="L167">    return compile(FunctionProperties.None, BuiltinFunctionName.CONV, expressions);</span>
+  }
+
+  public static FunctionExpression crc32(Expression... expressions) {
+<span class="fc" id="L171">    return compile(FunctionProperties.None, BuiltinFunctionName.CRC32, expressions);</span>
+  }
+
+  public static FunctionExpression divide(Expression... expressions) {
+<span class="fc" id="L175">    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);</span>
+  }
+
+  public static FunctionExpression divideFunction(Expression... expressions) {
+<span class="fc" id="L179">    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDEFUNCTION, expressions);</span>
+  }
+
+  public static FunctionExpression euler(Expression... expressions) {
+<span class="fc" id="L183">    return compile(FunctionProperties.None, BuiltinFunctionName.E, expressions);</span>
+  }
+
+  public static FunctionExpression exp(Expression... expressions) {
+<span class="fc" id="L187">    return compile(FunctionProperties.None, BuiltinFunctionName.EXP, expressions);</span>
+  }
+
+  public static FunctionExpression expm1(Expression... expressions) {
+<span class="fc" id="L191">    return compile(FunctionProperties.None, BuiltinFunctionName.EXPM1, expressions);</span>
+  }
+
+  public static FunctionExpression floor(Expression... expressions) {
+<span class="fc" id="L195">    return compile(FunctionProperties.None, BuiltinFunctionName.FLOOR, expressions);</span>
+  }
+
+  public static FunctionExpression ln(Expression... expressions) {
+<span class="fc" id="L199">    return compile(FunctionProperties.None, BuiltinFunctionName.LN, expressions);</span>
+  }
+
+  public static FunctionExpression log(Expression... expressions) {
+<span class="fc" id="L203">    return compile(FunctionProperties.None, BuiltinFunctionName.LOG, expressions);</span>
+  }
+
+  public static FunctionExpression log10(Expression... expressions) {
+<span class="fc" id="L207">    return compile(FunctionProperties.None, BuiltinFunctionName.LOG10, expressions);</span>
+  }
+
+  public static FunctionExpression log2(Expression... expressions) {
+<span class="fc" id="L211">    return compile(FunctionProperties.None, BuiltinFunctionName.LOG2, expressions);</span>
+  }
+
+  public static FunctionExpression mod(Expression... expressions) {
+<span class="fc" id="L215">    return compile(FunctionProperties.None, BuiltinFunctionName.MOD, expressions);</span>
+  }
+
+  public static FunctionExpression modulus(Expression... expressions) {
+<span class="fc" id="L219">    return compile(FunctionProperties.None, BuiltinFunctionName.MODULUS, expressions);</span>
+  }
+
+  public static FunctionExpression modulusFunction(Expression... expressions) {
+<span class="fc" id="L223">    return compile(FunctionProperties.None, BuiltinFunctionName.MODULUSFUNCTION, expressions);</span>
+  }
+
+  public static FunctionExpression multiply(Expression... expressions) {
+<span class="fc" id="L227">    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLY, expressions);</span>
+  }
+
+  public static FunctionExpression multiplyFunction(Expression... expressions) {
+<span class="fc" id="L231">    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLYFUNCTION, expressions);</span>
+  }
+
+  public static FunctionExpression pi(Expression... expressions) {
+<span class="fc" id="L235">    return compile(FunctionProperties.None, BuiltinFunctionName.PI, expressions);</span>
+  }
+
+  public static FunctionExpression pow(Expression... expressions) {
+<span class="fc" id="L239">    return compile(FunctionProperties.None, BuiltinFunctionName.POW, expressions);</span>
+  }
+
+  public static FunctionExpression power(Expression... expressions) {
+<span class="fc" id="L243">    return compile(FunctionProperties.None, BuiltinFunctionName.POWER, expressions);</span>
+  }
+
+  public static FunctionExpression rand(Expression... expressions) {
+<span class="fc" id="L247">    return compile(FunctionProperties.None, BuiltinFunctionName.RAND, expressions);</span>
+  }
+
+  public static FunctionExpression rint(Expression... expressions) {
+<span class="fc" id="L251">    return compile(FunctionProperties.None, BuiltinFunctionName.RINT, expressions);</span>
+  }
+
+  public static FunctionExpression round(Expression... expressions) {
+<span class="fc" id="L255">    return compile(FunctionProperties.None, BuiltinFunctionName.ROUND, expressions);</span>
+  }
+
+  public static FunctionExpression sign(Expression... expressions) {
+<span class="fc" id="L259">    return compile(FunctionProperties.None, BuiltinFunctionName.SIGN, expressions);</span>
+  }
+
+  public static FunctionExpression signum(Expression... expressions) {
+<span class="fc" id="L263">    return compile(FunctionProperties.None, BuiltinFunctionName.SIGNUM, expressions);</span>
+  }
+
+  public static FunctionExpression sinh(Expression... expressions) {
+<span class="fc" id="L267">    return compile(FunctionProperties.None, BuiltinFunctionName.SINH, expressions);</span>
+  }
+
+  public static FunctionExpression sqrt(Expression... expressions) {
+<span class="fc" id="L271">    return compile(FunctionProperties.None, BuiltinFunctionName.SQRT, expressions);</span>
+  }
+
+  public static FunctionExpression cbrt(Expression... expressions) {
+<span class="fc" id="L275">    return compile(FunctionProperties.None, BuiltinFunctionName.CBRT, expressions);</span>
+  }
+
+  public static FunctionExpression position(Expression... expressions) {
+<span class="fc" id="L279">    return compile(FunctionProperties.None, BuiltinFunctionName.POSITION, expressions);</span>
+  }
+
+  public static FunctionExpression truncate(Expression... expressions) {
+<span class="fc" id="L283">    return compile(FunctionProperties.None, BuiltinFunctionName.TRUNCATE, expressions);</span>
+  }
+
+  public static FunctionExpression acos(Expression... expressions) {
+<span class="fc" id="L287">    return compile(FunctionProperties.None, BuiltinFunctionName.ACOS, expressions);</span>
+  }
+
+  public static FunctionExpression asin(Expression... expressions) {
+<span class="fc" id="L291">    return compile(FunctionProperties.None, BuiltinFunctionName.ASIN, expressions);</span>
+  }
+
+  public static FunctionExpression atan(Expression... expressions) {
+<span class="fc" id="L295">    return compile(FunctionProperties.None, BuiltinFunctionName.ATAN, expressions);</span>
+  }
+
+  public static FunctionExpression atan2(Expression... expressions) {
+<span class="fc" id="L299">    return compile(FunctionProperties.None, BuiltinFunctionName.ATAN2, expressions);</span>
+  }
+
+  public static FunctionExpression cos(Expression... expressions) {
+<span class="fc" id="L303">    return compile(FunctionProperties.None, BuiltinFunctionName.COS, expressions);</span>
+  }
+
+  public static FunctionExpression cosh(Expression... expressions) {
+<span class="fc" id="L307">    return compile(FunctionProperties.None, BuiltinFunctionName.COSH, expressions);</span>
+  }
+
+  public static FunctionExpression cot(Expression... expressions) {
+<span class="fc" id="L311">    return compile(FunctionProperties.None, BuiltinFunctionName.COT, expressions);</span>
+  }
+
+  public static FunctionExpression degrees(Expression... expressions) {
+<span class="fc" id="L315">    return compile(FunctionProperties.None, BuiltinFunctionName.DEGREES, expressions);</span>
+  }
+
+  public static FunctionExpression radians(Expression... expressions) {
+<span class="fc" id="L319">    return compile(FunctionProperties.None, BuiltinFunctionName.RADIANS, expressions);</span>
+  }
+
+  public static FunctionExpression sin(Expression... expressions) {
+<span class="fc" id="L323">    return compile(FunctionProperties.None, BuiltinFunctionName.SIN, expressions);</span>
+  }
+
+  public static FunctionExpression subtract(Expression... expressions) {
+<span class="fc" id="L327">    return compile(FunctionProperties.None, BuiltinFunctionName.SUBTRACT, expressions);</span>
+  }
+
+  public static FunctionExpression subtractFunction(Expression... expressions) {
+<span class="fc" id="L331">    return compile(FunctionProperties.None, BuiltinFunctionName.SUBTRACTFUNCTION, expressions);</span>
+  }
+
+  public static FunctionExpression tan(Expression... expressions) {
+<span class="fc" id="L335">    return compile(FunctionProperties.None, BuiltinFunctionName.TAN, expressions);</span>
+  }
+
+  public static FunctionExpression convert_tz(Expression... expressions) {
+<span class="fc" id="L339">    return compile(FunctionProperties.None, BuiltinFunctionName.CONVERT_TZ, expressions);</span>
+  }
+
+  public static FunctionExpression date(Expression... expressions) {
+<span class="fc" id="L343">    return compile(FunctionProperties.None, BuiltinFunctionName.DATE, expressions);</span>
+  }
+
+  public static FunctionExpression datetime(Expression... expressions) {
+<span class="fc" id="L347">    return compile(FunctionProperties.None, BuiltinFunctionName.DATETIME, expressions);</span>
+  }
+
+  public static FunctionExpression date_add(Expression... expressions) {
+<span class="fc" id="L351">    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_ADD, expressions);</span>
+  }
+
+  public static FunctionExpression day(Expression... expressions) {
+<span class="fc" id="L355">    return compile(FunctionProperties.None, BuiltinFunctionName.DAY, expressions);</span>
+  }
+
+  public static FunctionExpression dayname(Expression... expressions) {
+<span class="fc" id="L359">    return compile(FunctionProperties.None, BuiltinFunctionName.DAYNAME, expressions);</span>
+  }
+
+  public static FunctionExpression dayofmonth(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L364">    return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);</span>
+  }
+
+  public static FunctionExpression dayofweek(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L369">    return compile(functionProperties, BuiltinFunctionName.DAYOFWEEK, expressions);</span>
+  }
+
+  public static FunctionExpression dayofyear(Expression... expressions) {
+<span class="fc" id="L373">    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);</span>
+  }
+
+  public static FunctionExpression day_of_month(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L378">    return compile(functionProperties, BuiltinFunctionName.DAY_OF_MONTH, expressions);</span>
+  }
+
+  public static FunctionExpression day_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L383">    return compile(functionProperties, BuiltinFunctionName.DAY_OF_YEAR, expressions);</span>
+  }
+
+  public static FunctionExpression day_of_week(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L388">    return compile(functionProperties, BuiltinFunctionName.DAY_OF_WEEK, expressions);</span>
+  }
+
+  public static FunctionExpression extract(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L393">    return compile(functionProperties, BuiltinFunctionName.EXTRACT, expressions);</span>
+  }
+
+  public static FunctionExpression extract(Expression... expressions) {
+<span class="fc" id="L397">    return extract(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression from_days(Expression... expressions) {
+<span class="fc" id="L401">    return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);</span>
+  }
+
+  public static FunctionExpression get_format(Expression... expressions) {
+<span class="fc" id="L405">    return compile(FunctionProperties.None, BuiltinFunctionName.GET_FORMAT, expressions);</span>
+  }
+
+  public static FunctionExpression hour(Expression... expressions) {
+<span class="fc" id="L409">    return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);</span>
+  }
+
+  public static FunctionExpression hour_of_day(Expression... expressions) {
+<span class="fc" id="L413">    return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);</span>
+  }
+
+  public static FunctionExpression last_day(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L418">    return compile(functionProperties, BuiltinFunctionName.LAST_DAY, expressions);</span>
+  }
+
+  public static FunctionExpression microsecond(Expression... expressions) {
+<span class="fc" id="L422">    return compile(FunctionProperties.None, BuiltinFunctionName.MICROSECOND, expressions);</span>
+  }
+
+  public static FunctionExpression minute(Expression... expressions) {
+<span class="fc" id="L426">    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE, expressions);</span>
+  }
+
+  public static FunctionExpression minute_of_day(Expression... expressions) {
+<span class="fc" id="L430">    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_DAY, expressions);</span>
+  }
+
+  public static FunctionExpression minute_of_hour(Expression... expressions) {
+<span class="fc" id="L434">    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_HOUR, expressions);</span>
+  }
+
+  public static FunctionExpression month(Expression... expressions) {
+<span class="fc" id="L438">    return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);</span>
+  }
+
+  public static FunctionExpression month_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L443">    return compile(functionProperties, BuiltinFunctionName.MONTH_OF_YEAR, expressions);</span>
+  }
+
+  public static FunctionExpression monthname(Expression... expressions) {
+<span class="fc" id="L447">    return compile(FunctionProperties.None, BuiltinFunctionName.MONTHNAME, expressions);</span>
+  }
+
+  public static FunctionExpression quarter(Expression... expressions) {
+<span class="fc" id="L451">    return compile(FunctionProperties.None, BuiltinFunctionName.QUARTER, expressions);</span>
+  }
+
+  public static FunctionExpression second(Expression... expressions) {
+<span class="fc" id="L455">    return compile(FunctionProperties.None, BuiltinFunctionName.SECOND, expressions);</span>
+  }
+
+  public static FunctionExpression second_of_minute(Expression... expressions) {
+<span class="fc" id="L459">    return compile(FunctionProperties.None, BuiltinFunctionName.SECOND_OF_MINUTE, expressions);</span>
+  }
+
+  public static FunctionExpression time(Expression... expressions) {
+<span class="fc" id="L463">    return compile(FunctionProperties.None, BuiltinFunctionName.TIME, expressions);</span>
+  }
+
+  public static FunctionExpression time_to_sec(Expression... expressions) {
+<span class="fc" id="L467">    return compile(FunctionProperties.None, BuiltinFunctionName.TIME_TO_SEC, expressions);</span>
+  }
+
+  public static FunctionExpression timestamp(Expression... expressions) {
+<span class="fc" id="L471">    return timestamp(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression timestamp(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L476">    return compile(functionProperties, BuiltinFunctionName.TIMESTAMP, expressions);</span>
+  }
+
+  public static FunctionExpression date_format(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L481">    return compile(functionProperties, BuiltinFunctionName.DATE_FORMAT, expressions);</span>
+  }
+
+  public static FunctionExpression to_days(Expression... expressions) {
+<span class="fc" id="L485">    return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);</span>
+  }
+
+  public static FunctionExpression to_seconds(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L490">    return compile(functionProperties, BuiltinFunctionName.TO_SECONDS, expressions);</span>
+  }
+
+  public static FunctionExpression to_seconds(Expression... expressions) {
+<span class="fc" id="L494">    return to_seconds(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression week(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L499">    return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);</span>
+  }
+
+  public static FunctionExpression weekday(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L504">    return compile(functionProperties, BuiltinFunctionName.WEEKDAY, expressions);</span>
+  }
+
+  public static FunctionExpression weekofyear(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L509">    return compile(functionProperties, BuiltinFunctionName.WEEKOFYEAR, expressions);</span>
+  }
+
+  public static FunctionExpression week_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L514">    return compile(functionProperties, BuiltinFunctionName.WEEK_OF_YEAR, expressions);</span>
+  }
+
+  public static FunctionExpression year(Expression... expressions) {
+<span class="fc" id="L518">    return compile(FunctionProperties.None, BuiltinFunctionName.YEAR, expressions);</span>
+  }
+
+  public static FunctionExpression yearweek(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L523">    return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);</span>
+  }
+
+  public static FunctionExpression str_to_date(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L528">    return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);</span>
+  }
+
+  public static FunctionExpression sec_to_time(Expression... expressions) {
+<span class="fc" id="L532">    return compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);</span>
+  }
+
+  public static FunctionExpression substr(Expression... expressions) {
+<span class="fc" id="L536">    return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);</span>
+  }
+
+  public static FunctionExpression substring(Expression... expressions) {
+<span class="fc" id="L540">    return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);</span>
+  }
+
+  public static FunctionExpression ltrim(Expression... expressions) {
+<span class="fc" id="L544">    return compile(FunctionProperties.None, BuiltinFunctionName.LTRIM, expressions);</span>
+  }
+
+  public static FunctionExpression rtrim(Expression... expressions) {
+<span class="fc" id="L548">    return compile(FunctionProperties.None, BuiltinFunctionName.RTRIM, expressions);</span>
+  }
+
+  public static FunctionExpression trim(Expression... expressions) {
+<span class="fc" id="L552">    return compile(FunctionProperties.None, BuiltinFunctionName.TRIM, expressions);</span>
+  }
+
+  public static FunctionExpression upper(Expression... expressions) {
+<span class="fc" id="L556">    return compile(FunctionProperties.None, BuiltinFunctionName.UPPER, expressions);</span>
+  }
+
+  public static FunctionExpression lower(Expression... expressions) {
+<span class="fc" id="L560">    return compile(FunctionProperties.None, BuiltinFunctionName.LOWER, expressions);</span>
+  }
+
+  public static FunctionExpression regexp(Expression... expressions) {
+<span class="fc" id="L564">    return compile(FunctionProperties.None, BuiltinFunctionName.REGEXP, expressions);</span>
+  }
+
+  public static FunctionExpression cidrmatch(Expression... expressions) {
+<span class="fc" id="L568">    return compile(FunctionProperties.None, BuiltinFunctionName.CIDRMATCH, expressions);</span>
+  }
+
+  public static FunctionExpression concat(Expression... expressions) {
+<span class="fc" id="L572">    return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT, expressions);</span>
+  }
+
+  public static FunctionExpression concat_ws(Expression... expressions) {
+<span class="fc" id="L576">    return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT_WS, expressions);</span>
+  }
+
+  public static FunctionExpression length(Expression... expressions) {
+<span class="fc" id="L580">    return compile(FunctionProperties.None, BuiltinFunctionName.LENGTH, expressions);</span>
+  }
+
+  public static FunctionExpression strcmp(Expression... expressions) {
+<span class="fc" id="L584">    return compile(FunctionProperties.None, BuiltinFunctionName.STRCMP, expressions);</span>
+  }
+
+  public static FunctionExpression right(Expression... expressions) {
+<span class="fc" id="L588">    return compile(FunctionProperties.None, BuiltinFunctionName.RIGHT, expressions);</span>
+  }
+
+  public static FunctionExpression left(Expression... expressions) {
+<span class="fc" id="L592">    return compile(FunctionProperties.None, BuiltinFunctionName.LEFT, expressions);</span>
+  }
+
+  public static FunctionExpression ascii(Expression... expressions) {
+<span class="fc" id="L596">    return compile(FunctionProperties.None, BuiltinFunctionName.ASCII, expressions);</span>
+  }
+
+  public static FunctionExpression locate(Expression... expressions) {
+<span class="fc" id="L600">    return compile(FunctionProperties.None, BuiltinFunctionName.LOCATE, expressions);</span>
+  }
+
+  public static FunctionExpression replace(Expression... expressions) {
+<span class="fc" id="L604">    return compile(FunctionProperties.None, BuiltinFunctionName.REPLACE, expressions);</span>
+  }
+
+  public static FunctionExpression reverse(Expression... expressions) {
+<span class="fc" id="L608">    return compile(FunctionProperties.None, BuiltinFunctionName.REVERSE, expressions);</span>
+  }
+
+  public static FunctionExpression and(Expression... expressions) {
+<span class="fc" id="L612">    return compile(FunctionProperties.None, BuiltinFunctionName.AND, expressions);</span>
+  }
+
+  public static FunctionExpression or(Expression... expressions) {
+<span class="fc" id="L616">    return compile(FunctionProperties.None, BuiltinFunctionName.OR, expressions);</span>
+  }
+
+  public static FunctionExpression xor(Expression... expressions) {
+<span class="fc" id="L620">    return compile(FunctionProperties.None, BuiltinFunctionName.XOR, expressions);</span>
+  }
+
+  public static FunctionExpression nested(Expression... expressions) {
+<span class="fc" id="L624">    return compile(FunctionProperties.None, BuiltinFunctionName.NESTED, expressions);</span>
+  }
+
+  public static FunctionExpression not(Expression... expressions) {
+<span class="fc" id="L628">    return compile(FunctionProperties.None, BuiltinFunctionName.NOT, expressions);</span>
+  }
+
+  public static FunctionExpression equal(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L632">    return compile(fp, BuiltinFunctionName.EQUAL, expressions);</span>
+  }
+
+  public static FunctionExpression equal(Expression... expressions) {
+<span class="fc" id="L636">    return equal(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression notequal(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L640">    return compile(fp, BuiltinFunctionName.NOTEQUAL, expressions);</span>
+  }
+
+  public static FunctionExpression notequal(Expression... expressions) {
+<span class="fc" id="L644">    return notequal(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression less(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L648">    return compile(fp, BuiltinFunctionName.LESS, expressions);</span>
+  }
+
+  public static FunctionExpression less(Expression... expressions) {
+<span class="fc" id="L652">    return less(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression lte(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L656">    return compile(fp, BuiltinFunctionName.LTE, expressions);</span>
+  }
+
+  public static FunctionExpression lte(Expression... expressions) {
+<span class="fc" id="L660">    return lte(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression greater(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L664">    return compile(fp, BuiltinFunctionName.GREATER, expressions);</span>
+  }
+
+  public static FunctionExpression greater(Expression... expressions) {
+<span class="fc" id="L668">    return greater(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression gte(FunctionProperties fp, Expression... expressions) {
+<span class="fc" id="L672">    return compile(fp, BuiltinFunctionName.GTE, expressions);</span>
+  }
+
+  public static FunctionExpression gte(Expression... expressions) {
+<span class="fc" id="L676">    return gte(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression like(Expression... expressions) {
+<span class="fc" id="L680">    return compile(FunctionProperties.None, BuiltinFunctionName.LIKE, expressions);</span>
+  }
+
+  public static FunctionExpression notLike(Expression... expressions) {
+<span class="fc" id="L684">    return compile(FunctionProperties.None, BuiltinFunctionName.NOT_LIKE, expressions);</span>
+  }
+
+  public static FunctionExpression jsonValid(Expression... expressions) {
+<span class="nc" id="L688">    return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);</span>
+  }
+
+  public static FunctionExpression stringToJson(Expression value) {
+<span class="nc" id="L692">    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);</span>
+  }
+
+  public static Aggregator avg(Expression... expressions) {
+<span class="fc" id="L696">    return aggregate(BuiltinFunctionName.AVG, expressions);</span>
+  }
+
+  public static Aggregator sum(Expression... expressions) {
+<span class="fc" id="L700">    return aggregate(BuiltinFunctionName.SUM, expressions);</span>
+  }
+
+  public static Aggregator count(Expression... expressions) {
+<span class="fc" id="L704">    return aggregate(BuiltinFunctionName.COUNT, expressions);</span>
+  }
+
+  public static Aggregator distinctCount(Expression... expressions) {
+<span class="fc" id="L708">    return count(expressions).distinct(true);</span>
+  }
+
+  public static Aggregator varSamp(Expression... expressions) {
+<span class="fc" id="L712">    return aggregate(BuiltinFunctionName.VARSAMP, expressions);</span>
+  }
+
+  public static Aggregator varPop(Expression... expressions) {
+<span class="fc" id="L716">    return aggregate(BuiltinFunctionName.VARPOP, expressions);</span>
+  }
+
+  public static Aggregator stddevSamp(Expression... expressions) {
+<span class="fc" id="L720">    return aggregate(BuiltinFunctionName.STDDEV_SAMP, expressions);</span>
+  }
+
+  public static Aggregator stddevPop(Expression... expressions) {
+<span class="fc" id="L724">    return aggregate(BuiltinFunctionName.STDDEV_POP, expressions);</span>
+  }
+
+  public static Aggregator take(Expression... expressions) {
+<span class="fc" id="L728">    return aggregate(BuiltinFunctionName.TAKE, expressions);</span>
+  }
+
+  public static RankingWindowFunction rowNumber() {
+<span class="fc" id="L732">    return compile(FunctionProperties.None, BuiltinFunctionName.ROW_NUMBER);</span>
+  }
+
+  public static RankingWindowFunction rank() {
+<span class="fc" id="L736">    return compile(FunctionProperties.None, BuiltinFunctionName.RANK);</span>
+  }
+
+  public static RankingWindowFunction denseRank() {
+<span class="fc" id="L740">    return compile(FunctionProperties.None, BuiltinFunctionName.DENSE_RANK);</span>
+  }
+
+  public static Aggregator min(Expression... expressions) {
+<span class="fc" id="L744">    return aggregate(BuiltinFunctionName.MIN, expressions);</span>
+  }
+
+  public static Aggregator max(Expression... expressions) {
+<span class="fc" id="L748">    return aggregate(BuiltinFunctionName.MAX, expressions);</span>
+  }
+
+  /**
+   * OpenSearch uses T-Digest to approximate percentile, so PERCENTILE and PERCENTILE_APPROX are the
+   * same function.
+   */
+  public static Aggregator percentile(Expression... expressions) {
+<span class="fc" id="L756">    return percentileApprox(expressions);</span>
+  }
+
+  public static Aggregator percentileApprox(Expression... expressions) {
+<span class="fc" id="L760">    return aggregate(BuiltinFunctionName.PERCENTILE_APPROX, expressions);</span>
+  }
+
+  private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {
+<span class="fc" id="L764">    return compile(FunctionProperties.None, functionName, expressions);</span>
+  }
+
+  public static FunctionExpression isnull(Expression... expressions) {
+<span class="fc" id="L768">    return compile(FunctionProperties.None, BuiltinFunctionName.ISNULL, expressions);</span>
+  }
+
+  public static FunctionExpression is_null(Expression... expressions) {
+<span class="fc" id="L772">    return compile(FunctionProperties.None, BuiltinFunctionName.IS_NULL, expressions);</span>
+  }
+
+  public static FunctionExpression isnotnull(Expression... expressions) {
+<span class="fc" id="L776">    return compile(FunctionProperties.None, BuiltinFunctionName.IS_NOT_NULL, expressions);</span>
+  }
+
+  public static FunctionExpression ifnull(Expression... expressions) {
+<span class="fc" id="L780">    return compile(FunctionProperties.None, BuiltinFunctionName.IFNULL, expressions);</span>
+  }
+
+  public static FunctionExpression nullif(Expression... expressions) {
+<span class="fc" id="L784">    return compile(FunctionProperties.None, BuiltinFunctionName.NULLIF, expressions);</span>
+  }
+
+  public static FunctionExpression iffunction(Expression... expressions) {
+<span class="fc" id="L788">    return compile(FunctionProperties.None, BuiltinFunctionName.IF, expressions);</span>
+  }
+
+  public static Expression cases(Expression defaultResult, WhenClause... whenClauses) {
+<span class="fc" id="L792">    return new CaseClause(Arrays.asList(whenClauses), defaultResult);</span>
+  }
+
+  public static WhenClause when(Expression condition, Expression result) {
+<span class="fc" id="L796">    return new WhenClause(condition, result);</span>
+  }
+
+  public static FunctionExpression interval(Expression value, Expression unit) {
+<span class="fc" id="L800">    return compile(FunctionProperties.None, BuiltinFunctionName.INTERVAL, value, unit);</span>
+  }
+
+  public static FunctionExpression castString(Expression value) {
+<span class="fc" id="L804">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_STRING, value);</span>
+  }
+
+  public static FunctionExpression castByte(Expression value) {
+<span class="fc" id="L808">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_BYTE, value);</span>
+  }
+
+  public static FunctionExpression castShort(Expression value) {
+<span class="fc" id="L812">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_SHORT, value);</span>
+  }
+
+  public static FunctionExpression castInt(Expression value) {
+<span class="fc" id="L816">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_INT, value);</span>
+  }
+
+  public static FunctionExpression castLong(Expression value) {
+<span class="fc" id="L820">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_LONG, value);</span>
+  }
+
+  public static FunctionExpression castFloat(Expression value) {
+<span class="fc" id="L824">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_FLOAT, value);</span>
+  }
+
+  public static FunctionExpression castDouble(Expression value) {
+<span class="fc" id="L828">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DOUBLE, value);</span>
+  }
+
+  public static FunctionExpression castBoolean(Expression value) {
+<span class="fc" id="L832">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_BOOLEAN, value);</span>
+  }
+
+  public static FunctionExpression castDate(Expression value) {
+<span class="fc" id="L836">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DATE, value);</span>
+  }
+
+  public static FunctionExpression castTime(Expression value) {
+<span class="fc" id="L840">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIME, value);</span>
+  }
+
+  public static FunctionExpression castTimestamp(Expression value) {
+<span class="fc" id="L844">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);</span>
+  }
+
+  public static FunctionExpression castIp(Expression value) {
+<span class="fc" id="L848">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);</span>
+  }
+
+  public static FunctionExpression castJson(Expression value) {
+<span class="fc" id="L852">    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_JSON, value);</span>
+  }
+
+  public static FunctionExpression typeof(Expression value) {
+<span class="fc" id="L856">    return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);</span>
+  }
+
+  public static FunctionExpression match(Expression... args) {
+<span class="fc" id="L860">    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH, args);</span>
+  }
+
+  public static FunctionExpression match_phrase(Expression... args) {
+<span class="fc" id="L864">    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE, args);</span>
+  }
+
+  public static FunctionExpression match_phrase_prefix(Expression... args) {
+<span class="fc" id="L868">    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);</span>
+  }
+
+  public static FunctionExpression multi_match(Expression... args) {
+<span class="fc" id="L872">    return compile(FunctionProperties.None, BuiltinFunctionName.MULTI_MATCH, args);</span>
+  }
+
+  public static FunctionExpression simple_query_string(Expression... args) {
+<span class="fc" id="L876">    return compile(FunctionProperties.None, BuiltinFunctionName.SIMPLE_QUERY_STRING, args);</span>
+  }
+
+  public static FunctionExpression query(Expression... args) {
+<span class="fc" id="L880">    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY, args);</span>
+  }
+
+  public static FunctionExpression query_string(Expression... args) {
+<span class="fc" id="L884">    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY_STRING, args);</span>
+  }
+
+  public static FunctionExpression match_bool_prefix(Expression... args) {
+<span class="fc" id="L888">    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);</span>
+  }
+
+  public static FunctionExpression wildcard_query(Expression... args) {
+<span class="fc" id="L892">    return compile(FunctionProperties.None, BuiltinFunctionName.WILDCARD_QUERY, args);</span>
+  }
+
+  public static FunctionExpression score(Expression... args) {
+<span class="fc" id="L896">    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE, args);</span>
+  }
+
+  public static FunctionExpression scorequery(Expression... args) {
+<span class="fc" id="L900">    return compile(FunctionProperties.None, BuiltinFunctionName.SCOREQUERY, args);</span>
+  }
+
+  public static FunctionExpression score_query(Expression... args) {
+<span class="fc" id="L904">    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE_QUERY, args);</span>
+  }
+
+  public static FunctionExpression now(FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L908">    return compile(functionProperties, BuiltinFunctionName.NOW, args);</span>
+  }
+
+  public static FunctionExpression current_timestamp(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L913">    return compile(functionProperties, BuiltinFunctionName.CURRENT_TIMESTAMP, args);</span>
+  }
+
+  public static FunctionExpression localtimestamp(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L918">    return compile(functionProperties, BuiltinFunctionName.LOCALTIMESTAMP, args);</span>
+  }
+
+  public static FunctionExpression localtime(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L923">    return compile(functionProperties, BuiltinFunctionName.LOCALTIME, args);</span>
+  }
+
+  public static FunctionExpression sysdate(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L928">    return compile(functionProperties, BuiltinFunctionName.SYSDATE, args);</span>
+  }
+
+  public static FunctionExpression curtime(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L933">    return compile(functionProperties, BuiltinFunctionName.CURTIME, args);</span>
+  }
+
+  public static FunctionExpression current_time(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L938">    return compile(functionProperties, BuiltinFunctionName.CURRENT_TIME, args);</span>
+  }
+
+  public static FunctionExpression curdate(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L943">    return compile(functionProperties, BuiltinFunctionName.CURDATE, args);</span>
+  }
+
+  public static FunctionExpression current_date(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L948">    return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);</span>
+  }
+
+  public static FunctionExpression time_format(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L953">    return compile(functionProperties, BuiltinFunctionName.TIME_FORMAT, expressions);</span>
+  }
+
+  public static FunctionExpression timestampadd(Expression... expressions) {
+<span class="fc" id="L957">    return timestampadd(FunctionProperties.None, expressions);</span>
+  }
+
+  public static FunctionExpression timestampadd(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L962">    return compile(functionProperties, BuiltinFunctionName.TIMESTAMPADD, expressions);</span>
+  }
+
+  public static FunctionExpression timestampdiff(
+      FunctionProperties functionProperties, Expression... expressions) {
+<span class="fc" id="L967">    return compile(functionProperties, BuiltinFunctionName.TIMESTAMPDIFF, expressions);</span>
+  }
+
+  public static FunctionExpression utc_date(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L972">    return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);</span>
+  }
+
+  public static FunctionExpression utc_time(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L977">    return compile(functionProperties, BuiltinFunctionName.UTC_TIME, args);</span>
+  }
+
+  public static FunctionExpression utc_timestamp(
+      FunctionProperties functionProperties, Expression... args) {
+<span class="fc" id="L982">    return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);</span>
+  }
+
+  public static FunctionExpression geoip(Expression... args) {
+<span class="fc" id="L986">    return compile(FunctionProperties.None, BuiltinFunctionName.GEOIP, args);</span>
+  }
+
+  public static FunctionExpression brain(Expression... args) {
+<span class="fc" id="L990">    return compile(FunctionProperties.None, BuiltinFunctionName.BRAIN, args);</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  private static &lt;T extends FunctionImplementation&gt; T compile(
+      FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
+<span class="fc" id="L996">    return (T)</span>
+<span class="fc" id="L997">        BuiltinFunctionRepository.getInstance()</span>
+<span class="fc" id="L998">            .compile(functionProperties, bfn.getName(), Arrays.asList(args));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

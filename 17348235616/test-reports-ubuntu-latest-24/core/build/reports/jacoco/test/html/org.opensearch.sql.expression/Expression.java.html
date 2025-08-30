@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Expression.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression</a> &gt; <span class="el_source">Expression.java</span></div><h1>Expression.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression;
+
+import java.io.Serializable;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.env.Environment;
+
+/** The definition of the resolved expression. */
+public interface Expression extends Serializable {
+
+  /** Evaluate the value of expression that does not depend on value environment. */
+  default ExprValue valueOf() {
+<span class="fc" id="L18">    return valueOf(null);</span>
+  }
+
+  /** Evaluate the value of expression in the value environment. */
+  ExprValue valueOf(Environment&lt;Expression, ExprValue&gt; valueEnv);
+
+  /** The type of the expression. */
+  ExprType type();
+
+  /**
+   * Accept a visitor to visit current expression node.
+   *
+   * @param visitor visitor
+   * @param context context
+   * @param &lt;T&gt; result type
+   * @param &lt;C&gt; context type
+   * @return result accumulated by visitor when visiting
+   */
+  &lt;T, C&gt; T accept(ExpressionNodeVisitor&lt;T, C&gt; visitor, C context);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

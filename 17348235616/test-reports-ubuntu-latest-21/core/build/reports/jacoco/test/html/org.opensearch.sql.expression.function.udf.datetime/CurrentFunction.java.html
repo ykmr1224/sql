@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CurrentFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.datetime</a> &gt; <span class="el_source">CurrentFunction.java</span></div><h1>CurrentFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.datetime;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * Implementation of the now-like functions:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Date synonyms: CURRENT_DATE, CUR_DATE
+ *   &lt;li&gt;Time synonyms: CURTIME, CURRENT_TIME
+ *   &lt;li&gt;Timestamp synonyms: CURRENT_TIMESTAMP, NOW, LOCALTIMESTAMP, LOCALTIME
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;It returns the current date, time, or timestamp based on the specified return type.
+ */
+public class CurrentFunction extends ImplementorUDF {
+  private final ExprType returnType;
+
+  public CurrentFunction(ExprType returnType) {
+<span class="fc" id="L45">    super(new CurrentFunctionImplementor(returnType), NullPolicy.NONE);</span>
+<span class="fc" id="L46">    this.returnType = returnType;</span>
+<span class="fc" id="L47">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L51">    return opBinding -&gt;</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">        switch (returnType) {</span>
+<span class="nc" id="L53">          case ExprCoreType.DATE -&gt; UserDefinedFunctionUtils.NULLABLE_DATE_UDT;</span>
+<span class="nc" id="L54">          case ExprCoreType.TIME -&gt; UserDefinedFunctionUtils.NULLABLE_TIME_UDT;</span>
+<span class="nc" id="L55">          case ExprCoreType.TIMESTAMP -&gt; UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;</span>
+<span class="nc" id="L56">          default -&gt; throw new IllegalArgumentException(&quot;Unsupported return type: &quot; + returnType);</span>
+        };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L62">    return PPLOperandTypes.NONE;</span>
+  }
+
+  @RequiredArgsConstructor
+  public static class CurrentFunctionImplementor implements NotNullImplementor {
+    private final ExprType returnType;
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+
+      String functionName =
+<span class="nc bnc" id="L74" title="All 4 branches missed.">          switch (returnType) {</span>
+<span class="nc" id="L75">            case ExprCoreType.DATE -&gt; &quot;currentDate&quot;;</span>
+<span class="nc" id="L76">            case ExprCoreType.TIME -&gt; &quot;currentTime&quot;;</span>
+<span class="nc" id="L77">            case ExprCoreType.TIMESTAMP -&gt; &quot;currentTimestamp&quot;;</span>
+<span class="nc" id="L78">            default -&gt; throw new IllegalArgumentException(&quot;Unsupported return type: &quot; + returnType);</span>
+          };
+
+<span class="nc" id="L81">      Expression properties =</span>
+<span class="nc" id="L82">          Expressions.call(</span>
+<span class="nc" id="L83">              UserDefinedFunctionUtils.class, &quot;restoreFunctionProperties&quot;, translator.getRoot());</span>
+<span class="nc" id="L84">      Expression now =</span>
+<span class="nc" id="L85">          Expressions.call(CurrentFunctionImplementor.class, &quot;getNowFromProperties&quot;, properties);</span>
+
+<span class="nc" id="L87">      return Expressions.call(CurrentFunctionImplementor.class, functionName, now);</span>
+    }
+
+    public static LocalDateTime getNowFromProperties(FunctionProperties functionProperties) {
+<span class="nc" id="L91">      return DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());</span>
+    }
+
+    public static String currentDate(LocalDateTime now) {
+<span class="nc" id="L95">      return (String) new ExprDateValue(now.toLocalDate()).valueForCalcite();</span>
+    }
+
+    public static String currentTime(LocalDateTime now) {
+<span class="nc" id="L99">      return (String) new ExprTimeValue(now.toLocalTime()).valueForCalcite();</span>
+    }
+
+    public static String currentTimestamp(LocalDateTime now) {
+<span class="nc" id="L103">      return (String) new ExprTimestampValue(now).valueForCalcite();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

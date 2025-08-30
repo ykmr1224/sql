@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WildcardUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">WildcardUtils.java</span></div><h1>WildcardUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/** Utility class for wildcard pattern matching in field names. */
+<span class="nc" id="L12">public class WildcardUtils {</span>
+
+  private static final String WILDCARD = &quot;*&quot;;
+
+  /** Matches a field name against a wildcard pattern using '*' as wildcard character. */
+  public static boolean matchesWildcardPattern(String pattern, String fieldName) {
+<span class="pc bpc" id="L18" title="2 of 4 branches missed.">    if (pattern == null || fieldName == null) {</span>
+<span class="nc" id="L19">      return false;</span>
+    }
+
+<span class="fc bfc" id="L22" title="All 2 branches covered.">    if (!containsWildcard(pattern)) {</span>
+<span class="fc" id="L23">      return pattern.equals(fieldName);</span>
+    }
+
+<span class="fc" id="L26">    String[] compiledPattern = pattern.split(&quot;\\&quot; + WILDCARD, -1);</span>
+<span class="fc" id="L27">    return matchesCompiledPattern(compiledPattern, fieldName);</span>
+  }
+
+  /**
+   * Returns all fields that match the wildcard pattern.
+   *
+   * @param pattern wildcard pattern with '*' characters
+   * @param availableFields list of field names to filter
+   * @return filtered list of matching field names
+   */
+  public static List&lt;String&gt; expandWildcardPattern(String pattern, List&lt;String&gt; availableFields) {
+<span class="pc bpc" id="L38" title="2 of 4 branches missed.">    if (pattern == null || availableFields == null) {</span>
+<span class="nc" id="L39">      return List.of();</span>
+    }
+
+<span class="fc bfc" id="L42" title="All 2 branches covered.">    if (!containsWildcard(pattern)) {</span>
+<span class="fc" id="L43">      return availableFields.stream()</span>
+<span class="fc" id="L44">          .filter(field -&gt; pattern.equals(field))</span>
+<span class="fc" id="L45">          .collect(Collectors.toList());</span>
+    }
+
+<span class="fc" id="L48">    String[] compiledPattern = pattern.split(&quot;\\&quot; + WILDCARD, -1);</span>
+<span class="fc" id="L49">    return availableFields.stream()</span>
+<span class="fc" id="L50">        .filter(field -&gt; matchesCompiledPattern(compiledPattern, field))</span>
+<span class="fc" id="L51">        .collect(Collectors.toList());</span>
+  }
+
+  /** Matches field name against pre-compiled pattern parts. */
+  private static boolean matchesCompiledPattern(String[] parts, String fieldName) {
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">    if (fieldName == null) {</span>
+<span class="nc" id="L57">      return false;</span>
+    }
+
+<span class="fc" id="L60">    int startIndex = 0;</span>
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    for (int i = 0; i &lt; parts.length - 1; i++) {</span>
+<span class="fc" id="L63">      String part = parts[i];</span>
+
+<span class="fc bfc" id="L65" title="All 2 branches covered.">      if (part.isEmpty()) {</span>
+<span class="fc" id="L66">        continue;</span>
+      }
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (i == 0) {</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!fieldName.startsWith(part)) {</span>
+<span class="fc" id="L71">          return false;</span>
+        }
+<span class="fc" id="L73">        startIndex = part.length();</span>
+      } else {
+<span class="fc" id="L75">        int index = fieldName.indexOf(part, startIndex);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (index == -1) {</span>
+<span class="fc" id="L77">          return false;</span>
+        }
+<span class="fc" id="L79">        startIndex = index + part.length();</span>
+      }
+    }
+
+    // Check the last part
+<span class="fc" id="L84">    String lastPart = parts[parts.length - 1];</span>
+<span class="fc bfc" id="L85" title="All 4 branches covered.">    if (!lastPart.isEmpty() &amp;&amp; !fieldName.endsWith(lastPart)) {</span>
+<span class="fc" id="L86">      return false;</span>
+    }
+
+<span class="fc" id="L89">    return true;</span>
+  }
+
+  public static boolean containsWildcard(String str) {
+<span class="pc bpc" id="L93" title="1 of 4 branches missed.">    return str != null &amp;&amp; str.contains(WILDCARD);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

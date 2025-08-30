@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RelJsonSerializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.serde</a> &gt; <span class="el_source">RelJsonSerializer.java</span></div><h1>RelJsonSerializer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.serde;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import lombok.Getter;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.externalize.RelJson;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
+import org.apache.calcite.util.JsonBuilder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+/**
+ * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
+ *
+ * &lt;p&gt;This serializer:
+ * &lt;li&gt;Uses Calcite's RelJson class to convert RexNode and RelDataType to/from JSON string
+ * &lt;li&gt;Manages required OpenSearch field mapping information Note: OpenSearch ExprType subclasses
+ *     implement {@link java.io.Serializable} and are handled through standard Java serialization.
+ */
+@Getter
+public class RelJsonSerializer {
+
+  private final RelOptCluster cluster;
+
+  public static final String EXPR = &quot;expr&quot;;
+  public static final String FIELD_TYPES = &quot;fieldTypes&quot;;
+  public static final String ROW_TYPE = &quot;rowType&quot;;
+<span class="fc" id="L49">  private static final ObjectMapper mapper = new ObjectMapper();</span>
+<span class="fc" id="L50">  private static final TypeReference&lt;LinkedHashMap&lt;String, Object&gt;&gt; TYPE_REF =</span>
+<span class="fc" id="L51">      new TypeReference&lt;&gt;() {};</span>
+<span class="fc" id="L52">  private static final SqlOperatorTable pplSqlOperatorTable =</span>
+<span class="fc" id="L53">      SqlOperatorTables.chain(</span>
+<span class="fc" id="L54">          PPLBuiltinOperators.instance(),</span>
+<span class="fc" id="L55">          SqlStdOperatorTable.instance(),</span>
+          // Add a list of necessary SqlLibrary if needed
+<span class="fc" id="L57">          SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(</span>
+              SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY, SqlLibrary.SPARK, SqlLibrary.POSTGRESQL));
+
+  static {
+<span class="fc" id="L61">    mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);</span>
+<span class="fc" id="L62">  }</span>
+
+<span class="fc" id="L64">  public RelJsonSerializer(RelOptCluster cluster) {</span>
+<span class="fc" id="L65">    this.cluster = cluster;</span>
+<span class="fc" id="L66">  }</span>
+
+  /**
+   * Serializes Calcite expressions and field types into a map object string.
+   *
+   * &lt;p&gt;This method:
+   * &lt;li&gt;Convert RexNode and RelDataType objects to JSON strings.
+   * &lt;li&gt;Combines these JSON strings with OpenSearch field mappings into a map
+   * &lt;li&gt;Encodes the resulting map into a final object string
+   *
+   * @param rexNode pushed down RexNode
+   * @param relDataType row type of RexNode input
+   * @param fieldTypes input field and ExprType mapping
+   * @return serialized string of map structure for inputs
+   */
+  public String serialize(
+      RexNode rexNode, RelDataType relDataType, Map&lt;String, ExprType&gt; fieldTypes) {
+    try {
+      // Serialize RexNode and RelDataType by JSON
+<span class="fc" id="L85">      JsonBuilder jsonBuilder = new JsonBuilder();</span>
+<span class="fc" id="L86">      RelJson relJson = RelJson.create().withJsonBuilder(jsonBuilder);</span>
+<span class="fc" id="L87">      String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(rexNode));</span>
+<span class="fc" id="L88">      String rowTypeJson = jsonBuilder.toJsonString(relJson.toJson(relDataType));</span>
+      // Construct envelope of serializable objects
+<span class="fc" id="L90">      Map&lt;String, Object&gt; envelope =</span>
+<span class="fc" id="L91">          Map.of(EXPR, rexNodeJson, FIELD_TYPES, fieldTypes, ROW_TYPE, rowTypeJson);</span>
+
+      // Write bytes of all serializable contents
+<span class="fc" id="L94">      ByteArrayOutputStream output = new ByteArrayOutputStream();</span>
+<span class="fc" id="L95">      ObjectOutputStream objectOutput = new ObjectOutputStream(output);</span>
+<span class="fc" id="L96">      objectOutput.writeObject(envelope);</span>
+<span class="fc" id="L97">      objectOutput.flush();</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">      return CalcitePlanContext.skipEncoding.get()</span>
+<span class="nc" id="L99">          ? rexNodeJson</span>
+<span class="fc" id="L100">          : Base64.getEncoder().encodeToString(output.toByteArray());</span>
+<span class="fc" id="L101">    } catch (Exception e) {</span>
+<span class="fc" id="L102">      throw new IllegalStateException(&quot;Failed to serialize RexNode: &quot; + rexNode, e);</span>
+    }
+  }
+
+  /**
+   * Deserialize serialized map structure string into a map of RexNode, RelDataType and OpenSearch
+   * field types.
+   *
+   * @param struct input serialized map structure string
+   * @return map of RexNode, RelDataType and OpenSearch field types
+   */
+  public Map&lt;String, Object&gt; deserialize(String struct) {
+<span class="fc" id="L114">    Map&lt;String, Object&gt; objectMap = null;</span>
+    try {
+      // Recover Map object from bytes
+<span class="fc" id="L117">      ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));</span>
+<span class="fc" id="L118">      ObjectInputStream objectInput = new ObjectInputStream(input);</span>
+<span class="fc" id="L119">      objectMap = (Map&lt;String, Object&gt;) objectInput.readObject();</span>
+
+      // PPL Expr types are all serializable
+<span class="fc" id="L122">      Map&lt;String, ExprType&gt; fieldTypes = (Map&lt;String, ExprType&gt;) objectMap.get(FIELD_TYPES);</span>
+      // Deserialize RelDataType and RexNode by JSON
+<span class="fc" id="L124">      RelJson relJson = RelJson.create();</span>
+<span class="fc" id="L125">      Map&lt;String, Object&gt; rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);</span>
+<span class="fc" id="L126">      RelDataType rowType = relJson.toType(cluster.getTypeFactory(), rowTypeMap);</span>
+<span class="fc" id="L127">      OpenSearchRelInputTranslator inputTranslator = new OpenSearchRelInputTranslator(rowType);</span>
+<span class="fc" id="L128">      relJson = relJson.withInputTranslator(inputTranslator).withOperatorTable(pplSqlOperatorTable);</span>
+<span class="fc" id="L129">      Map&lt;String, Object&gt; exprMap = mapper.readValue((String) objectMap.get(EXPR), TYPE_REF);</span>
+<span class="fc" id="L130">      RexNode rexNode = relJson.toRex(cluster, exprMap);</span>
+
+<span class="fc" id="L132">      return Map.of(EXPR, rexNode, FIELD_TYPES, fieldTypes, ROW_TYPE, rowType);</span>
+<span class="fc" id="L133">    } catch (Exception e) {</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">      if (objectMap == null) {</span>
+<span class="fc" id="L135">        throw new IllegalStateException(</span>
+            &quot;Failed to deserialize RexNode due to object map is null&quot;, e);
+      }
+<span class="fc" id="L138">      throw new IllegalStateException(</span>
+<span class="fc" id="L139">          &quot;Failed to deserialize RexNode and its required structure: &quot; + objectMap.get(EXPR), e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

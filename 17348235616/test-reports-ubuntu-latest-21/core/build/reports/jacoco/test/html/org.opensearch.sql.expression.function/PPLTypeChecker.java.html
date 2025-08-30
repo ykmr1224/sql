@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLTypeChecker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function</a> &gt; <span class="el_source">PPLTypeChecker.java</span></div><h1>PPLTypeChecker.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function;
+
+import com.google.common.collect.Lists;
+import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
+import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
+import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+
+/**
+ * A custom type checker interface for PPL (Piped Processing Language) functions.
+ *
+ * &lt;p&gt;Provides operand type validation based on specified type families, similar to Calcite's {@link
+ * SqlOperandTypeChecker}, but adapted for PPL function requirements. This abstraction is necessary
+ * because {@code SqlOperandTypeChecker::checkOperandTypes(SqlCallBinding, boolean)} cannot be
+ * directly used for type checking at the logical plan level.
+ */
+public interface PPLTypeChecker {
+  /**
+   * Validates the operand types.
+   *
+   * @param types the list of operand types to validate
+   * @return true if the operand types are valid, false otherwise
+   */
+  boolean checkOperandTypes(List&lt;RelDataType&gt; types);
+
+  /**
+   * Get a string representation of the allowed signatures. The format is like {@code
+   * [STRING,STRING],[INTEGER,INTEGER]}.
+   *
+   * @return a string representation of the allowed signatures
+   */
+  String getAllowedSignatures();
+
+  /**
+   * Get a list of all possible parameter type combinations for the function.
+   *
+   * &lt;p&gt;This method is used to generate the allowed signatures for the function based on the
+   * parameter types.
+   *
+   * @return a list of lists, where each inner list represents an allowed parameter type combination
+   */
+  List&lt;List&lt;ExprType&gt;&gt; getParameterTypes();
+
+  private static boolean validateOperands(
+      List&lt;SqlTypeFamily&gt; funcTypeFamilies, List&lt;RelDataType&gt; operandTypes) {
+    // If the number of actual operands does not match expectation, return false
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (funcTypeFamilies.size() != operandTypes.size()) {</span>
+<span class="nc" id="L75">      return false;</span>
+    }
+<span class="nc bnc" id="L77" title="All 2 branches missed.">    for (int i = 0; i &lt; operandTypes.size(); i++) {</span>
+<span class="nc" id="L78">      SqlTypeName paramType =</span>
+<span class="nc" id="L79">          UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(operandTypes.get(i));</span>
+<span class="nc" id="L80">      SqlTypeFamily funcTypeFamily = funcTypeFamilies.get(i);</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">      if (paramType.getFamily() == SqlTypeFamily.IGNORE || funcTypeFamily == SqlTypeFamily.IGNORE) {</span>
+<span class="nc" id="L82">        continue;</span>
+      }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">      if (!funcTypeFamily.getTypeNames().contains(paramType)) {</span>
+<span class="nc" id="L85">        return false;</span>
+      }
+    }
+<span class="nc" id="L88">    return true;</span>
+  }
+
+  /**
+   * A custom {@code PPLTypeChecker} that validates operand types against a list of {@link
+   * SqlTypeFamily}. Instances can be created using {@link #family(SqlTypeFamily...)}.
+   */
+  class PPLFamilyTypeChecker implements PPLTypeChecker {
+    private final List&lt;SqlTypeFamily&gt; families;
+
+<span class="fc" id="L98">    public PPLFamilyTypeChecker(SqlTypeFamily... families) {</span>
+<span class="fc" id="L99">      this.families = List.of(families);</span>
+<span class="fc" id="L100">    }</span>
+
+    @Override
+    public boolean checkOperandTypes(List&lt;RelDataType&gt; types) {
+<span class="nc bnc" id="L104" title="All 2 branches missed.">      if (families.size() != types.size()) return false;</span>
+<span class="nc" id="L105">      return validateOperands(families, types);</span>
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+<span class="nc" id="L110">      return PPLTypeChecker.getFamilySignature(families);</span>
+    }
+
+    @Override
+    public List&lt;List&lt;ExprType&gt;&gt; getParameterTypes() {
+<span class="nc" id="L115">      return PPLTypeChecker.getExprSignatures(families);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L120">      return String.format(&quot;PPLFamilyTypeChecker[families=%s]&quot;, getAllowedSignatures());</span>
+    }
+  }
+
+  /**
+   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
+   * ImplicitCastOperandTypeChecker}.
+   *
+   * &lt;p&gt;This checker delegates operand count and type validation to the wrapped Calcite type
+   * checker, allowing PPL functions to leverage Calcite's implicit casting and type family logic
+   * for operand validation.
+   */
+  class PPLFamilyTypeCheckerWrapper implements PPLTypeChecker {
+    protected final ImplicitCastOperandTypeChecker innerTypeChecker;
+
+<span class="fc" id="L135">    public PPLFamilyTypeCheckerWrapper(ImplicitCastOperandTypeChecker typeChecker) {</span>
+<span class="fc" id="L136">      this.innerTypeChecker = typeChecker;</span>
+<span class="fc" id="L137">    }</span>
+
+    @Override
+    public boolean checkOperandTypes(List&lt;RelDataType&gt; types) {
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      if (innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">          &amp;&amp; !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size())) return false;</span>
+<span class="nc" id="L143">      List&lt;SqlTypeFamily&gt; families =</span>
+<span class="nc" id="L144">          IntStream.range(0, types.size())</span>
+<span class="nc" id="L145">              .mapToObj(innerTypeChecker::getOperandSqlTypeFamily)</span>
+<span class="nc" id="L146">              .collect(Collectors.toList());</span>
+<span class="nc" id="L147">      return validateOperands(families, types);</span>
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+<span class="nc bnc" id="L152" title="All 2 branches missed.">      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {</span>
+<span class="nc" id="L153">        var allowedExprSignatures = getExprSignatures(familyOperandTypeChecker);</span>
+<span class="nc" id="L154">        return PPLTypeChecker.formatExprSignatures(allowedExprSignatures);</span>
+      } else {
+<span class="nc" id="L156">        return &quot;&quot;;</span>
+      }
+    }
+
+    @Override
+    public List&lt;List&lt;ExprType&gt;&gt; getParameterTypes() {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {</span>
+<span class="nc" id="L163">        return getExprSignatures(familyOperandTypeChecker);</span>
+      } else {
+        // If the inner type checker is not a FamilyOperandTypeChecker, we cannot provide
+        // parameter types.
+<span class="nc" id="L167">        return Collections.emptyList();</span>
+      }
+    }
+  }
+
+  /**
+   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
+   * CompositeOperandTypeChecker}.
+   *
+   * &lt;p&gt;This checker allows for the composition of multiple operand type checkers, enabling flexible
+   * validation of operand types in PPL functions.
+   *
+   * &lt;p&gt;The implementation currently supports only OR compositions of {@link
+   * ImplicitCastOperandTypeChecker}.
+   */
+  class PPLCompositeTypeChecker implements PPLTypeChecker {
+
+    private final List&lt;? extends SqlOperandTypeChecker&gt; allowedRules;
+
+<span class="fc" id="L186">    public PPLCompositeTypeChecker(CompositeOperandTypeChecker typeChecker) {</span>
+<span class="fc" id="L187">      allowedRules = typeChecker.getRules();</span>
+<span class="fc" id="L188">    }</span>
+
+    private static boolean validateWithFamilyTypeChecker(
+        SqlOperandTypeChecker checker, List&lt;RelDataType&gt; types) {
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (!checker.getOperandCountRange().isValidCount(types.size())) {</span>
+<span class="nc" id="L193">        return false;</span>
+      }
+<span class="nc bnc" id="L195" title="All 2 branches missed.">      if (checker instanceof ImplicitCastOperandTypeChecker implicitCastOperandTypeChecker) {</span>
+<span class="nc" id="L196">        List&lt;SqlTypeFamily&gt; families =</span>
+<span class="nc" id="L197">            IntStream.range(0, types.size())</span>
+<span class="nc" id="L198">                .mapToObj(implicitCastOperandTypeChecker::getOperandSqlTypeFamily)</span>
+<span class="nc" id="L199">                .toList();</span>
+<span class="nc" id="L200">        return validateOperands(families, types);</span>
+      }
+<span class="nc" id="L202">      throw new IllegalArgumentException(</span>
+          &quot;Currently only compositions of ImplicitCastOperandTypeChecker are supported&quot;);
+    }
+
+    @Override
+    public boolean checkOperandTypes(List&lt;RelDataType&gt; types) {
+<span class="nc" id="L208">      boolean operandCountValid =</span>
+<span class="nc" id="L209">          allowedRules.stream()</span>
+<span class="nc" id="L210">              .anyMatch(rule -&gt; rule.getOperandCountRange().isValidCount(types.size()));</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">      if (!operandCountValid) {</span>
+<span class="nc" id="L212">        return false;</span>
+      }
+<span class="nc" id="L214">      return allowedRules.stream().anyMatch(rule -&gt; validateWithFamilyTypeChecker(rule, types));</span>
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+<span class="nc" id="L219">      StringBuilder builder = new StringBuilder();</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">      for (SqlOperandTypeChecker rule : allowedRules) {</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">          if (!builder.isEmpty()) {</span>
+<span class="nc" id="L223">            builder.append(&quot;,&quot;);</span>
+          }
+<span class="nc" id="L225">          builder.append(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));</span>
+        } else {
+<span class="nc" id="L227">          throw new IllegalArgumentException(</span>
+              &quot;Currently only compositions of FamilyOperandTypeChecker are supported&quot;);
+        }
+<span class="nc" id="L230">      }</span>
+<span class="nc" id="L231">      return builder.toString();</span>
+    }
+
+    @Override
+    public List&lt;List&lt;ExprType&gt;&gt; getParameterTypes() {
+<span class="nc" id="L236">      List&lt;List&lt;ExprType&gt;&gt; parameterTypes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">      for (SqlOperandTypeChecker rule : allowedRules) {</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {</span>
+<span class="nc" id="L239">          parameterTypes.addAll(getExprSignatures(familyOperandTypeChecker));</span>
+        } else {
+<span class="nc" id="L241">          throw new IllegalArgumentException(</span>
+              &quot;Currently only compositions of FamilyOperandTypeChecker are supported&quot;);
+        }
+<span class="nc" id="L244">      }</span>
+<span class="nc" id="L245">      return parameterTypes;</span>
+    }
+  }
+
+  @RequiredArgsConstructor
+  class PPLComparableTypeChecker implements PPLTypeChecker {
+    private final SameOperandTypeChecker innerTypeChecker;
+
+    @Override
+    public boolean checkOperandTypes(List&lt;RelDataType&gt; types) {
+<span class="nc bnc" id="L255" title="All 2 branches missed.">      if (!innerTypeChecker.getOperandCountRange().isValidCount(types.size())) {</span>
+<span class="nc" id="L256">        return false;</span>
+      }
+      // Check comparability of consecutive operands
+<span class="nc bnc" id="L259" title="All 2 branches missed.">      for (int i = 0; i &lt; types.size() - 1; i++) {</span>
+        // TODO: Binary, Array UDT?
+        // DATETIME, NUMERIC, BOOLEAN will be regarded as comparable
+        // with strings in isComparable
+<span class="nc" id="L263">        RelDataType type_l = types.get(i);</span>
+<span class="nc" id="L264">        RelDataType type_r = types.get(i + 1);</span>
+        // Rule out IP types from built-in comparable functions
+<span class="nc bnc" id="L266" title="All 4 branches missed.">        if (type_l instanceof ExprIPType || type_r instanceof ExprIPType) {</span>
+<span class="nc" id="L267">          return false;</span>
+        }
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        if (!isComparable(type_l, type_r)) {</span>
+<span class="nc" id="L270">          return false;</span>
+        }
+      }
+<span class="nc" id="L273">      return true;</span>
+    }
+
+    /**
+     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to
+     *
+     * @param type1 first type
+     * @param type2 second type
+     * @return true if the two types are comparable, false otherwise
+     */
+    private static boolean isComparable(RelDataType type1, RelDataType type2) {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">      if (type1.isStruct() != type2.isStruct()) {</span>
+<span class="nc" id="L285">        return false;</span>
+      }
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">      if (type1.isStruct()) {</span>
+<span class="nc" id="L289">        int n = type1.getFieldCount();</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (n != type2.getFieldCount()) {</span>
+<span class="nc" id="L291">          return false;</span>
+        }
+        for (Pair&lt;RelDataTypeField, RelDataTypeField&gt; pair :
+<span class="nc bnc" id="L294" title="All 2 branches missed.">            Pair.zip(type1.getFieldList(), type2.getFieldList())) {</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">          if (!isComparable(pair.left.getType(), pair.right.getType())) {</span>
+<span class="nc" id="L296">            return false;</span>
+          }
+<span class="nc" id="L298">        }</span>
+<span class="nc" id="L299">        return true;</span>
+      }
+
+      // Numeric types are comparable without the need to cast
+<span class="nc bnc" id="L303" title="All 4 branches missed.">      if (SqlTypeUtil.isNumeric(type1) &amp;&amp; SqlTypeUtil.isNumeric(type2)) {</span>
+<span class="nc" id="L304">        return true;</span>
+      }
+
+<span class="nc" id="L307">      ExprType exprType1 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type1);</span>
+<span class="nc" id="L308">      ExprType exprType2 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type2);</span>
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">      if (!exprType1.shouldCast(exprType2)) {</span>
+<span class="nc" id="L311">        return true;</span>
+      }
+
+      // If one of the arguments is of type 'ANY', return true.
+<span class="nc bnc" id="L315" title="All 4 branches missed.">      return type1.getFamily() == SqlTypeFamily.ANY || type2.getFamily() == SqlTypeFamily.ANY;</span>
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+<span class="nc" id="L320">      int min = innerTypeChecker.getOperandCountRange().getMin();</span>
+<span class="nc" id="L321">      int max = innerTypeChecker.getOperandCountRange().getMax();</span>
+<span class="nc" id="L322">      final String typeName = &quot;COMPARABLE_TYPE&quot;;</span>
+<span class="nc bnc" id="L323" title="All 4 branches missed.">      if (min == -1 || max == -1) {</span>
+        // If the range is unbounded, we cannot provide a specific signature
+<span class="nc" id="L325">        return String.format(&quot;[%s...]&quot;, typeName);</span>
+      } else {
+        // Generate a signature based on the min and max operand counts
+<span class="nc" id="L328">        List&lt;String&gt; signatures = new ArrayList&lt;&gt;();</span>
+        // avoid enumerating too many signatures
+<span class="nc" id="L330">        final int MAX_ARGS = 10;</span>
+<span class="nc" id="L331">        max = Math.min(MAX_ARGS, max);</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">        for (int i = min; i &lt;= max; i++) {</span>
+<span class="nc" id="L333">          signatures.add(&quot;[&quot; + String.join(&quot;,&quot;, Collections.nCopies(i, typeName)) + &quot;]&quot;);</span>
+        }
+<span class="nc" id="L335">        return String.join(&quot;,&quot;, signatures);</span>
+      }
+    }
+
+    @Override
+    public List&lt;List&lt;ExprType&gt;&gt; getParameterTypes() {
+      // Should not be used
+<span class="nc" id="L342">      return List.of(List.of(ExprCoreType.UNKNOWN, ExprCoreType.UNKNOWN));</span>
+    }
+  }
+
+  /**
+   * Creates a {@link PPLFamilyTypeChecker} with a fixed operand count, validating that each operand
+   * belongs to its corresponding {@link SqlTypeFamily}.
+   *
+   * &lt;p&gt;The number of provided {@code families} determines the required number of operands. Each
+   * operand is checked against the type family at the same position in the array.
+   *
+   * @param families the expected {@link SqlTypeFamily} for each operand, in order
+   * @return a {@link PPLFamilyTypeChecker} that enforces the specified type families for operands
+   */
+  static PPLFamilyTypeChecker family(SqlTypeFamily... families) {
+<span class="fc" id="L357">    return new PPLFamilyTypeChecker(families);</span>
+  }
+
+  /**
+   * Wraps a Calcite {@link ImplicitCastOperandTypeChecker} (usually a {@link
+   * FamilyOperandTypeChecker}) into a custom PPLTypeChecker of type {@link
+   * PPLFamilyTypeCheckerWrapper}.
+   *
+   * &lt;p&gt;The allow operand count may be fixed or variable, depending on the wrapped type checker.
+   *
+   * @param typeChecker the Calcite type checker to wrap
+   * @return a PPLTypeChecker that uses the wrapped type checker
+   */
+  static PPLFamilyTypeCheckerWrapper wrapFamily(ImplicitCastOperandTypeChecker typeChecker) {
+<span class="fc" id="L371">    return new PPLFamilyTypeCheckerWrapper(typeChecker);</span>
+  }
+
+  /**
+   * Wraps a Calcite {@link CompositeOperandTypeChecker} into a custom {@link
+   * PPLCompositeTypeChecker}.
+   *
+   * &lt;p&gt;This method requires that all rules within the provided {@code CompositeOperandTypeChecker}
+   * are instances of {@link ImplicitCastOperandTypeChecker}. If any rule does not meet this
+   * requirement, an {@link IllegalArgumentException} is thrown.
+   *
+   * &lt;p&gt;Additionally, if {@code checkCompositionType} is true, the method checks if the composition
+   * type of the provided {@code CompositeOperandTypeChecker} is OR via reflection. If it is not, an
+   * {@link IllegalArgumentException} is thrown. If the reflective access to the composition field
+   * of CompositeOperandTypeChecker fails, an {@link UnsupportedOperationException} is thrown.
+   *
+   * @param typeChecker the Calcite {@link CompositeOperandTypeChecker} to wrap
+   * @param checkCompositionType if true, checks if the composition type is OR.
+   * @return a {@link PPLCompositeTypeChecker} that delegates type checking to the wrapped rules
+   * @throws IllegalArgumentException if any rule is not an {@link ImplicitCastOperandTypeChecker}
+   */
+  static PPLCompositeTypeChecker wrapComposite(
+      CompositeOperandTypeChecker typeChecker, boolean checkCompositionType)
+      throws IllegalArgumentException, UnsupportedOperationException {
+<span class="fc bfc" id="L395" title="All 2 branches covered.">    if (checkCompositionType) {</span>
+      try {
+<span class="fc bfc" id="L397" title="All 2 branches covered.">        if (!isCompositionOr(typeChecker)) {</span>
+<span class="fc" id="L398">          throw new IllegalArgumentException(</span>
+              &quot;Currently only support CompositeOperandTypeChecker with a OR composition&quot;);
+        }
+<span class="nc" id="L401">      } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {</span>
+<span class="nc" id="L402">        throw new UnsupportedOperationException(</span>
+<span class="nc" id="L403">            String.format(&quot;Failed to check composition type of %s&quot;, typeChecker), e);</span>
+<span class="fc" id="L404">      }</span>
+    }
+
+<span class="fc bfc" id="L407" title="All 2 branches covered.">    for (SqlOperandTypeChecker rule : typeChecker.getRules()) {</span>
+<span class="fc bfc" id="L408" title="All 2 branches covered.">      if (!(rule instanceof ImplicitCastOperandTypeChecker)) {</span>
+<span class="fc" id="L409">        throw new IllegalArgumentException(</span>
+            &quot;Currently only compositions of ImplicitCastOperandTypeChecker are supported, found:&quot;
+<span class="fc" id="L411">                + rule.getClass().getName());</span>
+      }
+<span class="fc" id="L413">    }</span>
+<span class="fc" id="L414">    return new PPLCompositeTypeChecker(typeChecker);</span>
+  }
+
+  static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
+<span class="fc" id="L418">    return new PPLComparableTypeChecker(typeChecker);</span>
+  }
+
+  /**
+   * Create a {@link PPLTypeChecker} from a list of allowed signatures consisted of {@link
+   * ExprType}. This is useful to validate arguments against user-defined types (UDT) that does not
+   * match any Calcite {@link SqlTypeFamily}.
+   *
+   * @param allowedSignatures a list of allowed signatures, where each signature is a list of {@link
+   *     ExprType} representing the expected types of the function arguments.
+   * @return a {@link PPLTypeChecker} that checks if the operand types match any of the allowed
+   *     signatures
+   */
+  static PPLTypeChecker wrapUDT(List&lt;List&lt;ExprType&gt;&gt; allowedSignatures) {
+<span class="fc" id="L432">    return new PPLTypeChecker() {</span>
+      @Override
+      public boolean checkOperandTypes(List&lt;RelDataType&gt; types) {
+<span class="nc" id="L435">        List&lt;ExprType&gt; argExprTypes =</span>
+<span class="nc" id="L436">            types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">        for (var allowedSignature : allowedSignatures) {</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">          if (allowedSignature.size() != types.size()) {</span>
+<span class="nc" id="L439">            continue; // Skip signatures that do not match the operand count</span>
+          }
+          // Check if the argument types match the allowed signature
+<span class="nc" id="L442">          if (IntStream.range(0, allowedSignature.size())</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">              .allMatch(i -&gt; allowedSignature.get(i).equals(argExprTypes.get(i)))) {</span>
+<span class="nc" id="L444">            return true;</span>
+          }
+<span class="nc" id="L446">        }</span>
+<span class="nc" id="L447">        return false;</span>
+      }
+
+      @Override
+      public String getAllowedSignatures() {
+<span class="nc" id="L452">        return PPLTypeChecker.formatExprSignatures(allowedSignatures);</span>
+      }
+
+      @Override
+      public List&lt;List&lt;ExprType&gt;&gt; getParameterTypes() {
+<span class="nc" id="L457">        return allowedSignatures;</span>
+      }
+    };
+  }
+
+  // Util Functions
+  /**
+   * Generates a list of allowed function signatures based on the provided {@link
+   * FamilyOperandTypeChecker}. The signatures are generated by iterating through the operand count
+   * range and collecting the corresponding type families.
+   *
+   * &lt;p&gt;If the operand count range is large, the method will limit the maximum number of signatures
+   * to 10 to avoid excessive enumeration.
+   *
+   * @param typeChecker the {@link FamilyOperandTypeChecker} to use for generating signatures
+   * @return a list of allowed function signatures
+   */
+  private static String getFamilySignatures(FamilyOperandTypeChecker typeChecker) {
+<span class="nc" id="L475">    var allowedExprSignatures = getExprSignatures(typeChecker);</span>
+<span class="nc" id="L476">    return formatExprSignatures(allowedExprSignatures);</span>
+  }
+
+  private static List&lt;List&lt;ExprType&gt;&gt; getExprSignatures(FamilyOperandTypeChecker typeChecker) {
+<span class="nc" id="L480">    var operandCountRange = typeChecker.getOperandCountRange();</span>
+<span class="nc" id="L481">    int min = operandCountRange.getMin();</span>
+<span class="nc" id="L482">    int max = operandCountRange.getMax();</span>
+<span class="nc" id="L483">    List&lt;SqlTypeFamily&gt; families = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">    for (int i = 0; i &lt; min; i++) {</span>
+<span class="nc" id="L485">      families.add(typeChecker.getOperandSqlTypeFamily(i));</span>
+    }
+<span class="nc" id="L487">    List&lt;List&lt;ExprType&gt;&gt; allowedSignatures = new ArrayList&lt;&gt;(getExprSignatures(families));</span>
+
+    // Avoid enumerating signatures for infinite args
+<span class="nc" id="L490">    final int MAX_ARGS = 10;</span>
+<span class="nc" id="L491">    max = Math.min(max, MAX_ARGS);</span>
+<span class="nc bnc" id="L492" title="All 2 branches missed.">    for (int i = min; i &lt; max; i++) {</span>
+<span class="nc" id="L493">      families.add(typeChecker.getOperandSqlTypeFamily(i));</span>
+<span class="nc" id="L494">      allowedSignatures.addAll(getExprSignatures(families));</span>
+    }
+<span class="nc" id="L496">    return allowedSignatures;</span>
+  }
+
+  /**
+   * Converts a {@link SqlTypeFamily} to a list of {@link ExprType}. This method is used to display
+   * the allowed signatures for functions based on their type families.
+   *
+   * @param family the {@link SqlTypeFamily} to convert
+   * @return a list of {@link ExprType} corresponding to the concrete types of the family
+   */
+  private static List&lt;ExprType&gt; getExprTypes(SqlTypeFamily family) {
+<span class="nc" id="L507">    List&lt;RelDataType&gt; concreteTypes =</span>
+<span class="nc bnc" id="L508" title="All 6 branches missed.">        switch (family) {</span>
+<span class="nc" id="L509">          case DATETIME -&gt; List.of(</span>
+<span class="nc" id="L510">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP),</span>
+<span class="nc" id="L511">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),</span>
+<span class="nc" id="L512">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME));</span>
+<span class="nc" id="L513">          case NUMERIC -&gt; List.of(</span>
+<span class="nc" id="L514">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),</span>
+<span class="nc" id="L515">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));</span>
+            // Integer is mapped to BIGINT in family.getDefaultConcreteType
+<span class="nc" id="L517">          case INTEGER -&gt; List.of(</span>
+<span class="nc" id="L518">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));</span>
+<span class="nc" id="L519">          case ANY, IGNORE -&gt; List.of(</span>
+<span class="nc" id="L520">              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));</span>
+<span class="nc" id="L521">          case DATETIME_INTERVAL -&gt; SqlTypeName.INTERVAL_TYPES.stream()</span>
+<span class="nc" id="L522">              .map(</span>
+                  type -&gt;
+<span class="nc" id="L524">                      OpenSearchTypeFactory.TYPE_FACTORY.createSqlIntervalType(</span>
+                          new SqlIntervalQualifier(
+<span class="nc" id="L526">                              type.getStartUnit(), type.getEndUnit(), SqlParserPos.ZERO)))</span>
+<span class="nc" id="L527">              .collect(Collectors.toList());</span>
+          default -&gt; {
+<span class="nc" id="L529">            RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);</span>
+<span class="nc bnc" id="L530" title="All 2 branches missed.">            if (type == null) {</span>
+<span class="nc" id="L531">              yield List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));</span>
+            }
+<span class="nc" id="L533">            yield List.of(type);</span>
+          }
+        };
+<span class="nc" id="L536">    return concreteTypes.stream()</span>
+<span class="nc" id="L537">        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)</span>
+<span class="nc" id="L538">        .distinct()</span>
+<span class="nc" id="L539">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Generates a list of all possible {@link ExprType} signatures based on the provided {@link
+   * SqlTypeFamily} list.
+   *
+   * @param families the list of {@link SqlTypeFamily} to generate signatures for
+   * @return a list of lists, where each inner list contains {@link ExprType} signatures
+   */
+  private static List&lt;List&lt;ExprType&gt;&gt; getExprSignatures(List&lt;SqlTypeFamily&gt; families) {
+<span class="nc" id="L550">    List&lt;List&lt;ExprType&gt;&gt; exprTypes =</span>
+<span class="nc" id="L551">        families.stream().map(PPLTypeChecker::getExprTypes).collect(Collectors.toList());</span>
+
+    // Do a cartesian product of all ExprTypes in the family
+<span class="nc" id="L554">    return Lists.cartesianProduct(exprTypes);</span>
+  }
+
+  /**
+   * Generates a string representation of the function signature based on the provided type
+   * families. The format is a list of type families enclosed in square brackets, e.g.: &quot;[INTEGER,
+   * STRING]&quot;.
+   *
+   * @param families the list of type families to include in the signature
+   * @return a string representation of the function signature
+   */
+  private static String getFamilySignature(List&lt;SqlTypeFamily&gt; families) {
+<span class="nc" id="L566">    List&lt;List&lt;ExprType&gt;&gt; signatures = getExprSignatures(families);</span>
+    // Convert each signature to a string representation and then concatenate them
+<span class="nc" id="L568">    return formatExprSignatures(signatures);</span>
+  }
+
+  /**
+   * Checks if the provided {@link CompositeOperandTypeChecker} is of type OR composition.
+   *
+   * &lt;p&gt;This method uses reflection to access the protected &quot;composition&quot; field of the
+   * CompositeOperandTypeChecker class.
+   *
+   * @param typeChecker the CompositeOperandTypeChecker to check
+   * @return true if the composition is OR, false otherwise
+   */
+  private static boolean isCompositionOr(CompositeOperandTypeChecker typeChecker)
+      throws NoSuchFieldException,
+          IllegalAccessException,
+          InaccessibleObjectException,
+          SecurityException {
+<span class="fc" id="L585">    Field compositionField = CompositeOperandTypeChecker.class.getDeclaredField(&quot;composition&quot;);</span>
+<span class="fc" id="L586">    compositionField.setAccessible(true);</span>
+<span class="fc" id="L587">    CompositeOperandTypeChecker.Composition composition =</span>
+<span class="fc" id="L588">        (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);</span>
+<span class="fc bfc" id="L589" title="All 2 branches covered.">    return composition == CompositeOperandTypeChecker.Composition.OR;</span>
+  }
+
+  private static String formatExprSignatures(List&lt;List&lt;ExprType&gt;&gt; signatures) {
+<span class="nc" id="L593">    return signatures.stream()</span>
+<span class="nc" id="L594">        .map(</span>
+            types -&gt;
+<span class="nc" id="L596">                &quot;[&quot;</span>
+<span class="nc" id="L597">                    + types.stream()</span>
+                        // Display ExprCoreType.UNDEFINED as &quot;ANY&quot; for better interpretability
+<span class="nc bnc" id="L599" title="All 2 branches missed.">                        .map(t -&gt; t == ExprCoreType.UNDEFINED ? &quot;ANY&quot; : t.toString())</span>
+<span class="nc" id="L600">                        .collect(Collectors.joining(&quot;,&quot;))</span>
+                    + &quot;]&quot;)
+<span class="nc" id="L602">        .collect(Collectors.joining(&quot;,&quot;));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

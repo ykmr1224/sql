@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchRestClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.client</a> &gt; <span class="el_source">OpenSearchRestClient.java</span></div><h1>OpenSearchRestClient.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.client;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.search.*;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.CreateIndexRequest;
+import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.client.indices.GetIndexResponse;
+import org.opensearch.client.indices.GetMappingsRequest;
+import org.opensearch.client.indices.GetMappingsResponse;
+import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.transport.client.node.NodeClient;
+
+/**
+ * OpenSearch REST client to support standalone mode that runs entire engine from remote.
+ *
+ * &lt;p&gt;TODO: Support for authN and authZ with AWS Sigv4 or security plugin.
+ */
+@RequiredArgsConstructor
+public class OpenSearchRestClient implements OpenSearchClient {
+
+  /** OpenSearch high level REST client. */
+  private final RestHighLevelClient client;
+
+  @Override
+  public boolean exists(String indexName) {
+    try {
+<span class="fc" id="L52">      return client.indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);</span>
+<span class="fc" id="L53">    } catch (IOException e) {</span>
+<span class="fc" id="L54">      throw new IllegalStateException(&quot;Failed to check if index [&quot; + indexName + &quot;] exist&quot;, e);</span>
+    }
+  }
+
+  @Override
+  public void createIndex(String indexName, Map&lt;String, Object&gt; mappings) {
+    try {
+<span class="fc" id="L61">      client</span>
+<span class="fc" id="L62">          .indices()</span>
+<span class="fc" id="L63">          .create(new CreateIndexRequest(indexName).mapping(mappings), RequestOptions.DEFAULT);</span>
+<span class="fc" id="L64">    } catch (IOException e) {</span>
+<span class="fc" id="L65">      throw new IllegalStateException(&quot;Failed to create index [&quot; + indexName + &quot;]&quot;, e);</span>
+<span class="fc" id="L66">    }</span>
+<span class="fc" id="L67">  }</span>
+
+  @Override
+  public Map&lt;String, IndexMapping&gt; getIndexMappings(String... indexExpression) {
+<span class="fc" id="L71">    GetMappingsRequest request = new GetMappingsRequest().indices(indexExpression);</span>
+    try {
+<span class="fc" id="L73">      GetMappingsResponse response = client.indices().getMapping(request, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L74">      return response.mappings().entrySet().stream()</span>
+<span class="fc" id="L75">          .collect(Collectors.toMap(Map.Entry::getKey, e -&gt; new IndexMapping(e.getValue())));</span>
+<span class="fc" id="L76">    } catch (IOException e) {</span>
+<span class="fc" id="L77">      throw new IllegalStateException(&quot;Failed to get index mappings for &quot; + indexExpression, e);</span>
+    }
+  }
+
+  @Override
+  public Map&lt;String, Integer&gt; getIndexMaxResultWindows(String... indexExpression) {
+<span class="fc" id="L83">    GetSettingsRequest request =</span>
+<span class="fc" id="L84">        new GetSettingsRequest().indices(indexExpression).includeDefaults(true);</span>
+    try {
+<span class="fc" id="L86">      GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L87">      Map&lt;String, Settings&gt; settings = response.getIndexToSettings();</span>
+<span class="fc" id="L88">      Map&lt;String, Settings&gt; defaultSettings = response.getIndexToDefaultSettings();</span>
+<span class="fc" id="L89">      Map&lt;String, Integer&gt; result = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L91">      defaultSettings.forEach(</span>
+          (key, value) -&gt; {
+<span class="fc" id="L93">            Integer maxResultWindow = value.getAsInt(&quot;index.max_result_window&quot;, null);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">            if (maxResultWindow != null) {</span>
+<span class="fc" id="L95">              result.put(key, maxResultWindow);</span>
+            }
+<span class="fc" id="L97">          });</span>
+
+<span class="fc" id="L99">      settings.forEach(</span>
+          (key, value) -&gt; {
+<span class="fc" id="L101">            Integer maxResultWindow = value.getAsInt(&quot;index.max_result_window&quot;, null);</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">            if (maxResultWindow != null) {</span>
+<span class="fc" id="L103">              result.put(key, maxResultWindow);</span>
+            }
+<span class="fc" id="L105">          });</span>
+
+<span class="fc" id="L107">      return result;</span>
+<span class="fc" id="L108">    } catch (IOException e) {</span>
+<span class="fc" id="L109">      throw new IllegalStateException(&quot;Failed to get max result window for &quot; + indexExpression, e);</span>
+    }
+  }
+
+  @Override
+  public OpenSearchResponse search(OpenSearchRequest request) {
+<span class="fc" id="L115">    return request.search(</span>
+        req -&gt; {
+          try {
+            // For RestClient with PIT: remove indices to avoid validation error
+            // &quot;indices cannot be used with point in time&quot;
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">            if (req.source() != null &amp;&amp; req.source().pointInTimeBuilder() != null) {</span>
+<span class="nc" id="L121">              req = new SearchRequest().source(req.source());</span>
+            }
+<span class="fc" id="L123">            return client.search(req, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L124">          } catch (IOException e) {</span>
+<span class="fc" id="L125">            throw new IllegalStateException(</span>
+                &quot;Failed to perform search operation with request &quot; + req, e);
+          }
+        },
+        req -&gt; {
+          try {
+<span class="fc" id="L131">            return client.scroll(req, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L132">          } catch (IOException e) {</span>
+<span class="fc" id="L133">            throw new IllegalStateException(</span>
+                &quot;Failed to perform scroll operation with request &quot; + req, e);
+          }
+        });
+  }
+
+  /**
+   * Get the combination of the indices and the alias.
+   *
+   * @return the combination of the indices and the alias
+   */
+  @Override
+  public List&lt;String&gt; indices() {
+    try {
+<span class="fc" id="L147">      GetIndexResponse indexResponse =</span>
+<span class="fc" id="L148">          client.indices().get(new GetIndexRequest(), RequestOptions.DEFAULT);</span>
+<span class="fc" id="L149">      final Stream&lt;String&gt; aliasStream =</span>
+<span class="fc" id="L150">          ImmutableList.copyOf(indexResponse.getAliases().values()).stream()</span>
+<span class="fc" id="L151">              .flatMap(Collection::stream)</span>
+<span class="fc" id="L152">              .map(AliasMetadata::alias);</span>
+<span class="fc" id="L153">      return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)</span>
+<span class="fc" id="L154">          .collect(Collectors.toList());</span>
+<span class="fc" id="L155">    } catch (IOException e) {</span>
+<span class="fc" id="L156">      throw new IllegalStateException(&quot;Failed to get indices&quot;, e);</span>
+    }
+  }
+
+  /**
+   * Get meta info of the cluster.
+   *
+   * @return meta info of the cluster.
+   */
+  @Override
+  public Map&lt;String, String&gt; meta() {
+    try {
+<span class="fc" id="L168">      final ImmutableMap.Builder&lt;String, String&gt; builder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L169">      ClusterGetSettingsRequest request = new ClusterGetSettingsRequest();</span>
+<span class="fc" id="L170">      request.includeDefaults(true);</span>
+<span class="fc" id="L171">      request.local(true);</span>
+<span class="fc" id="L172">      final Settings defaultSettings =</span>
+<span class="fc" id="L173">          client.cluster().getSettings(request, RequestOptions.DEFAULT).getDefaultSettings();</span>
+<span class="fc" id="L174">      builder.put(META_CLUSTER_NAME, defaultSettings.get(&quot;cluster.name&quot;, &quot;opensearch&quot;));</span>
+<span class="fc" id="L175">      builder.put(</span>
+<span class="fc" id="L176">          &quot;plugins.sql.pagination.api&quot;, defaultSettings.get(&quot;plugins.sql.pagination.api&quot;, &quot;true&quot;));</span>
+<span class="fc" id="L177">      return builder.build();</span>
+<span class="fc" id="L178">    } catch (IOException e) {</span>
+<span class="fc" id="L179">      throw new IllegalStateException(&quot;Failed to get cluster meta info&quot;, e);</span>
+    }
+  }
+
+  @Override
+  public void cleanup(OpenSearchRequest request) {
+<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (request instanceof OpenSearchScrollRequest) {</span>
+<span class="fc" id="L186">      request.clean(</span>
+          scrollId -&gt; {
+            try {
+<span class="fc" id="L189">              ClearScrollRequest clearRequest = new ClearScrollRequest();</span>
+<span class="fc" id="L190">              clearRequest.addScrollId(scrollId);</span>
+<span class="fc" id="L191">              client.clearScroll(clearRequest, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L192">            } catch (IOException e) {</span>
+<span class="fc" id="L193">              throw new IllegalStateException(</span>
+                  &quot;Failed to clean up resources for search request &quot; + request, e);
+<span class="fc" id="L195">            }</span>
+<span class="fc" id="L196">          });</span>
+    } else {
+<span class="fc" id="L198">      request.clean(</span>
+          pitId -&gt; {
+<span class="fc" id="L200">            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);</span>
+<span class="fc" id="L201">            deletePit(deletePitRequest);</span>
+<span class="fc" id="L202">          });</span>
+    }
+<span class="fc" id="L204">  }</span>
+
+  @Override
+  public void schedule(Runnable task) {
+<span class="fc" id="L208">    task.run();</span>
+<span class="fc" id="L209">  }</span>
+
+  @Override
+  public NodeClient getNodeClient() {
+<span class="fc" id="L213">    throw new UnsupportedOperationException(&quot;Unsupported method.&quot;);</span>
+  }
+
+  @Override
+  public String createPit(CreatePitRequest createPitRequest) {
+    try {
+<span class="fc" id="L219">      CreatePitResponse createPitResponse =</span>
+<span class="fc" id="L220">          client.createPit(createPitRequest, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L221">      return createPitResponse.getId();</span>
+<span class="fc" id="L222">    } catch (IOException e) {</span>
+<span class="fc" id="L223">      throw new RuntimeException(&quot;Error occurred while creating PIT for new engine SQL query&quot;, e);</span>
+    }
+  }
+
+  @Override
+  public void deletePit(DeletePitRequest deletePitRequest) {
+    try {
+<span class="fc" id="L230">      DeletePitResponse deletePitResponse =</span>
+<span class="fc" id="L231">          client.deletePit(deletePitRequest, RequestOptions.DEFAULT);</span>
+<span class="fc" id="L232">    } catch (IOException e) {</span>
+<span class="fc" id="L233">      throw new RuntimeException(</span>
+          &quot;Error occurred while deleting PIT for internal plugin operation&quot;, e);
+<span class="fc" id="L235">    }</span>
+<span class="fc" id="L236">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

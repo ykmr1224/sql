@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractExprNumberValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">AbstractExprNumberValue.java</span></div><h1>AbstractExprNumberValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import com.google.common.base.Objects;
+import lombok.RequiredArgsConstructor;
+
+/** Expression Number Value. */
+@RequiredArgsConstructor
+public abstract class AbstractExprNumberValue extends AbstractExprValue {
+  private final Number value;
+
+  @Override
+  public boolean isNumber() {
+<span class="fc" id="L18">    return true;</span>
+  }
+
+  @Override
+  public Byte byteValue() {
+<span class="fc" id="L23">    return value.byteValue();</span>
+  }
+
+  @Override
+  public Short shortValue() {
+<span class="fc" id="L28">    return value.shortValue();</span>
+  }
+
+  @Override
+  public Integer integerValue() {
+<span class="fc" id="L33">    return value.intValue();</span>
+  }
+
+  @Override
+  public Long longValue() {
+<span class="fc" id="L38">    return value.longValue();</span>
+  }
+
+  @Override
+  public Float floatValue() {
+<span class="fc" id="L43">    return value.floatValue();</span>
+  }
+
+  @Override
+  public Double doubleValue() {
+<span class="fc" id="L48">    return value.doubleValue();</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L53">    return Objects.hashCode(value);</span>
+  }
+
+  @Override
+  public boolean isNull() {
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">    return value == null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RangeBucketFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.binning</a> &gt; <span class="el_source">RangeBucketFunction.java</span></div><h1>RangeBucketFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.binning;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * RANGE_BUCKET(field_value, data_min, data_max, start_param, end_param) - Range-based bucketing
+ * function.
+ *
+ * &lt;p&gt;This function creates bins based on range boundaries (start/end) using magnitude-based width
+ * calculation. It implements the sophisticated range expansion algorithm where effective range only
+ * expands, never shrinks.
+ *
+ * &lt;p&gt;Parameters:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;field_value - The numeric value to bin
+ *   &lt;li&gt;data_min - Minimum value from the dataset (from MIN window function)
+ *   &lt;li&gt;data_max - Maximum value from the dataset (from MAX window function)
+ *   &lt;li&gt;start_param - User-specified start value (or null)
+ *   &lt;li&gt;end_param - User-specified end value (or null)
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;The function calculates effective min/max using expansion algorithm and determines width using
+ * magnitude-based calculation.
+ */
+public class RangeBucketFunction extends ImplementorUDF {
+
+  public RangeBucketFunction() {
+<span class="fc" id="L45">    super(new RangeBucketImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L46">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L50">    return ReturnTypes.VARCHAR_2000;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L55">    return PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC;</span>
+  }
+
+<span class="fc" id="L58">  public static class RangeBucketImplementor implements NotNullImplementor {</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L63">      Expression fieldValue = translatedOperands.get(0);</span>
+<span class="nc" id="L64">      Expression dataMin = translatedOperands.get(1);</span>
+<span class="nc" id="L65">      Expression dataMax = translatedOperands.get(2);</span>
+<span class="nc" id="L66">      Expression startParam = translatedOperands.get(3);</span>
+<span class="nc" id="L67">      Expression endParam = translatedOperands.get(4);</span>
+
+<span class="nc" id="L69">      return Expressions.call(</span>
+          RangeBucketImplementor.class,
+          &quot;calculateRangeBucket&quot;,
+<span class="nc" id="L72">          Expressions.convert_(fieldValue, Number.class),</span>
+<span class="nc" id="L73">          Expressions.convert_(dataMin, Number.class),</span>
+<span class="nc" id="L74">          Expressions.convert_(dataMax, Number.class),</span>
+<span class="nc" id="L75">          Expressions.convert_(startParam, Number.class),</span>
+<span class="nc" id="L76">          Expressions.convert_(endParam, Number.class));</span>
+    }
+
+    /** Range bucket calculation with expansion algorithm and magnitude-based width. */
+    public static String calculateRangeBucket(
+        Number fieldValue, Number dataMin, Number dataMax, Number startParam, Number endParam) {
+<span class="nc bnc" id="L82" title="All 6 branches missed.">      if (fieldValue == null || dataMin == null || dataMax == null) {</span>
+<span class="nc" id="L83">        return null;</span>
+      }
+
+<span class="nc" id="L86">      double value = fieldValue.doubleValue();</span>
+<span class="nc" id="L87">      double dMin = dataMin.doubleValue();</span>
+<span class="nc" id="L88">      double dMax = dataMax.doubleValue();</span>
+
+      // Calculate effective min using expansion algorithm (only expand, never shrink)
+<span class="nc" id="L91">      double effectiveMin = dMin;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">      if (startParam != null) {</span>
+<span class="nc" id="L93">        double start = startParam.doubleValue();</span>
+<span class="nc" id="L94">        effectiveMin = Math.min(start, dMin);</span>
+      }
+
+      // Calculate effective max using expansion algorithm (only expand, never shrink)
+<span class="nc" id="L98">      double effectiveMax = dMax;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">      if (endParam != null) {</span>
+<span class="nc" id="L100">        double end = endParam.doubleValue();</span>
+<span class="nc" id="L101">        effectiveMax = Math.max(end, dMax);</span>
+      }
+
+      // Calculate effective range
+<span class="nc" id="L105">      double effectiveRange = effectiveMax - effectiveMin;</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">      if (effectiveRange &lt;= 0) {</span>
+<span class="nc" id="L107">        return null;</span>
+      }
+
+      // Calculate magnitude-based width with boundary handling
+<span class="nc" id="L111">      double width = calculateMagnitudeBasedWidth(effectiveRange);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      if (width &lt;= 0) {</span>
+<span class="nc" id="L113">        return null;</span>
+      }
+
+      // Calculate first bin start aligned to the width
+<span class="nc" id="L117">      double firstBinStart = Math.floor(effectiveMin / width) * width;</span>
+
+      // Calculate bin value for current field
+<span class="nc" id="L120">      double adjustedField = value - firstBinStart;</span>
+<span class="nc" id="L121">      double binIndex = Math.floor(adjustedField / width);</span>
+<span class="nc" id="L122">      double binStart = binIndex * width + firstBinStart;</span>
+<span class="nc" id="L123">      double binEnd = binStart + width;</span>
+
+<span class="nc" id="L125">      return formatRange(binStart, binEnd, width);</span>
+    }
+
+    /** Calculate magnitude-based width with boundary handling. */
+    private static double calculateMagnitudeBasedWidth(double effectiveRange) {
+<span class="nc" id="L130">      double log10Range = Math.log10(effectiveRange);</span>
+<span class="nc" id="L131">      double floorLog = Math.floor(log10Range);</span>
+
+      // Check if effective_range is exactly a power of 10
+<span class="nc bnc" id="L134" title="All 2 branches missed.">      boolean isExactPowerOf10 = Math.abs(log10Range - floorLog) &lt; 1e-10;</span>
+
+      // If exact power of 10: width = 10^(FLOOR(LOG10(effective_range)) - 1)
+      // Otherwise: width = 10^FLOOR(LOG10(effective_range))
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      double adjustedMagnitude = isExactPowerOf10 ? floorLog - 1.0 : floorLog;</span>
+
+<span class="nc" id="L140">      return Math.pow(10.0, adjustedMagnitude);</span>
+    }
+
+    /** Format range string with appropriate precision. */
+    private static String formatRange(double binStart, double binEnd, double span) {
+<span class="nc bnc" id="L145" title="All 6 branches missed.">      if (isIntegerSpan(span) &amp;&amp; isIntegerValue(binStart) &amp;&amp; isIntegerValue(binEnd)) {</span>
+<span class="nc" id="L146">        return String.format(&quot;%d-%d&quot;, (long) binStart, (long) binEnd);</span>
+      } else {
+<span class="nc" id="L148">        return formatFloatingPointRange(binStart, binEnd, span);</span>
+      }
+    }
+
+    /** Checks if the span represents an integer value. */
+    private static boolean isIntegerSpan(double span) {
+<span class="nc bnc" id="L154" title="All 4 branches missed.">      return span == Math.floor(span) &amp;&amp; !Double.isInfinite(span);</span>
+    }
+
+    /** Checks if a value is effectively an integer. */
+    private static boolean isIntegerValue(double value) {
+<span class="nc bnc" id="L159" title="All 2 branches missed.">      return Math.abs(value - Math.round(value)) &lt; 1e-10;</span>
+    }
+
+    /** Formats floating-point ranges with appropriate precision. */
+    private static String formatFloatingPointRange(double binStart, double binEnd, double span) {
+<span class="nc" id="L164">      int decimalPlaces = getAppropriateDecimalPlaces(span);</span>
+<span class="nc" id="L165">      String format = String.format(&quot;%%.%df-%%.%df&quot;, decimalPlaces, decimalPlaces);</span>
+<span class="nc" id="L166">      return String.format(format, binStart, binEnd);</span>
+    }
+
+    /** Determines appropriate decimal places for formatting based on span size. */
+    private static int getAppropriateDecimalPlaces(double span) {
+<span class="nc bnc" id="L171" title="All 2 branches missed.">      if (span &gt;= 1.0) {</span>
+<span class="nc" id="L172">        return 1;</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">      } else if (span &gt;= 0.1) {</span>
+<span class="nc" id="L174">        return 2;</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      } else if (span &gt;= 0.01) {</span>
+<span class="nc" id="L176">        return 3;</span>
+      } else {
+<span class="nc" id="L178">        return 4;</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

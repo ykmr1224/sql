@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GrokFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf</a> &gt; <span class="el_source">GrokFunction.java</span></div><h1>GrokFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf;
+
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.sql.expression.parse.GrokExpression;
+
+public final class GrokFunction extends ImplementorUDF {
+
+  public GrokFunction() {
+<span class="fc" id="L36">    super(new GrokImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L37">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L41">    return ReturnTypes.explicit(</span>
+<span class="fc" id="L42">        SqlTypeUtil.createMapType(</span>
+            TYPE_FACTORY,
+<span class="fc" id="L44">            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),</span>
+<span class="fc" id="L45">            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),</span>
+            false));
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L51">    return PPLOperandTypes.STRING_STRING;</span>
+  }
+
+<span class="fc" id="L54">  public static class GrokImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L58">      return Expressions.call(GrokFunction.GrokImplementor.class, &quot;grok&quot;, translatedOperands);</span>
+    }
+
+    public static Map&lt;String, String&gt; grok(String input, String regex) {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      if (input == null) {</span>
+<span class="nc" id="L63">        return Collections.EMPTY_MAP;</span>
+      }
+<span class="nc" id="L65">      LiteralExpression inputExpr = DSL.literal(input);</span>
+<span class="nc" id="L66">      LiteralExpression regexExpr = DSL.literal(regex);</span>
+<span class="nc" id="L67">      List&lt;String&gt; namedFields = GrokExpression.getNamedGroupCandidates(regex);</span>
+<span class="nc" id="L68">      return namedFields.stream()</span>
+<span class="nc" id="L69">          .map(</span>
+              namedField -&gt; {
+<span class="nc" id="L71">                GrokExpression grokExpression =</span>
+<span class="nc" id="L72">                    new GrokExpression(inputExpr, regexExpr, DSL.literal(namedField));</span>
+<span class="nc" id="L73">                ExprValue parsedValue = grokExpression.parseValue(inputExpr.valueOf());</span>
+<span class="nc" id="L74">                return Pair.of(namedField, parsedValue.stringValue());</span>
+              })
+<span class="nc" id="L76">          .collect(Collectors.toMap(Pair::getKey, Pair::getValue));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

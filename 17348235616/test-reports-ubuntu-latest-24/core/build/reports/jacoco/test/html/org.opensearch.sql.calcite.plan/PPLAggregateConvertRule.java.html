@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLAggregateConvertRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.plan</a> &gt; <span class="el_source">PPLAggregateConvertRule.java</span></div><h1>PPLAggregateConvertRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.opensearch.sql.calcite.plan;
+
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PairList;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.mapping.Mappings;
+import org.apache.commons.lang3.tuple.Pair;
+import org.immutables.value.Value;
+
+/**
+ * Planner rule that converts specific aggCall to a more efficient expressions, which includes:
+ *
+ * &lt;p&gt;- SUM(FIELD + NUMBER) -&gt; SUM(FIELD) + NUMBER * COUNT()
+ *
+ * &lt;p&gt;- SUM(FIELD - NUMBER) -&gt; SUM(FIELD) - NUMBER * COUNT()
+ *
+ * &lt;p&gt;- SUM(FIELD * NUMBER) -&gt; SUM(FIELD) * NUMBER
+ *
+ * &lt;p&gt;- SUM(FIELD / NUMBER) -&gt; SUM(FIELD) / NUMBER, Don't support this because of precision issue
+ *
+ * &lt;p&gt;TODO:
+ *
+ * &lt;p&gt;- AVG/MAX/MIN(FIELD [+|-|*|+|/] NUMBER) -&gt; AVG/MAX/MIN(FIELD) [+|-|*|+|/] NUMBER
+ */
+@Value.Enclosing
+public class PPLAggregateConvertRule extends RelRule&lt;PPLAggregateConvertRule.Config&gt; {
+
+  /** Creates a OpenSearchAggregateConvertRule. */
+  protected PPLAggregateConvertRule(Config config) {
+<span class="fc" id="L57">    super(config);</span>
+<span class="fc" id="L58">  }</span>
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    if (call.rels.length == 2) {</span>
+<span class="nc" id="L63">      final LogicalAggregate aggregate = call.rel(0);</span>
+<span class="nc" id="L64">      final LogicalProject project = call.rel(1);</span>
+<span class="nc" id="L65">      apply(call, aggregate, project);</span>
+<span class="nc" id="L66">    } else {</span>
+<span class="nc" id="L67">      throw new AssertionError(</span>
+<span class="nc" id="L68">          String.format(</span>
+              &quot;The length of rels should be %s but got %s&quot;,
+<span class="nc" id="L70">              this.operands.size(), call.rels.length));</span>
+    }
+<span class="nc" id="L72">  }</span>
+
+  public void apply(RelOptRuleCall call, LogicalAggregate aggregate, LogicalProject project) {
+
+<span class="fc" id="L76">    final RelBuilder relBuilder = call.builder();</span>
+<span class="fc" id="L77">    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();</span>
+<span class="fc" id="L78">    relBuilder.push(project.getInput());</span>
+
+    /*
+    Build new projects with fields to be used in the converted agg call.
+    Need to build this project in advance since building converted agg call has dependency on it.
+    */
+<span class="fc" id="L84">    List&lt;AggregateCall&gt; aggCalls = aggregate.getAggCallList();</span>
+<span class="fc" id="L85">    final List&lt;RexNode&gt; newChildProjects = new ArrayList&lt;&gt;(project.getProjects());</span>
+<span class="fc" id="L86">    List&lt;Integer&gt; convertedAggCallArgs =</span>
+<span class="fc" id="L87">        aggCalls.stream()</span>
+<span class="fc" id="L88">            .filter(aggCall -&gt; isConvertableAggCall(aggCall, project))</span>
+<span class="fc" id="L89">            .map(</span>
+                aggCall -&gt; {
+<span class="fc" id="L91">                  RexInputRef rexRef =</span>
+<span class="fc" id="L92">                      getFieldAndLiteral(project.getProjects().get(aggCall.getArgList().getFirst()))</span>
+<span class="fc" id="L93">                          .getLeft();</span>
+                  // Don't remove elements in the child project since we don't know if it will be
+                  // used by
+                  // other aggCall, will handle unused projects later
+<span class="fc" id="L97">                  int ref = newChildProjects.indexOf(rexRef);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">                  if (ref == -1) {</span>
+<span class="fc" id="L99">                    ref = newChildProjects.size();</span>
+<span class="fc" id="L100">                    newChildProjects.add(rexRef);</span>
+                  }
+<span class="fc" id="L102">                  return ref;</span>
+                })
+<span class="fc" id="L104">            .toList();</span>
+<span class="fc" id="L105">    relBuilder.project(newChildProjects);</span>
+<span class="fc" id="L106">    RelNode newInput = relBuilder.peek();</span>
+
+    /* Build converted agg call and its parent projects */
+<span class="fc" id="L109">    int convertedAggCallCnt = 0;</span>
+<span class="fc" id="L110">    final int groupSetOffset = aggregate.getGroupSet().cardinality();</span>
+<span class="fc" id="L111">    final List&lt;AggregateCall&gt; distinctAggregateCalls = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L112">    final PairList&lt;OperatorConstructor, String&gt; newExprOnAggCall = PairList.of();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    for (int i = 0; i &lt; aggregate.getAggCallList().size(); i++) {</span>
+<span class="fc" id="L114">      AggregateCall aggCall = aggregate.getAggCallList().get(i);</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">      if (isConvertableAggCall(aggCall, project)) {</span>
+        // The arg ref of convertable aggCall starts at the end of the project
+<span class="fc" id="L117">        int argRef = convertedAggCallArgs.get(convertedAggCallCnt++);</span>
+<span class="fc" id="L118">        AggregateCall sumCall =</span>
+<span class="fc" id="L119">            AggregateCall.create(</span>
+<span class="fc" id="L120">                aggCall.getParserPosition(),</span>
+<span class="fc" id="L121">                aggCall.getAggregation(),</span>
+<span class="fc" id="L122">                aggCall.isDistinct(),</span>
+<span class="fc" id="L123">                aggCall.isApproximate(),</span>
+<span class="fc" id="L124">                aggCall.ignoreNulls(),</span>
+                aggCall.rexList,
+<span class="fc" id="L126">                ImmutableList.of(argRef),</span>
+                aggCall.filterArg,
+                aggCall.distinctKeys,
+                aggCall.collation,
+<span class="fc" id="L130">                aggregate.getGroupCount(),</span>
+                newInput, // Note: must be the new Project
+                null, // The type will be inferred.
+<span class="fc" id="L133">                aggCall.getName() + &quot;_SUM&quot;);</span>
+<span class="fc" id="L134">        int sumCallRef = putToDistinctAggregateCalls(distinctAggregateCalls, sumCall);</span>
+
+        final Function&lt;RelNode, Function&lt;RexNode, RexNode&gt;&gt; literalConverterProvider;
+<span class="fc" id="L137">        RexCall rexCall = (RexCall) project.getProjects().get(aggCall.getArgList().getFirst());</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        if (rexCall.getOperator().kind == SqlKind.PLUS</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">            || rexCall.getOperator().kind == SqlKind.MINUS) {</span>
+<span class="fc" id="L140">          AggregateCall countCall =</span>
+<span class="fc" id="L141">              AggregateCall.create(</span>
+<span class="fc" id="L142">                  aggCall.getParserPosition(),</span>
+                  SqlStdOperatorTable.COUNT,
+<span class="fc" id="L144">                  aggCall.isDistinct(),</span>
+<span class="fc" id="L145">                  aggCall.isApproximate(),</span>
+<span class="fc" id="L146">                  aggCall.ignoreNulls(),</span>
+                  aggCall.rexList,
+<span class="fc" id="L148">                  ImmutableList.of(argRef),</span>
+                  aggCall.filterArg,
+                  aggCall.distinctKeys,
+                  aggCall.collation,
+<span class="fc" id="L152">                  aggregate.getGroupCount(),</span>
+                  newInput,
+                  null, // The type will be inferred.
+<span class="fc" id="L155">                  aggCall.getName() + &quot;_COUNT&quot;);</span>
+<span class="fc" id="L156">          int countCallRef = putToDistinctAggregateCalls(distinctAggregateCalls, countCall);</span>
+<span class="fc" id="L157">          literalConverterProvider =</span>
+              input -&gt;
+<span class="fc" id="L159">                  literal -&gt;</span>
+<span class="fc" id="L160">                      rexBuilder.makeCall(</span>
+<span class="fc" id="L161">                          aggCall.getType(),</span>
+                          SqlStdOperatorTable.MULTIPLY,
+<span class="fc" id="L163">                          List.of(</span>
+<span class="fc" id="L164">                              rexBuilder.makeInputRef(input, groupSetOffset + countCallRef),</span>
+                              literal));
+<span class="fc" id="L166">        } else {</span>
+<span class="nc" id="L167">          literalConverterProvider = input -&gt; literal -&gt; literal;</span>
+        }
+<span class="fc" id="L169">        newExprOnAggCall.add(</span>
+            input -&gt; {
+<span class="fc" id="L171">              Function&lt;RexNode, RexNode&gt; fieldConverter =</span>
+<span class="fc" id="L172">                  field -&gt; rexBuilder.makeInputRef(input, groupSetOffset + sumCallRef);</span>
+<span class="fc" id="L173">              Function&lt;RexNode, RexNode&gt; literalConverter = literalConverterProvider.apply(input);</span>
+<span class="fc" id="L174">              List&lt;RexNode&gt; operands =</span>
+<span class="fc" id="L175">                  List.of(</span>
+<span class="fc" id="L176">                      convertToNewOperand(</span>
+<span class="fc" id="L177">                          rexCall.getOperands().getFirst(), fieldConverter, literalConverter),</span>
+<span class="fc" id="L178">                      convertToNewOperand(</span>
+<span class="fc" id="L179">                          rexCall.getOperands().getLast(), fieldConverter, literalConverter));</span>
+<span class="fc" id="L180">              return rexBuilder.makeCall(aggCall.getType(), rexCall.getOperator(), operands);</span>
+            },
+<span class="fc" id="L182">            aggCall.getName());</span>
+<span class="fc" id="L183">      } else {</span>
+<span class="nc" id="L184">        int callRef = putToDistinctAggregateCalls(distinctAggregateCalls, aggCall);</span>
+<span class="nc" id="L185">        newExprOnAggCall.add(</span>
+<span class="nc" id="L186">            input -&gt; rexBuilder.makeInputRef(input, groupSetOffset + callRef), aggCall.getName());</span>
+      }
+    }
+
+    /* Eliminate unused fields in the child project */
+<span class="fc" id="L191">    ImmutableBitSet newGroupSet = aggregate.getGroupSet();</span>
+    ;
+<span class="fc" id="L193">    ImmutableList&lt;ImmutableBitSet&gt; newGroupSets = aggregate.getGroupSets();</span>
+    ;
+<span class="fc" id="L195">    final Set&lt;Integer&gt; fieldsUsed =</span>
+<span class="fc" id="L196">        RelOptUtil.getAllFields2(aggregate.getGroupSet(), distinctAggregateCalls);</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">    if (fieldsUsed.size() &lt; newChildProjects.size()) {</span>
+      // Some fields are computed but not used. Prune them.
+<span class="fc" id="L199">      final Map&lt;Integer, Integer&gt; sourceFieldToTargetFieldMap = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">      for (int source : fieldsUsed) {</span>
+<span class="fc" id="L201">        sourceFieldToTargetFieldMap.put(source, sourceFieldToTargetFieldMap.size());</span>
+<span class="fc" id="L202">      }</span>
+<span class="fc" id="L203">      newGroupSet = aggregate.getGroupSet().permute(sourceFieldToTargetFieldMap);</span>
+<span class="fc" id="L204">      newGroupSets =</span>
+<span class="fc" id="L205">          ImmutableBitSet.ORDERING.immutableSortedCopy(</span>
+<span class="fc" id="L206">              ImmutableBitSet.permute(aggregate.getGroupSets(), sourceFieldToTargetFieldMap));</span>
+<span class="fc" id="L207">      final Mappings.TargetMapping targetMapping =</span>
+<span class="fc" id="L208">          Mappings.target(sourceFieldToTargetFieldMap, newChildProjects.size(), fieldsUsed.size());</span>
+<span class="fc" id="L209">      final List&lt;AggregateCall&gt; oldAggregateCalls = new ArrayList&lt;&gt;(distinctAggregateCalls);</span>
+<span class="fc" id="L210">      distinctAggregateCalls.clear();</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">      for (AggregateCall aggregateCall : oldAggregateCalls) {</span>
+<span class="fc" id="L212">        distinctAggregateCalls.add(aggregateCall.transform(targetMapping));</span>
+<span class="fc" id="L213">      }</span>
+      // Project the used fields
+<span class="fc" id="L215">      relBuilder.project(relBuilder.fields(fieldsUsed.stream().toList()));</span>
+    }
+
+    /* Build the final project-aggregate-project after eliminating unused fields */
+<span class="fc" id="L219">    relBuilder.aggregate(relBuilder.groupKey(newGroupSet, newGroupSets), distinctAggregateCalls);</span>
+<span class="fc" id="L220">    List&lt;RexNode&gt; parentProjects =</span>
+<span class="fc" id="L221">        new ArrayList&lt;&gt;(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));</span>
+<span class="fc" id="L222">    parentProjects.addAll(</span>
+<span class="fc" id="L223">        newExprOnAggCall.transform(</span>
+            (constructor, name) -&gt;
+<span class="fc" id="L225">                aliasMaybe(relBuilder, constructor.apply(relBuilder.peek()), name)));</span>
+<span class="fc" id="L226">    relBuilder.project(parentProjects);</span>
+<span class="fc" id="L227">    call.transformTo(relBuilder.build());</span>
+<span class="fc" id="L228">  }</span>
+
+  interface OperatorConstructor {
+    RexNode apply(RelNode input);
+  }
+
+  private int putToDistinctAggregateCalls(
+      List&lt;AggregateCall&gt; distinctAggregateCalls, AggregateCall aggCall) {
+<span class="fc" id="L236">    int i = distinctAggregateCalls.indexOf(aggCall);</span>
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">    if (i &lt; 0) {</span>
+<span class="fc" id="L238">      i = distinctAggregateCalls.size();</span>
+<span class="fc" id="L239">      distinctAggregateCalls.add(aggCall);</span>
+    }
+<span class="fc" id="L241">    return i;</span>
+  }
+
+  private boolean isConvertableAggCall(AggregateCall aggCall, Project project) {
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">    return aggCall.getAggregation().getKind() == SqlKind.SUM</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">        &amp;&amp; Config.isCallWithLiteral(project.getProjects().get(aggCall.getArgList().getFirst()));</span>
+  }
+
+  private static Pair&lt;RexInputRef, RexLiteral&gt; getFieldAndLiteral(RexNode node) {
+<span class="fc" id="L250">    RexCall call = (RexCall) node;</span>
+<span class="fc" id="L251">    RexNode arg1 = call.getOperands().getFirst();</span>
+<span class="fc" id="L252">    RexNode arg2 = call.getOperands().getLast();</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">    return arg1.getKind() == SqlKind.INPUT_REF</span>
+<span class="fc" id="L254">        ? Pair.of((RexInputRef) arg1, (RexLiteral) arg2)</span>
+<span class="nc" id="L255">        : Pair.of((RexInputRef) arg2, (RexLiteral) arg1);</span>
+  }
+
+  private static RexNode convertToNewOperand(
+      RexNode operand,
+      Function&lt;RexNode, RexNode&gt; fieldConverter,
+      Function&lt;RexNode, RexNode&gt; literalConverter) {
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (operand.getKind() == SqlKind.INPUT_REF) {</span>
+<span class="fc" id="L263">      return fieldConverter.apply(operand);</span>
+    } else {
+<span class="fc" id="L265">      return literalConverter.apply(operand);</span>
+    }
+  }
+
+  private RexNode aliasMaybe(RelBuilder builder, RexNode node, String alias) {
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">    return alias == null ? node : builder.alias(node, alias);</span>
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config SUM_CONVERTER =
+<span class="fc" id="L277">        ImmutablePPLAggregateConvertRule.Config.builder()</span>
+<span class="fc" id="L278">            .build()</span>
+<span class="fc" id="L279">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="fc" id="L281">                    b0.operand(LogicalAggregate.class)</span>
+<span class="fc" id="L282">                        .predicate(Config::containsSumAggCall)</span>
+<span class="fc" id="L283">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="fc" id="L285">                                b1.operand(LogicalProject.class)</span>
+<span class="fc" id="L286">                                    .predicate(Config::containsCallWithNumber)</span>
+<span class="fc" id="L287">                                    .anyInputs()));</span>
+
+    static boolean containsSumAggCall(LogicalAggregate aggregate) {
+<span class="fc" id="L290">      return aggregate.getAggCallList().stream()</span>
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">          .anyMatch(aggCall -&gt; aggCall.getAggregation().getKind() == SqlKind.SUM);</span>
+    }
+
+    static boolean containsCallWithNumber(LogicalProject project) {
+<span class="fc" id="L295">      return project.getProjects().stream().anyMatch(Config::isCallWithLiteral);</span>
+    }
+
+    private static boolean isCallWithLiteral(RexNode node) {
+<span class="pc bpc" id="L299" title="1 of 4 branches missed.">      if (CONVERTABLE_FUNCTIONS.contains(node.getKind()) &amp;&amp; node instanceof RexCall call) {</span>
+<span class="fc" id="L300">        RexNode arg1 = call.getOperands().getFirst();</span>
+<span class="fc" id="L301">        RexNode arg2 = call.getOperands().getLast();</span>
+<span class="pc bpc" id="L302" title="2 of 4 branches missed.">        return (arg1.getKind() == SqlKind.INPUT_REF &amp;&amp; arg2.getKind() == SqlKind.LITERAL)</span>
+<span class="pc bnc" id="L303" title="All 4 branches missed.">            || (arg1.getKind() == SqlKind.LITERAL &amp;&amp; arg2.getKind() == SqlKind.INPUT_REF);</span>
+      }
+<span class="fc" id="L305">      return false;</span>
+    }
+
+<span class="fc" id="L308">    List&lt;SqlKind&gt; CONVERTABLE_FUNCTIONS =</span>
+<span class="fc" id="L309">        List.of(</span>
+            SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES
+            // Don't support division because of the issue of integer division
+            // e.g. (2000 / 3) * 3 = 1998 while 2000 * 3 / 3 = 2000
+            // SqlKind.DIVIDE
+            );
+
+    @Override
+    default PPLAggregateConvertRule toRule() {
+<span class="fc" id="L318">      return new PPLAggregateConvertRule(this);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

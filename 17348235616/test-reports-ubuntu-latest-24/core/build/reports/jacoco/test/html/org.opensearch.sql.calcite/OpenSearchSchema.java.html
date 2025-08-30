@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchSchema.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite</a> &gt; <span class="el_source">OpenSearchSchema.java</span></div><h1>OpenSearchSchema.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite;
+
+import java.util.HashMap;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.datasource.DataSourceService;
+
+@Getter
+@AllArgsConstructor
+public class OpenSearchSchema extends AbstractSchema {
+  public static final String OPEN_SEARCH_SCHEMA_NAME = &quot;OpenSearch&quot;;
+
+  private final DataSourceService dataSourceService;
+
+  private final Map&lt;String, Table&gt; tableMap =
+<span class="nc" id="L27">      new HashMap&lt;&gt;() {</span>
+        @Override
+        public Table get(Object key) {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">          if (!super.containsKey(key)) {</span>
+<span class="nc" id="L31">            registerTable(new QualifiedName((String) key));</span>
+          }
+<span class="nc" id="L33">          return super.get(key);</span>
+        }
+      };
+
+  public void registerTable(QualifiedName qualifiedName) {
+<span class="nc" id="L38">    DataSourceSchemaIdentifierNameResolver nameResolver =</span>
+<span class="nc" id="L39">        new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());</span>
+<span class="nc" id="L40">    org.opensearch.sql.storage.Table table =</span>
+        dataSourceService
+<span class="nc" id="L42">            .getDataSource(nameResolver.getDataSourceName())</span>
+<span class="nc" id="L43">            .getStorageEngine()</span>
+<span class="nc" id="L44">            .getTable(</span>
+                new DataSourceSchemaName(
+<span class="nc" id="L46">                    nameResolver.getDataSourceName(), nameResolver.getSchemaName()),</span>
+<span class="nc" id="L47">                nameResolver.getIdentifierName());</span>
+<span class="nc" id="L48">    tableMap.put(qualifiedName.toString(), (org.apache.calcite.schema.Table) table);</span>
+<span class="nc" id="L49">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.calcite.CalcitePPLExistsSubqueryTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.calcite.CalcitePPLExistsSubqueryTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.calcite.html">org.opensearch.sql.ppl.calcite</a> &gt; CalcitePPLExistsSubqueryTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">12</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.430s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testCorrelatedExistsSubqueryWithAlias</td>
+<td class="success">0.055s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrelatedExistsSubqueryWithOverridingFields</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrelatedExistsSubqueryWithoutAlias</td>
+<td class="success">0.020s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrelatedNotExistsSubqueryWithTableNames</td>
+<td class="success">0.029s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrelatedNotExistsSubqueryWithoutAlias</td>
+<td class="success">0.018s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testExistsSubqueryInFilter</td>
+<td class="success">0.050s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testNestedCorrelatedExistsSubquery</td>
+<td class="success">0.028s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testNestedMixedExistsSubquery</td>
+<td class="success">0.089s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testNestedUncorrelatedExistsSubquery</td>
+<td class="success">0.021s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testNotExistsSubqueryInFilter</td>
+<td class="success">0.031s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUncorrelatedExistsSubquery</td>
+<td class="success">0.021s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUncorrelatedNotExistsSubquery</td>
+<td class="success">0.023s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($cor0.SAL, 1000.0:DECIMAL(5, 1))])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($5, $cor1.HISAL)])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($cor2.SAL, 1000.0:DECIMAL(5, 1))])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($5, $cor3.HISAL)])
+  LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor3]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor2]])
+    LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor1]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($cor0.SAL, 1000.0:DECIMAL(5, 1))])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($5, $cor1.HISAL)])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($cor2.SAL, 1000.0:DECIMAL(5, 1))])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($5, $cor3.HISAL)])
+  LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor3]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor2]])
+    LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor1]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+  LogicalTableScan(table=[[scott, DEPT]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[+($7, 1)])
+    LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+}))], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])
+  LogicalTableScan(table=[[scott, DEPT]])
+}))], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])
+  LogicalTableScan(table=[[scott, DEPT]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+}))], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalTableScan(table=[[scott, SALGRADE]])
+}))], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($2, 1000.0:DECIMAL(5, 1))])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[&gt;($5, 1000.0:DECIMAL(5, 1))])
+  LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor1]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.SAL, $2)])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($5, $cor1.HISAL)])
+  LogicalTableScan(table=[[scott, EMP]])
+})], variablesSet=[[$cor1]])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+})], variablesSet=[[$cor0]])
+      LogicalTableScan(table=[[scott, EMP]])
+
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 9:12:52 PM</p>
+</div>
+</div>
+</body>
+</html>

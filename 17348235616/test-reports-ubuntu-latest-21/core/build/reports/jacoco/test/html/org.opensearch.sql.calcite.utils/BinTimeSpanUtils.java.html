@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinTimeSpanUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils</a> &gt; <span class="el_source">BinTimeSpanUtils.java</span></div><h1>BinTimeSpanUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils;
+
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.binning.time.TimeSpanExpressionFactory;
+
+/**
+ * Simplified facade for time span expressions in bin command operations. This is completely
+ * separate from the aggregation span functionality to avoid shared infrastructure that could break
+ * customer queries.
+ */
+<span class="nc" id="L17">public class BinTimeSpanUtils {</span>
+
+<span class="nc" id="L19">  private static final TimeSpanExpressionFactory factory = new TimeSpanExpressionFactory();</span>
+
+  /**
+   * Creates a bin-specific time span expression for SPL-compatible time binning.
+   *
+   * @param fieldExpr The field expression to bin
+   * @param intervalValue The interval value
+   * @param unit The time unit (e.g., &quot;h&quot;, &quot;m&quot;, &quot;s&quot;)
+   * @param alignmentOffsetMillis Alignment offset in milliseconds
+   * @param context The Calcite plan context
+   * @return RexNode representing the time span expression
+   */
+  public static RexNode createBinTimeSpanExpression(
+      RexNode fieldExpr,
+      int intervalValue,
+      String unit,
+      long alignmentOffsetMillis,
+      CalcitePlanContext context) {
+
+<span class="nc" id="L38">    return factory.createTimeSpanExpression(</span>
+        fieldExpr, intervalValue, unit, alignmentOffsetMillis, context);
+  }
+
+  /**
+   * Creates a bin-specific time span expression with time modifier alignment. Handles SPL time
+   * modifiers like @d, @d+4h, @d-1h and epoch timestamps.
+   *
+   * @param fieldExpr The field expression to bin
+   * @param intervalValue The interval value
+   * @param unit The time unit (e.g., &quot;h&quot;, &quot;m&quot;, &quot;s&quot;)
+   * @param timeModifier The time modifier or epoch timestamp
+   * @param context The Calcite plan context
+   * @return RexNode representing the time span expression
+   */
+  public static RexNode createBinTimeSpanExpressionWithTimeModifier(
+      RexNode fieldExpr,
+      int intervalValue,
+      String unit,
+      String timeModifier,
+      CalcitePlanContext context) {
+
+<span class="nc" id="L60">    return factory.createTimeSpanExpressionWithTimeModifier(</span>
+        fieldExpr, intervalValue, unit, timeModifier, context);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

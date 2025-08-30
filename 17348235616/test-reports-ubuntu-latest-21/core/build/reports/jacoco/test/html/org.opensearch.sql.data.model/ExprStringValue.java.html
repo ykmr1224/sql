@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprStringValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.data.model</a> &gt; <span class="el_source">ExprStringValue.java</span></div><h1>ExprStringValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.data.model;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+
+/** Expression String Value. */
+@RequiredArgsConstructor
+public class ExprStringValue extends AbstractExprValue {
+  private final String value;
+
+  @Override
+  public Object value() {
+<span class="fc" id="L25">    return value;</span>
+  }
+
+  @Override
+  public ExprType type() {
+<span class="fc" id="L30">    return ExprCoreType.STRING;</span>
+  }
+
+  @Override
+  public String stringValue() {
+<span class="fc" id="L35">    return value;</span>
+  }
+
+  @Override
+  public Instant timestampValue() {
+    try {
+<span class="fc" id="L41">      return new ExprTimestampValue(value).timestampValue();</span>
+<span class="fc" id="L42">    } catch (ExpressionEvaluationException e) {</span>
+<span class="nc" id="L43">      return new ExprTimestampValue(</span>
+<span class="nc" id="L44">              LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)))</span>
+<span class="nc" id="L45">          .timestampValue();</span>
+    }
+  }
+
+  @Override
+  public LocalDate dateValue() {
+    try {
+<span class="fc" id="L52">      return new ExprTimestampValue(value).dateValue();</span>
+<span class="fc" id="L53">    } catch (ExpressionEvaluationException e) {</span>
+<span class="nc" id="L54">      return new ExprDateValue(value).dateValue();</span>
+    }
+  }
+
+  @Override
+  public LocalTime timeValue() {
+    try {
+<span class="fc" id="L61">      return new ExprTimestampValue(value).timeValue();</span>
+<span class="fc" id="L62">    } catch (ExpressionEvaluationException e) {</span>
+<span class="fc" id="L63">      return new ExprTimeValue(value).timeValue();</span>
+    }
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L69">    return String.format(&quot;\&quot;%s\&quot;&quot;, value);</span>
+  }
+
+  @Override
+  public int compare(ExprValue other) {
+<span class="fc" id="L74">    return value.compareTo(other.stringValue());</span>
+  }
+
+  @Override
+  public boolean equal(ExprValue other) {
+<span class="fc" id="L79">    return value.equals(other.stringValue());</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L84">    return Objects.hashCode(value);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

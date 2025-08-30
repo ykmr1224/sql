@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchErrorMessage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.response.error</a> &gt; <span class="el_source">OpenSearchErrorMessage.java</span></div><h1>OpenSearchErrorMessage.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.response.error;
+
+import java.util.Locale;
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
+
+/** OpenSearch Error Message. */
+public class OpenSearchErrorMessage extends ErrorMessage {
+
+  OpenSearchErrorMessage(OpenSearchException exception, int defaultStatus) {
+<span class="fc bfc" id="L17" title="All 2 branches covered.">    super(exception, exception.status() != null ? exception.status().getStatus() : defaultStatus);</span>
+<span class="fc" id="L18">  }</span>
+
+  @Override
+  protected String fetchReason() {
+<span class="fc" id="L22">    return &quot;Error occurred in OpenSearch engine: &quot; + exception.getMessage();</span>
+  }
+
+  /**
+   * Currently Sql-Jdbc plugin only supports string type as reason and details in the error
+   * messages.
+   */
+  @Override
+  protected String fetchDetails() {
+<span class="fc" id="L31">    StringBuilder details = new StringBuilder();</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">    if (exception instanceof SearchPhaseExecutionException) {</span>
+<span class="fc" id="L33">      details.append(</span>
+<span class="fc" id="L34">          fetchSearchPhaseExecutionExceptionDetails((SearchPhaseExecutionException) exception));</span>
+    } else {
+<span class="fc" id="L36">      details.append(((OpenSearchException) exception).getDetailedMessage());</span>
+    }
+<span class="fc" id="L38">    details.append(</span>
+        &quot;\nFor more details, please send request for Json format to see the raw response from &quot;
+            + &quot;OpenSearch engine.&quot;);
+<span class="fc" id="L41">    return details.toString();</span>
+  }
+
+  /**
+   * Could not deliver the exactly same error messages due to the limit of JDBC types. Currently our
+   * cases occurred only SearchPhaseExecutionException instances among all types of OpenSearch
+   * exceptions according to the survey, see all types:
+   * OpenSearchException.OpenSearchExceptionHandle. Either add methods of fetching details for
+   * different types, or re-make a consistent message by not giving detailed messages/root causes
+   * but only a suggestion message.
+   */
+  private String fetchSearchPhaseExecutionExceptionDetails(
+      SearchPhaseExecutionException exception) {
+<span class="fc" id="L54">    StringBuilder details = new StringBuilder();</span>
+<span class="fc" id="L55">    ShardSearchFailure[] shardFailures = exception.shardFailures();</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    for (ShardSearchFailure failure : shardFailures) {</span>
+<span class="fc" id="L57">      details.append(</span>
+<span class="fc" id="L58">          String.format(</span>
+<span class="fc" id="L59">              Locale.ROOT, &quot;Shard[%d]: %s\n&quot;, failure.shardId(), failure.getCause().toString()));</span>
+    }
+<span class="fc" id="L61">    return details.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

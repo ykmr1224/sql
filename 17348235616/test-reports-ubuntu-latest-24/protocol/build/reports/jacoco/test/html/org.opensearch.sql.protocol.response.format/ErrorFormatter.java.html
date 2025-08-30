@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ErrorFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">protocol</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.protocol.response.format</a> &gt; <span class="el_source">ErrorFormatter.java</span></div><h1>ErrorFormatter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import com.google.gson.Gson;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.utils.SerializeUtils;
+
+@UtilityClass
+public class ErrorFormatter {
+
+<span class="fc" id="L19">  private static final Gson PRETTY_PRINT_GSON =</span>
+<span class="fc" id="L20">      AccessController.doPrivileged(</span>
+          (PrivilegedAction&lt;Gson&gt;)
+              () -&gt;
+<span class="fc" id="L23">                  SerializeUtils.getGsonBuilder()</span>
+<span class="fc" id="L24">                      .setPrettyPrinting()</span>
+<span class="fc" id="L25">                      .disableHtmlEscaping()</span>
+<span class="fc" id="L26">                      .create());</span>
+<span class="fc" id="L27">  private static final Gson GSON =</span>
+<span class="fc" id="L28">      AccessController.doPrivileged(</span>
+          (PrivilegedAction&lt;Gson&gt;)
+<span class="fc" id="L30">              () -&gt; SerializeUtils.getGsonBuilder().disableHtmlEscaping().create());</span>
+
+  /** Util method to format {@link Throwable} response to JSON string in compact printing. */
+  public static String compactFormat(Throwable t) {
+<span class="fc" id="L34">    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());</span>
+<span class="fc" id="L35">    return compactJsonify(error);</span>
+  }
+
+  /** Util method to format {@link Throwable} response to JSON string in pretty printing. */
+  public static String prettyFormat(Throwable t) {
+<span class="fc" id="L40">    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());</span>
+<span class="fc" id="L41">    return prettyJsonify(error);</span>
+  }
+
+  public static String compactJsonify(Object jsonObject) {
+<span class="fc" id="L45">    return AccessController.doPrivileged((PrivilegedAction&lt;String&gt;) () -&gt; GSON.toJson(jsonObject));</span>
+  }
+
+  public static String prettyJsonify(Object jsonObject) {
+<span class="fc" id="L49">    return AccessController.doPrivileged(</span>
+<span class="fc" id="L50">        (PrivilegedAction&lt;String&gt;) () -&gt; PRETTY_PRINT_GSON.toJson(jsonObject));</span>
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  public static class JsonError {
+    private final String type;
+    private final String reason;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonSetFunctionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.jsonUDF</a> &gt; <span class="el_source">JsonSetFunctionImpl.java</span></div><h1>JsonSetFunctionImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.jsonUDF;
+
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+public class JsonSetFunctionImpl extends ImplementorUDF {
+  public JsonSetFunctionImpl() {
+<span class="fc" id="L30">    super(new JsonSetImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L31">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L35">    return STRING_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L40">    return null;</span>
+  }
+
+<span class="fc" id="L43">  public static class JsonSetImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L47">      ScalarFunctionImpl function =</span>
+          (ScalarFunctionImpl)
+<span class="nc" id="L49">              ScalarFunctionImpl.create(</span>
+<span class="nc" id="L50">                  Types.lookupMethod(JsonSetFunctionImpl.class, &quot;eval&quot;, Object[].class));</span>
+<span class="nc" id="L51">      return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);</span>
+    }
+  }
+
+  public static Object eval(Object... args) {
+<span class="nc" id="L56">    String jsonStr = (String) args[0];</span>
+<span class="nc" id="L57">    List&lt;Object&gt; keys = Arrays.asList(args).subList(1, args.length);</span>
+<span class="nc" id="L58">    JsonNode root = convertInputToJsonNode(args[0]);</span>
+<span class="nc" id="L59">    List&lt;Object&gt; expands = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    for (int i = 0; i &lt; keys.size(); i += 2) {</span>
+<span class="nc" id="L61">      List&lt;String&gt; expandedPaths = expandJsonPath(root, convertToJsonPath(keys.get(i).toString()));</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      for (String expandedPath : expandedPaths) {</span>
+<span class="nc" id="L63">        expands.add(expandedPath);</span>
+<span class="nc" id="L64">        expands.add(keys.get(i + 1));</span>
+<span class="nc" id="L65">      }</span>
+    }
+<span class="nc" id="L67">    return JsonFunctions.jsonSet(jsonStr, expands.toArray());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IPUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">IPUtils.java</span></div><h1>IPUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import inet.ipaddr.AddressStringException;
+import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv6.IPv6Address;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.exception.SemanticCheckException;
+
+@UtilityClass
+public class IPUtils {
+
+  // Parameters for IP address strings.
+<span class="fc" id="L21">  private static final IPAddressStringParameters.Builder commonValidationOptions =</span>
+      new IPAddressStringParameters.Builder()
+<span class="fc" id="L23">          .allowEmpty(false)</span>
+<span class="fc" id="L24">          .allowMask(false)</span>
+<span class="fc" id="L25">          .setEmptyAsLoopback(false)</span>
+<span class="fc" id="L26">          .allowPrefixOnly(false)</span>
+<span class="fc" id="L27">          .allow_inet_aton(false)</span>
+<span class="fc" id="L28">          .allowSingleSegment(false);</span>
+
+<span class="fc" id="L30">  private static final IPAddressStringParameters ipAddressStringParameters =</span>
+<span class="fc" id="L31">      commonValidationOptions.allowPrefix(false).toParams();</span>
+<span class="fc" id="L32">  private static final IPAddressStringParameters ipAddressRangeStringParameters =</span>
+<span class="fc" id="L33">      commonValidationOptions.allowPrefix(true).toParams();</span>
+
+  /**
+   * Builds and returns the {@link IPAddress} represented by the given IP address range string in
+   * CIDR (classless inter-domain routing) notation. Throws {@link SemanticCheckException} if it
+   * does not represent a valid IP address range. Supports both IPv4 and IPv6 address ranges.
+   */
+  public static IPAddress toRange(String s) throws SemanticCheckException {
+    try {
+<span class="fc" id="L42">      IPAddress range = new IPAddressString(s, ipAddressRangeStringParameters).toAddress();</span>
+
+      // Convert IPv6 mapped address range to IPv4.
+<span class="fc bfc" id="L45" title="All 2 branches covered.">      if (range.isIPv4Convertible()) {</span>
+<span class="fc" id="L46">        final int prefixLength = range.getPrefixLength();</span>
+<span class="fc" id="L47">        range = range.toIPv4().setPrefixLength(prefixLength, false);</span>
+      }
+
+<span class="fc" id="L50">      return range;</span>
+
+<span class="fc" id="L52">    } catch (AddressStringException e) {</span>
+<span class="fc" id="L53">      final String errorFormat = &quot;IP address range string '%s' is not valid. Error details: %s&quot;;</span>
+<span class="fc" id="L54">      throw new SemanticCheckException(String.format(errorFormat, s, e.getMessage()), e);</span>
+    }
+  }
+
+  /**
+   * Builds and returns the {@link IPAddress} represented to the given IP address string. Throws
+   * {@link SemanticCheckException} if it does not represent a valid IP address. Supports both IPv4
+   * and IPv6 addresses.
+   */
+  public static IPAddress toAddress(String s) throws SemanticCheckException {
+    try {
+<span class="fc" id="L65">      IPAddress address = new IPAddressString(s, ipAddressStringParameters).toAddress();</span>
+
+      // Convert IPv6 mapped address to IPv4.
+<span class="fc bfc" id="L68" title="All 2 branches covered.">      if (address.isIPv4Convertible()) {</span>
+<span class="fc" id="L69">        address = address.toIPv4();</span>
+      }
+
+<span class="fc" id="L72">      return address;</span>
+<span class="fc" id="L73">    } catch (AddressStringException e) {</span>
+<span class="fc" id="L74">      final String errorFormat = &quot;IP address string '%s' is not valid. Error details: %s&quot;;</span>
+<span class="fc" id="L75">      throw new SemanticCheckException(String.format(errorFormat, s, e.getMessage()), e);</span>
+    }
+  }
+
+  /**
+   * Compares the given {@link IPAddress} objects for order. Returns a negative integer, zero, or a
+   * positive integer if the first {@link IPAddress} object is less than, equal to, or greater than
+   * the second one. IPv4 addresses are mapped to IPv6 for comparison.
+   */
+  public static int compare(IPAddress a, IPAddress b) {
+<span class="fc" id="L85">    final IPv6Address ipv6A = toIPv6Address(a);</span>
+<span class="fc" id="L86">    final IPv6Address ipv6B = toIPv6Address(b);</span>
+
+<span class="fc" id="L88">    return ipv6A.compareTo(ipv6B);</span>
+  }
+
+  /** Returns the {@link IPv6Address} corresponding to the given {@link IPAddress}. */
+  private static IPv6Address toIPv6Address(IPAddress ipAddress) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    return ipAddress instanceof IPv4Address iPv4Address</span>
+<span class="fc" id="L94">        ? iPv4Address.toIPv6()</span>
+<span class="fc" id="L95">        : (IPv6Address) ipAddress;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

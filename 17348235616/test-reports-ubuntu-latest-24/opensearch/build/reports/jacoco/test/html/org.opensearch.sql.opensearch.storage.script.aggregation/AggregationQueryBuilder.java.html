@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregationQueryBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.script.aggregation</a> &gt; <span class="el_source">AggregationQueryBuilder.java</span></div><h1>AggregationQueryBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.script.aggregation;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.MetricParser;
+import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+
+/**
+ * Build the AggregationBuilder from the list of {@link NamedAggregator} and list of {@link
+ * NamedExpression}.
+ */
+@RequiredArgsConstructor
+public class AggregationQueryBuilder extends ExpressionNodeVisitor&lt;AggregationBuilder, Object&gt; {
+
+  /** How many composite buckets should be returned. */
+  public static final int AGGREGATION_BUCKET_SIZE = 1000;
+
+  /** Bucket Aggregation builder. */
+  private final BucketAggregationBuilder bucketBuilder;
+
+  /** Metric Aggregation builder. */
+  private final MetricAggregationBuilder metricBuilder;
+
+  /** Aggregation Query Builder Constructor. */
+<span class="fc" id="L57">  public AggregationQueryBuilder(ExpressionSerializer serializer) {</span>
+<span class="fc" id="L58">    this.bucketBuilder = new BucketAggregationBuilder(serializer);</span>
+<span class="fc" id="L59">    this.metricBuilder = new MetricAggregationBuilder(serializer);</span>
+<span class="fc" id="L60">  }</span>
+
+  /** Build AggregationBuilder. */
+  public Pair&lt;List&lt;AggregationBuilder&gt;, OpenSearchAggregationResponseParser&gt;
+      buildAggregationBuilder(
+          List&lt;NamedAggregator&gt; namedAggregatorList,
+          List&lt;NamedExpression&gt; groupByList,
+          List&lt;Pair&lt;Sort.SortOption, Expression&gt;&gt; sortList) {
+
+<span class="fc" id="L69">    final Pair&lt;AggregatorFactories.Builder, List&lt;MetricParser&gt;&gt; metrics =</span>
+<span class="fc" id="L70">        metricBuilder.build(namedAggregatorList);</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (groupByList.isEmpty()) {</span>
+      // no bucket
+<span class="fc" id="L74">      return Pair.of(</span>
+<span class="fc" id="L75">          ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),</span>
+<span class="fc" id="L76">          new NoBucketAggregationParser(metrics.getRight()));</span>
+    } else {
+<span class="fc" id="L78">      GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);</span>
+<span class="fc" id="L79">      return Pair.of(</span>
+<span class="fc" id="L80">          Collections.singletonList(</span>
+<span class="fc" id="L81">              AggregationBuilders.composite(</span>
+                      &quot;composite_buckets&quot;,
+<span class="fc" id="L83">                      bucketBuilder.build(</span>
+<span class="fc" id="L84">                          groupByList.stream()</span>
+<span class="fc" id="L85">                              .sorted(groupSortOrder)</span>
+<span class="fc" id="L86">                              .map(</span>
+                                  expr -&gt;
+<span class="fc" id="L88">                                      Triple.of(</span>
+                                          expr,
+<span class="fc" id="L90">                                          groupSortOrder.sortOrder(expr),</span>
+<span class="fc" id="L91">                                          groupSortOrder.missingOrder(expr)))</span>
+<span class="fc" id="L92">                              .collect(Collectors.toList())))</span>
+<span class="fc" id="L93">                  .subAggregations(metrics.getLeft())</span>
+<span class="fc" id="L94">                  .size(AGGREGATION_BUCKET_SIZE)),</span>
+<span class="fc" id="L95">          new CompositeAggregationParser(metrics.getRight()));</span>
+    }
+  }
+
+  /** Build mapping for OpenSearchExprValueFactory. */
+  public Map&lt;String, OpenSearchDataType&gt; buildTypeMapping(
+      List&lt;NamedAggregator&gt; namedAggregatorList, List&lt;NamedExpression&gt; groupByList) {
+<span class="fc" id="L102">    ImmutableMap.Builder&lt;String, OpenSearchDataType&gt; builder = new ImmutableMap.Builder&lt;&gt;();</span>
+<span class="fc" id="L103">    namedAggregatorList.forEach(</span>
+<span class="fc" id="L104">        agg -&gt; builder.put(agg.getName(), OpenSearchDataType.of(agg.type())));</span>
+<span class="fc" id="L105">    groupByList.forEach(group -&gt; builder.put(group.getName(), OpenSearchDataType.of(group.type())));</span>
+<span class="fc" id="L106">    return builder.build();</span>
+  }
+
+  /** Group By field sort order. */
+  @VisibleForTesting
+  public static class GroupSortOrder implements Comparator&lt;NamedExpression&gt; {
+
+    /**
+     * The default order of group field. The order is ASC NULL_FIRST. The field should be the last
+     * one in the group list.
+     */
+<span class="fc" id="L117">    private static final Pair&lt;Sort.SortOption, Integer&gt; DEFAULT_ORDER =</span>
+<span class="fc" id="L118">        Pair.of(Sort.SortOption.DEFAULT_ASC, Integer.MAX_VALUE);</span>
+
+    /** The mapping between {@link Sort.SortOrder} and {@link SortOrder}. */
+<span class="fc" id="L121">    private static final Map&lt;Sort.SortOrder, SortOrder&gt; SORT_MAP =</span>
+        new ImmutableMap.Builder&lt;Sort.SortOrder, SortOrder&gt;()
+<span class="fc" id="L123">            .put(Sort.SortOrder.ASC, SortOrder.ASC)</span>
+<span class="fc" id="L124">            .put(Sort.SortOrder.DESC, SortOrder.DESC)</span>
+<span class="fc" id="L125">            .build();</span>
+
+    /** The mapping between {@link Sort.NullOrder} and {@link MissingOrder}. */
+<span class="fc" id="L128">    private static final Map&lt;Sort.NullOrder, MissingOrder&gt; NULL_MAP =</span>
+        new ImmutableMap.Builder&lt;Sort.NullOrder, MissingOrder&gt;()
+<span class="fc" id="L130">            .put(Sort.NullOrder.NULL_FIRST, MissingOrder.FIRST)</span>
+<span class="fc" id="L131">            .put(Sort.NullOrder.NULL_LAST, MissingOrder.LAST)</span>
+<span class="fc" id="L132">            .build();</span>
+
+<span class="fc" id="L134">    private final Map&lt;String, Pair&lt;Sort.SortOption, Integer&gt;&gt; map = new HashMap&lt;&gt;();</span>
+
+    /** Constructor of GroupSortOrder. */
+<span class="fc" id="L137">    public GroupSortOrder(List&lt;Pair&lt;Sort.SortOption, Expression&gt;&gt; sortList) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">      if (null == sortList) {</span>
+<span class="fc" id="L139">        return;</span>
+      }
+<span class="fc" id="L141">      int pos = 0;</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">      for (Pair&lt;Sort.SortOption, Expression&gt; sortPair : sortList) {</span>
+<span class="fc" id="L143">        map.put(</span>
+<span class="fc" id="L144">            ((ReferenceExpression) sortPair.getRight()).getAttr(),</span>
+<span class="fc" id="L145">            Pair.of(sortPair.getLeft(), pos++));</span>
+<span class="fc" id="L146">      }</span>
+<span class="fc" id="L147">    }</span>
+
+    /**
+     * Compare the two expressions. The comparison is based on the pos in the sort list. If the
+     * expression is defined in the sort list. then the order of the expression is the pos in sort
+     * list. If the expression isn't defined in the sort list. the the order of the expression is
+     * the Integer.MAX_VALUE. you can think it is at the end of the sort list.
+     *
+     * @param o1 NamedExpression
+     * @param o2 NamedExpression
+     * @return -1, o1 before o2. 1, o1 after o2. 0 o1, o2 has same position.
+     */
+    @Override
+    public int compare(NamedExpression o1, NamedExpression o2) {
+<span class="fc" id="L161">      final Pair&lt;Sort.SortOption, Integer&gt; o1Value = map.getOrDefault(o1.getName(), DEFAULT_ORDER);</span>
+<span class="fc" id="L162">      final Pair&lt;Sort.SortOption, Integer&gt; o2Value = map.getOrDefault(o2.getName(), DEFAULT_ORDER);</span>
+<span class="fc" id="L163">      return o1Value.getRight().compareTo(o2Value.getRight());</span>
+    }
+
+    /** Get the {@link SortOrder} for expression. By default, the {@link SortOrder} is ASC. */
+    public SortOrder sortOrder(NamedExpression expression) {
+<span class="fc" id="L168">      return SORT_MAP.get(sortOption(expression).getSortOrder());</span>
+    }
+
+    /**
+     * Get the {@link MissingOrder} for expression. By default, the {@link MissingOrder} is ASC
+     * missing first / DESC missing last.
+     */
+    public MissingOrder missingOrder(NamedExpression expression) {
+<span class="fc" id="L176">      return NULL_MAP.get(sortOption(expression).getNullOrder());</span>
+    }
+
+    private Sort.SortOption sortOption(NamedExpression expression) {
+<span class="fc" id="L180">      return map.getOrDefault(expression.getName(), DEFAULT_ORDER).getLeft();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

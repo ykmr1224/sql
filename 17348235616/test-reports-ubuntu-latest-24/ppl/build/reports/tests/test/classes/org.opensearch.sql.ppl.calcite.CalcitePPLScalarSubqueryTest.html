@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class org.opensearch.sql.ppl.calcite.CalcitePPLScalarSubqueryTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class org.opensearch.sql.ppl.calcite.CalcitePPLScalarSubqueryTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.ppl.calcite.html">org.opensearch.sql.ppl.calcite</a> &gt; CalcitePPLScalarSubqueryTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">9</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.139s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testCorrelatedScalarSubqueryInSelect</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrelatedScalarSubqueryInWhere</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDisjunctiveCorrelatedScalarSubqueryInWhere</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testDisjunctiveCorrelatedScalarSubqueryInWhere2</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testNestedScalarSubquery</td>
+<td class="success">0.033s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testTwoScalarSubqueriesInOr</td>
+<td class="success">0.015s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUncorrelatedScalarSubqueryInSelect</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUncorrelatedScalarSubqueryInWhere</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUncorrelatedScalarSubqueryInWhereAndSelect</td>
+<td class="success">0.014s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>LogicalFilter(condition=[=($5, $SCALAR_QUERY({
+LogicalSort(fetch=[1])
+  LogicalProject(max_hisal=[$1])
+    LogicalAggregate(group=[{0}], max_hisal=[MAX($1)])
+      LogicalProject(GRADE=[$0], HISAL=[$2])
+        LogicalFilter(condition=[=($2, $SCALAR_QUERY({
+LogicalProject(max_sal=[$1])
+  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])
+    LogicalProject(JOB=[$2], SAL=[$5])
+      LogicalTableScan(table=[[scott, EMP]])
+}))], variablesSet=[[$cor1]])
+          LogicalTableScan(table=[[scott, SALGRADE]])
+}))], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[&gt;($SCALAR_QUERY({
+LogicalAggregate(group=[{}], COUNT()=[COUNT()])
+  LogicalFilter(condition=[OR(=($cor0.SAL, $2), &gt;($2, 1000.0:DECIMAL(5, 1)))])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+}), 0)], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])
+  LogicalProject($f0=[$cor0.EMPNO])
+    LogicalFilter(condition=[=($cor0.SAL, $2)])
+      LogicalTableScan(table=[[scott, SALGRADE]])
+})], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[&gt;($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])
+  LogicalProject($f0=[$cor0.SAL])
+    LogicalFilter(condition=[=($cor0.SAL, $2)])
+      LogicalTableScan(table=[[scott, SALGRADE]])
+}))], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[OR(=($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], max(HISAL)=[MAX($0)])
+  LogicalProject(HISAL=[$2])
+    LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])
+      LogicalTableScan(table=[[scott, SALGRADE]])
+})), =($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], min(HISAL)=[MIN($0)])
+  LogicalProject(HISAL=[$2])
+    LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])
+      LogicalFilter(condition=[&gt;($1, 1000.0:DECIMAL(5, 1))])
+        LogicalTableScan(table=[[scott, SALGRADE]])
+})))], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(min_empno=[$8], SAL=[$5])
+  LogicalFilter(condition=[&gt;($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[scott, EMP]])
+}))], variablesSet=[[$cor1]])
+    LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], min_empno=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[scott, EMP]])
+})])
+      LogicalTableScan(table=[[scott, EMP]])
+
+LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[scott, EMP]])
+})], SAL=[$5])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[&gt;($SCALAR_QUERY({
+LogicalAggregate(group=[{}], COUNT()=[COUNT()])
+  LogicalFilter(condition=[OR(AND(=($cor0.SAL, $2), &gt;($2, 1000.0:DECIMAL(5, 1))), AND(=($cor0.SAL, $2), &gt;($1, 1000.0:DECIMAL(5, 1))))])
+    LogicalTableScan(table=[[scott, SALGRADE]])
+}), 0)], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+LogicalFilter(condition=[&gt;($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[scott, EMP]])
+}))], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[scott, EMP]])
+
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 9:11:30 PM</p>
+</div>
+</div>
+</body>
+</html>

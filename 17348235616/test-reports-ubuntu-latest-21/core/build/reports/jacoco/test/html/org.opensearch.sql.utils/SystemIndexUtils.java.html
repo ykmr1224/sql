@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SystemIndexUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.utils</a> &gt; <span class="el_source">SystemIndexUtils.java</span></div><h1>SystemIndexUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.utils;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.lang.LangSpec;
+
+/** System Index Utils. Todo. Find the better name for this class. */
+@UtilityClass
+public class SystemIndexUtils {
+
+  public static final String TABLE_NAME_FOR_TABLES_INFO = &quot;tables&quot;;
+
+  /** The suffix of all the system tables. */
+  private static final String SYS_TABLES_SUFFIX = &quot;ODFE_SYS_TABLE&quot;;
+
+  /** The suffix of all the meta tables. */
+  private static final String SYS_META_SUFFIX = &quot;META_&quot; + SYS_TABLES_SUFFIX;
+
+  /** The suffix of all the table mappings. */
+  private static final String SYS_MAPPINGS_SUFFIX = &quot;MAPPINGS_&quot; + SYS_TABLES_SUFFIX;
+
+  /** The ALL.META_ODFE_SYS_TABLE contain all the table info. */
+  public static final String TABLE_INFO = &quot;ALL.&quot; + SYS_META_SUFFIX;
+
+  public static final String DATASOURCES_TABLE_NAME = &quot;.DATASOURCES&quot;;
+
+  public static Boolean isSystemIndex(String indexName) {
+<span class="fc" id="L34">    return indexName.endsWith(SYS_TABLES_SUFFIX);</span>
+  }
+
+  /**
+   * Compose system mapping table.
+   *
+   * @return system mapping table.
+   */
+  public static String mappingTable(String indexName) {
+<span class="fc" id="L43">    return mappingTable(indexName, LangSpec.SQL_SPEC);</span>
+  }
+
+  public static String mappingTable(String indexName, LangSpec langSpec) {
+
+<span class="fc" id="L48">    return String.join(&quot;.&quot;, indexName, encodeLangSpec(langSpec));</span>
+  }
+
+  /**
+   * Encodes the language specification into a system mappings suffix.
+   *
+   * &lt;p&gt;The returned suffix is composed of the language name (e.g., &quot;SQL&quot; or &quot;PPL&quot;) concatenated
+   * with an underscore and the system mappings suffix constant. For example:
+   * &quot;SQL_MAPPINGS_ODFE_SYS_TABLE&quot;.
+   *
+   * @param spec the language specification.
+   * @return the encoded system mappings suffix.
+   */
+  public static String encodeLangSpec(LangSpec spec) {
+<span class="fc" id="L62">    return spec.language().name() + &quot;_&quot; + SYS_MAPPINGS_SUFFIX;</span>
+  }
+
+  /**
+   * Extracts the language specification from a given system mappings suffix.
+   *
+   * &lt;p&gt;This method expects the suffix to start with the language name followed by an underscore.
+   * For example, given &quot;SQL_MAPPINGS_ODFE_SYS_TABLE&quot;, it extracts &quot;SQL&quot; and returns the
+   * corresponding language specification via {@link LangSpec#fromLanguage(String)}. If the expected
+   * format is not met, the default SQL specification is returned.
+   *
+   * @param systemMappingsSuffix the system mappings suffix.
+   * @return the language specification extracted from the suffix, or {@link LangSpec#SQL_SPEC} if
+   *     the format is invalid.
+   */
+  public static LangSpec extractLangSpec(String systemMappingsSuffix) {
+<span class="fc" id="L78">    int underscoreIndex = systemMappingsSuffix.indexOf('_');</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (underscoreIndex &lt;= 0) {</span>
+<span class="fc" id="L80">      return LangSpec.SQL_SPEC;</span>
+    }
+<span class="fc" id="L82">    String langName = systemMappingsSuffix.substring(0, underscoreIndex);</span>
+<span class="fc" id="L83">    return LangSpec.fromLanguage(langName);</span>
+  }
+
+  /**
+   * Build the {@link SystemTable}.
+   *
+   * @return {@link SystemTable}
+   */
+  public static SystemTable systemTable(String indexName) {
+<span class="fc" id="L92">    final int lastDot = indexName.lastIndexOf(&quot;.&quot;);</span>
+<span class="fc" id="L93">    String suffix = indexName.substring(lastDot + 1);</span>
+<span class="fc" id="L94">    String tableName = indexName.substring(0, lastDot).replace(&quot;%&quot;, &quot;*&quot;);</span>
+
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (suffix.endsWith(SYS_META_SUFFIX)) {</span>
+<span class="fc" id="L97">      return new SystemInfoTable(tableName);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    } else if (suffix.endsWith(SYS_MAPPINGS_SUFFIX)) {</span>
+<span class="fc" id="L99">      return new MetaInfoTable(tableName, extractLangSpec(suffix));</span>
+    } else {
+<span class="fc" id="L101">      throw new IllegalStateException(&quot;Invalid system index name: &quot; + indexName);</span>
+    }
+  }
+
+  /** System Table. */
+  public interface SystemTable {
+
+    String getTableName();
+
+    default LangSpec getLangSpec() {
+<span class="fc" id="L111">      return LangSpec.SQL_SPEC;</span>
+    }
+
+    default boolean isSystemInfoTable() {
+<span class="fc" id="L115">      return false;</span>
+    }
+
+    default boolean isMetaInfoTable() {
+<span class="fc" id="L119">      return false;</span>
+    }
+  }
+
+  /** System Info Table. */
+  @Getter
+  @RequiredArgsConstructor
+  public static class SystemInfoTable implements SystemTable {
+
+    private final String tableName;
+
+    public boolean isSystemInfoTable() {
+<span class="fc" id="L131">      return true;</span>
+    }
+  }
+
+  /** System Table. */
+  @Getter
+  @RequiredArgsConstructor
+  public static class MetaInfoTable implements SystemTable {
+
+    private final String tableName;
+    private final LangSpec langSpec;
+
+    public boolean isMetaInfoTable() {
+<span class="fc" id="L144">      return true;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExprSqlType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.type</a> &gt; <span class="el_source">ExprSqlType.java</span></div><h1>ExprSqlType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.type;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.locationtech.jts.geom.Geometry;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+
+/** The SqlType for ExprUDT. The UDT which uses a standard SQL type should extend this. */
+public class ExprSqlType extends AbstractExprRelDataType&lt;BasicSqlType&gt; {
+  public ExprSqlType(OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, SqlTypeName sqlTypeName) {
+<span class="fc" id="L23">    this(exprUDT, (BasicSqlType) typeFactory.createSqlType(sqlTypeName));</span>
+<span class="fc" id="L24">  }</span>
+
+  protected ExprSqlType(ExprUDT exprUDT, BasicSqlType type) {
+<span class="fc" id="L27">    super(exprUDT, type);</span>
+<span class="fc" id="L28">  }</span>
+
+  @Override
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+<span class="fc" id="L32">    sb.append(udt.name());</span>
+<span class="fc" id="L33">    sb.append(' ');</span>
+    try {
+<span class="fc" id="L35">      Method method =</span>
+<span class="fc" id="L36">          BasicSqlType.class.getDeclaredMethod(</span>
+              &quot;generateTypeString&quot;, StringBuilder.class, boolean.class);
+<span class="fc" id="L38">      method.setAccessible(true);</span>
+<span class="fc" id="L39">      method.invoke(super.relType, sb, withDetail);</span>
+<span class="nc" id="L40">    } catch (Exception e) {</span>
+<span class="nc" id="L41">      throw new IllegalStateException(&quot;Unable to invoke generateTypeString for BasicSqlType&quot;, e);</span>
+<span class="fc" id="L42">    }</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public Type getJavaType() {
+<span class="nc" id="L47">    SqlTypeName type = super.relType.getSqlTypeName();</span>
+<span class="nc bnc" id="L48" title="All 15 branches missed.">    return switch (type) {</span>
+<span class="nc" id="L49">      case VARCHAR, CHAR -&gt; String.class;</span>
+      case DATE,
+          TIME,
+          TIME_WITH_LOCAL_TIME_ZONE,
+          TIME_TZ,
+          INTEGER,
+          INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+<span class="nc bnc" id="L57" title="All 2 branches missed.">          INTERVAL_MONTH -&gt; this.isNullable() ? Integer.class : int.class;</span>
+      case TIMESTAMP,
+          TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+          TIMESTAMP_TZ,
+          BIGINT,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+<span class="nc bnc" id="L71" title="All 2 branches missed.">          INTERVAL_SECOND -&gt; this.isNullable() ? Long.class : long.class;</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">      case SMALLINT -&gt; this.isNullable() ? Short.class : short.class;</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">      case TINYINT -&gt; this.isNullable() ? Byte.class : byte.class;</span>
+<span class="nc" id="L74">      case DECIMAL -&gt; BigDecimal.class;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">      case BOOLEAN -&gt; this.isNullable() ? Boolean.class : boolean.class;</span>
+      case DOUBLE, FLOAT -&gt; // sic
+<span class="nc bnc" id="L77" title="All 2 branches missed.">      this.isNullable() ? Double.class : double.class;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">      case REAL -&gt; this.isNullable() ? Float.class : float.class;</span>
+<span class="nc" id="L79">      case BINARY, VARBINARY -&gt; ByteString.class;</span>
+<span class="nc" id="L80">      case GEOMETRY -&gt; Geometry.class;</span>
+<span class="nc" id="L81">      case SYMBOL -&gt; Enum.class;</span>
+<span class="nc" id="L82">      case ANY -&gt; Object.class;</span>
+<span class="nc" id="L83">      case NULL -&gt; Void.class;</span>
+<span class="nc" id="L84">      default -&gt; throw new IllegalArgumentException(&quot;Unsupported sql type name: &quot; + type);</span>
+    };
+  }
+
+  @Override
+  public ExprSqlType createWithNullability(OpenSearchTypeFactory typeFactory, boolean nullable) {
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">    if (isNullable() == nullable) {</span>
+<span class="nc" id="L91">      return this;</span>
+    }
+<span class="fc" id="L93">    return new ExprSqlType(</span>
+<span class="fc" id="L94">        super.udt, (BasicSqlType) typeFactory.createTypeWithNullability(super.relType, nullable));</span>
+  }
+
+  @Override
+  public ExprSqlType createWithCharsetAndCollation(
+      OpenSearchTypeFactory typeFactory, Charset charset, SqlCollation collation) {
+<span class="fc" id="L100">    return new ExprSqlType(</span>
+        super.udt,
+        (BasicSqlType)
+<span class="fc" id="L103">            typeFactory.createTypeWithCharsetAndCollation(super.relType, charset, collation));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

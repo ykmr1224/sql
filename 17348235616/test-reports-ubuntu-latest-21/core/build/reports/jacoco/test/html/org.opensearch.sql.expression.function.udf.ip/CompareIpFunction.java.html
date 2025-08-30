@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CompareIpFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.ip</a> &gt; <span class="el_source">CompareIpFunction.java</span></div><h1>CompareIpFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.ip;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * {@code compare(ip1, ip2)} compares two IP addresses using a provided op.
+ *
+ * &lt;p&gt;Signature:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;(IP, STRING) -&gt; BOOLEAN
+ *   &lt;li&gt;(STRING, IP) -&gt; BOOLEAN
+ *   &lt;li&gt;(IP, IP) -&gt; BOOLEAN
+ * &lt;/ul&gt;
+ */
+public class CompareIpFunction extends ImplementorUDF {
+  private final SqlKind kind;
+
+  private CompareIpFunction(SqlKind kind) {
+<span class="fc" id="L49">    super(new CompareImplementor(kind), NullPolicy.ANY);</span>
+<span class="fc" id="L50">    this.kind = kind;</span>
+<span class="fc" id="L51">  }</span>
+
+  public static CompareIpFunction less() {
+<span class="fc" id="L54">    return new CompareIpFunction(SqlKind.LESS_THAN);</span>
+  }
+
+  public static CompareIpFunction greater() {
+<span class="fc" id="L58">    return new CompareIpFunction(SqlKind.GREATER_THAN);</span>
+  }
+
+  public static CompareIpFunction lessOrEquals() {
+<span class="fc" id="L62">    return new CompareIpFunction(SqlKind.LESS_THAN_OR_EQUAL);</span>
+  }
+
+  public static CompareIpFunction greaterOrEquals() {
+<span class="fc" id="L66">    return new CompareIpFunction(SqlKind.GREATER_THAN_OR_EQUAL);</span>
+  }
+
+  public static CompareIpFunction equals() {
+<span class="fc" id="L70">    return new CompareIpFunction(SqlKind.EQUALS);</span>
+  }
+
+  public static CompareIpFunction notEquals() {
+<span class="fc" id="L74">    return new CompareIpFunction(SqlKind.NOT_EQUALS);</span>
+  }
+
+  @Override
+  public SqlUserDefinedFunction toUDF(String functionName, boolean isDeterministic) {
+<span class="fc" id="L79">    SqlIdentifier udfIdentifier =</span>
+<span class="fc" id="L80">        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);</span>
+<span class="fc" id="L81">    return new SqlUserDefinedFunction(</span>
+        udfIdentifier,
+        kind,
+<span class="fc" id="L84">        getReturnTypeInference(),</span>
+        InferTypes.ANY_NULLABLE,
+<span class="fc" id="L86">        getOperandMetadata(),</span>
+<span class="fc" id="L87">        getFunction()) {</span>
+      @Override
+      public boolean isDeterministic() {
+<span class="nc" id="L90">        return isDeterministic;</span>
+      }
+
+      @Override
+      public @Nullable SqlOperator reverse() {
+<span class="nc bnc" id="L95" title="All 7 branches missed.">        return switch (kind) {</span>
+<span class="nc" id="L96">          case LESS_THAN -&gt; PPLBuiltinOperators.GREATER_IP;</span>
+<span class="nc" id="L97">          case GREATER_THAN -&gt; PPLBuiltinOperators.LESS_IP;</span>
+<span class="nc" id="L98">          case LESS_THAN_OR_EQUAL -&gt; PPLBuiltinOperators.GTE_IP;</span>
+<span class="nc" id="L99">          case GREATER_THAN_OR_EQUAL -&gt; PPLBuiltinOperators.LTE_IP;</span>
+<span class="nc" id="L100">          case EQUALS -&gt; PPLBuiltinOperators.EQUALS_IP;</span>
+<span class="nc" id="L101">          case NOT_EQUALS -&gt; PPLBuiltinOperators.NOT_EQUALS_IP;</span>
+<span class="nc" id="L102">          default -&gt; throw new IllegalArgumentException(</span>
+<span class="nc" id="L103">              String.format(</span>
+                  Locale.ROOT, &quot;CompareIpFunction is not supposed to be of kind: %s&quot;, kind));
+        };
+      }
+
+      @Override
+      public SqlSyntax getSyntax() {
+<span class="nc" id="L110">        return SqlSyntax.BINARY;</span>
+      }
+    };
+  }
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L117">    return ReturnTypes.BOOLEAN_FORCE_NULLABLE;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L122">    return UDFOperandMetadata.wrapUDT(List.of(List.of(ExprCoreType.IP, ExprCoreType.IP)));</span>
+  }
+
+  public static class CompareImplementor implements NotNullImplementor {
+    private final SqlKind compareType;
+
+<span class="fc" id="L128">    public CompareImplementor(SqlKind compareType) {</span>
+<span class="fc" id="L129">      this.compareType = compareType;</span>
+<span class="fc" id="L130">    }</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L135">      Expression compareResult =</span>
+<span class="nc" id="L136">          Expressions.call(</span>
+              CompareImplementor.class,
+              &quot;compareTo&quot;,
+<span class="nc" id="L139">              translatedOperands.get(0),</span>
+<span class="nc" id="L140">              translatedOperands.get(1));</span>
+
+<span class="nc" id="L142">      return evalCompareResult(compareResult, compareType);</span>
+    }
+
+    private static Expression evalCompareResult(Expression compareResult, SqlKind compareType) {
+<span class="nc" id="L146">      final ConstantExpression zero = Expressions.constant(0);</span>
+<span class="nc bnc" id="L147" title="All 7 branches missed.">      return switch (compareType) {</span>
+<span class="nc" id="L148">        case EQUALS -&gt; Expressions.equal(compareResult, zero);</span>
+<span class="nc" id="L149">        case NOT_EQUALS -&gt; Expressions.notEqual(compareResult, zero);</span>
+<span class="nc" id="L150">        case LESS_THAN -&gt; Expressions.lessThan(compareResult, zero);</span>
+<span class="nc" id="L151">        case LESS_THAN_OR_EQUAL -&gt; Expressions.lessThanOrEqual(compareResult, zero);</span>
+<span class="nc" id="L152">        case GREATER_THAN -&gt; Expressions.greaterThan(compareResult, zero);</span>
+<span class="nc" id="L153">        case GREATER_THAN_OR_EQUAL -&gt; Expressions.greaterThanOrEqual(compareResult, zero);</span>
+<span class="nc" id="L154">        default -&gt; throw new UnsupportedOperationException(</span>
+<span class="nc" id="L155">            String.format(Locale.ROOT, &quot;Unsupported compare type: %s&quot;, compareType));</span>
+      };
+    }
+
+    public static int compareTo(Object obj1, Object obj2) {
+<span class="nc" id="L160">      ExprIpValue v1 = toExprIpValue(obj1);</span>
+<span class="nc" id="L161">      ExprIpValue v2 = toExprIpValue(obj2);</span>
+<span class="nc" id="L162">      return v1.compare(v2);</span>
+    }
+
+    private static ExprIpValue toExprIpValue(Object obj) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">      if (obj instanceof ExprIpValue) {</span>
+<span class="nc" id="L167">        return (ExprIpValue) obj;</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">      } else if (obj instanceof String) {</span>
+<span class="nc" id="L169">        return new ExprIpValue((String) obj);</span>
+      }
+<span class="nc" id="L171">      throw new IllegalArgumentException(&quot;Invalid IP type: &quot; + obj);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

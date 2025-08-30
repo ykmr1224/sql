@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalciteEnumerableIndexScan.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.storage.scan</a> &gt; <span class="el_source">CalciteEnumerableIndexScan.java</span></div><h1>CalciteEnumerableIndexScan.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+
+/** The physical relational operator representing a scan of an OpenSearchIndex type. */
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
+    implements Scannable, EnumerableRel {
+<span class="nc" id="L38">  private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);</span>
+
+  /**
+   * Creates an CalciteOpenSearchIndexScan.
+   *
+   * @param cluster Cluster
+   * @param table Table
+   * @param osIndex OpenSearch index
+   */
+  public CalciteEnumerableIndexScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+<span class="nc" id="L55">    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);</span>
+<span class="nc" id="L56">  }</span>
+
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List&lt;RelHint&gt; hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+<span class="nc" id="L67">    return new CalciteEnumerableIndexScan(</span>
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
+  public void register(RelOptPlanner planner) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {</span>
+<span class="nc" id="L74">      planner.addRule(rule);</span>
+<span class="nc" id="L75">    }</span>
+
+    // remove this rule otherwise opensearch can't correctly interpret approx_count_distinct()
+    // it is converted to cardinality aggregation in OpenSearch
+<span class="nc" id="L79">    planner.removeRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES);</span>
+<span class="nc" id="L80">  }</span>
+
+  @Override
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
+     * See {@link PhysTypeImpl}.
+     * Since we need to combine this operator with their original ones,
+     * let's follow this convention to apply the optimization here and ensure `scan` method
+     * returns the correct data format for single column rows.
+     * See {@link OpenSearchIndexEnumerator}
+     */
+<span class="nc" id="L91">    PhysType physType =</span>
+<span class="nc" id="L92">        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());</span>
+
+<span class="nc" id="L94">    Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);</span>
+<span class="nc" id="L95">    return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, &quot;scan&quot;)));</span>
+  }
+
+  /**
+   * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
+   * each time to avoid reusing source builder. That's because the source builder has stats like PIT
+   * or SearchAfter recorded during previous search.
+   */
+  @Override
+  public Enumerable&lt;@Nullable Object&gt; scan() {
+<span class="nc" id="L105">    return new AbstractEnumerable&lt;&gt;() {</span>
+      @Override
+      public Enumerator&lt;Object&gt; enumerator() {
+<span class="nc" id="L108">        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();</span>
+<span class="nc" id="L109">        pushDownContext.forEach(action -&gt; action.apply(requestBuilder));</span>
+<span class="nc" id="L110">        return new OpenSearchIndexEnumerator(</span>
+<span class="nc" id="L111">            osIndex.getClient(),</span>
+<span class="nc" id="L112">            getFieldPath(),</span>
+<span class="nc" id="L113">            requestBuilder.getMaxResponseSize(),</span>
+<span class="nc" id="L114">            osIndex.buildRequest(requestBuilder),</span>
+<span class="nc" id="L115">            osIndex.createOpenSearchResourceMonitor());</span>
+      }
+    };
+  }
+
+  private List&lt;String&gt; getFieldPath() {
+<span class="nc" id="L121">    return getRowType().getFieldNames().stream()</span>
+<span class="nc" id="L122">        .map(f -&gt; osIndex.getAliasMapping().getOrDefault(f, f))</span>
+<span class="nc" id="L123">        .toList();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

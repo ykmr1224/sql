@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpanBinHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.calcite.utils.binning.handlers</a> &gt; <span class="el_source">SpanBinHandler.java</span></div><h1>SpanBinHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.utils.binning.handlers;
+
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.*;
+
+/** Handler for span-based binning operations. */
+<span class="nc" id="L20">public class SpanBinHandler implements BinHandler {</span>
+
+<span class="nc" id="L22">  private final NumericSpanHelper numericHelper = new NumericSpanHelper();</span>
+<span class="nc" id="L23">  private final LogSpanHelper logHelper = new LogSpanHelper();</span>
+<span class="nc" id="L24">  private final TimeSpanHelper timeHelper = new TimeSpanHelper();</span>
+
+  @Override
+  public RexNode createExpression(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc" id="L30">    SpanBin spanBin = (SpanBin) node;</span>
+
+    // Handle time-based fields
+<span class="nc bnc" id="L33" title="All 2 branches missed.">    if (BinFieldValidator.isTimeBasedField(fieldExpr.getType())) {</span>
+<span class="nc" id="L34">      return handleTimeBasedSpan(spanBin, fieldExpr, context, visitor);</span>
+    }
+
+    // Handle numeric/log spans
+<span class="nc" id="L38">    return handleNumericOrLogSpan(spanBin, fieldExpr, context, visitor);</span>
+  }
+
+  private RexNode handleTimeBasedSpan(
+      SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    if (node.getSpan() instanceof Literal) {</span>
+<span class="nc" id="L45">      Literal spanLiteral = (Literal) node.getSpan();</span>
+<span class="nc" id="L46">      String spanStr = spanLiteral.getValue().toString();</span>
+
+      // Process aligntime if present
+<span class="nc" id="L49">      RexNode alignTimeValue = processAligntime(node, fieldExpr, context, visitor);</span>
+
+<span class="nc" id="L51">      return timeHelper.createTimeSpanExpression(spanStr, fieldExpr, alignTimeValue, context);</span>
+    } else {
+<span class="nc" id="L53">      RexNode spanValue = visitor.analyze(node.getSpan(), context);</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">      if (!spanValue.isA(LITERAL)) {</span>
+<span class="nc" id="L55">        throw new IllegalArgumentException(&quot;Span must be a literal value for time binning&quot;);</span>
+      }
+<span class="nc" id="L57">      String spanStr = ((RexLiteral) spanValue).getValue().toString();</span>
+
+<span class="nc" id="L59">      RexNode alignTimeValue = processAligntime(node, fieldExpr, context, visitor);</span>
+<span class="nc" id="L60">      return timeHelper.createTimeSpanExpression(spanStr, fieldExpr, alignTimeValue, context);</span>
+    }
+  }
+
+  private RexNode handleNumericOrLogSpan(
+      SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc" id="L67">    RexNode spanValue = visitor.analyze(node.getSpan(), context);</span>
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (!spanValue.isA(LITERAL)) {</span>
+<span class="nc" id="L70">      throw new IllegalArgumentException(&quot;Span must be a literal value&quot;);</span>
+    }
+
+<span class="nc" id="L73">    Object spanRawValue = ((RexLiteral) spanValue).getValue();</span>
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (spanRawValue instanceof org.apache.calcite.util.NlsString) {</span>
+<span class="nc" id="L76">      String spanStr = ((org.apache.calcite.util.NlsString) spanRawValue).getValue();</span>
+<span class="nc" id="L77">      SpanInfo spanInfo = SpanParser.parse(spanStr);</span>
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (spanInfo.getType() == SpanType.LOG) {</span>
+<span class="nc" id="L80">        return logHelper.createLogSpanExpression(fieldExpr, spanInfo, context);</span>
+      } else {
+<span class="nc" id="L82">        return numericHelper.createNumericSpanExpression(</span>
+<span class="nc" id="L83">            fieldExpr, (int) spanInfo.getValue(), context);</span>
+      }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    } else if (spanRawValue instanceof Number) {</span>
+<span class="nc" id="L86">      Number spanNumber = (Number) spanRawValue;</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (spanNumber.doubleValue() == Math.floor(spanNumber.doubleValue())) {</span>
+<span class="nc" id="L88">        return numericHelper.createNumericSpanExpression(fieldExpr, spanNumber.intValue(), context);</span>
+      } else {
+<span class="nc" id="L90">        return numericHelper.createNumericSpanExpression(</span>
+<span class="nc" id="L91">            fieldExpr, spanNumber.doubleValue(), context);</span>
+      }
+    } else {
+<span class="nc" id="L94">      throw new IllegalArgumentException(</span>
+          &quot;Span must be either a number or a string, got: &quot;
+<span class="nc" id="L96">              + spanRawValue.getClass().getSimpleName());</span>
+    }
+  }
+
+  private RexNode processAligntime(
+      SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">    if (node.getAligntime() == null) {</span>
+<span class="nc" id="L104">      return null;</span>
+    }
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">    if (node.getAligntime() instanceof Literal) {</span>
+<span class="nc" id="L108">      Literal aligntimeLiteral = (Literal) node.getAligntime();</span>
+<span class="nc" id="L109">      String aligntimeStr =</span>
+<span class="nc" id="L110">          aligntimeLiteral.getValue().toString().replace(&quot;\&quot;&quot;, &quot;&quot;).replace(&quot;'&quot;, &quot;&quot;).trim();</span>
+
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      if (&quot;earliest&quot;.equals(aligntimeStr)) {</span>
+<span class="nc" id="L113">        return context.relBuilder.min(fieldExpr).over().toRex();</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">      } else if (&quot;latest&quot;.equals(aligntimeStr)) {</span>
+<span class="nc" id="L115">        return context.relBuilder.max(fieldExpr).over().toRex();</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">      } else if (aligntimeStr.startsWith(&quot;@d&quot;)) {</span>
+<span class="nc" id="L117">        return context.relBuilder.literal(</span>
+            BinConstants.ALIGNTIME_TIME_MODIFIER_PREFIX + aligntimeStr);
+      } else {
+        try {
+<span class="nc" id="L121">          long epochValue = Long.parseLong(aligntimeStr);</span>
+<span class="nc" id="L122">          return context.relBuilder.literal(BinConstants.ALIGNTIME_EPOCH_PREFIX + epochValue);</span>
+<span class="nc" id="L123">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L124">          return visitor.analyze(node.getAligntime(), context);</span>
+        }
+      }
+    } else {
+<span class="nc" id="L128">      return visitor.analyze(node.getAligntime(), context);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

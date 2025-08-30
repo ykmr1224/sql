@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - BinTimeSpanUtilsTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>BinTimeSpanUtilsTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/org.opensearch.sql.calcite.utils.html">org.opensearch.sql.calcite.utils</a> &gt; BinTimeSpanUtilsTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">3</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.023s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testAlignTimeAtDPlus4HoursProblem()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testCorrectAlignmentLogic()</td>
+<td class="success">0.017s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testIdentifyExactIssueInCode()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>
+=== Testing Corrected Alignment Logic ===
+Alignment point: Sun Jul 27 04:00:00 UTC 2025
+Relative position: 52200000ms
+CORRECTED - Bin number: 1
+CORRECTED - Bin start: Sun Jul 27 16:00:00 UTC 2025
+✓ CORRECT: 18:30 with @d+4h bins to 16:00
+
+Testing negative relative position case:
+Next day timestamp: Mon Jul 28 02:30:00 UTC 2025
+Next day alignment: Mon Jul 28 04:00:00 UTC 2025
+Relative position: -5400000ms (negative)
+CORRECTED - Next day bin number: -1
+CORRECTED - Next day bin start: Sun Jul 27 16:00:00 UTC 2025
+✓ CORRECT: 02:30 correctly handled with negative bin number
+=== Testing aligntime @d+4h issue ===
+Input timestamp: 1753715400000 (2025-07-27 18:30 UTC)
+Time modifier: @d+4h
+Interval: 12h
+Parsed offset: 14400000ms (4 hours)
+Start of day: 1753660800000
+Start of day date: Mon Jul 28 00:00:00 UTC 2025
+Alignment point: 1753675200000
+Alignment point date: Mon Jul 28 04:00:00 UTC 2025
+Relative position: 40200000ms
+Interval: 43200000ms (12 hours)
+Bin number: 0
+Bin offset: 0ms
+Bin start: 1753675200000
+Bin start date: Mon Jul 28 04:00:00 UTC 2025
+Expected bin start: Mon Jul 28 16:00:00 UTC 2025 (should be 2025-07-27 16:00)
+Actual bin start: Mon Jul 28 04:00:00 UTC 2025
+
+=== Debug Analysis ===
+Issue: The alignment calculation should produce bins starting at 16:00 for the 18:30 input
+Current calculation produces: Mon Jul 28 04:00:00 UTC 2025
+Expected: 2025-07-27 16:00:00
+
+=== Testing next day case ===
+Next day input: Tue Jul 29 23:10:00 UTC 2025 (2025-07-28 02:30)
+Next day alignment point: Tue Jul 29 04:00:00 UTC 2025
+Next day bin start: Tue Jul 29 16:00:00 UTC 2025
+Expected: 2025-07-28 04:00:00 (since 02:30 is before 04:00, it should go to previous bin)
+Next day relative position: 69000000ms (NEGATIVE - this is the problem!)
+
+=== ROOT CAUSE IDENTIFIED ===
+Problem: When timestamp is before the alignment point in the day,
+relative position becomes negative, causing floor() to give wrong bin number.
+Solution: Need to handle negative relative positions correctly in the binning logic.
+
+=== Exact Issue in BinTimeSpanUtils.createTimeModifierAlignedSpan ===
+The problem is in this section of createTimeModifierAlignedSpan:
+```java
+// Calculate the relative position from the alignment point
+RexNode relativePosition = context.relBuilder.call(
+    SqlStdOperatorTable.MINUS, epochMillis, alignmentPoint);
+
+// Perform binning: floor(relativePosition / intervalMillis) * intervalMillis
+RexNode divided = context.relBuilder.call(
+    SqlStdOperatorTable.DIVIDE, relativePosition, intervalLiteral);
+RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+```
+
+ISSUE: When relativePosition is negative (timestamp before alignment point),
+FLOOR() gives incorrect results for negative numbers.
+
+Example:
+- Input: 02:30, Alignment: 04:00, Span: 12h
+- relativePosition = 02:30 - 04:00 = -1.5h
+- divided = -1.5h / 12h = -0.125
+- FLOOR(-0.125) = -1 (but we want 0 to go to previous bin)
+
+SOLUTION: Replace the simple FLOOR division with proper negative handling:
+- For positive relativePosition: use FLOOR(relativePosition / interval)
+- For negative relativePosition: use FLOOR((relativePosition - interval + 1) / interval)
+  OR use a CASE statement to handle the logic properly.
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 8.14</a> at Aug 30, 2025, 9:01:37 PM</p>
+</div>
+</div>
+</body>
+</html>

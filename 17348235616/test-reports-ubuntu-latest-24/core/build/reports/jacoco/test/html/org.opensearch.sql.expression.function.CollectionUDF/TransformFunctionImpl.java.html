@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransformFunctionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.CollectionUDF</a> &gt; <span class="el_source">TransformFunctionImpl.java</span></div><h1>TransformFunctionImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.CollectionUDF;
+
+import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.transferLambdaOutputToTargetType;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * The function transform the element of array one by one using lambda. For example, array=array(1,
+ * 2, 3), transform(array, x -&gt; x + 2) = [3, 4, 5] Transform can accept one more argument like (x,
+ * i) -&gt; x + i, where i is the index of element in array. For example, array=array(1, 2, 3),
+ * transform(array, (x, i) -&gt; x + i) = [1, 3, 5]
+ */
+public class TransformFunctionImpl extends ImplementorUDF {
+  public TransformFunctionImpl() {
+<span class="fc" id="L39">    super(new TransformImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L40">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L44">    return sqlOperatorBinding -&gt; {</span>
+<span class="nc" id="L45">      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();</span>
+<span class="nc" id="L46">      RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;</span>
+<span class="nc" id="L47">      List&lt;RexNode&gt; operands = rexCallBinding.operands();</span>
+<span class="nc" id="L48">      RelDataType lambdaReturnType = ((RexLambda) operands.get(1)).getExpression().getType();</span>
+<span class="nc" id="L49">      return createArrayType(</span>
+<span class="nc" id="L50">          typeFactory, typeFactory.createTypeWithNullability(lambdaReturnType, true), true);</span>
+    };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L56">    return null;</span>
+  }
+
+<span class="fc" id="L59">  public static class TransformImplementor implements NotNullImplementor {</span>
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L63">      ArraySqlType arrayType = (ArraySqlType) call.getType();</span>
+<span class="nc" id="L64">      List&lt;Expression&gt; withReturnTypeList = new ArrayList&lt;&gt;(translatedOperands);</span>
+<span class="nc" id="L65">      withReturnTypeList.add(Expressions.constant(arrayType.getComponentType().getSqlTypeName()));</span>
+<span class="nc" id="L66">      return Expressions.call(</span>
+<span class="nc" id="L67">          Types.lookupMethod(TransformFunctionImpl.class, &quot;eval&quot;, Object[].class),</span>
+          withReturnTypeList);
+    }
+  }
+
+  public static Object eval(Object... args) {
+<span class="nc" id="L73">    List&lt;Object&gt; target = (List&lt;Object&gt;) args[0];</span>
+<span class="nc" id="L74">    List&lt;Object&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L75">    SqlTypeName returnType = (SqlTypeName) args[args.length - 1];</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">    if (args[1] instanceof org.apache.calcite.linq4j.function.Function1) {</span>
+<span class="nc" id="L77">      org.apache.calcite.linq4j.function.Function1 lambdaFunction =</span>
+          (org.apache.calcite.linq4j.function.Function1) args[1];
+
+      try {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        for (Object candidate : target) {</span>
+<span class="nc" id="L82">          results.add(</span>
+<span class="nc" id="L83">              transferLambdaOutputToTargetType(lambdaFunction.apply(candidate), returnType));</span>
+<span class="nc" id="L84">        }</span>
+<span class="nc" id="L85">      } catch (Exception e) {</span>
+<span class="nc" id="L86">        throw new RuntimeException(e);</span>
+<span class="nc" id="L87">      }</span>
+<span class="nc" id="L88">      return results;</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">    } else if (args[1] instanceof org.apache.calcite.linq4j.function.Function2) {</span>
+<span class="nc" id="L90">      org.apache.calcite.linq4j.function.Function2 lambdaFunction =</span>
+          (org.apache.calcite.linq4j.function.Function2) args[1];
+      try {
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        for (int i = 0; i &lt; target.size(); i++) {</span>
+<span class="nc" id="L94">          results.add(</span>
+<span class="nc" id="L95">              transferLambdaOutputToTargetType(lambdaFunction.apply(target.get(i), i), returnType));</span>
+        }
+<span class="nc" id="L97">      } catch (Exception e) {</span>
+<span class="nc" id="L98">        throw new RuntimeException(e);</span>
+<span class="nc" id="L99">      }</span>
+<span class="nc" id="L100">      return results;</span>
+    } else {
+<span class="nc" id="L102">      throw new IllegalArgumentException(&quot;wrong lambda function input&quot;);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

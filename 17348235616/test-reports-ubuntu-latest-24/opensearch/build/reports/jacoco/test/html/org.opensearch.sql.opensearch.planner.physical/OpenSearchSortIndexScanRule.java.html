@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchSortIndexScanRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchSortIndexScanRule.java</span></div><h1>OpenSearchSortIndexScanRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
+
+import java.util.function.Predicate;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Sort;
+import org.immutables.value.Value;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
+
+@Value.Enclosing
+public class OpenSearchSortIndexScanRule extends RelRule&lt;OpenSearchSortIndexScanRule.Config&gt; {
+
+  protected OpenSearchSortIndexScanRule(Config config) {
+<span class="nc" id="L19">    super(config);</span>
+<span class="nc" id="L20">  }</span>
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+<span class="nc" id="L24">    final Sort sort = call.rel(0);</span>
+<span class="nc" id="L25">    final AbstractCalciteIndexScan scan = call.rel(1);</span>
+
+<span class="nc" id="L27">    var collations = sort.collation.getFieldCollations();</span>
+<span class="nc" id="L28">    AbstractCalciteIndexScan newScan = scan.pushDownSort(collations);</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">    if (newScan != null) {</span>
+<span class="nc" id="L30">      call.transformTo(newScan);</span>
+    }
+<span class="nc" id="L32">  }</span>
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+<span class="nc" id="L37">    OpenSearchSortIndexScanRule.Config DEFAULT =</span>
+<span class="nc" id="L38">        ImmutableOpenSearchSortIndexScanRule.Config.builder()</span>
+<span class="nc" id="L39">            .build()</span>
+<span class="nc" id="L40">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="nc" id="L42">                    b0.operand(Sort.class)</span>
+<span class="nc" id="L43">                        .predicate(OpenSearchIndexScanRule::sortByFieldsOnly)</span>
+<span class="nc" id="L44">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="nc" id="L46">                                b1.operand(AbstractCalciteIndexScan.class)</span>
+                                    // Skip the rule if a limit has already been pushed down
+                                    // because pushing down a sort after a limit will be treated
+                                    // as sort-then-limit by OpenSearch DSL.
+<span class="nc" id="L50">                                    .predicate(</span>
+<span class="nc" id="L51">                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed))</span>
+<span class="nc" id="L52">                                    .noInputs()));</span>
+
+    @Override
+    default OpenSearchSortIndexScanRule toRule() {
+<span class="nc" id="L56">      return new OpenSearchSortIndexScanRule(this);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

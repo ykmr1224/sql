@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenSearchProjectIndexScanRule.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">opensearch</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.opensearch.planner.physical</a> &gt; <span class="el_source">OpenSearchProjectIndexScanRule.java</span></div><h1>OpenSearchProjectIndexScanRule.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.opensearch.sql.opensearch.planner.physical;
+
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
+import org.immutables.value.Value;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+
+/** Planner rule that push a {@link LogicalProject} down to {@link CalciteLogicalIndexScan} */
+@Value.Enclosing
+public class OpenSearchProjectIndexScanRule extends RelRule&lt;OpenSearchProjectIndexScanRule.Config&gt; {
+
+  /** Creates a OpenSearchProjectIndexScanRule. */
+  protected OpenSearchProjectIndexScanRule(Config config) {
+<span class="nc" id="L31">    super(config);</span>
+<span class="nc" id="L32">  }</span>
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+<span class="nc bnc" id="L36" title="All 2 branches missed.">    if (call.rels.length == 2) {</span>
+      // the ordinary variant
+<span class="nc" id="L38">      final LogicalProject project = call.rel(0);</span>
+<span class="nc" id="L39">      final CalciteLogicalIndexScan scan = call.rel(1);</span>
+<span class="nc" id="L40">      apply(call, project, scan);</span>
+<span class="nc" id="L41">    } else {</span>
+<span class="nc" id="L42">      throw new AssertionError(</span>
+<span class="nc" id="L43">          String.format(</span>
+              &quot;The length of rels should be %s but got %s&quot;,
+<span class="nc" id="L45">              this.operands.size(), call.rels.length));</span>
+    }
+<span class="nc" id="L47">  }</span>
+
+  protected void apply(RelOptRuleCall call, LogicalProject project, CalciteLogicalIndexScan scan) {
+<span class="nc" id="L50">    final RelOptTable table = scan.getTable();</span>
+<span class="nc" id="L51">    requireNonNull(table.unwrap(OpenSearchIndex.class));</span>
+
+    // TODO: support script pushdown for project instead of only reference
+    // https://github.com/opensearch-project/sql/issues/3387
+<span class="nc" id="L55">    final List&lt;Integer&gt; selectedColumns = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L56">    final RexVisitorImpl&lt;Void&gt; visitor =</span>
+<span class="nc" id="L57">        new RexVisitorImpl&lt;Void&gt;(true) {</span>
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            if (!selectedColumns.contains(inputRef.getIndex())) {</span>
+<span class="nc" id="L61">              selectedColumns.add(inputRef.getIndex());</span>
+            }
+<span class="nc" id="L63">            return null;</span>
+          }
+        };
+<span class="nc" id="L66">    visitor.visitEach(project.getProjects());</span>
+    // Only do push down when an actual projection happens
+<span class="nc bnc" id="L68" title="All 4 branches missed.">    if (!selectedColumns.isEmpty() &amp;&amp; selectedColumns.size() != scan.getRowType().getFieldCount()) {</span>
+<span class="nc" id="L69">      Mapping mapping = Mappings.target(selectedColumns, scan.getRowType().getFieldCount());</span>
+<span class="nc" id="L70">      CalciteLogicalIndexScan newScan = scan.pushDownProject(selectedColumns);</span>
+<span class="nc" id="L71">      final List&lt;RexNode&gt; newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());</span>
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">      if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {</span>
+<span class="nc" id="L74">        call.transformTo(newScan);</span>
+      } else {
+<span class="nc" id="L76">        call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());</span>
+      }
+    }
+<span class="nc" id="L79">  }</span>
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    /** Config that matches Project on OpenSearchProjectIndexScanRule. */
+<span class="nc" id="L85">    Config DEFAULT =</span>
+<span class="nc" id="L86">        ImmutableOpenSearchProjectIndexScanRule.Config.builder()</span>
+<span class="nc" id="L87">            .build()</span>
+<span class="nc" id="L88">            .withOperandSupplier(</span>
+                b0 -&gt;
+<span class="nc" id="L90">                    b0.operand(LogicalProject.class)</span>
+<span class="nc" id="L91">                        .oneInput(</span>
+                            b1 -&gt;
+<span class="nc" id="L93">                                b1.operand(CalciteLogicalIndexScan.class)</span>
+<span class="nc" id="L94">                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)</span>
+<span class="nc" id="L95">                                    .noInputs()));</span>
+
+    @Override
+    default OpenSearchProjectIndexScanRule toRule() {
+<span class="nc" id="L99">      return new OpenSearchProjectIndexScanRule(this);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SlidingWindowAssigner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.streaming.windowing.assigner</a> &gt; <span class="el_source">SlidingWindowAssigner.java</span></div><h1>SlidingWindowAssigner.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.streaming.windowing.assigner;
+
+import com.google.common.base.Preconditions;
+import java.util.LinkedList;
+import java.util.List;
+import org.opensearch.sql.planner.streaming.windowing.Window;
+import org.opensearch.sql.utils.DateTimeUtils;
+
+/**
+ * A sliding window assigner assigns multiple overlapped window per event timestamp. The overlap
+ * size is determined by the given slide interval.
+ */
+public class SlidingWindowAssigner implements WindowAssigner {
+
+  /** Window size in millisecond. */
+  private final long windowSize;
+
+  /** Slide size in millisecond. */
+  private final long slideSize;
+
+  /**
+   * Create sliding window assigner with the given window and slide size in millisecond.
+   *
+   * @param windowSize window size in millisecond
+   * @param slideSize slide size in millisecond
+   */
+<span class="fc" id="L32">  public SlidingWindowAssigner(long windowSize, long slideSize) {</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">    Preconditions.checkArgument(</span>
+        windowSize &gt; 0, &quot;Window size [%s] must be positive number&quot;, windowSize);
+<span class="fc bfc" id="L35" title="All 2 branches covered.">    Preconditions.checkArgument(</span>
+        slideSize &gt; 0, &quot;Slide size [%s] must be positive number&quot;, slideSize);
+<span class="fc" id="L37">    this.windowSize = windowSize;</span>
+<span class="fc" id="L38">    this.slideSize = slideSize;</span>
+<span class="fc" id="L39">  }</span>
+
+  @Override
+  public List&lt;Window&gt; assign(long timestamp) {
+<span class="fc" id="L43">    LinkedList&lt;Window&gt; windows = new LinkedList&lt;&gt;();</span>
+
+    // Assign window from the last start time to the first until timestamp outside current window
+<span class="fc" id="L46">    long startTime = DateTimeUtils.getWindowStartTime(timestamp, slideSize);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    for (Window win = window(startTime); win.maxTimestamp() &gt;= timestamp; win = window(startTime)) {</span>
+<span class="fc" id="L48">      windows.addFirst(win);</span>
+<span class="fc" id="L49">      startTime -= slideSize;</span>
+    }
+<span class="fc" id="L51">    return windows;</span>
+  }
+
+  private Window window(long startTime) {
+<span class="fc" id="L55">    return new Window(startTime, startTime + windowSize);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

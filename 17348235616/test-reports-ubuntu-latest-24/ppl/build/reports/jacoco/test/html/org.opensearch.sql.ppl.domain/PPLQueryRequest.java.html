@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PPLQueryRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ppl</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.ppl.domain</a> &gt; <span class="el_source">PPLQueryRequest.java</span></div><h1>PPLQueryRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.domain;
+
+import java.util.Locale;
+import java.util.Optional;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.json.JSONObject;
+import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+
+public class PPLQueryRequest {
+
+  private static final String DEFAULT_PPL_PATH = &quot;/_plugins/_ppl&quot;;
+
+<span class="fc" id="L21">  public static final PPLQueryRequest NULL = new PPLQueryRequest(&quot;&quot;, null, DEFAULT_PPL_PATH, &quot;&quot;);</span>
+
+  private final String pplQuery;
+  @Getter private final JSONObject jsonContent;
+  @Getter private final String path;
+<span class="fc" id="L26">  @Getter private String format = &quot;&quot;;</span>
+
+<span class="fc" id="L28">  @Setter</span>
+  @Getter
+  @Accessors(fluent = true)
+  private boolean sanitize = true;
+
+<span class="fc" id="L33">  @Setter</span>
+  @Getter
+  @Accessors(fluent = true)
+  private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
+
+  public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
+<span class="fc" id="L39">    this(pplQuery, jsonContent, path, &quot;&quot;);</span>
+<span class="fc" id="L40">  }</span>
+
+  /** Constructor of PPLQueryRequest. */
+<span class="fc" id="L43">  public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {</span>
+<span class="fc" id="L44">    this.pplQuery = pplQuery;</span>
+<span class="fc" id="L45">    this.jsonContent = jsonContent;</span>
+<span class="fc" id="L46">    this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);</span>
+<span class="fc" id="L47">    this.format = format;</span>
+<span class="fc" id="L48">  }</span>
+
+  public String getRequest() {
+<span class="fc" id="L51">    return pplQuery;</span>
+  }
+
+  /**
+   * Check if request is to explain rather than execute the query.
+   *
+   * @return true if it is a explain request
+   */
+  public boolean isExplainRequest() {
+<span class="fc" id="L60">    return path.endsWith(&quot;/_explain&quot;);</span>
+  }
+
+  /** Decide on the formatter by the requested format. */
+  public Format format() {
+<span class="fc" id="L65">    Optional&lt;Format&gt; optionalFormat = Format.of(format);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (optionalFormat.isPresent()) {</span>
+<span class="fc" id="L67">      return optionalFormat.get();</span>
+    } else {
+<span class="fc" id="L69">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L70">          String.format(Locale.ROOT, &quot;response in %s format is not supported.&quot;, format));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

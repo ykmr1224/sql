@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WidthBucketFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.expression.function.udf.binning</a> &gt; <span class="el_source">WidthBucketFunction.java</span></div><h1>WidthBucketFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.udf.binning;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
+
+/**
+ * WIDTH_BUCKET(field_value, num_bins, data_range, max_value) - Histogram bucketing function.
+ *
+ * &lt;p&gt;This function creates equal-width bins for histogram operations. It uses a mathematical O(1)
+ * algorithm to determine optimal bin widths based on powers of 10.
+ *
+ * &lt;p&gt;Parameters:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;field_value - The numeric value to bin
+ *   &lt;li&gt;num_bins - Number of bins to create
+ *   &lt;li&gt;data_range - Range of the data (MAX - MIN)
+ *   &lt;li&gt;max_value - Maximum value in the dataset
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Implements the same binning logic as BinCalculatorFunction for 'bins' type.
+ */
+public class WidthBucketFunction extends ImplementorUDF {
+
+  public WidthBucketFunction() {
+<span class="fc" id="L42">    super(new WidthBucketImplementor(), NullPolicy.ANY);</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+<span class="fc" id="L47">    return ReturnTypes.VARCHAR_2000;</span>
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+<span class="fc" id="L52">    return PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC_NUMERIC;</span>
+  }
+
+<span class="fc" id="L55">  public static class WidthBucketImplementor implements NotNullImplementor {</span>
+
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List&lt;Expression&gt; translatedOperands) {
+<span class="nc" id="L60">      Expression fieldValue = translatedOperands.get(0);</span>
+<span class="nc" id="L61">      Expression numBins = translatedOperands.get(1);</span>
+<span class="nc" id="L62">      Expression dataRange = translatedOperands.get(2);</span>
+<span class="nc" id="L63">      Expression maxValue = translatedOperands.get(3);</span>
+
+<span class="nc" id="L65">      return Expressions.call(</span>
+          WidthBucketImplementor.class,
+          &quot;calculateWidthBucket&quot;,
+<span class="nc" id="L68">          Expressions.convert_(fieldValue, Number.class),</span>
+<span class="nc" id="L69">          Expressions.convert_(numBins, Number.class),</span>
+<span class="nc" id="L70">          Expressions.convert_(dataRange, Number.class),</span>
+<span class="nc" id="L71">          Expressions.convert_(maxValue, Number.class));</span>
+    }
+
+    /** Width bucket calculation using nice number algorithm. */
+    public static String calculateWidthBucket(
+        Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
+<span class="nc bnc" id="L77" title="All 8 branches missed.">      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {</span>
+<span class="nc" id="L78">        return null;</span>
+      }
+
+<span class="nc" id="L81">      double value = fieldValue.doubleValue();</span>
+<span class="nc" id="L82">      int numBins = numBinsParam.intValue();</span>
+
+<span class="nc bnc" id="L84" title="All 4 branches missed.">      if (numBins &lt; BinConstants.MIN_BINS || numBins &gt; BinConstants.MAX_BINS) {</span>
+<span class="nc" id="L85">        return null;</span>
+      }
+
+<span class="nc" id="L88">      double range = dataRange.doubleValue();</span>
+<span class="nc" id="L89">      double max = maxValue.doubleValue();</span>
+
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      if (range &lt;= 0) {</span>
+<span class="nc" id="L92">        return null;</span>
+      }
+
+      // Calculate optimal width using nice number algorithm
+<span class="nc" id="L96">      double width = calculateOptimalWidth(range, max, numBins);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">      if (width &lt;= 0) {</span>
+<span class="nc" id="L98">        return null;</span>
+      }
+
+<span class="nc" id="L101">      double binStart = Math.floor(value / width) * width;</span>
+<span class="nc" id="L102">      double binEnd = binStart + width;</span>
+
+<span class="nc" id="L104">      return formatRange(binStart, binEnd, width);</span>
+    }
+
+    /** Calculate optimal width using mathematical O(1) algorithm. */
+    private static double calculateOptimalWidth(
+        double dataRange, double maxValue, int requestedBins) {
+<span class="nc bnc" id="L110" title="All 4 branches missed.">      if (dataRange &lt;= 0 || requestedBins &lt;= 0) {</span>
+<span class="nc" id="L111">        return 1.0; // Safe fallback</span>
+      }
+
+      // Calculate target width: target_width = data_range / requested_bins
+<span class="nc" id="L115">      double targetWidth = dataRange / requestedBins;</span>
+
+      // Find optimal starting point: exponent = CEIL(LOG10(target_width))
+<span class="nc" id="L118">      double exponent = Math.ceil(Math.log10(targetWidth));</span>
+
+      // Select optimal width: 10^exponent
+<span class="nc" id="L121">      double optimalWidth = Math.pow(10.0, exponent);</span>
+
+      // Account for boundaries: If the maximum value falls exactly on a bin boundary, add one extra
+      // bin
+<span class="nc" id="L125">      double actualBins = Math.ceil(dataRange / optimalWidth);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">      if (maxValue % optimalWidth == 0) {</span>
+<span class="nc" id="L127">        actualBins++;</span>
+      }
+
+      // If we exceed requested bins, we need to go to next magnitude level
+<span class="nc bnc" id="L131" title="All 2 branches missed.">      if (actualBins &gt; requestedBins) {</span>
+<span class="nc" id="L132">        optimalWidth = Math.pow(10.0, exponent + 1);</span>
+      }
+
+<span class="nc" id="L135">      return optimalWidth;</span>
+    }
+
+    /** Format range string with appropriate precision. */
+    private static String formatRange(double binStart, double binEnd, double span) {
+<span class="nc bnc" id="L140" title="All 6 branches missed.">      if (isIntegerSpan(span) &amp;&amp; isIntegerValue(binStart) &amp;&amp; isIntegerValue(binEnd)) {</span>
+<span class="nc" id="L141">        return String.format(&quot;%d-%d&quot;, (long) binStart, (long) binEnd);</span>
+      } else {
+<span class="nc" id="L143">        return formatFloatingPointRange(binStart, binEnd, span);</span>
+      }
+    }
+
+    /** Checks if the span represents an integer value. */
+    private static boolean isIntegerSpan(double span) {
+<span class="nc bnc" id="L149" title="All 4 branches missed.">      return span == Math.floor(span) &amp;&amp; !Double.isInfinite(span);</span>
+    }
+
+    /** Checks if a value is effectively an integer. */
+    private static boolean isIntegerValue(double value) {
+<span class="nc bnc" id="L154" title="All 2 branches missed.">      return Math.abs(value - Math.round(value)) &lt; 1e-10;</span>
+    }
+
+    /** Formats floating-point ranges with appropriate precision. */
+    private static String formatFloatingPointRange(double binStart, double binEnd, double span) {
+<span class="nc" id="L159">      int decimalPlaces = getAppropriateDecimalPlaces(span);</span>
+<span class="nc" id="L160">      String format = String.format(&quot;%%.%df-%%.%df&quot;, decimalPlaces, decimalPlaces);</span>
+<span class="nc" id="L161">      return String.format(format, binStart, binEnd);</span>
+    }
+
+    /** Determines appropriate decimal places for formatting based on span size. */
+    private static int getAppropriateDecimalPlaces(double span) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">      if (span &gt;= 1.0) {</span>
+<span class="nc" id="L167">        return 1;</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">      } else if (span &gt;= 0.1) {</span>
+<span class="nc" id="L169">        return 2;</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">      } else if (span &gt;= 0.01) {</span>
+<span class="nc" id="L171">        return 3;</span>
+      } else {
+<span class="nc" id="L173">        return 4;</span>
+      }
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

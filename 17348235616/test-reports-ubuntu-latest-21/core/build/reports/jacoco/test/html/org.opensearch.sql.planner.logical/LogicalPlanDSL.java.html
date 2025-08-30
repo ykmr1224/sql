@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogicalPlanDSL.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core</a> &gt; <a href="index.source.html" class="el_package">org.opensearch.sql.planner.logical</a> &gt; <span class="el_source">LogicalPlanDSL.java</span></div><h1>LogicalPlanDSL.java</h1><pre class="source lang-java linenums">/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.logical;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.storage.Table;
+
+/** Logical Plan DSL. */
+@UtilityClass
+public class LogicalPlanDSL {
+
+  public static LogicalPlan fetchCursor(String cursor, StorageEngine engine) {
+<span class="fc" id="L34">    return new LogicalFetchCursor(cursor, engine);</span>
+  }
+
+  public static LogicalPlan write(LogicalPlan input, Table table, List&lt;String&gt; columns) {
+<span class="fc" id="L38">    return new LogicalWrite(input, table, columns);</span>
+  }
+
+  public static LogicalPlan aggregation(
+      LogicalPlan input, List&lt;NamedAggregator&gt; aggregatorList, List&lt;NamedExpression&gt; groupByList) {
+<span class="fc" id="L43">    return new LogicalAggregation(input, aggregatorList, groupByList);</span>
+  }
+
+  public static LogicalPlan filter(LogicalPlan input, Expression expression) {
+<span class="fc" id="L47">    return new LogicalFilter(input, expression);</span>
+  }
+
+  public static LogicalPlan relation(String tableName, Table table) {
+<span class="fc" id="L51">    return new LogicalRelation(tableName, table);</span>
+  }
+
+  public static LogicalPlan rename(
+      LogicalPlan input, Map&lt;ReferenceExpression, ReferenceExpression&gt; renameMap) {
+<span class="fc" id="L56">    return new LogicalRename(input, renameMap);</span>
+  }
+
+  public static LogicalPlan paginate(LogicalPlan input, int fetchSize) {
+<span class="fc" id="L60">    return new LogicalPaginate(fetchSize, List.of(input));</span>
+  }
+
+  public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
+<span class="fc" id="L64">    return new LogicalProject(input, Arrays.asList(fields), ImmutableList.of());</span>
+  }
+
+  public static LogicalPlan project(
+      LogicalPlan input,
+      List&lt;NamedExpression&gt; fields,
+      List&lt;NamedExpression&gt; namedParseExpressions) {
+<span class="fc" id="L71">    return new LogicalProject(input, fields, namedParseExpressions);</span>
+  }
+
+  public LogicalPlan window(
+      LogicalPlan input, NamedExpression windowFunction, WindowDefinition windowDefinition) {
+<span class="fc" id="L76">    return new LogicalWindow(input, windowFunction, windowDefinition);</span>
+  }
+
+  public LogicalPlan highlight(
+      LogicalPlan input, Expression field, Map&lt;String, Literal&gt; arguments) {
+<span class="fc" id="L81">    return new LogicalHighlight(input, field, arguments);</span>
+  }
+
+  public static LogicalPlan nested(
+      LogicalPlan input,
+      List&lt;Map&lt;String, ReferenceExpression&gt;&gt; nestedArgs,
+      List&lt;NamedExpression&gt; projectList) {
+<span class="fc" id="L88">    return new LogicalNested(input, nestedArgs, projectList);</span>
+  }
+
+  public static LogicalPlan remove(LogicalPlan input, ReferenceExpression... fields) {
+<span class="fc" id="L92">    return new LogicalRemove(input, ImmutableSet.copyOf(fields));</span>
+  }
+
+  public static LogicalPlan eval(
+      LogicalPlan input, Pair&lt;ReferenceExpression, Expression&gt;... expressions) {
+<span class="fc" id="L97">    return new LogicalEval(input, Arrays.asList(expressions));</span>
+  }
+
+  public static LogicalPlan sort(LogicalPlan input, Pair&lt;SortOption, Expression&gt;... sorts) {
+<span class="fc" id="L101">    return new LogicalSort(input, Arrays.asList(sorts));</span>
+  }
+
+  public static LogicalPlan sort(
+      LogicalPlan input, Integer count, Pair&lt;SortOption, Expression&gt;... sorts) {
+<span class="fc" id="L106">    return new LogicalSort(input, count, Arrays.asList(sorts));</span>
+  }
+
+  public static LogicalPlan dedupe(LogicalPlan input, Expression... fields) {
+<span class="fc" id="L110">    return dedupe(input, 1, false, false, fields);</span>
+  }
+
+  public static LogicalPlan dedupe(
+      LogicalPlan input,
+      int allowedDuplication,
+      boolean keepEmpty,
+      boolean consecutive,
+      Expression... fields) {
+<span class="fc" id="L119">    return new LogicalDedupe(</span>
+<span class="fc" id="L120">        input, Arrays.asList(fields), allowedDuplication, keepEmpty, consecutive);</span>
+  }
+
+  public static LogicalPlan rareTopN(
+      LogicalPlan input,
+      CommandType commandType,
+      List&lt;Expression&gt; groupByList,
+      Expression... fields) {
+<span class="fc" id="L128">    return rareTopN(input, commandType, 10, groupByList, fields);</span>
+  }
+
+  public static LogicalPlan rareTopN(
+      LogicalPlan input,
+      CommandType commandType,
+      int noOfResults,
+      List&lt;Expression&gt; groupByList,
+      Expression... fields) {
+<span class="fc" id="L137">    return new LogicalRareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupByList);</span>
+  }
+
+  public static LogicalTrendline trendline(
+      LogicalPlan input, Pair&lt;Trendline.TrendlineComputation, ExprCoreType&gt;... computations) {
+<span class="fc" id="L142">    return new LogicalTrendline(input, Arrays.asList(computations));</span>
+  }
+
+  @SafeVarargs
+  public LogicalPlan values(List&lt;LiteralExpression&gt;... values) {
+<span class="fc" id="L147">    return new LogicalValues(Arrays.asList(values));</span>
+  }
+
+  public static LogicalPlan limit(LogicalPlan input, Integer limit, Integer offset) {
+<span class="fc" id="L151">    return new LogicalLimit(input, limit, offset);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
