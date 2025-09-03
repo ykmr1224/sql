@@ -701,23 +701,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Standard window function
       f = buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
     } else if (ctx.earliestLatestFunction() != null) {
-      // EARLIEST/LATEST function
-      UnresolvedExpression earliestLatestExpr = visit(ctx.earliestLatestFunction());
-      if (earliestLatestExpr instanceof AggregateFunction) {
-        AggregateFunction aggFunc = (AggregateFunction) earliestLatestExpr;
-        // Create arguments list from field and argList
-        List<UnresolvedExpression> args = new java.util.ArrayList<>();
-        args.add(aggFunc.getField());
-        args.addAll(aggFunc.getArgList());
-        f = new Function(aggFunc.getFuncName(), args);
-      } else {
-        throw new SyntaxCheckException("Expected AggregateFunction for EARLIEST/LATEST");
-      }
+      f = handleEarliestLatestWindowFunction(ctx.earliestLatestFunction());
     } else {
       throw new SyntaxCheckException("Invalid window function");
     }
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
+  }
+
+  private Function handleEarliestLatestWindowFunction(
+      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
+    UnresolvedExpression earliestLatestExpr = visit(ctx);
+
+    if (earliestLatestExpr instanceof AggregateFunction) {
+      AggregateFunction aggFunc = (AggregateFunction) earliestLatestExpr;
+      ImmutableList<UnresolvedExpression> args =
+          ImmutableList.<UnresolvedExpression>builder()
+              .add(aggFunc.getField())
+              .addAll(aggFunc.getArgList())
+              .build();
+      return new Function(aggFunc.getFuncName(), args);
+    } else {
+      throw new SyntaxCheckException("Expected AggregateFunction for EARLIEST/LATEST");
+    }
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
