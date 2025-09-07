@@ -87,7 +87,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedResult = "avg(SAL)=2073.214285\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = " SELECT AVG(`SAL`) `avg(SAL)`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT AVG(`SAL`) `avg(SAL)`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -509,7 +509,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedResult = "avg_a=1.0\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = " SELECT AVG(1) `avg_a`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT AVG(1) `avg_a`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -527,7 +527,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedResult = "avg_a=1.0; b=1\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = " SELECT AVG(1) `avg_a`, 1 `b`\nFROM `scott`.`EMP`\nGROUP BY 1";
+    String expectedSparkSql = "SELECT AVG(1) `avg_a`, 1 `b`\nFROM `scott`.`EMP`\nGROUP BY 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -544,7 +544,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedResult = "avg_sal=2073.214285\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = " SELECT AVG(`SAL`) `avg_sal`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT AVG(`SAL`) `avg_sal`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
