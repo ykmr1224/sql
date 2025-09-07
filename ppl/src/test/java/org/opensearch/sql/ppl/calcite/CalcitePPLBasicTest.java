@@ -170,7 +170,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT `SUPPLIER`, `ID`\n FROM `scott`.`products_temporal`";
+    String expectedSparkSql = "SELECT `SUPPLIER`, `ID`\nFROM `scott`.`products_temporal`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -183,7 +183,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT `SYS_START`, `SYS_END`\n FROM `scott`.`products_temporal`";
+    String expectedSparkSql = "SELECT `SYS_START`, `SYS_END`\nFROM `scott`.`products_temporal`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
