@@ -76,6 +76,7 @@ commands
    | reverseCommand
    | regexCommand
    | timechartCommand
+   | rexCommand
    ;
 
 commandName
@@ -112,6 +113,7 @@ commandName
    | REVERSE
    | REGEX
    | APPEND
+   | REX
    ;
 
 searchCommand
@@ -149,7 +151,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
@@ -274,6 +276,18 @@ regexExpr
     : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
     ;
 
+rexCommand
+    : REX rexExpr
+    ;
+
+rexExpr
+    : FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    ;
+
+rexOption
+    : MAX_MATCH EQUAL maxMatch=integerLiteral
+    | MODE EQUAL EXTRACT
+    ;
 patternsMethod
    : PUNCT
    | REGEX
@@ -453,7 +467,7 @@ hintPair
    ;
 
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -538,6 +552,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
    | LIST
    | EARLIEST
    | LATEST
@@ -663,6 +678,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
