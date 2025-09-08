@@ -411,7 +411,9 @@ public class PPLFuncImpTable {
       CalcitePlanContext context) {
     var implementation = getImplementation(functionName);
 
+    // Validation is done based on original argument types to generate error from user perspective.
     validateFunctionArgs(implementation, functionName, field, argList);
+
     var handler = implementation.getValue();
     return handler.apply(distinct, field, argList, context);
   }
@@ -1080,83 +1082,22 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
-      // Helper method to resolve time field for EARLIEST/LATEST functions
-      final class TimeFieldResolver {
-        static List<RexNode> resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
-          if (argList.isEmpty()) {
-            // Try to find @timestamp field
-            var timestampField =
-                ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
-            if (timestampField == null) {
-              throw new IllegalArgumentException(
-                  "Default @timestamp field not found. Please specify a time field explicitly.");
-            }
-            return List.of(
-                ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex()));
-          } else {
-            return argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-          }
-        }
-      }
-
-      register(
-          MAX,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.max(field),
-          PPLTypeChecker.family(SqlTypeFamily.ANY));
-
-      register(
-          MIN,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.min(field),
-          PPLTypeChecker.family(SqlTypeFamily.ANY));
-
-      register(
-          SUM,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.sum(field),
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-
-      register(
-          VARSAMP,
-          (distinct, field, argList, ctx) -> {
-            return UserDefinedFunctionUtils.makeAggregateCall(
-                PPLBuiltinOperators.VAR_SAMP_NULLABLE, List.of(field), List.of(), ctx.relBuilder);
-          },
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-
-      register(
-          VARPOP,
-          (distinct, field, argList, ctx) -> {
-            return UserDefinedFunctionUtils.makeAggregateCall(
-                PPLBuiltinOperators.VAR_POP_NULLABLE, List.of(field), List.of(), ctx.relBuilder);
-          },
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-
-      register(
-          STDDEV_SAMP,
-          (distinct, field, argList, ctx) -> {
-            return UserDefinedFunctionUtils.makeAggregateCall(
-                PPLBuiltinOperators.STDDEV_SAMP_NULLABLE,
-                List.of(field),
-                List.of(),
-                ctx.relBuilder);
-          },
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-
-      register(
-          STDDEV_POP,
-          (distinct, field, argList, ctx) -> {
-            return UserDefinedFunctionUtils.makeAggregateCall(
-                PPLBuiltinOperators.STDDEV_POP_NULLABLE, List.of(field), List.of(), ctx.relBuilder);
-          },
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-
+      registerOperator(MAX, SqlStdOperatorTable.MAX);
+      registerOperator(MIN, SqlStdOperatorTable.MIN);
+      registerOperator(SUM, SqlStdOperatorTable.SUM);
+      registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
+      registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
+      registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);
+      registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
 
       register(
           AVG,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(field),
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 
       register(
           COUNT,
@@ -1169,8 +1110,7 @@ public class PPLFuncImpTable {
               return ctx.relBuilder.count(distinct, null, field);
             }
           },
-          wrapSqlOperandTypeChecker(
-              PPLOperandTypes.OPTIONAL_ANY.getInnerTypeChecker(), COUNT.name(), false));
+          wrapSqlOperandTypeChecker(PPLOperandTypes.OPTIONAL_ANY, COUNT.name(), false));
 
       register(
           PERCENTILE_APPROX,
@@ -1189,24 +1129,37 @@ public class PPLFuncImpTable {
       register(
           EARLIEST,
           (distinct, field, argList, ctx) -> {
-            List<RexNode> args = TimeFieldResolver.resolveTimeField(argList, ctx);
+            List<RexNode> args = resolveTimeField(argList, ctx);
             return UserDefinedFunctionUtils.makeAggregateCall(
                 SqlStdOperatorTable.ARG_MIN, List.of(field), args, ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              PPLOperandTypes.ANY_DATETIME_OR_STRING.getInnerTypeChecker(),
-              EARLIEST.name(),
-              false));
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
 
       register(
           LATEST,
           (distinct, field, argList, ctx) -> {
-            List<RexNode> args = TimeFieldResolver.resolveTimeField(argList, ctx);
+            List<RexNode> args = resolveTimeField(argList, ctx);
             return UserDefinedFunctionUtils.makeAggregateCall(
                 SqlStdOperatorTable.ARG_MAX, List.of(field), args, ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              PPLOperandTypes.ANY_DATETIME_OR_STRING.getInnerTypeChecker(), LATEST.name(), false));
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
+    }
+  }
+
+  static List<RexNode> resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
+    if (argList.isEmpty()) {
+      // Try to find @timestamp field
+      var timestampField = ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+      if (timestampField == null) {
+        throw new IllegalArgumentException(
+            "Default @timestamp field not found. Please specify a time field explicitly.");
+      }
+      return List.of(
+          ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex()));
+    } else {
+      return argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
     }
   }
 
@@ -1251,6 +1204,8 @@ public class PPLFuncImpTable {
       pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
     } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
       pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+    } else if (typeChecker != null) {
+      pplTypeChecker = PPLTypeChecker.wrapDefault(typeChecker);
     } else {
       logger.info(
           "Cannot create type checker for function: {}. Will skip its type checking", functionName);
