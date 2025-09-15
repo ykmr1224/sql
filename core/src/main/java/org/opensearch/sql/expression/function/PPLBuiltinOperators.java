@@ -122,6 +122,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MAP_GET =
       new org.opensearch.sql.expression.function.mapUDF.MapGetFunctionImpl().toUDF("MAP_GET");
 
+  // Timechart functions
+  public static final SqlOperator TIMECHART_PIVOT =
+      new org.opensearch.sql.expression.function.timechartUDF.TimechartPivotFunctionImpl()
+          .toUDF("TIMECHART_PIVOT");
+
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunction().toUDF("E");

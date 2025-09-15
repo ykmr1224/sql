@@ -201,6 +201,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMECHART_PIVOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
@@ -858,6 +859,7 @@ public class PPLFuncImpTable {
       // Register Map functions
       registerOperator(MAP_GET, PPLBuiltinOperators.MAP_GET);
       registerOperator(MAP_MERGE, PPLBuiltinOperators.MAP_MERGE);
+      registerOperator(TIMECHART_PIVOT, PPLBuiltinOperators.TIMECHART_PIVOT);
 
       // Register operators with a different type checker
 

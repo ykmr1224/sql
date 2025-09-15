@@ -1827,6 +1827,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    // Check if this timechart should use dynamic columns
+    if (node.isDynamicColumns()) {
+      // Use dynamic columns approach - delegate to the rewritten AST
+      return node.rewriteAsDynamicColumns().accept(this, context);
+    }
+
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
 

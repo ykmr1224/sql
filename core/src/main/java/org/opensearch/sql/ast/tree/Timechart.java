@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /** AST node represent Timechart operation. */
@@ -61,5 +62,49 @@ public class Timechart extends UnresolvedPlan {
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitTimechart(this, context);
+  }
+
+  /**
+   * Rewrite timechart as eval with dynamic columns when BY field is present. This enables
+   * pivot-style column generation where BY field values become column names.
+   *
+   * <p>For example: timechart span=1h count() by host becomes columns like: @timestamp,
+   * host1_count, host2_count, host3_count
+   *
+   * @return Eval node that generates dynamic columns using timechart_pivot function
+   */
+  public Eval rewriteAsDynamicColumns() {
+    if (byField == null) {
+      // No BY field means no dynamic columns needed - use standard timechart
+      return null;
+    }
+
+    // Create timechart_pivot function call that will:
+    // 1. Group by time buckets (binExpression) and BY field values
+    // 2. Apply the aggregate function
+    // 3. Pivot BY field values into MAP keys with aggregated values
+    return AstDSL.eval(
+        this.child,
+        AstDSL.let(
+            AstDSL.field("_dynamic_columns"),
+            AstDSL.function(
+                "timechart_pivot",
+                binExpression, // time span expression (e.g., span=1h)
+                byField, // field to pivot (e.g., host)
+                aggregateFunction, // aggregation function (e.g., count())
+                AstDSL.intLiteral(limit != null ? limit : 10), // limit for top N values
+                AstDSL.booleanLiteral(
+                    useOther != null ? useOther : true) // whether to use OTHER category
+                )));
+  }
+
+  /**
+   * Check if this timechart should use dynamic columns. Dynamic columns are used when there's a BY
+   * field for pivoting.
+   *
+   * @return true if BY field is present, false otherwise
+   */
+  public boolean isDynamicColumns() {
+    return byField != null;
   }
 }
