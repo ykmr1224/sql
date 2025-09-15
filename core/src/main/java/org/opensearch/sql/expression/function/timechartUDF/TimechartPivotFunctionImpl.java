@@ -84,15 +84,15 @@ public class TimechartPivotFunctionImpl extends ImplementorUDF {
    */
   public static Object eval(Object... args) {
     if (args.length < 5) {
-      return null;
+      return new HashMap<String, Object>();
     }
 
-    // Extract parameters
-    Object spanExpr = args[0];
-    Object byField = args[1];
-    Object aggFunction = args[2];
-    Integer limit = (Integer) args[3];
-    Boolean useOther = (Boolean) args[4];
+    // Extract parameters - ensure no nulls
+    Object spanExpr = args[0] != null ? args[0] : "1h";
+    Object byField = args[1] != null ? args[1] : "";
+    Object aggFunction = args[2] != null ? args[2] : "count()";
+    Integer limit = args[3] != null ? (Integer) args[3] : 10;
+    Boolean useOther = args[4] != null ? (Boolean) args[4] : true;
 
     // Create metadata map for the physical execution layer
     // This tells the execution engine that this is a timechart pivot operation

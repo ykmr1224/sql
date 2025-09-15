@@ -44,7 +44,7 @@ public class CalciteTimechartDynamicColumnsIT extends PPLIntegTestCase {
 
   @Test
   public void testTimechartWithDynamicColumnsLimit() throws IOException {
-    var response = executeQuery("source=events | timechart span=1h count() by host limit=2");
+    var response = executeQuery("source=events | timechart span=1h limit=2 count() by host");
 
     verifySchema(
         response,
@@ -61,7 +61,7 @@ public class CalciteTimechartDynamicColumnsIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithDynamicColumnsNoOther() throws IOException {
     var response =
-        executeQuery("source=events | timechart span=1h count() by host limit=2 useother=false");
+        executeQuery("source=events | timechart span=1h limit=2 useother=false count() by host");
 
     verifySchema(
         response,
@@ -142,7 +142,7 @@ public class CalciteTimechartDynamicColumnsIT extends PPLIntegTestCase {
 
   @Test
   public void testTimechartWithDynamicColumnsZeroLimit() throws IOException {
-    var response = executeQuery("source=events | timechart span=1h count() by host limit=0");
+    var response = executeQuery("source=events | timechart span=1h limit=0 count() by host");
 
     // With limit=0, should fall back to standard timechart behavior
     verifySchema(
@@ -171,7 +171,7 @@ public class CalciteTimechartDynamicColumnsIT extends PPLIntegTestCase {
   @Test
   public void testTimechartDynamicColumnsWithSumFunction() throws IOException {
     var response =
-        executeQuery("source=events | timechart span=1h sum(response_time) by host limit=2");
+        executeQuery("source=events | timechart span=1h limit=2 sum(response_time) by host");
 
     verifySchema(
         response,

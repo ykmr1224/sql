@@ -446,7 +446,12 @@ public class PPLFuncImpTable {
     // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
     // Their additional arguments will always come as a map of <argName, value>
     List<RelDataType> additionalArgTypes =
-        argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
+        argList.stream()
+            .map(PlanUtils::derefMapCall)
+            .filter(java.util.Objects::nonNull)
+            .map(RexNode::getType)
+            .filter(java.util.Objects::nonNull)
+            .toList();
     argTypes.addAll(additionalArgTypes);
     if (!signature.match(functionName.getName(), argTypes)) {
       String errorMessagePattern =
@@ -525,9 +530,12 @@ public class PPLFuncImpTable {
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      String signature = implement.getKey().typeChecker().getAllowedSignatures();
-      if (!signature.isEmpty()) {
-        allowedSignatures.add(signature);
+      if (implement != null && implement.getKey() != null) {
+        PPLTypeChecker typeChecker = implement.getKey().typeChecker();
+        String signature = (typeChecker != null) ? typeChecker.getAllowedSignatures() : "";
+        if (!signature.isEmpty()) {
+          allowedSignatures.add(signature);
+        }
       }
     }
     throw new ExpressionEvaluationException(
@@ -569,7 +577,12 @@ public class PPLFuncImpTable {
               implement
                   .getKey()
                   .typeChecker()
-                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+                  .checkOperandTypes(
+                      widenedArgs.stream()
+                          .filter(java.util.Objects::nonNull)
+                          .map(RexNode::getType)
+                          .filter(java.util.Objects::nonNull)
+                          .toList());
           if (matchSignature) {
             return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
           }
