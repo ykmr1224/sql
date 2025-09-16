@@ -99,6 +99,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_AR
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT_ALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
@@ -123,6 +124,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_GET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_MERGE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
@@ -199,6 +202,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMECHART_PIVOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
@@ -443,7 +447,12 @@ public class PPLFuncImpTable {
     // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
     // Their additional arguments will always come as a map of <argName, value>
     List<RelDataType> additionalArgTypes =
-        argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
+        argList.stream()
+            .map(PlanUtils::derefMapCall)
+            .filter(java.util.Objects::nonNull)
+            .map(RexNode::getType)
+            .filter(java.util.Objects::nonNull)
+            .toList();
     argTypes.addAll(additionalArgTypes);
     if (!signature.match(functionName.getName(), argTypes)) {
       String errorMessagePattern =
@@ -522,9 +531,12 @@ public class PPLFuncImpTable {
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      String signature = implement.getKey().typeChecker().getAllowedSignatures();
-      if (!signature.isEmpty()) {
-        allowedSignatures.add(signature);
+      if (implement != null && implement.getKey() != null) {
+        PPLTypeChecker typeChecker = implement.getKey().typeChecker();
+        String signature = (typeChecker != null) ? typeChecker.getAllowedSignatures() : "";
+        if (!signature.isEmpty()) {
+          allowedSignatures.add(signature);
+        }
       }
     }
     throw new ExpressionEvaluationException(
@@ -566,7 +578,12 @@ public class PPLFuncImpTable {
               implement
                   .getKey()
                   .typeChecker()
-                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+                  .checkOperandTypes(
+                      widenedArgs.stream()
+                          .filter(java.util.Objects::nonNull)
+                          .map(RexNode::getType)
+                          .filter(java.util.Objects::nonNull)
+                          .toList());
           if (matchSignature) {
             return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
           }
@@ -854,12 +871,18 @@ public class PPLFuncImpTable {
       registerOperator(JSON, PPLBuiltinOperators.JSON);
       registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
       registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL);
       registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
       registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
       registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
+
+      // Register Map functions
+      registerOperator(MAP_GET, PPLBuiltinOperators.MAP_GET);
+      registerOperator(MAP_MERGE, PPLBuiltinOperators.MAP_MERGE);
+      registerOperator(TIMECHART_PIVOT, PPLBuiltinOperators.TIMECHART_PIVOT);
 
       // Register operators with a different type checker
 

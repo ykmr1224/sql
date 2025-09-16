@@ -319,20 +319,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
-    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-    List<RexNode> expandedFields =
-        expandProjectFields(node.getProjectList(), currentFields, context);
+    // CRITICAL FIX: Set fields command context for proper dynamic field resolution
+    boolean wasInFieldsCommand = context.isInFieldsCommand();
+    context.setInFieldsCommand(true);
 
-    if (node.isExcluded()) {
-      validateExclusion(expandedFields, currentFields);
-      context.relBuilder.projectExcept(expandedFields);
-    } else {
-      if (!context.isResolvingSubquery()) {
-        context.setProjectVisited(true);
+    try {
+      List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> expandedFields =
+          expandProjectFields(node.getProjectList(), currentFields, context);
+
+      if (node.isExcluded()) {
+        validateExclusion(expandedFields, currentFields);
+        context.relBuilder.projectExcept(expandedFields);
+      } else {
+        if (!context.isResolvingSubquery()) {
+          context.setProjectVisited(true);
+        }
+        context.relBuilder.project(expandedFields);
       }
-      context.relBuilder.project(expandedFields);
+      return context.relBuilder.peek();
+    } finally {
+      // Restore previous context state
+      context.setInFieldsCommand(wasInFieldsCommand);
     }
-    return context.relBuilder.peek();
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
@@ -358,10 +367,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> expandedFields = new ArrayList<>();
     Set<String> addedFields = new HashSet<>();
 
+    System.out.println("=== DEBUG expandProjectFields ===");
+    System.out.println("Project list: " + projectList);
+    System.out.println("Current fields: " + currentFields);
+
     for (UnresolvedExpression expr : projectList) {
       switch (expr) {
         case Field field -> {
           String fieldName = field.getField().toString();
+          System.out.println("Processing field: " + fieldName);
+
           if (WildcardUtils.containsWildcard(fieldName)) {
             List<String> matchingFields =
                 WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
@@ -373,7 +388,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode analyzedField = rexVisitor.analyze(field, context);
+            System.out.println("Analyzed field " + fieldName + " -> " + analyzedField);
+            expandedFields.add(analyzedField);
           }
         }
         case AllFields ignored -> {
@@ -645,7 +662,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    return visitEval(node.rewriteAsEval(), context);
+    Eval evalNode = node.rewriteAsEval();
+    return visitEval(evalNode, context);
   }
 
   @Override
@@ -757,9 +775,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    // DEBUG: Add logging for eval processing
+    System.out.println("=== DEBUG visitEval ===");
+    System.out.println("Processing eval expressions: " + node.getExpressionList().size());
+
+    // CRITICAL FIX: Check if any expressions reference _dynamic_columns and ensure it exists
+    boolean needsDynamicColumns =
+        node.getExpressionList().stream()
+            .anyMatch(expr -> expr.toString().contains("_dynamic_columns"));
+
+    if (needsDynamicColumns) {
+      List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+      if (!currentFields.contains("_dynamic_columns")) {
+        System.out.println("Adding _dynamic_columns field to schema for spath processing");
+
+        // Add NULL MAP field for _dynamic_columns if it doesn't exist
+        // This creates a placeholder that map_merge can work with
+        RexNode nullMapField =
+            context.rexBuilder.makeNullLiteral(
+                context
+                    .rexBuilder
+                    .getTypeFactory()
+                    .createMapType(
+                        context
+                            .rexBuilder
+                            .getTypeFactory()
+                            .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
+                        context
+                            .rexBuilder
+                            .getTypeFactory()
+                            .createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY)));
+        RexNode dynamicColumnsField = context.relBuilder.alias(nullMapField, "_dynamic_columns");
+        context.relBuilder.projectPlus(dynamicColumnsField);
+
+        // Mark that dynamic columns are now available
+        context.setDynamicColumnsAvailable(true);
+        System.out.println("_dynamic_columns field added to schema");
+      }
+    }
+
     node.getExpressionList()
         .forEach(
             expr -> {
+              System.out.println("Processing expression: " + expr);
+
               boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
@@ -767,6 +827,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.pushCorrelVar(v.get());
               }
               RexNode eval = rexVisitor.analyze(expr, context);
+              System.out.println("Analyzed RexNode: " + eval);
+
               if (containsSubqueryExpression) {
                 // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
                 // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
@@ -780,7 +842,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 // Overriding the existing field if the alias has the same name with original field.
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
+                System.out.println("Adding field with alias: " + alias);
+
+                // DEBUG: Check current fields before and after
+                List<String> fieldsBefore = context.relBuilder.peek().getRowType().getFieldNames();
+                System.out.println("Fields before projectPlusOverriding: " + fieldsBefore);
+
+                // CRITICAL FIX: Use projectPlusOverriding to properly handle field replacement
+                // This ensures that if _dynamic_columns already exists, it gets updated instead of
+                // creating _dynamic_columns0
                 projectPlusOverriding(List.of(eval), List.of(alias), context);
+
+                List<String> fieldsAfter = context.relBuilder.peek().getRowType().getFieldNames();
+                System.out.println("Fields after adding eval: " + fieldsAfter);
+
+                // CRITICAL FIX: Mark that dynamic columns are available for field resolution
+                if ("_dynamic_columns".equals(alias)) {
+                  System.out.println(
+                      "Dynamic columns field added - enabling dynamic field resolution");
+                  context.setDynamicColumnsAvailable(true);
+                }
               }
             });
     return context.relBuilder.peek();
@@ -879,9 +960,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context) {
     List<AggCall> aggCallList =
         aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
-    List<RexNode> groupByList =
-        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-    return Pair.of(groupByList, aggCallList);
+
+    // CRITICAL FIX: Set both fields command and GROUP BY context for proper field resolution
+    // This ensures dynamic fields in GROUP BY clauses get proper aliasing and type handling
+    boolean wasInFieldsCommand = context.isInFieldsCommand();
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInFieldsCommand(true);
+    context.setInGroupByContext(true);
+
+    try {
+      List<RexNode> groupByList =
+          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      return Pair.of(groupByList, aggCallList);
+    } finally {
+      // Restore previous context state
+      context.setInFieldsCommand(wasInFieldsCommand);
+      context.setInGroupByContext(wasInGroupByContext);
+    }
   }
 
   @Override
@@ -1235,13 +1330,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (consecutive) {
       throw new UnsupportedOperationException("Consecutive deduplication is not supported");
     }
-    // Columns to deduplicate
-    List<RexNode> dedupeFields =
-        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
-    if (keepEmpty) {
-      buildDedupOrNull(context, dedupeFields, allowedDuplication);
-    } else {
-      buildDedupNotNull(context, dedupeFields, allowedDuplication);
+
+    // CRITICAL FIX: Set GROUP BY context for dedup fields to ensure proper type handling
+    // Dedup uses partitioning which is similar to GROUP BY and needs VARCHAR casting for dynamic
+    // fields
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInGroupByContext(true);
+
+    try {
+      // Columns to deduplicate
+      List<RexNode> dedupeFields =
+          node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+      if (keepEmpty) {
+        buildDedupOrNull(context, dedupeFields, allowedDuplication);
+      } else {
+        buildDedupNotNull(context, dedupeFields, allowedDuplication);
+      }
+    } finally {
+      // Restore previous context state
+      context.setInGroupByContext(wasInGroupByContext);
     }
     return context.relBuilder.peek();
   }
@@ -1735,6 +1842,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitTimechart(
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    // Check if this timechart should use dynamic columns
+    if (node.isDynamicColumns()) {
+      // Use dynamic columns approach - delegate to the rewritten AST
+      return node.rewriteAsDynamicColumns().accept(this, context);
+    }
 
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
