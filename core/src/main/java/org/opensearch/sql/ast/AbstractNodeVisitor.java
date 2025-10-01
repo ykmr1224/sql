@@ -431,4 +431,8 @@ public abstract class AbstractNodeVisitor<T, C> {
   public T visitAppend(Append node, C context) {
     return visitChildren(node, context);
   }
+
+  public T visitRand(org.opensearch.sql.ast.tree.Rand node, C context) {
+    return visitChildren(node, context);
+  }
 }

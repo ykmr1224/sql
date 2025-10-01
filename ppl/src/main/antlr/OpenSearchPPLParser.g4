@@ -78,6 +78,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | randfieldCommand
    ;
 
 commandName
@@ -115,6 +116,7 @@ commandName
    | REGEX
    | APPEND
    | REX
+   | RANDFIELD
    ;
 
 searchCommand
@@ -358,6 +360,10 @@ rexOption
     : MAX_MATCH EQUAL maxMatch=integerLiteral
     | MODE EQUAL (EXTRACT | SED)
     | OFFSET_FIELD EQUAL offsetField=qualifiedName
+    ;
+
+randfieldCommand
+    : RANDFIELD
     ;
 patternsMethod
    : PUNCT

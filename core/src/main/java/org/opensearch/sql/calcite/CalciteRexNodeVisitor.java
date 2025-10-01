@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.utils.DynamicRowUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -249,6 +250,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    if (DynamicRowUtils.hasDynamicRowColumn(context)) {
+      System.out.println("#### visitQualifiedName ##### QualifiedName: " + node);
+      RexNode dynamicField = context.relBuilder.field(DynamicRowUtils.DYNAMIC_FIELDS_COLUMN);
+
+      RexNode keyLiteral = context.rexBuilder.makeLiteral(node.toString());
+      return context.rexBuilder.makeCall(
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY),
+          SqlStdOperatorTable.ITEM,
+          List.of(dynamicField, keyLiteral));
+    }
     // 1. resolve QualifiedName in join condition
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();

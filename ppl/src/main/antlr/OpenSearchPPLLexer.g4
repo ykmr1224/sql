@@ -407,6 +407,7 @@ ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
 REVERSE:                            'REVERSE';
+RANDFIELD:                          'RANDFIELD';
 CAST:                               'CAST';
 
 // BOOL FUNCTIONS

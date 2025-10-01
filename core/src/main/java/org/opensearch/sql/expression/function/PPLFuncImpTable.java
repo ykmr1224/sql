@@ -1064,6 +1064,89 @@ public class PPLFuncImpTable {
                       // necessary for SQL function input
                       builder.makeLiteral("\\")),
           PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+
+      register(
+          BuiltinFunctionName.RAND_FIELD,
+          (builder, args) -> {
+            int suffix = (int) (System.currentTimeMillis() % 100);
+
+            return builder.makeCall(
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("random_field_" + suffix),
+                builder.makeCall(
+                    SqlStdOperatorTable.RAND_INTEGER,
+                    builder.makeExactLiteral(new BigDecimal((Integer) 100))));
+          },
+          null);
+
+      registerOperator(
+          BuiltinFunctionName.MAP_CONCAT,
+          SqlLibraryOperators.MAP_CONCAT,
+          PPLTypeChecker.family(SqlTypeFamily.MAP, SqlTypeFamily.MAP));
+
+      register(
+          BuiltinFunctionName.CREATE_DYNAMIC_ROW,
+          (builder, args) -> {
+            // Create initial DynamicRowType by converting existing fields to a MAP
+            // This function should NOT include the random field - that's handled by
+            // MERGE_DYNAMIC_ROW
+            if (args.length == 0) {
+              return builder.makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR);
+            }
+
+            List<RexNode> mapEntries = new ArrayList<>();
+
+            // Add all existing fields to the MAP with generated field names
+            // Cast all values to VARCHAR to avoid type inference issues
+            for (int i = 0; i < args.length; i++) {
+              mapEntries.add(builder.makeLiteral("field_" + i));
+              // Cast the field value to VARCHAR to ensure consistent types in the MAP
+              RexNode castedValue =
+                  builder.makeCast(
+                      builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                      args[i],
+                      true,
+                      true);
+              mapEntries.add(castedValue);
+            }
+
+            // Create the MAP containing all existing fields
+            return builder.makeCall(
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, mapEntries.toArray(new RexNode[0]));
+          },
+          null);
+
+      // register(
+      //     BuiltinFunctionName.MERGE_DYNAMIC_ROW,
+      //     (builder, args) -> {
+      //       // Merge existing DynamicRowType MAP with new random field MAP
+      //       if (args.length < 2) {
+      //         return args.length > 0
+      //             ? args[0]
+      //             : builder.makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR);
+      //       }
+
+      //       RexNode existingDynamicRow = args[0];
+      //       RexNode newFieldMap = args[1];
+
+      //       // For demo purposes, create a simple merged MAP
+      //       // In practice, this would properly merge the two MAPs
+      //       // For now, we'll create a MAP that contains both the existing fields and the new
+      // random field
+      //       List<RexNode> mergedEntries = new ArrayList<>();
+
+      //       // Add a representative entry from existing dynamic row
+      //       mergedEntries.add(builder.makeLiteral("existing_field"));
+      //       mergedEntries.add(builder.makeLiteral("existing_value"));
+
+      //       // Add a representative entry from new field MAP
+      //       mergedEntries.add(builder.makeLiteral("random_field"));
+      //       mergedEntries.add(builder.makeLiteral("random_value"));
+
+      //       return builder.makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+      // mergedEntries.toArray(new RexNode[0]));
+      //     },
+      //     null);
     }
   }
 

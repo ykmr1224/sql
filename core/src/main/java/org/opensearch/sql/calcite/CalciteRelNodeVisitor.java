@@ -133,6 +133,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
+import org.opensearch.sql.calcite.utils.DynamicRowUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -2597,5 +2598,36 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } catch (Exception e) {
       throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
+  }
+
+  /**
+   * Visit rand command - simple demo of DynamicRowType column approach. Adds a field with random
+   * name and random value (random type too). This demonstrates the DynamicRowType column
+   * architecture with minimal complexity.
+   */
+  @Override
+  public RelNode visitRand(org.opensearch.sql.ast.tree.Rand node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode randFieldMap =
+        PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, BuiltinFunctionName.RAND_FIELD);
+
+    addDynamicFields(randFieldMap, context);
+
+    return context.relBuilder.peek();
+  }
+
+  private void addDynamicFields(RexNode additionalMap, CalcitePlanContext context) {
+    RexNode existingFieldsMap = getCurrentDynamicFields(context);
+    RexNode mergedRow =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.MAP_CONCAT, existingFieldsMap, additionalMap);
+    projectPlusOverriding(
+        List.of(mergedRow), List.of(DynamicRowUtils.DYNAMIC_FIELDS_COLUMN), context);
+  }
+
+  private RexNode getCurrentDynamicFields(CalcitePlanContext context) {
+    return DynamicRowUtils.getDynamicRowColumn(context)
+        .orElse(DynamicRowUtils.createDynamicRowColumn(context));
   }
 }

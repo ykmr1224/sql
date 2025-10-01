@@ -1219,4 +1219,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
     return false;
   }
+
+  /** Randfield command. */
+  @Override
+  public UnresolvedPlan visitRandfieldCommand(OpenSearchPPLParser.RandfieldCommandContext ctx) {
+    return new org.opensearch.sql.ast.tree.Rand();
+  }
 }

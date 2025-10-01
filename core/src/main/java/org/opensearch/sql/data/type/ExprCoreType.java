@@ -57,7 +57,10 @@ public enum ExprCoreType implements ExprType {
   STRUCT(UNDEFINED),
 
   /** Array. */
-  ARRAY(UNDEFINED);
+  ARRAY(UNDEFINED),
+
+  /** Dynamic Row Type for flexible schemas. */
+  DYNAMIC_ROW(STRUCT);
 
   /** Parents (wider/compatible types) of current base type. */
   private final List<ExprType> parents = new ArrayList<>();

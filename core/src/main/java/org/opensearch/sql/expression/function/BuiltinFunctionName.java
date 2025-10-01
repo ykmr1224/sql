@@ -328,7 +328,13 @@ public enum BuiltinFunctionName {
   INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
-  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true),
+
+  /** DynamicRowType functions for demo commands. */
+  CREATE_DYNAMIC_ROW(FunctionName.of("create_dynamic_row"), true),
+  MERGE_DYNAMIC_ROW(FunctionName.of("merge_dynamic_row"), true),
+  MAP_CONCAT(FunctionName.of("map_concat"), true),
+  RAND_FIELD(FunctionName.of("rand_field"), true);
 
   private final FunctionName name;
   private boolean isInternal;

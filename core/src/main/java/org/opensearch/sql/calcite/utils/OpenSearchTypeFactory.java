@@ -14,6 +14,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.DYNAMIC_ROW;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.GEO_POINT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -74,7 +75,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     EXPR_TIME(TIME),
     EXPR_TIMESTAMP(TIMESTAMP),
     EXPR_BINARY(BINARY),
-    EXPR_IP(IP);
+    EXPR_IP(IP),
+    EXPR_DYNAMIC_ROW(ExprCoreType.DYNAMIC_ROW);
 
     // Associated `ExprCoreType`
     private final ExprCoreType exprCoreType;
@@ -131,6 +133,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
             yield new ExprBinaryType(this);
           case EXPR_IP:
             yield new ExprIPType(this);
+          case EXPR_DYNAMIC_ROW:
+            yield new org.opensearch.sql.calcite.type.DynamicRowType(
+                this, new java.util.LinkedHashMap<>());
         };
     return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
@@ -182,6 +187,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
           return TYPE_FACTORY.createMapType(
               relKey, TYPE_FACTORY.createSqlType(SqlTypeName.BINARY), nullable);
+        case DYNAMIC_ROW:
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DYNAMIC_ROW, nullable);
         case UNKNOWN:
         default:
           throw new IllegalArgumentException(
@@ -300,6 +307,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case ARRAY:
         return ExprValueUtils.collectionValue((List<Object>) value);
       case STRUCT:
+        return ExprValueUtils.tupleValue((Map<String, Object>) value);
+      case DYNAMIC_ROW:
         return ExprValueUtils.tupleValue((Map<String, Object>) value);
       default:
         throw new IllegalArgumentException(
