@@ -64,20 +64,29 @@ public class RandfieldCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testVariousCommands() throws IOException {
+  public void testFieldHeadRnadfield() throws IOException {
     executeQuery(source(TEST_INDEX_ACCOUNT, "fields firstname, age | head 2 | randfield"));
+  }
 
+  @Test
+  public void testFieldHeadRnadfieldEval() throws IOException {
     executeQuery(
         source(
             TEST_INDEX_ACCOUNT,
             "fields firstname, age | head 2 | randfield | eval age_plus_10 = age + 10"));
+  }
 
+  @Test
+  public void testFieldHeadRandfieldEvalRandfield() throws IOException {
     executeQuery(
         source(
             TEST_INDEX_ACCOUNT,
             "fields firstname, age | head 2 | randfield | eval age_plus_10 = age + 10 |"
                 + " randfield"));
+  }
 
+  @Test
+  public void testFieldHeadRandfieldRandfield() throws IOException {
     executeQuery(
         source(TEST_INDEX_ACCOUNT, "fields firstname, age | head 2 | randfield | randfield"));
   }
