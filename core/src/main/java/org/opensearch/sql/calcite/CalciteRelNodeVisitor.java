@@ -129,6 +129,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.MapOnlyRelDataType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.DynamicColumnReferenceDetector;
@@ -622,7 +623,95 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    return visitEval(node.rewriteAsEval(), context);
+    visitChildren(node, context);
+
+    if (node.isDynamicColumns()) {
+      // For dynamic columns (no specific path), use MAP-Only schema approach
+      return handleSpathDynamicColumns(node, context);
+    } else {
+      // For specific path extraction, use the existing eval approach
+      return visitEval(node.rewriteAsEval(), context);
+    }
+  }
+
+  /**
+   * Handle spath command with dynamic columns using MAP-Only schema approach. This transitions to a
+   * schema with ONLY the _MAP field containing all fields.
+   */
+  private RelNode handleSpathDynamicColumns(SPath node, CalcitePlanContext context) {
+    // Get current fields to preserve in the MAP
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    // Create the MAP field using json_extract_all function
+    RexNode jsonExtractAll =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, "json_extract_all", context.relBuilder.field(node.getInField()));
+
+    RexNode mapField;
+
+    if (currentFields.contains(MapOnlyRelDataType.MAP_FIELD_NAME)) {
+      // Merge with existing MAP field
+      RexNode existingMap = context.relBuilder.field(MapOnlyRelDataType.MAP_FIELD_NAME);
+      mapField =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, "map_merge", existingMap, jsonExtractAll);
+    } else {
+      // Create MAP from current fields + extracted JSON
+      mapField = createMapOnlyFieldFromCurrentSchema(currentFields, jsonExtractAll, context);
+    }
+
+    // Transition to MAP-Only schema: project ONLY the _MAP field
+    context.relBuilder.project(List.of(mapField), List.of(MapOnlyRelDataType.MAP_FIELD_NAME));
+
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Creates a MAP field that contains all current fields plus extracted JSON fields. This is used
+   * when transitioning from regular schema to MAP-only schema.
+   */
+  private RexNode createMapOnlyFieldFromCurrentSchema(
+      List<String> currentFields, RexNode jsonExtractAll, CalcitePlanContext context) {
+
+    // Create a MAP containing all current fields
+    List<RexNode> mapEntries = new ArrayList<>();
+
+    // Add all current fields to the MAP (except metadata fields)
+    for (String fieldName : currentFields) {
+      if (!isMetadataField(fieldName)) {
+        mapEntries.add(context.rexBuilder.makeLiteral(fieldName));
+        mapEntries.add(context.relBuilder.field(fieldName));
+      }
+    }
+
+    // Create MAP from current fields if any exist
+    RexNode currentFieldsMap;
+    if (mapEntries.isEmpty()) {
+      // No current fields, use the extracted JSON directly
+      return jsonExtractAll;
+    } else {
+      // Create MAP from current fields using MAP constructor with explicit type
+      var mapType =
+          context
+              .rexBuilder
+              .getTypeFactory()
+              .createMapType(
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY));
+      currentFieldsMap =
+          context.rexBuilder.makeCall(
+              mapType,
+              org.apache.calcite.sql.fun.SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+              mapEntries);
+    }
+
+    // Merge current fields MAP with extracted JSON MAP
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        "coalesce",
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, "map_merge", currentFieldsMap, jsonExtractAll),
+        jsonExtractAll);
   }
 
   @Override

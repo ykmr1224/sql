@@ -15,7 +15,7 @@ import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
+import org.opensearch.sql.calcite.type.MapOnlyRelDataType;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -59,14 +59,14 @@ public class SPath extends UnresolvedPlan {
     return AstDSL.eval(
         this.child,
         AstDSL.let(
-            AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
-            // Merge if the dynamic columns field already exists (using coalesce to let optimizer
-            // remove map_merge)
+            AstDSL.field(MapOnlyRelDataType.MAP_FIELD_NAME),
+            // Merge if the MAP field already exists (using coalesce to let optimizer remove
+            // map_merge)
             AstDSL.function(
                 "coalesce",
                 AstDSL.function(
                     "map_merge",
-                    AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
+                    AstDSL.field(MapOnlyRelDataType.MAP_FIELD_NAME),
                     AstDSL.function("json_extract_all", AstDSL.field(inField))),
                 AstDSL.function("json_extract_all", AstDSL.field(inField)))));
   }

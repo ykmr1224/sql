@@ -340,7 +340,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   public static class GlobalPushdownConfig {
     /** Whether the global pushdown is enabled or not. Enable by default. */
-    public static boolean enabled = true;
+    public static boolean enabled = false;
   }
 
   /**

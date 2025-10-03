@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
@@ -225,6 +226,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
+    System.out.println("fieldTypes = " + StringUtils.join(fieldTypes, ","));
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
@@ -252,7 +254,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExprType exprType;
       if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
         if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
+          exprType =
+              values.stream()
+                  .map(v -> v.tupleValue().get(columnName).type())
+                  .filter(v -> v != ExprCoreType.UNDEFINED)
+                  .findFirst()
+                  .orElse(ExprCoreType.UNDEFINED);
+          // exprType = values.getFirst().tupleValue().get(columnName).type();
         } else {
           // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
           exprType = ExprCoreType.UNDEFINED;
