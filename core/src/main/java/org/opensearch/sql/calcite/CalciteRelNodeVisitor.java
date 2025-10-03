@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -56,6 +57,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -131,6 +133,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.LogicalExpandJson;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
@@ -339,6 +342,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
+    debugPlan(context, "Before Project");
 
     if (isSingleAllFieldsProject(node)) {
       return handleAllFieldsProject(node, context);
@@ -357,6 +361,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       context.relBuilder.project(expandedFields);
     }
+    debugPlan(context, "Before Project");
     return context.relBuilder.peek();
   }
 
@@ -668,9 +673,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  private void debugPlan(CalcitePlanContext context, String tag) {
+    try {
+      System.out.println("================= Debug Plan ================= " + tag);
+      System.out.println(
+          RelOptUtil.toString(context.relBuilder.peek(), SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+    } catch (Exception e) {
+      System.out.println("Failed to print debug plan: " + e.getMessage());
+    } finally {
+      System.out.println("==============================================");
+    }
+  }
+
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    return visitEval(node.rewriteAsEval(), context);
+    visitChildren(node, context);
+    debugPlan(context, "Before Spath");
+    context.relBuilder.push(LogicalExpandJson.expandJson(context.relBuilder, 0));
+    debugPlan(context, "After Spath");
+    return context.relBuilder.peek();
+    // return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override

@@ -103,7 +103,8 @@ public class PPLService {
     log.info(
         "[{}] Incoming request {}",
         QueryContext.getRequestId(),
-        anonymizer.anonymizeStatement(statement));
+        request.getRequest()); // TODO: only for testing
+    // anonymizer.anonymizeStatement(statement));
 
     return queryExecutionFactory.create(statement, queryListener, explainListener);
   }

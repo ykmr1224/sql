@@ -45,4 +45,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("result", "string"));
     verifyDataRows(result, rows("1"), rows("2"), rows("3"));
   }
+
+  @Test
+  public void testSpath() throws IOException {
+    executeQuery("source=test_spath | spath input=doc output=result path=n");
+  }
 }

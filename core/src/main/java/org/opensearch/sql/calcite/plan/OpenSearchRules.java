@@ -14,7 +14,7 @@ public class OpenSearchRules {
       PPLAggregateConvertRule.Config.SUM_CONVERTER.toRule();
 
   public static final List<RelOptRule> OPEN_SEARCH_OPT_RULES =
-      ImmutableList.of(AGGREGATE_CONVERT_RULE);
+      ImmutableList.of(AGGREGATE_CONVERT_RULE, ExpandJsonMaterializer.INSTANCE);
 
   // prevent instantiation
   private OpenSearchRules() {}
