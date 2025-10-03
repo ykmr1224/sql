@@ -16,6 +16,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.type.MapOnlyRelDataType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -47,6 +48,7 @@ public class DynamicWildcardProcessor {
     Set<String> addedFields = new HashSet<>();
     boolean hasDynamicColumns =
         currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+    boolean hasMapOnlySchema = currentFields.contains(MapOnlyRelDataType.MAP_FIELD_NAME);
 
     // Collect dynamic wildcard patterns for batch processing
     List<String> dynamicWildcardPatterns = new ArrayList<>();
@@ -91,10 +93,31 @@ public class DynamicWildcardProcessor {
           }
         }
         case AllFields ignored -> {
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .filter(addedFields::add)
-              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+          if (hasMapOnlySchema) {
+            // // For MAP-only schema, we need to expand all fields from the MAP
+            // // This requires runtime expansion since we don't know all field names at planning
+            // time
+            // RexNode mapField = context.relBuilder.field(MapOnlyRelDataType.MAP_FIELD_NAME);
+            // RexNode expandAllFromMap = PPLFuncImpTable.INSTANCE.resolve(
+            //     context.rexBuilder,
+            //     BuiltinFunctionName.DYNAMIC_WILDCARD_EXPAND,
+            //     mapField,
+            //     context.rexBuilder.makeCall(
+            //         org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            //         List.of(context.rexBuilder.makeLiteral("*"))));
+
+            // // Add the expanded MAP as _dynamic_columns for post-processing
+            // RexNode aliasedExpansion = context.relBuilder.alias(
+            //     expandAllFromMap, DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+            // expandedFields.add(aliasedExpansion);
+            expandedFields.add(context.relBuilder.field(MapOnlyRelDataType.MAP_FIELD_NAME));
+          } else {
+            // Regular schema - expand static fields
+            currentFields.stream()
+                .filter(field -> !isMetadataField(field))
+                .filter(addedFields::add)
+                .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+          }
         }
         default -> throw new IllegalStateException(
             "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
@@ -245,6 +268,7 @@ public class DynamicWildcardProcessor {
       boolean hasDynamicColumns) {
 
     String firstWildcardPattern = null;
+    boolean hasMapOnlySchema = currentFields.contains(MapOnlyRelDataType.MAP_FIELD_NAME);
 
     for (UnresolvedExpression expr : projectList) {
       if (expr instanceof Field field) {
@@ -258,7 +282,7 @@ public class DynamicWildcardProcessor {
           List<String> staticMatches =
               WildcardUtils.expandWildcardPattern(fieldName, currentFields);
 
-          if (!staticMatches.isEmpty() || hasDynamicColumns) {
+          if (!staticMatches.isEmpty() || hasDynamicColumns || hasMapOnlySchema) {
             // just ensure at lease one valid pattern found
             return;
           }

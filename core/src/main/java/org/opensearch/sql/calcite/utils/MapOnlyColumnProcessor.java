@@ -32,10 +32,10 @@ public class MapOnlyColumnProcessor {
    * @return true if the field should be resolved using MAP-only access
    */
   public static boolean shouldUseMapOnlyAccess(String fieldName, CalcitePlanContext context) {
-    // Don't resolve dynamic fields in coalesce function (it has special null handling)
-    if (context.isInCoalesceFunction()) {
-      return false;
-    }
+    // // Don't resolve dynamic fields in coalesce function (it has special null handling)
+    // if (context.isInCoalesceFunction()) {
+    //   return false;
+    // }
 
     // Check if current row type is MapOnlyRelDataType OR if _MAP field exists
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();

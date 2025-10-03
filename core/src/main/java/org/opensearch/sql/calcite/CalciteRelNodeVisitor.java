@@ -383,8 +383,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (expandedFields.isEmpty()) {
       boolean hasDynamicColumns =
           currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+      boolean hasMapOnlySchema = currentFields.contains(MapOnlyRelDataType.MAP_FIELD_NAME);
       DynamicWildcardProcessor.validateWildcardPatterns(
-          projectList, currentFields, hasDynamicColumns);
+          projectList, currentFields, hasDynamicColumns || hasMapOnlySchema);
     }
 
     return expandedFields;

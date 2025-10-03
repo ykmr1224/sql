@@ -32,6 +32,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.type.MapOnlyRelDataType;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -227,6 +228,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
     System.out.println("fieldTypes = " + StringUtils.join(fieldTypes, ","));
+
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
@@ -273,10 +275,105 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
 
-    // This could be optimized by collecting dynamic column names during row iteration above
+    // Handle both dynamic columns and MAP-only schema expansion
     QueryResponse processedResponse = DynamicColumnProcessor.expandDynamicColumns(response);
 
+    // Check if we have MAP-only schema and need to expand _MAP field
+    boolean hasMapOnlyField =
+        columns.stream().anyMatch(col -> MapOnlyRelDataType.MAP_FIELD_NAME.equals(col.getName()));
+    if (hasMapOnlyField) {
+      // For MAP-only schema, we need to expand the _MAP field into individual columns
+      processedResponse = expandMapOnlyColumns(processedResponse);
+    }
+
     listener.onResponse(processedResponse);
+  }
+
+  /**
+   * Expands MAP-only columns in the QueryResponse into individual columns. This method handles the
+   * case where we have a _MAP field that needs to be expanded into separate columns for the final
+   * result.
+   */
+  private QueryResponse expandMapOnlyColumns(QueryResponse response) {
+    // Check if we have _MAP field in the schema
+    boolean hasMapField =
+        response.getSchema().getColumns().stream()
+            .anyMatch(col -> MapOnlyRelDataType.MAP_FIELD_NAME.equals(col.getName()));
+
+    if (!hasMapField) {
+      return response; // No MAP field to expand
+    }
+
+    // Collect all unique field names from the MAP data
+    java.util.Set<String> allMapKeys = new java.util.TreeSet<>();
+    for (ExprValue row : response.getResults()) {
+      if (row instanceof ExprTupleValue) {
+        ExprValue mapValue = row.tupleValue().get(MapOnlyRelDataType.MAP_FIELD_NAME);
+        if (mapValue != null && !mapValue.isNull() && !mapValue.isMissing()) {
+          if (mapValue instanceof ExprTupleValue) {
+            allMapKeys.addAll(mapValue.tupleValue().keySet());
+          }
+        }
+      }
+    }
+
+    // Create new schema with expanded columns
+    List<Column> newColumns = new ArrayList<>();
+
+    // Add non-MAP columns first
+    for (Column col : response.getSchema().getColumns()) {
+      if (!MapOnlyRelDataType.MAP_FIELD_NAME.equals(col.getName())) {
+        newColumns.add(col);
+      }
+    }
+
+    // Add expanded MAP columns
+    for (String mapKey : allMapKeys) {
+      newColumns.add(new Column(mapKey, null, ExprCoreType.STRING));
+    }
+
+    // Create new result rows with expanded MAP fields
+    List<ExprValue> newResults = new ArrayList<>();
+    for (ExprValue row : response.getResults()) {
+      if (row instanceof ExprTupleValue) {
+        Map<String, ExprValue> newRow = new LinkedHashMap<>();
+
+        // Copy non-MAP fields
+        for (Map.Entry<String, ExprValue> entry : row.tupleValue().entrySet()) {
+          if (!MapOnlyRelDataType.MAP_FIELD_NAME.equals(entry.getKey())) {
+            newRow.put(entry.getKey(), entry.getValue());
+          }
+        }
+
+        // Expand MAP field
+        ExprValue mapValue = row.tupleValue().get(MapOnlyRelDataType.MAP_FIELD_NAME);
+        if (mapValue != null
+            && !mapValue.isNull()
+            && !mapValue.isMissing()
+            && mapValue instanceof ExprTupleValue) {
+          Map<String, ExprValue> mapData = mapValue.tupleValue();
+          for (String mapKey : allMapKeys) {
+            ExprValue fieldValue = mapData.get(mapKey);
+            newRow.put(
+                mapKey,
+                fieldValue != null
+                    ? fieldValue
+                    : org.opensearch.sql.data.model.ExprValueUtils.nullValue());
+          }
+        } else {
+          // MAP is null/missing, add null values for all MAP keys
+          for (String mapKey : allMapKeys) {
+            newRow.put(mapKey, org.opensearch.sql.data.model.ExprValueUtils.nullValue());
+          }
+        }
+
+        newResults.add(ExprTupleValue.fromExprValueMap(newRow));
+      } else {
+        newResults.add(row);
+      }
+    }
+
+    return new QueryResponse(new Schema(newColumns), newResults, response.getCursor());
   }
 
   /** Registers opensearch-dependent functions */

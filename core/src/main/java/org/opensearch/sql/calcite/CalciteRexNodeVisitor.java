@@ -294,7 +294,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
     if (!currentFields.contains(qualifiedName)
         && context.isInCoalesceFunction()
-        && !context.isDynamicColumnsAvailable()) {
+        && !context.isDynamicColumnsAvailable()
+        && !MapOnlyColumnProcessor.shouldUseMapOnlyAccess(qualifiedName, context)) {
       return context.rexBuilder.makeNullLiteral(
           context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
     }
