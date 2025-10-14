@@ -33,8 +33,15 @@ public class Relation extends UnresolvedPlan {
    */
   private final List<UnresolvedExpression> tableNames;
 
+  /** When true, fields not defined in the schema will be loaded to dynamic fields map (_MAP) */
+  private final boolean dynamicFieldsEnabled;
+
   public Relation(UnresolvedExpression tableName) {
-    this.tableNames = Collections.singletonList(tableName);
+    this(Collections.singletonList(tableName), false);
+  }
+
+  public Relation(List<UnresolvedExpression> tableNames) {
+    this(tableNames, false);
   }
 
   public List<QualifiedName> getQualifiedNames() {

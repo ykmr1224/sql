@@ -78,6 +78,7 @@ AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
+DYNAMIC:                            'DYNAMIC';
 A:                                  'A';
 ASC:                                'ASC';
 D:                                  'D';

@@ -25,6 +25,7 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
  * implementation.
  */
 public class QualifiedNameResolver {
+  public static final String DYNAMIC_FIELDS_MAP = "_MAP";
 
   private static final Logger log = LogManager.getLogger(QualifiedNameResolver.class);
 
@@ -69,6 +70,7 @@ public class QualifiedNameResolver {
         .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
         .or(() -> resolveRenamedField(nameNode, context))
         .or(() -> resolveCorrelationField(nameNode, context))
+        .or(() -> resolveDynamicFields(nameNode, context, 1))
         .or(() -> replaceWithNullLiteralInCoalesce(context))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
@@ -111,6 +113,28 @@ public class QualifiedNameResolver {
         if (fieldNode.isPresent()) {
           return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get()));
         }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<RexNode> resolveDynamicFields(
+      QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
+    List<String> parts = nameNode.getParts();
+    log.debug(
+        "resolveDynamicFields() called with nameNode={}, parts={}, inputCount={}",
+        nameNode,
+        parts,
+        inputCount);
+
+    List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
+
+    for (int i = 0; i < inputCount; i++) {
+      if (inputFieldNames.get(i).contains(DYNAMIC_FIELDS_MAP)) {
+        String fieldName = String.join(".", parts);
+        RexNode dynamicField = context.relBuilder.field(inputCount, i, DYNAMIC_FIELDS_MAP);
+        RexNode itemAccess = createItemAccess(dynamicField, fieldName, context);
+        return Optional.of(itemAccess);
       }
     }
     return Optional.empty();

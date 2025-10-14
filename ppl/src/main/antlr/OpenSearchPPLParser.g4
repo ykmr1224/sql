@@ -521,7 +521,11 @@ tableOrSubqueryClause
    ;
 
 tableSourceClause
-   : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
+   : tableSource (COMMA tableSource)* (dynamicParameter)? (AS alias = qualifiedName)?
+   ;
+
+dynamicParameter
+   : DYNAMIC EQUAL booleanLiteral
    ;
 
 dynamicSourceClause
@@ -1516,4 +1520,5 @@ searchableKeyWord
    | LEFT_HINT
    | RIGHT_HINT
    | PERCENTILE_SHORTCUT
+   | DYNAMIC
    ;

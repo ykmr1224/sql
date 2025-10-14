@@ -6,6 +6,7 @@
 package org.opensearch.sql.analysis;
 
 import java.util.List;
+import lombok.Getter;
 import org.opensearch.sql.datasource.DataSourceService;
 
 public class DataSourceSchemaIdentifierNameResolver {
@@ -13,11 +14,13 @@ public class DataSourceSchemaIdentifierNameResolver {
   public static final String DEFAULT_DATASOURCE_NAME = "@opensearch";
   public static final String DEFAULT_SCHEMA_NAME = "default";
   public static final String INFORMATION_SCHEMA_NAME = "information_schema";
+  public static final String DYNAMIC_FIELDS_SUFFIX = "#dynamic";
 
   private String dataSourceName = DEFAULT_DATASOURCE_NAME;
   private String schemaName = DEFAULT_SCHEMA_NAME;
   private final String identifierName;
   private final DataSourceService dataSourceService;
+  @Getter private final boolean isDynamic;
 
   private static final String DOT = ".";
 
@@ -33,7 +36,9 @@ public class DataSourceSchemaIdentifierNameResolver {
       DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
     List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
-    identifierName = String.join(DOT, remainingParts);
+    String remainingString = String.join(DOT, remainingParts);
+    this.identifierName = String.join(DOT, remainingParts).replace(DYNAMIC_FIELDS_SUFFIX, "");
+    this.isDynamic = remainingString.contains(DYNAMIC_FIELDS_SUFFIX);
   }
 
   public String getIdentifierName() {

@@ -54,8 +54,8 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   public static final String METADATA_FIELD_SCORE = "_score";
   public static final String METADATA_FIELD_MAXSCORE = "_maxscore";
   public static final String METADATA_FIELD_SORT = "_sort";
-
   public static final String METADATA_FIELD_ROUTING = "_routing";
+  public static final String DYNAMIC_FIELDS_MAP = "_MAP";
 
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
       new LinkedHashMap<>() {
@@ -89,11 +89,21 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
+  /** Whether to enable dynamic fields collection in _MAP column. */
+  @Getter private final boolean dynamicFieldsEnabled;
+
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+    this(client, settings, indexName, false);
+  }
+
+  /** Constructor with dynamic fields configuration. */
+  public OpenSearchIndex(
+      OpenSearchClient client, Settings settings, String indexName, boolean dynamicFieldsEnabled) {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+    this.dynamicFieldsEnabled = dynamicFieldsEnabled;
   }
 
   @Override
@@ -149,6 +159,11 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   @Override
   public Map<String, ExprType> getReservedFieldTypes() {
+    if (dynamicFieldsEnabled) {
+      Map<String, ExprType> extendedMap = new LinkedHashMap<>(METADATAFIELD_TYPE_MAP);
+      extendedMap.put(DYNAMIC_FIELDS_MAP, ExprCoreType.STRUCT);
+      return extendedMap;
+    }
     return METADATAFIELD_TYPE_MAP;
   }
 

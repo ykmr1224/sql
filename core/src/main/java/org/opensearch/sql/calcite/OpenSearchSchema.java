@@ -20,6 +20,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 @AllArgsConstructor
 public class OpenSearchSchema extends AbstractSchema {
   public static final String OPEN_SEARCH_SCHEMA_NAME = "OpenSearch";
+  public static final String ENABLE_DYNAMIC_FIELDS = "enableDynamicFields";
 
   private final DataSourceService dataSourceService;
 
@@ -44,7 +45,16 @@ public class OpenSearchSchema extends AbstractSchema {
             .getTable(
                 new DataSourceSchemaName(
                     nameResolver.getDataSourceName(), nameResolver.getSchemaName()),
-                nameResolver.getIdentifierName());
+                nameResolver.getIdentifierName(),
+                getOptions(nameResolver));
     tableMap.put(qualifiedName.toString(), (org.apache.calcite.schema.Table) table);
+  }
+
+  private Map<String, Object> getOptions(DataSourceSchemaIdentifierNameResolver nameResolver) {
+    Map<String, Object> options = new HashMap<>();
+    if (nameResolver.isDynamic()) {
+      options.put(ENABLE_DYNAMIC_FIELDS, true);
+    }
+    return options;
   }
 }

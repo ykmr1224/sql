@@ -183,8 +183,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (nameResolver.getSchemaName().equals(INFORMATION_SCHEMA_NAME)) {
       throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
     }
-    context.relBuilder.scan(node.getTableQualifiedName().getParts());
+
+    List<String> parts = node.getTableQualifiedName().getParts();
+    if (node.isDynamicFieldsEnabled()) {
+      parts = addDynamicFieldsSuffix(parts);
+    }
+    context.relBuilder.scan(parts);
     return context.relBuilder.peek();
+  }
+
+  private List<String> addDynamicFieldsSuffix(List<String> parts) {
+    List<String> result = parts.subList(0, parts.size() - 1);
+    result.add(parts.getLast() + DataSourceSchemaIdentifierNameResolver.DYNAMIC_FIELDS_SUFFIX);
+    return result;
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -400,7 +411,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode analyzed = rexVisitor.analyze(field, context);
+            if (analyzed instanceof RexInputRef) {
+              expandedFields.add(analyzed);
+            } else {
+              expandedFields.add(context.relBuilder.alias(analyzed, fieldName));
+            }
           }
         }
         case AllFields ignored -> {

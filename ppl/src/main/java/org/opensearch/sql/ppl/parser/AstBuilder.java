@@ -843,14 +843,22 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
-    Relation relation =
-        new Relation(
-            ctx.tableSource().stream()
-                .map(this::internalVisitExpression)
-                .collect(Collectors.toList()));
+    List<UnresolvedExpression> tableNames =
+        ctx.tableSource().stream().map(this::internalVisitExpression).collect(Collectors.toList());
+
+    boolean enableDynamicFields = getEnableDynamicFields(ctx);
+
+    Relation relation = new Relation(tableNames, enableDynamicFields);
     return ctx.alias != null
         ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
         : relation;
+  }
+
+  private boolean getEnableDynamicFields(TableSourceClauseContext ctx) {
+    if (ctx.dynamicParameter() != null) {
+      return Boolean.parseBoolean(ctx.dynamicParameter().booleanLiteral().getText());
+    }
+    return false;
   }
 
   @Override
