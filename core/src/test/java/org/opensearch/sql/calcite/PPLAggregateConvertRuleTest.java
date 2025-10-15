@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.calcite.plan.PPLAggregateConvertRule;
-import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
+import org.opensearch.sql.calcite.rel.OpenSearchRelBuilder;
 
 @ExtendWith(MockitoExtension.class)
 public class PPLAggregateConvertRuleTest {

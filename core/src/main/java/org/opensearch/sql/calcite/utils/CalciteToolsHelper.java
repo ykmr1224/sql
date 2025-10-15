@@ -53,12 +53,10 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -72,13 +70,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -89,7 +85,7 @@ import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.calcite.rel.OpenSearchRelBuilder;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -103,7 +99,7 @@ public class CalciteToolsHelper {
   }
 
   /** Create a RelBuilder with typeFactory */
-  public static RelBuilder create(
+  public static OpenSearchRelBuilder create(
       FrameworkConfig config, JavaTypeFactory typeFactory, Connection connection) {
     return withPrepare(
         config,
@@ -172,29 +168,6 @@ public class CalciteToolsHelper {
     @Override
     protected Function0<CalcitePrepare> createPrepareFactory() {
       return OpenSearchPrepareImpl::new;
-    }
-  }
-
-  /** do nothing, just extend for a public construct for new */
-  public static class OpenSearchRelBuilder extends RelBuilder {
-    public OpenSearchRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
-      super(context, cluster, relOptSchema);
-    }
-
-    @Override
-    public AggCall avg(boolean distinct, String alias, RexNode operand) {
-      return aggregateCall(
-          SqlParserPos.ZERO,
-          PPLBuiltinOperators.AVG_NULLABLE,
-          distinct,
-          false,
-          false,
-          null,
-          null,
-          ImmutableList.of(),
-          alias,
-          ImmutableList.of(),
-          ImmutableList.of(operand));
     }
   }
 

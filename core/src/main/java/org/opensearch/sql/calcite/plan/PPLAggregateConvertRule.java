@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.rel.OpenSearchRelBuilder;
+import org.opensearch.sql.calcite.rel.RelFieldBuilder;
 
 /**
  * Planner rule that converts specific aggCall to a more efficient expressions, which includes:
@@ -76,6 +78,8 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+    final RelFieldBuilder fieldBuilder =
+        new RelFieldBuilder((OpenSearchRelBuilder) relBuilder, rexBuilder);
     relBuilder.push(project.getInput());
 
     /*
@@ -213,13 +217,14 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
         distinctAggregateCalls.add(aggregateCall.transform(targetMapping));
       }
       // Project the used fields
-      relBuilder.project(relBuilder.fields(fieldsUsed.stream().toList()));
+      relBuilder.project(fieldBuilder.staticFields(fieldsUsed.stream().toList()));
     }
 
     /* Build the final project-aggregate-project after eliminating unused fields */
     relBuilder.aggregate(relBuilder.groupKey(newGroupSet, newGroupSets), distinctAggregateCalls);
     List<RexNode> parentProjects =
-        new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));
+        new ArrayList<>(
+            fieldBuilder.staticFields(IntStream.range(0, groupSetOffset).boxed().toList()));
     parentProjects.addAll(
         newExprOnAggCall.transform(
             (constructor, name) ->
