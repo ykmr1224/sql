@@ -18,6 +18,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.ResponseException;
 
 /**
  * Integration tests for dynamic fields functionality in PPL queries.
@@ -44,12 +45,6 @@ public class DynamicFieldsCommandIT extends PPLIntegTestCase {
                 "source=%s dynamic=true | fields firstname, lastname, department, salary | head 1",
                 TEST_INDEX_DYNAMIC));
 
-    verifyColumn(
-        result,
-        columnName("firstname"),
-        columnName("lastname"),
-        columnName("department"),
-        columnName("salary"));
     verifySchema(
         result,
         schema("firstname", "string"),
@@ -64,8 +59,8 @@ public class DynamicFieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s dynamic=true | eval salary = cast(salary as int) * 2 | fields firstname,"
-                    + " lastname, salary | head 1",
+                "source=%s dynamic=true | eval salary = cast(salary as int) * 2"
+                    + " | fields firstname, lastname, salary | head 1",
                 TEST_INDEX_DYNAMIC));
 
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("salary"));
@@ -79,7 +74,7 @@ public class DynamicFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testDynamicParameterFalse() throws IOException {
     assertThrows(
-        IllegalArgumentException.class,
+        ResponseException.class,
         () ->
             executeQuery(
                 String.format(
