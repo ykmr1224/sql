@@ -60,6 +60,34 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
+  public void testWildcardNotExpanded() throws IOException {
+    // wildcard won't expand dynamic fields for now
+    JSONObject result =
+        executeQuery(source(TEST_INDEX_DYNAMIC, "fields firstname, lastname, depart*, * | head 1"));
+
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("account_number", "bigint"));
+    verifyDataRows(result, rows("John", "Doe", 1));
+  }
+
+  @Test
+  public void testProjectExclude() throws IOException {
+    JSONObject result = executeQuery(source(TEST_INDEX_DYNAMIC, "fields - firstname | head 1"));
+
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("lastname", "string"),
+        schema("city", "string"),
+        schema("department", "string"),
+        schema("salary", "int"));
+    verifyDataRows(result, rows(1, "Doe", "NYC", "Engineering", 75000));
+  }
+
+  @Test
   public void testEval() throws IOException {
     String query =
         source(
@@ -107,7 +135,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
             + "  \"properties\": {"
             + "    \"firstname\": {\"type\": \"text\"},"
             + "    \"lastname\": {\"type\": \"text\"},"
-            + "    \"accountnumber\": {\"type\": \"long\"}"
+            + "    \"account_number\": {\"type\": \"long\"}"
             + "  }"
             + "}"
             + "}";

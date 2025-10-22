@@ -532,7 +532,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                 replacement,
                 context.relBuilder.literal(context.sysLimit.subsearchLimit()));
       }
-      PlanUtils.replaceTop(context.relBuilder, replacement);
+      PlanUtils.replaceTop(context.relBuilder.getRawRelBuilder(), replacement);
     }
     // pop the inner plan
     RelNode subqueryRel = context.relBuilder.build();

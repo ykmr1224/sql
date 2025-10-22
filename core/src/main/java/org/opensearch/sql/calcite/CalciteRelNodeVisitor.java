@@ -135,6 +135,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.DynamicFieldsConstants;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -461,7 +462,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private boolean isMetadataField(String fieldName) {
-    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName)
+        || DynamicFieldsConstants.DYNAMIC_FIELDS_MAP.equals(fieldName);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
@@ -1157,7 +1159,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
     if (context.sysLimit.joinSubsearchLimit() > 0) {
       PlanUtils.replaceTop(
-          context.relBuilder,
+          context.relBuilder.getRawRelBuilder(),
           LogicalSystemLimit.create(
               SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
               context.relBuilder.peek(),
@@ -2454,7 +2456,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // This leverages relBuilder.field()'s built-in validation which throws
     // IllegalArgumentException if any field doesn't exist
     for (String fieldToReplace : fieldsToReplace) {
-      context.relBuilder.field(fieldToReplace);
+      context.fieldBuilder.staticField(fieldToReplace);
     }
 
     List<RexNode> projectList = new ArrayList<>();
@@ -2463,7 +2465,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (String fieldName : fieldNames) {
       if (fieldsToReplace.contains(fieldName)) {
         // Replace this field in-place with all pattern/replacement pairs applied sequentially
-        RexNode fieldRef = context.relBuilder.field(fieldName);
+        RexNode fieldRef = context.fieldBuilder.staticField(fieldName);
 
         // Apply all replacement pairs sequentially (nested REPLACE calls)
         for (ReplacePair pair : node.getReplacePairs()) {
@@ -2477,7 +2479,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         projectList.add(fieldRef);
       } else {
         // Keep original field unchanged
-        projectList.add(context.relBuilder.field(fieldName));
+        projectList.add(context.fieldBuilder.staticField(fieldName));
       }
     }
 

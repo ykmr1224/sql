@@ -468,7 +468,7 @@ public class RelBuilderWrapper {
   }
 
   // Access to underlying RelBuilder for advanced operations
-  public RelBuilder getRelBuilder() {
+  public RelBuilder getRawRelBuilder() {
     return relBuilder;
   }
 
