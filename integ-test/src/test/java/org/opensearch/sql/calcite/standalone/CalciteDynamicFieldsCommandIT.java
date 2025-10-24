@@ -171,7 +171,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
         source(
             TEST_INDEX_DYNAMIC,
             "eval department=CAST(department AS string) | fields department | parse department"
-                + " '(?<initial>[A-Z])' | fields department, initial | head 1");
+                + " '(?<initial>[A-Z]).*' | fields department, initial | head 1");
     assertExplainYaml(
         query,
         "calcite:\n"
@@ -179,14 +179,14 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalSort(fetch=[1])\n"
             + "        LogicalProject(department=[SAFE_CAST(ITEM($9, 'department'))],"
-            + " initial=[ITEM(PARSE(SAFE_CAST(ITEM($9, 'department')), '(?<initial>[A-Z])':VARCHAR,"
-            + " 'regex':VARCHAR), 'initial':VARCHAR)])\n"
+            + " initial=[ITEM(PARSE(SAFE_CAST(ITEM($9, 'department')),"
+            + " '(?<initial>[A-Z]).*':VARCHAR, 'regex':VARCHAR), 'initial':VARCHAR)])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
             + "  physical: |\n"
             + "    EnumerableLimit(fetch=[200])\n"
             + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['department'],"
             + " expr#11=[ITEM($t9, $t10)], expr#12=[SAFE_CAST($t11)],"
-            + " expr#13=['(?<initial>[A-Z])':VARCHAR], expr#14=['regex':VARCHAR],"
+            + " expr#13=['(?<initial>[A-Z]).*':VARCHAR], expr#14=['regex':VARCHAR],"
             + " expr#15=[PARSE($t12, $t13, $t14)], expr#16=['initial':VARCHAR], expr#17=[ITEM($t15,"
             + " $t16)], department=[$t12], initial=[$t17])\n"
             + "        EnumerableLimit(fetch=[1])\n"
@@ -199,7 +199,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("it cannot handle dynamic fields right now.") // TODO
+  @Ignore("rename requires refactoring as it currently uses field list")
   public void testRename() throws IOException {
     String query =
         source(
@@ -294,7 +294,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("Fillnull implementation require logic change") // TODO: fix fillnull implementation
+  @Ignore("fillnull require logic change as it currently use field list")
   public void testFillnull() throws IOException {
     String query =
         source(
@@ -309,9 +309,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore(
-      "Need to define the spec with the dynamic fields since we cannot decide"
-          + " the field set") // TODO: decide spec
+  @Ignore("Need to define the spec with the dynamic fields since we cannot decide the field set")
   public void testFlatten() throws IOException {
     String query = source(TEST_INDEX_DYNAMIC, "flatten obj as (a, b)");
 
@@ -322,7 +320,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("It internally uses join") // TODO: join
+  @Ignore("pending join adaptation")
   public void testExpand() throws IOException {
     String query = source(TEST_INDEX_DYNAMIC, "expand arr as expanded | where isnotnull(expanded)");
 
@@ -333,15 +331,53 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("TBD") // TODO: join
-  public void testJoin() throws IOException {}
+  @Ignore("pending join adaptation")
+  public void testJoinWithStaticField() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "join left=l right=r on l.account_number = r.account_number | fields l.firstname,"
+                + " r.department | head 1");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("l.firstname", "string"), schema("r.department", "string"));
+    verifyDataRows(result, rows("John", "Engineering"));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: join
-  public void testLookup() throws IOException {}
+  @Ignore("pending join adaptation")
+  public void testJoinWithDynamicField() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "join left=l right=r on l.department = r.department | fields l.firstname, r.department"
+                + " | head 1");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("l.firstname", "string"), schema("r.department", "string"));
+    verifyDataRows(result, rows("John", "Engineering"));
+  }
 
   @Test
-  @Ignore("aggregation") // TODO: aggregation
+  @Ignore("pending join adaptation")
+  public void testLookupWithStaticField() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "lookup "
+                + TEST_INDEX_DYNAMIC
+                + " account_number as acc_num | fields firstname, department");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("firstname", "string"), schema("department", "string"));
+    verifyDataRows(result, rows("John", "Engineering"));
+  }
+
+  @Test
+  @Ignore("pending aggregation adaptation")
   public void testTop() throws IOException {
     String query = source(TEST_INDEX_DYNAMIC, "top 1 department");
 
@@ -352,28 +388,102 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("TBD") // TODO: aggregation
-  public void testStats() throws IOException {}
+  @Ignore("pending aggregation adaptation")
+  public void testStats() throws IOException {
+    String query =
+        source(TEST_INDEX_DYNAMIC, "stats count() by department | fields department, count()");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("department", "string"), schema("count()", "bigint"));
+    verifyDataRows(result, rows("Engineering", 2), rows("Marketing", 1), rows("Sales", 1));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: aggregation
-  public void testTimechart() throws IOException {}
+  @Ignore("pending aggregation adaptation")
+  public void testTimechart() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "timechart span=1d count() by department | fields _time, department, count()");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(
+        result,
+        schema("_time", "timestamp"),
+        schema("department", "string"),
+        schema("count()", "bigint"));
+    // Expected data would depend on the time-based aggregation
+    verifyDataRows(result, rows("2023-01-01 00:00:00", "Engineering", 2));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: window function
-  public void testEventstats() throws IOException {}
+  @Ignore("pending aggregation adaptation")
+  public void testEventstats() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "eventstats count() by department | fields account_number, department, count()");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("department", "string"),
+        schema("count()", "bigint"));
+    verifyDataRows(result, rows(1, "Engineering", 2), rows(4, "Engineering", 2));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: window function
-  public void testTrendline() throws IOException {}
+  @Ignore("pending aggregation adaption")
+  public void testTrendline() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "trendline sma(2, salary) as salary_trend | fields account_number, salary,"
+                + " salary_trend");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("salary", "int"),
+        schema("salary_trend", "double"));
+    verifyDataRows(result, rows(1, 75000, 70000.0), rows(2, 65000, 72500.0));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: subquery
-  public void testMultisearch() throws IOException {}
+  @Ignore("pending subquery adaptation")
+  public void testMultisearch() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "multisearch [search department='Engineering'] [search department='Marketing'] | fields"
+                + " account_number, department");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("account_number", "bigint"), schema("department", "string"));
+    verifyDataRows(result, rows(1, "Engineering"), rows(4, "Engineering"), rows(2, "Marketing"));
+  }
 
   @Test
-  @Ignore("TBD") // TODO: subquery
-  public void testSubquery() throws IOException {}
+  @Ignore("pending subquery adaptation")
+  public void testSubquery() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "where account_number in [search department='Engineering' | fields account_number] |"
+                + " fields account_number, firstname");
+
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRows(result, rows(1, "John"), rows(4, "Alice"));
+  }
 
   @Test
   public void testEval() throws IOException {
