@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONObject;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -13,6 +15,7 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.utils.YamlFormatter;
 
 public abstract class CalcitePPLPermissiveIntegTestCase extends CalcitePPLIntegTestCase {
 
@@ -48,5 +51,46 @@ public abstract class CalcitePPLPermissiveIntegTestCase extends CalcitePPLIntegT
 
   private String blockQuote(String str) {
     return "```\n" + str + "```\n";
+  }
+
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
+  private static final boolean DEBUG = true;
+
+  @Override
+  protected JSONObject executeQuery(String query) {
+    return debugJSON(super.executeQuery(debugExplain(query)));
+  }
+
+  private String debugExplain(String query) {
+    if (DEBUG) {
+      try {
+        System.out.println("#### explain yaml for query: " + query);
+        System.out.println(explainQuery(query));
+        System.out.println("#### end of explain");
+      } catch (Exception e) {
+        System.out.println("Exception thrown when explain : ");
+        e.printStackTrace();
+      }
+    }
+    return query;
+  }
+
+  private JSONObject debugJSON(JSONObject json) {
+    if (DEBUG) {
+      System.out.println("#### result");
+      System.out.println(json.toString(2));
+      System.out.println("#### end of result ####");
+    }
+    return json;
+  }
+
+  private static String jsonToYaml(String json) {
+    try {
+      Object jsonObject = JSON_MAPPER.readValue(json, Object.class);
+      return YamlFormatter.formatToYaml(jsonObject);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to convert JSON to YAML", e);
+    }
   }
 }

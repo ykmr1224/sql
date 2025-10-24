@@ -883,6 +883,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
     // 6. dedupe dynamic fields
+
     // TODO: MAP_REMOVE(_MAP, fields in newFields but not in toOverrideList)
   }
 
@@ -1559,7 +1560,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Validate type compatibility when replacementForAll is present
     if (node.getReplacementForAll().isPresent()) {
-      List<RelDataTypeField> fieldsList = context.relBuilder.peek().getRowType().getFieldList();
+      List<RelDataTypeField> fieldsList = context.fieldBuilder.staticFieldList();
       RexNode replacement = rexVisitor.analyze(node.getReplacementForAll().get(), context);
 
       // Validate all fields are compatible with the replacement value
@@ -1570,7 +1571,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     List<RexNode> projects = new ArrayList<>();
-    List<RelDataTypeField> fieldsList = context.relBuilder.peek().getRowType().getFieldList();
+    List<RelDataTypeField> fieldsList = context.fieldBuilder.staticFieldList();
     for (RelDataTypeField field : fieldsList) {
       RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());
       boolean toReplace = false;

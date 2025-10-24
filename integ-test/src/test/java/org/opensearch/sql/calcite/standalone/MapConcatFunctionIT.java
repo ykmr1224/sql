@@ -133,7 +133,8 @@ public class MapConcatFunctionIT extends CalcitePPLIntegTestCase {
 
   private TestContext createTestContext() {
     CalcitePlanContext planContext = createCalcitePlanContext();
-    return new TestContext(planContext, planContext.relBuilder, planContext.rexBuilder);
+    return new TestContext(
+        planContext, planContext.relBuilder.getRawRelBuilder(), planContext.rexBuilder);
   }
 
   private RelDataType createMapType(RexBuilder rexBuilder) {

@@ -41,6 +41,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
   public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
+  private static final boolean DEBUG = true;
 
   @Override
   protected void init() throws Exception {
@@ -50,7 +51,30 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
-    return jsonify(executeQueryToString(query));
+    return debugJSON(jsonify(executeQueryToString(debugExplain(query)))); // TODO: remove debug
+  }
+
+  private String debugExplain(String query) {
+    if (DEBUG) {
+      try {
+        System.out.println("#### explain yaml for query: " + query);
+        System.out.println(explainQueryYaml(query));
+        System.out.println("#### end of explain");
+      } catch (Exception e) {
+        System.out.println("Exception thrown when explain : ");
+        e.printStackTrace();
+      }
+    }
+    return query;
+  }
+
+  private JSONObject debugJSON(JSONObject json) {
+    if (DEBUG) {
+      System.out.println("#### result");
+      System.out.println(json.toString(2));
+      System.out.println("#### end of result ####");
+    }
+    return json;
   }
 
   protected String executeQueryToString(String query) throws IOException {

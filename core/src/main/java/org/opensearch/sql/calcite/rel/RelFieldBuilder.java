@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -74,6 +75,12 @@ public class RelFieldBuilder {
 
   public List<RexNode> staticFields(Iterable<String> fieldNames) {
     return relBuilder.fields(fieldNames);
+  }
+
+  public List<RelDataTypeField> staticFieldList() {
+    return relBuilder.peek().getRowType().getFieldList().stream()
+        .filter(field -> !_MAP.equals(field.getName()))
+        .toList();
   }
 
   public ImmutableList<RexNode> staticFields(List<? extends Number> ordinals) {

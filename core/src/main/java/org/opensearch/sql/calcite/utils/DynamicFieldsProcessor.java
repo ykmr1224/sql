@@ -56,9 +56,14 @@ public class DynamicFieldsProcessor {
         originalSchema.getColumns().stream()
             .filter(col -> !DYNAMIC_FIELDS_MAP.equals(col.getName()))
             .collect(Collectors.toList());
+    Set<String> staticFields =
+        expandedColumns.stream().map(col -> col.getName()).collect(Collectors.toSet());
 
     for (Map.Entry<String, ExprType> dynamicFieldType : dynamicFieldTypes.entrySet()) {
-      expandedColumns.add(new Column(dynamicFieldType.getKey(), null, dynamicFieldType.getValue()));
+      if (!staticFields.contains(dynamicFieldType.getKey())) {
+        expandedColumns.add(
+            new Column(dynamicFieldType.getKey(), null, dynamicFieldType.getValue()));
+      }
     }
 
     return new Schema(expandedColumns);
