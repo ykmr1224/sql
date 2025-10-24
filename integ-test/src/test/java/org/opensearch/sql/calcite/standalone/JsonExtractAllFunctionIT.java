@@ -330,7 +330,8 @@ public class JsonExtractAllFunctionIT extends CalcitePPLIntegTestCase {
 
   private TestContext createTestContext() {
     CalcitePlanContext planContext = createCalcitePlanContext();
-    return new TestContext(planContext, planContext.relBuilder, planContext.rexBuilder);
+    return new TestContext(
+        planContext, planContext.relBuilder.getRawRelBuilder(), planContext.rexBuilder);
   }
 
   private void executeRelNodeAndVerify(
