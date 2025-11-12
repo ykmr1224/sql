@@ -6,15 +6,20 @@
 package org.opensearch.sql.calcite.rel;
 
 import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -73,9 +78,7 @@ public class RelFieldBuilder {
   }
 
   public List<RexNode> staticFields() {
-    return relBuilder.fields().stream()
-        .filter(node -> !DYNAMIC_FIELDS_MAP.equals(node))
-        .collect(Collectors.toList());
+    return excludeDynamicField(relBuilder.fields());
   }
 
   public List<RexNode> staticFields(Iterable<String> fieldNames) {
@@ -90,6 +93,22 @@ public class RelFieldBuilder {
 
   public ImmutableList<RexNode> staticFields(List<? extends Number> ordinals) {
     return relBuilder.fields(ordinals);
+  }
+
+  private List<RexNode> excludeDynamicField(List<RexNode> fields) {
+    int dynamicFieldsMapIndex = getDynamicFieldsMapIndex();
+    if (dynamicFieldsMapIndex >= 0) {
+      return IntStream.range(0, fields.size())
+          .filter(i -> i != dynamicFieldsMapIndex)
+          .mapToObj(i -> fields.get(i))
+          .collect(Collectors.toList());
+    } else {
+      return fields;
+    }
+  }
+
+  private int getDynamicFieldsMapIndex() {
+    return relBuilder.peek().getRowType().getFieldNames().indexOf(DYNAMIC_FIELDS_MAP);
   }
 
   public boolean isDynamicFieldsExist() {
@@ -123,6 +142,39 @@ public class RelFieldBuilder {
   public RexNode dynamicField(int inputCount, int inputOrdinal, String fieldName) {
     return createItemAccess(
         relBuilder.field(inputCount, inputOrdinal, DYNAMIC_FIELDS_MAP), fieldName);
+  }
+
+  public void removeFieldsFromDynamicFields(List<String> fieldNames) {
+    if (isDynamicFieldsExist()) {
+      List<RexNode> list = staticFields();
+      list.add(getDynamicFieldsWithout(fieldNames));
+      relBuilder.project(list);
+    }
+  }
+
+  public RexNode getDynamicFieldsWithout(List<String> fieldNames) {
+    RexNode map = getDynamicFieldsMap();
+    if (!fieldNames.isEmpty()) {
+      map = mapRemoveCall(map, fieldNames);
+    }
+    return relBuilder.alias(map, DYNAMIC_FIELDS_MAP);
+  }
+
+  private RexNode mapRemoveCall(RexNode mapField, List<String> removedNames) {
+    RexNode array = createStringArray(removedNames);
+    return PPLFuncImpTable.INSTANCE.resolve(rexBuilder, MAP_REMOVE, mapField, array);
+  }
+
+  protected RexNode createStringArray(List<String> values) {
+    RelDataType stringType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RelDataType arrayType = rexBuilder.getTypeFactory().createArrayType(stringType, -1);
+
+    List<RexNode> elements = new java.util.ArrayList<>();
+    for (String value : values) {
+      elements.add(rexBuilder.makeLiteral(value));
+    }
+
+    return rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, elements);
   }
 
   private RexNode createItemAccess(RexNode field, String itemName) {
