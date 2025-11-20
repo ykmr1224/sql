@@ -505,7 +505,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private static void forceProjectExcept(
       CalcitePlanContext context, Iterable<RexNode> expressions) {
-    List<RexNode> allExpressions = context.fieldBuilder.staticFields();
+    List<RexNode> allExpressions = new ArrayList<>(context.fieldBuilder.staticFields());
     Set<RexNode> excludeExpressions = new HashSet<>();
     for (RexNode excludeExp : expressions) {
       if (!excludeExpressions.add(excludeExp)) {
