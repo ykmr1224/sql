@@ -1097,6 +1097,7 @@ collectionFunctionName
     | MVJOIN
     | MVINDEX
     | MVDEDUP
+    | MVMAP
     | FORALL
     | EXISTS
     | FILTER

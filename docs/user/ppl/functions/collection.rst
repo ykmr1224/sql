@@ -340,6 +340,36 @@ Example::
     | []     |
     +--------+
 
+MVMAP
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: mvmap(array, expression) iterates over each element of a multivalue array, applies the expression to each element, and returns a multivalue array with the transformed results. The field name in the expression is implicitly bound to each element value.
+
+Argument type: array: ARRAY, expression: EXPRESSION
+
+Return type: ARRAY
+
+Example::
+
+    os> source=people | eval array = array(1, 2, 3), result = mvmap(array, array * 10) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +------------+
+    | result     |
+    |------------|
+    | [10,20,30] |
+    +------------+
+
+    os> source=people | eval array = array(1, 2, 3), result = mvmap(array, array + 5) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------+
+    | result  |
+    |---------|
+    | [6,7,8] |
+    +---------+
+
 MVINDEX
 -------
 

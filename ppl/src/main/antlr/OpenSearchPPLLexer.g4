@@ -443,6 +443,7 @@ MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
 MVDEDUP:                            'MVDEDUP';
+MVMAP:                              'MVMAP';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';
