@@ -370,6 +370,8 @@ Example::
     | [6,7,8] |
     +---------+
 
+Note: For nested expressions like ``mvmap(mvindex(arr, 1, 3), arr * 2)``, the field name (``arr``) is extracted from the first argument and must match the field referenced in the expression.
+
 MVINDEX
 -------
 
