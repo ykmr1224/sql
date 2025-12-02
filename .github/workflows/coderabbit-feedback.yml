@@ -15,10 +15,16 @@ jobs:
       - uses: actions/github-script@v8
         with:
           script: |
-            await github.rest.pulls.createReplyForReviewComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              comment_id: context.payload.comment.id,
-              body: "Please leave an emoji reaction (👍/👎) to CodeRabbit's comment to help us track effectiveness."
-            });
+            const comment = context.payload.comment;
+            const originalBody = comment.body;
+            const feedbackMessage = "\n\n---\n\n<sub>👋 Please leave an emoji reaction (👍/👎) to this comment to help us track effectiveness.</sub>";
+            
+            // Only add the message if it's not already there
+            if (!originalBody.includes("Please leave an emoji reaction")) {
+              await github.rest.pulls.updateReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+                body: originalBody + feedbackMessage
+              });
+            }
