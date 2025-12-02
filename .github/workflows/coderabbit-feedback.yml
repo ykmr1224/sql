@@ -1,0 +1,17 @@
+on:
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  add-reaction-encouragement:
+    runs-on: ubuntu-latest
+    if: github.actor == 'coderabbitai[bot]'
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "Please leave an emoji reaction (👍/👎) to each comment by CodeRabbit so that we can track effectiveness."
+            });
