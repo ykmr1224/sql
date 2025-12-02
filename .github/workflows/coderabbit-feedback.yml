@@ -7,7 +7,7 @@ permissions:
 jobs:
   add-reaction-encouragement:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.user.login, 'coderabbitai')
+    # if: contains(github.event.comment.user.login, 'coderabbitai')
     steps:
       - uses: actions/github-script@v8
         with:
