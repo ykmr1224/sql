@@ -22,9 +22,6 @@ jobs:
             const comment = context.payload.comment;
             const originalBody = comment.body;
             const feedbackMessage = "\n\n<sub>👋 Leave emoji reaction (👍/👎) to track effectiveness of CodeRabbit.</sub>";
-            console.log(context);
-            console.log(github);
-            console.log(github.event);
 
             // Only add the message if it's not already there
             if (!originalBody.includes("Please leave an emoji reaction")) {
@@ -35,3 +32,5 @@ jobs:
                 body: originalBody + feedbackMessage
               });
             }
+
+# TODO: We should delete this comment
