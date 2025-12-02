@@ -10,14 +10,15 @@ permissions:
 jobs:
   add-reaction-encouragement:
     runs-on: ubuntu-latest
-    if: github.event.comment.user.login == 'coderabbitai[bot]'
+    # if: github.event.comment.user.login == 'coderabbitai[bot]'
     steps:
       - uses: actions/github-script@v8
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const comment = context.payload.comment;
             const originalBody = comment.body;
-            const feedbackMessage = "\n\n---\n\n<sub>👋 Please leave an emoji reaction (👍/👎) to this comment to help us track effectiveness.</sub>";
+            const feedbackMessage = "\n\n<sub>👋 Please leave an emoji reaction (👍/👎) to this comment to help us track effectiveness.</sub>";
             
             // Only add the message if it's not already there
             if (!originalBody.includes("Please leave an emoji reaction")) {
@@ -28,3 +29,5 @@ jobs:
                 body: originalBody + feedbackMessage
               });
             }
+
+            echo ${{ github.event.comment.user.login }}
