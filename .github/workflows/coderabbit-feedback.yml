@@ -16,7 +16,8 @@ jobs:
             const comment = context.payload.comment;
             const originalBody = comment.body;
             const feedbackMessage = "\n\n<sub>👋 Please leave an emoji reaction (👍/👎) to this comment to help us track effectiveness.</sub>";
-            
+            console.log(context);
+
             // Only add the message if it's not already there
             if (!originalBody.includes("Please leave an emoji reaction")) {
               await github.rest.pulls.updateReviewComment({
