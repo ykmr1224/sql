@@ -6,10 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'coderabbitai[bot]'
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v8
         with:
           script: |
             github.issues.createComment({
               issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               body: "If the review by CodeRabbit helped you, please leave an emoji reaction (👍) so that we can track effectiveness."
             });
