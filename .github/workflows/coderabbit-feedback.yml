@@ -7,13 +7,13 @@ permissions:
 jobs:
   add-reaction-encouragement:
     runs-on: ubuntu-latest
-    # if: contains(github.event.comment.user.login == 'coderabbitai[bot]'
+    if: contains(github.event.comment.user.login == 'coderabbitai[bot]'
     steps:
-      - name: Check author_association
-        run: |
-          echo event.comment.user.login is ${{ github.event.comment.user.login }}
-          echo event.comment.author_association is ${{ github.event.comment.author_association }}
-          echo Hello, this workflow is allowed to OWNER, MEMBER, COLLABORATOR.
+      # - name: Check author_association
+      #   run: |
+      #     echo event.comment.user.login is ${{ github.event.comment.user.login }}
+      #     echo event.comment.author_association is ${{ github.event.comment.author_association }}
+      #     echo Hello, this workflow is allowed to OWNER, MEMBER, COLLABORATOR.
 
       - uses: actions/github-script@v8
         with:
@@ -32,5 +32,3 @@ jobs:
                 body: originalBody + feedbackMessage
               });
             }
-
-# TODO: We should delete this comment
