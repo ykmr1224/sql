@@ -24,7 +24,7 @@ jobs:
             const feedbackMessage = "\n\n<sub>👋 Leave emoji reaction (👍/👎) to track effectiveness of CodeRabbit.</sub>";
 
             // Only add the message if it's not already there
-            if (!originalBody.includes("Please leave an emoji reaction")) {
+            if (!originalBody.includes("Leave emoji reaction")) {
               await github.rest.pulls.updateReviewComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
