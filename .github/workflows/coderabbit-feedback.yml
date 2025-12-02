@@ -1,0 +1,15 @@
+on:
+  review_comment:
+    types: [created]
+jobs:
+  add-reaction-encouragement:
+    runs-on: ubuntu-latest
+    if: github.actor == 'coderabbitai[bot]'
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              body: "If the review by CodeRabbit helped you, please leave an emoji reaction (👍) so that we can track effectiveness."
+            });
