@@ -7,17 +7,18 @@ language: "en-US"
 early_access: false
 
 reviews:
-  profile: "chill"
+  profile: "assertive"
   request_changes_workflow: false
   high_level_summary: true
   high_level_summary_placeholder: "@coderabbitai summary"
   poem: false  # Keep reviews professional and concise
   review_status: true
-  collapse_walkthrough: false
+  collapse_walkthrough: true
+  suggested_reviewers: false
   
   auto_review:
-    enabled: false # Disabled auto-review until it becomes stable
-    auto_incremental_review: false
+    enabled: true
+    auto_incremental_review: true
     drafts: false  # Don't review draft PRs
     ignore_title_keywords:
       - "WIP"

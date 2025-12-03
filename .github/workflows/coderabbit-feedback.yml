@@ -1,0 +1,39 @@
+name: CodeRabbit Feedback Reminder
+# TODO: New todo comment
+on:
+  pull_request_review_comment:
+    types: [created]
+permissions:
+  pull-requests: write
+jobs:
+  add-reaction-encouragement:
+    runs-on: ubuntu-latest
+    if: github.event.comment.user.login == 'coderabbitai[bot]'
+    steps:
+      # - name: Check author_association
+      #   run: |
+      #     echo event.comment.user.login is ${{ github.event.comment.user.login }}
+      #     echo event.comment.author_association is ${{ github.event.comment.author_association }}
+      #     echo Hello, this workflow is allowed to OWNER, MEMBER, COLLABORATOR.
+
+      - uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = context.payload.comment;
+            const originalBody = comment.body;
+            const feedbackMessage = "\n\n<sub>👋 Leave emoji reaction (👍/👎) to track effectiveness of CodeRabbit.</sub>";
+
+            // Only add the message if it's not already there
+            if (!originalBody.includes("Leave emoji reaction")) {
+              await github.rest.pulls.updateReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+                body: originalBody + feedbackMessage
+              });
+            }
+
+# TODO: please remove this comment
+
+# TODO: New todo comment
