@@ -26,7 +26,7 @@ public class FieldResolutionContext {
   public FieldResolutionContext() {
     this.relationResults = new IdentityHashMap<>();
     this.requirementsStack = new ArrayDeque<>();
-    this.requirementsStack.push(new FieldResolutionResult(Set.of("*")));
+    this.requirementsStack.push(new FieldResolutionResult(Set.of(), "*"));
   }
 
   public void pushRequirements(FieldResolutionResult result) {
@@ -38,9 +38,11 @@ public class FieldResolutionContext {
   }
 
   public FieldResolutionResult getCurrentRequirements() {
-    return requirementsStack.isEmpty()
-        ? new FieldResolutionResult(Set.of("*"))
-        : requirementsStack.peek();
+    if (requirementsStack.isEmpty()) {
+      throw new RuntimeException("empty stack");
+    } else {
+      return requirementsStack.peek();
+    }
   }
 
   public void setResult(Relation relation, FieldResolutionResult result) {

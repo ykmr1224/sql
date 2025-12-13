@@ -11,6 +11,7 @@ import java.util.Set;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -20,10 +21,13 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 
 /**
  * Visitor to analyze and collect required fields from PPL AST using stack-based traversal.
@@ -59,25 +63,38 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Void, FieldResol
 
   @Override
   public Void visitProject(Project node, FieldResolutionContext context) {
-    Set<String> projectFields = new HashSet<>();
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      projectFields.addAll(extractFieldsFromExpression(expr));
-    }
+    boolean isSelectAll =
+        node.getProjectList().stream().anyMatch(expr -> expr instanceof AllFields);
 
-    context.pushRequirements(new FieldResolutionResult(projectFields));
-    visitChildren(node, context);
-    context.popRequirements();
+    if (isSelectAll) {
+      visitChildren(node, context);
+    } else {
+      Set<String> projectFields = new HashSet<>();
+      Set<String> wildcardPatterns = new HashSet<>();
+      for (UnresolvedExpression expr : node.getProjectList()) {
+        extractFieldsFromExpression(expr)
+            .forEach(
+                field -> {
+                  if (WildcardUtils.containsWildcard(field)) {
+                    wildcardPatterns.add(field);
+                  } else {
+                    projectFields.add(field);
+                  }
+                });
+      }
+
+      context.pushRequirements(new FieldResolutionResult(projectFields, wildcardPatterns));
+      visitChildren(node, context);
+      context.popRequirements();
+    }
     return null;
   }
 
   @Override
   public Void visitFilter(Filter node, FieldResolutionContext context) {
     Set<String> filterFields = extractFieldsFromExpression(node.getCondition());
-    FieldResolutionResult currentReq = context.getCurrentRequirements();
-    Set<String> allRequiredFields = new HashSet<>(currentReq.getRegularFields());
-    allRequiredFields.addAll(filterFields);
 
-    context.pushRequirements(new FieldResolutionResult(allRequiredFields));
+    context.pushRequirements(context.getCurrentRequirements().or(filterFields));
     visitChildren(node, context);
     context.popRequirements();
     return null;
@@ -109,11 +126,7 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Void, FieldResol
       sortFields.addAll(extractFieldsFromExpression(sortField));
     }
 
-    FieldResolutionResult currentReq = context.getCurrentRequirements();
-    Set<String> allRequiredFields = new HashSet<>(currentReq.getRegularFields());
-    allRequiredFields.addAll(sortFields);
-
-    context.pushRequirements(new FieldResolutionResult(allRequiredFields));
+    context.pushRequirements(context.getCurrentRequirements().or(sortFields));
     visitChildren(node, context);
     context.popRequirements();
     return null;
@@ -134,7 +147,8 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Void, FieldResol
     allRequiredFields.removeAll(computedFields);
     allRequiredFields.addAll(evalInputFields);
 
-    context.pushRequirements(new FieldResolutionResult(allRequiredFields));
+    context.pushRequirements(
+        new FieldResolutionResult(allRequiredFields, currentReq.getWildcardPattern()));
     visitChildren(node, context);
     context.popRequirements();
     return null;
@@ -169,31 +183,86 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Void, FieldResol
   }
 
   @Override
-  public Void visitRelation(Relation node, FieldResolutionContext context) {
-    FieldResolutionResult currentReq = context.getCurrentRequirements();
-    Set<String> allFields = new HashSet<>(currentReq.getRegularFields());
+  public Void visitJoin(Join node, FieldResolutionContext context) {
+    Set<String> joinFields = new HashSet<>();
 
-    if (allFields.isEmpty()) {
-      allFields.add("*");
+    if (node.getJoinCondition().isPresent()) {
+      joinFields.addAll(extractFieldsFromExpression(node.getJoinCondition().get()));
     }
 
-    Set<String> regularFields = new HashSet<>();
-    Set<String> wildcardPatterns = new HashSet<>();
-
-    for (String field : allFields) {
-      if (field.contains("*")) {
-        wildcardPatterns.add(field);
-      } else {
-        regularFields.add(field);
+    if (node.getJoinFields().isPresent()) {
+      for (Field field : node.getJoinFields().get()) {
+        joinFields.addAll(extractFieldsFromExpression(field));
       }
     }
 
-    String wildcardPattern =
-        wildcardPatterns.isEmpty()
-            ? null
-            : FieldResolutionContext.mergeWildcardPatterns(wildcardPatterns);
+    org.opensearch.sql.ast.analysis.FieldResolutionResult currentReq =
+        context.getCurrentRequirements();
+    Set<String> baseRequiredFields = new HashSet<>(currentReq.getRegularFields());
 
-    context.setResult(node, new FieldResolutionResult(regularFields, wildcardPattern));
+    String leftAlias = node.getLeftAlias().orElse(null);
+    String rightAlias = node.getRightAlias().orElse(null);
+
+    Set<String> leftFields = filterFieldsByPrefix(baseRequiredFields, leftAlias);
+    leftFields.addAll(filterFieldsByPrefix(joinFields, leftAlias));
+
+    Set<String> rightFields = filterFieldsByPrefix(baseRequiredFields, rightAlias);
+    rightFields.addAll(filterFieldsByPrefix(joinFields, rightAlias));
+
+    if (node.getLeft() != null) {
+      context.pushRequirements(
+          new FieldResolutionResult(leftFields, currentReq.getWildcardPattern()));
+      node.getLeft().accept(this, context);
+      context.popRequirements();
+    }
+
+    if (node.getRight() != null) {
+      context.pushRequirements(
+          new FieldResolutionResult(rightFields, currentReq.getWildcardPattern()));
+      node.getRight().accept(this, context);
+      context.popRequirements();
+    }
+
+    return null;
+  }
+
+  private Set<String> filterFieldsByPrefix(Set<String> fields, String alias) {
+    if (alias == null) {
+      return fields;
+    }
+
+    Set<String> filtered = new HashSet<>();
+    String prefix = alias + ".";
+    for (String field : fields) {
+      if (!isPrefixed(field)) {
+        filtered.add(field);
+      } else if (field.startsWith(prefix)) {
+        // Strip the prefix to get the actual field name
+        String fieldName = field.substring(prefix.length());
+        filtered.add(fieldName);
+      }
+    }
+    return filtered;
+  }
+
+  private boolean isPrefixed(String field) {
+    return field.contains(".");
+  }
+
+  @Override
+  public Void visitSubqueryAlias(SubqueryAlias node, FieldResolutionContext context) {
+    visitChildren(node, context);
+    return null;
+  }
+
+  @Override
+  public Void visitRelation(Relation node, FieldResolutionContext context) {
+    org.opensearch.sql.ast.analysis.FieldResolutionResult currentReq =
+        context.getCurrentRequirements();
+
+    context.setResult(
+        node,
+        new FieldResolutionResult(currentReq.getRegularFields(), currentReq.getWildcardPattern()));
     return null;
   }
 

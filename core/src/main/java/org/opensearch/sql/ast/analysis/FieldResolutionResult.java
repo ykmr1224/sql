@@ -31,6 +31,11 @@ public class FieldResolutionResult {
     this.wildcardPattern = wildcardPattern;
   }
 
+  public FieldResolutionResult(Set<String> regularFields, Set<String> wildcardPatterns) {
+    this.regularFields = new HashSet<>(regularFields);
+    this.wildcardPattern = mergeWithOr(wildcardPatterns);
+  }
+
   public Set<String> getRegularFieldsUnmodifiable() {
     return Collections.unmodifiableSet(regularFields);
   }
@@ -68,5 +73,11 @@ public class FieldResolutionResult {
     combinedFields.addAll(other.regularFields);
     String combinedPattern = mergeWithAnd(this.wildcardPattern, other.wildcardPattern);
     return new FieldResolutionResult(combinedFields, combinedPattern);
+  }
+
+  public FieldResolutionResult or(Set<String> fields) {
+    Set<String> combinedFields = new HashSet<>(this.regularFields);
+    combinedFields.addAll(fields);
+    return new FieldResolutionResult(combinedFields, this.wildcardPattern);
   }
 }
