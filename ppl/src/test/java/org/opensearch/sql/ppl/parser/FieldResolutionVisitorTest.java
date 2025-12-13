@@ -7,11 +7,14 @@ package org.opensearch.sql.ppl.parser;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.opensearch.sql.ast.analysis.FieldResolutionResult;
 import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
+import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -20,7 +23,7 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
  * Unit tests for FieldResolutionVisitor using PPL parser.
  *
  * <p>This test validates that the field resolution visitor correctly identifies required fields
- * from PPL queries by parsing actual PPL syntax.
+ * from PPL queries by parsing actual PPL syntax. Tests use the new multi-relation API.
  */
 public class FieldResolutionVisitorTest {
 
@@ -41,109 +44,156 @@ public class FieldResolutionVisitorTest {
   @Test
   public void testSimpleRelation() {
     UnresolvedPlan plan = parse("source=logs");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals("Simple relation should require all fields", Set.of("*"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of(), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testFilterOnly() {
     UnresolvedPlan plan = parse("source=logs | where status > 200");
-    Set<String> fields = visitor.analyze(plan);
-    // Filter adds status field but keeps "*" since no projection limits fields
-    assertEquals(Set.of("*", "status"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testMultipleFilters() {
     UnresolvedPlan plan = parse("source=logs | where status > 200 AND region = 'us-west'");
-    Set<String> fields = visitor.analyze(plan);
-    // Filter adds fields but keeps "*" since no projection limits fields
-    assertEquals(Set.of("*", "status", "region"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status", "region"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testProjectOnly() {
     UnresolvedPlan plan = parse("source=logs | fields status, region");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals(Set.of("status", "region"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status", "region"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testFilterThenProject() {
     UnresolvedPlan plan = parse("source=logs | where status > 200 | fields region");
-    Set<String> fields = visitor.analyze(plan);
-    // Project wants 'region', but filter needs 'status' to evaluate the condition
-    assertEquals("Expected both region and status fields", Set.of("region", "status"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("region", "status"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testAggregationWithGroupBy() {
     UnresolvedPlan plan = parse("source=logs | stats count() by region");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals(Set.of("region"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("region"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testAggregationWithFieldAndGroupBy() {
     UnresolvedPlan plan = parse("source=logs | stats avg(response_time) by region");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals(Set.of("region", "response_time"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("region", "response_time"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testComplexQuery() {
     UnresolvedPlan plan = parse("source=logs | where status > 200 | stats count() by region");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals(Set.of("region", "status"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("region", "status"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testSortCommand() {
     UnresolvedPlan plan = parse("source=logs | sort status");
-    Set<String> fields = visitor.analyze(plan);
-    // Sort adds status field but keeps "*" since no projection limits fields
-    assertEquals(Set.of("*", "status"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testEvalCommand() {
     UnresolvedPlan plan = parse("source=logs | eval new_field = old_field + 1");
-    Set<String> fields = visitor.analyze(plan);
-    // Eval adds old_field (input) but keeps "*" since no projection limits fields
-    assertEquals(Set.of("*", "old_field"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("old_field"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testEvalThenFilter() {
     UnresolvedPlan plan = parse("source=logs | eval doubled = value * 2 | where doubled > 100");
-    Set<String> fields = visitor.analyze(plan);
-    // Filter requires 'doubled', but eval computes it from 'value'
-    // Eval removes 'doubled' from requirements and adds 'value' as input
-    assertEquals(Set.of("*", "value"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("value"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testNestedFields() {
     UnresolvedPlan plan = parse("source=logs | where `user.name` = 'john'");
-    Set<String> fields = visitor.analyze(plan);
-    // Nested field should be stored as single string, keeps "*"
-    assertEquals(Set.of("*", "user.name"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("user.name"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testFunctionInFilter() {
     UnresolvedPlan plan = parse("source=logs | where length(message) > 100");
-    Set<String> fields = visitor.analyze(plan);
-    // Filter adds message field but keeps "*"
-    assertEquals(Set.of("*", "message"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("message"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
   }
 
   @Test
   public void testMultipleAggregations() {
     UnresolvedPlan plan =
         parse("source=logs | stats count(), avg(response_time), max(bytes) by region, status");
-    Set<String> fields = visitor.analyze(plan);
-    assertEquals(Set.of("region", "status", "response_time", "bytes"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("region", "status", "response_time", "bytes"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
@@ -154,34 +204,66 @@ public class FieldResolutionVisitorTest {
                 + "| eval response_ms = response_time * 1000 "
                 + "| stats avg(response_ms), max(bytes) by region, status "
                 + "| sort region");
-    Set<String> fields = visitor.analyze(plan);
-    // Required: status, region (from where and group by), response_time (input to eval), bytes
-    // (from stats)
-    // Note: response_ms is computed by eval, so it's removed from requirements
-    assertEquals(Set.of("status", "region", "response_time", "bytes"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status", "region", "response_time", "bytes"), result.getRegularFields());
+    assertEquals(null, result.getWildcardPattern());
   }
 
   @Test
   public void testWildcardPatternMerging() {
     UnresolvedPlan plan = parse("source=logs | fields `prefix*`, `prefix_sub*`");
-    Set<String> fields = visitor.analyze(plan);
-    // Multiple wildcard patterns should be merged with &
-    assertEquals(Set.of("prefix* & prefix_sub*"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of(), result.getRegularFields());
+    assertEquals("prefix* | prefix_sub*", result.getWildcardPattern());
   }
 
   @Test
   public void testSingleWildcardPattern() {
     UnresolvedPlan plan = parse("source=logs | fields `prefix*`");
-    Set<String> fields = visitor.analyze(plan);
-    // Single wildcard pattern should remain as-is
-    assertEquals(Set.of("prefix*"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of(), result.getRegularFields());
+    assertEquals("prefix*", result.getWildcardPattern());
   }
 
   @Test
   public void testWildcardWithRegularFields() {
     UnresolvedPlan plan = parse("source=logs | fields status, `prefix*`, region");
-    Set<String> fields = visitor.analyze(plan);
-    // Wildcard pattern should be kept alongside regular fields
-    assertEquals(Set.of("status", "prefix*", "region"), fields);
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+    Relation relation = results.keySet().iterator().next();
+    FieldResolutionResult result = results.get(relation);
+
+    assertEquals(Set.of("status", "region"), result.getRegularFields());
+    assertEquals("prefix*", result.getWildcardPattern());
+  }
+
+  @Test
+  public void testMultiRelationResult() {
+    UnresolvedPlan plan = parse("source=logs | where status > 200");
+    Map<Relation, FieldResolutionResult> results = visitor.analyze(plan);
+
+    assertEquals(1, results.size());
+
+    Relation relation = results.keySet().iterator().next();
+    assertEquals("logs", relation.getTableQualifiedName().toString());
+
+    FieldResolutionResult result = results.get(relation);
+    assertEquals(Set.of("status"), result.getRegularFields());
+    assertEquals("*", result.getWildcardPattern());
+  }
+
+  @Test
+  public void testBackwardCompatibilityMethod() {
+    UnresolvedPlan plan = parse("source=logs | where status > 200 | fields region");
+    Set<String> fields = visitor.analyzeFields(plan);
+    assertEquals(Set.of("region", "status"), fields);
   }
 }

@@ -5,79 +5,52 @@
 
 package org.opensearch.sql.ast.analysis;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Deque;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
+import org.opensearch.sql.ast.tree.Relation;
 
 /**
- * Context for field resolution analysis. Tracks required fields as the visitor traverses the AST.
+ * Context for field resolution using stack-based traversal. Uses Relation node instances as keys to
+ * support self-joins.
  */
 public class FieldResolutionContext {
 
-  /**
-   * Set of field names required by parent commands. This represents fields that must be provided by
-   * child commands.
-   */
-  @Getter private final Set<String> requiredFields;
+  @Getter private final Map<Relation, FieldResolutionResult> relationResults;
+  private final Deque<FieldResolutionResult> requirementsStack;
 
-  /** Creates a new context with no required fields. */
   public FieldResolutionContext() {
-    this.requiredFields = new HashSet<>();
+    this.relationResults = new IdentityHashMap<>();
+    this.requirementsStack = new ArrayDeque<>();
+    this.requirementsStack.push(new FieldResolutionResult(Set.of("*")));
   }
 
-  /**
-   * Creates a new context with specified required fields.
-   *
-   * @param requiredFields Initial set of required fields
-   */
-  public FieldResolutionContext(Set<String> requiredFields) {
-    this.requiredFields = new HashSet<>(requiredFields);
+  public void pushRequirements(FieldResolutionResult result) {
+    requirementsStack.push(result);
   }
 
-  /**
-   * Adds a field to the required fields set.
-   *
-   * @param fieldName Name of the field to add
-   */
-  public void addRequiredField(String fieldName) {
-    requiredFields.add(fieldName);
+  public FieldResolutionResult popRequirements() {
+    return requirementsStack.pop();
   }
 
-  /**
-   * Adds multiple fields to the required fields set.
-   *
-   * @param fieldNames Set of field names to add
-   */
-  public void addRequiredFields(Set<String> fieldNames) {
-    requiredFields.addAll(fieldNames);
+  public FieldResolutionResult getCurrentRequirements() {
+    return requirementsStack.isEmpty()
+        ? new FieldResolutionResult(Set.of("*"))
+        : requirementsStack.peek();
   }
 
-  /**
-   * Creates a copy of this context with the same required fields.
-   *
-   * @return New context with copied required fields
-   */
-  public FieldResolutionContext copy() {
-    return new FieldResolutionContext(this.requiredFields);
+  public void setResult(Relation relation, FieldResolutionResult result) {
+    relationResults.put(relation, result);
   }
 
-  /**
-   * Returns an unmodifiable view of the required fields.
-   *
-   * @return Unmodifiable set of required field names
-   */
-  public Set<String> getRequiredFieldsUnmodifiable() {
-    return Collections.unmodifiableSet(requiredFields);
+  public Set<Relation> getRelations() {
+    return Collections.unmodifiableSet(relationResults.keySet());
   }
 
-  /**
-   * Merges wildcard patterns using AND logic. For example, "prefix*" & "prefix_sub*" becomes
-   * "prefix* & prefix_sub*"
-   *
-   * @param patterns Set of wildcard patterns to merge
-   * @return Merged pattern string, or null if no patterns
-   */
   public static String mergeWildcardPatterns(Set<String> patterns) {
     if (patterns == null || patterns.isEmpty()) {
       return null;
@@ -85,12 +58,11 @@ public class FieldResolutionContext {
     if (patterns.size() == 1) {
       return patterns.iterator().next();
     }
-    // Sort for consistent output
-    return String.join(" & ", patterns.stream().sorted().toList());
+    return String.join(" | ", patterns.stream().sorted().toList());
   }
 
   @Override
   public String toString() {
-    return "FieldResolutionContext{requiredFields=" + requiredFields + "}";
+    return "FieldResolutionContext{relationResults=" + relationResults + "}";
   }
 }
