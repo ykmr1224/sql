@@ -863,6 +863,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvzip() {
+    // Test mvzip with custom delimiter
+    assertEquals(
+        "source=table | eval identifier=mvzip(array(***,***),array(***,***),***) | fields +"
+            + " identifier",
+        anonymize(
+            "source=t | eval result=mvzip(array('a', 'b'), array('x', 'y'), '|') | fields result"));
+  }
+
+  @Test
   public void testSplit() {
     // Test split with delimiter
     assertEquals(
@@ -885,6 +895,14 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | eval identifier=mvdedup(array(***,***,***,***,***,***)) | fields +"
             + " identifier",
         anonymize("source=t | eval result=mvdedup(array(1, 2, 2, 3, 1, 4)) | fields result"));
+  }
+
+  @Test
+  public void testMvmap() {
+    assertEquals(
+        "source=table | eval identifier=mvmap(identifier,*(identifier,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvmap(arr, arr * 10) | fields result"));
   }
 
   @Test
