@@ -77,6 +77,8 @@ import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -155,6 +157,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
+import org.opensearch.sql.common.utils.DebugUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -178,6 +181,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
+    final FieldResolutionVisitor visitor = new FieldResolutionVisitor();
+    Map<UnresolvedPlan, FieldResolutionResult> fieldResolution = visitor.analyze(unresolved);
+    fieldResolution.forEach((k, v) -> System.out.println(k + ": " + v));
+    context.setFieldResolution(fieldResolution);
+
     return unresolved.accept(this, context);
   }
 
@@ -198,8 +206,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (nameResolver.getSchemaName().equals(INFORMATION_SCHEMA_NAME)) {
       throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
     }
-    context.relBuilder.scan(node.getTableQualifiedName().getParts());
+
+    Optional<RelOptTable> schemaOverride = context.getSchemaOverride(node);
+    if (schemaOverride.isPresent()) {
+      System.out.println("override: " + schemaOverride.get().toString());
+      scan(schemaOverride.get(), context);
+    } else {
+      context.relBuilder.scan(node.getTableQualifiedName().getParts());
+    }
+
     RelNode scan = context.relBuilder.peek();
+
     if (scan instanceof AliasFieldsWrappable) {
       return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
     }
@@ -214,6 +231,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .getScanFactory()
             .createScan(ViewExpanders.simpleContext(context.relBuilder.getCluster()), tableSchema);
     context.relBuilder.push(scan);
+    DebugUtils.debug(scan.explain(), "scan");
+    DebugUtils.debug(tableSchema, "tableSchema");
     return context.relBuilder;
   }
 

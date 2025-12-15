@@ -6,13 +6,14 @@
 package org.opensearch.sql.ast.analysis;
 
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 /**
  * Context for field resolution using stack-based traversal. Uses Relation node instances as keys to
@@ -20,7 +21,7 @@ import org.opensearch.sql.ast.tree.Relation;
  */
 public class FieldResolutionContext {
 
-  @Getter private final Map<Relation, FieldResolutionResult> relationResults;
+  @Getter private final Map<UnresolvedPlan, FieldResolutionResult> relationResults;
   private final Deque<FieldResolutionResult> requirementsStack;
 
   public FieldResolutionContext() {
@@ -50,7 +51,10 @@ public class FieldResolutionContext {
   }
 
   public Set<Relation> getRelations() {
-    return Collections.unmodifiableSet(relationResults.keySet());
+    return relationResults.keySet().stream()
+        .filter(k -> k instanceof Relation)
+        .map(k -> (Relation) k)
+        .collect(Collectors.toSet());
   }
 
   public static String mergeWildcardPatterns(Set<String> patterns) {

@@ -36,21 +36,10 @@ import org.opensearch.sql.calcite.utils.WildcardUtils;
  */
 public class FieldResolutionVisitor extends AbstractNodeVisitor<Void, FieldResolutionContext> {
 
-  public Map<Relation, FieldResolutionResult> analyze(UnresolvedPlan plan) {
+  public Map<UnresolvedPlan, FieldResolutionResult> analyze(UnresolvedPlan plan) {
     FieldResolutionContext context = new FieldResolutionContext();
     plan.accept(this, context);
     return context.getRelationResults();
-  }
-
-  /** Convenience method for single-relation queries. */
-  public Set<String> analyzeFields(UnresolvedPlan plan) {
-    Map<Relation, FieldResolutionResult> results = analyze(plan);
-    if (results.isEmpty()) {
-      return new HashSet<>();
-    }
-    Relation relation = results.keySet().iterator().next();
-    FieldResolutionResult result = results.get(relation);
-    return result != null ? result.getRegularFields() : new HashSet<>();
   }
 
   @Override

@@ -202,13 +202,6 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
-  public void testBackwardCompatibilityMethod() {
-    UnresolvedPlan plan = parse("source=logs | where status > 200 | fields region");
-    Set<String> fields = visitor.analyzeFields(plan);
-    assertEquals(Set.of("region", "status"), fields);
-  }
-
-  @Test
   public void testSimpleJoin() {
     assertJoinRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2",
