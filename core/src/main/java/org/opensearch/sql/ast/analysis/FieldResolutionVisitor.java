@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.analysis;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.AstNodeUtils;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.analysis.FieldResolutionResult.Wildcard;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -305,6 +307,43 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     return node;
   }
 
+  @Override
+  public Node visitLookup(Lookup node, FieldResolutionContext context) {
+    FieldResolutionResult currentReq = context.getCurrentRequirements();
+    Set<String> baseRequiredFields = new HashSet<>(currentReq.getRegularFields());
+
+    Set<String> leftFields = new HashSet<>(baseRequiredFields);
+    Set<String> rightFields = new HashSet<>(baseRequiredFields);
+    if (node.getMappingAliasMap() != null && !node.getMappingAliasMap().isEmpty()) {
+      for (Entry<String, String> entry : node.getMappingAliasMap().entrySet()) {
+        // key AS value => right.`key` = left.`value`
+        rightFields.remove(entry.getValue());
+        rightFields.add(entry.getKey());
+        leftFields.add(entry.getValue());
+      }
+    }
+
+    Wildcard rightWildcard = currentReq.getWildcard();
+    if (node.getOutputAliasMap() != null && !node.getOutputAliasMap().isEmpty()) {
+      for (Entry<String, String> entry : node.getOutputAliasMap().entrySet()) {
+        // key AS value => right.`key` -(renamed)-> `value`
+        rightFields.add(entry.getKey());
+        rightFields.remove(entry.getValue());
+      }
+      rightWildcard = FieldResolutionResult.NULL_WILDCARD;
+    }
+
+    context.pushRequirements(new FieldResolutionResult(rightFields, rightWildcard));
+    acceptAndVerifyNodeVisited(node.getLookupRelation(), context);
+    context.popRequirements();
+
+    context.pushRequirements(new FieldResolutionResult(leftFields, currentReq.getWildcard()));
+    visitChildren(node, context);
+    context.popRequirements();
+
+    return node;
+  }
+
   /**
    * Return lambda which remove alias from the input field, do nothing if the input does not start
    * from the alias.
@@ -522,11 +561,6 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     acceptAndVerifyNodeVisited(node.getSubQuery(), context);
     visitChildren(node, context);
     return node;
-  }
-
-  @Override
-  public Node visitLookup(Lookup node, FieldResolutionContext context) {
-    throw new IllegalArgumentException("Lookup command cannot be used together with spath command");
   }
 
   @Override

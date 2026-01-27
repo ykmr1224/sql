@@ -122,7 +122,6 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
-import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -149,6 +148,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.JoinWrapper.ConflictResolution;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
@@ -1385,7 +1385,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    DynamicFieldsHelper.adjustJoinInputsForDynamicFields(
+    JoinWrapper.adjustJoinInputsForDynamicFields(
         node.getLeftAlias(), node.getRightAlias(), context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
@@ -1572,95 +1572,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitLookup(Lookup node, CalcitePlanContext context) {
     // 1. resolve source side
     visitChildren(node, context);
-    // get sourceOutputFields from top of stack which is used to build final output
-    List<String> sourceFieldsNames = context.relBuilder.peek().getRowType().getFieldNames();
 
     // 2. resolve lookup table
     analyze(node.getLookupRelation(), context);
 
-    // 3. Add projection for lookup table if needed
-    JoinAndLookupUtils.addProjectionIfNecessary(node, context);
+    List<String> joinKeys = new ArrayList<>(node.getMappingAliasMap().values());
+    JoinWrapper.addProjectionForLookup(node, context);
 
-    // Get lookupColumns from top of stack (after above potential projection).
-    List<String> lookupTableFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    JoinWrapper.adjustJoinInputsForDynamicFields(context);
 
-    // 3. Find fields which should be removed in lookup-table.
-    // For lookup table, the mapping fields should be dropped after join
-    // unless they are explicitly put in the output fields
-    List<String> toBeRemovedLookupFieldNames =
-        node.getMappingAliasMap().keySet().stream()
-            .filter(k -> !node.getOutputAliasMap().containsKey(k))
-            .toList();
-    List<String> providedFieldNames =
-        lookupTableFieldNames.stream()
-            .filter(k -> !toBeRemovedLookupFieldNames.contains(k))
-            .toList();
-    List<RexNode> toBeRemovedLookupFields =
-        toBeRemovedLookupFieldNames.stream()
-            .map(d -> (RexNode) context.relBuilder.field(2, 1, d))
-            .toList();
-    List<RexNode> toBeRemovedFields = new ArrayList<>(toBeRemovedLookupFields);
-
-    // 4. Find duplicated fields between source table fields and lookup table provided fields.
-    // Key: source fields names, value: lookup table provided field names
-    Map<String, String> duplicatedFieldNamesMap =
-        JoinAndLookupUtils.findDuplicatedFields(node, sourceFieldsNames, providedFieldNames);
-
-    List<RexNode> duplicatedSourceFields =
-        duplicatedFieldNamesMap.keySet().stream()
-            .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
-            .toList();
-    // Duplicated fields in source-field should always be removed.
-    toBeRemovedFields.addAll(duplicatedSourceFields);
-    // Construct a new field name for the new provided-fields.
-    List<String> expectedProvidedFieldNames =
-        providedFieldNames.stream().map(k -> node.getOutputAliasMap().getOrDefault(k, k)).toList();
-
-    List<RexNode> newCoalesceList = new ArrayList<>();
-    if (!duplicatedFieldNamesMap.isEmpty() && node.getOutputStrategy() == OutputStrategy.APPEND) {
-      List<RexNode> duplicatedProvidedFields =
-          duplicatedFieldNamesMap.values().stream()
-              .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))
-              .toList();
-      for (int i = 0; i < duplicatedProvidedFields.size(); ++i) {
-        newCoalesceList.add(
-            context.rexBuilder.coalesce(
-                duplicatedSourceFields.get(i), duplicatedProvidedFields.get(i)));
-      }
-
-      // For APPEND strategy, it needs to replace duplicated provided-fields with the new
-      // constructed coalesced fields.
-      // Hence, we need to remove the duplicated provided-fields as well and adjust the expected
-      // provided-field names since new added fields are appended to the end of the project list.
-      toBeRemovedFields.addAll(duplicatedProvidedFields);
-      List<String> newExpectedFieldNames =
-          new ArrayList<>(
-              expectedProvidedFieldNames.stream()
-                  .filter(k -> !duplicatedFieldNamesMap.containsKey(k))
-                  .toList());
-      newExpectedFieldNames.addAll(duplicatedFieldNamesMap.keySet());
-      expectedProvidedFieldNames = newExpectedFieldNames;
-    }
-
-    // 5. Resolve join condition. Note, this operation should be done after finishing all analyze.
-    JoinAndLookupUtils.addJoinForLookUp(node, context);
-
-    // 6. Add projection for coalesce fields if there is.
-    if (!newCoalesceList.isEmpty()) {
-      context.relBuilder.projectPlus(newCoalesceList);
-    }
-
-    // 7. Add projection to remove unnecessary fields
-    // NOTE: Need to lazy invoke projectExcept until finishing all analyzing,
-    // otherwise the field names may have changed because of field name duplication.
-    if (!toBeRemovedFields.isEmpty()) {
-      context.relBuilder.projectExcept(toBeRemovedFields);
-    }
-
-    // 7. Rename the fields to the expected names.
-    JoinAndLookupUtils.renameToExpectedFields(
-        expectedProvidedFieldNames,
-        sourceFieldsNames.size() - duplicatedSourceFields.size(),
+    JoinWrapper.leftJoin(
+        node.isReplace() ? ConflictResolution.RIGHT_OVERWRITE : ConflictResolution.LEFT_OVERWRITE,
+        joinKeys,
         context);
 
     return context.relBuilder.peek();

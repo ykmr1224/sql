@@ -55,6 +55,10 @@ public class Lookup extends UnresolvedPlan {
     return visitor.visitLookup(this, context);
   }
 
+  public boolean isReplace() {
+    return outputStrategy == null || outputStrategy == OutputStrategy.REPLACE;
+  }
+
   public enum OutputStrategy {
     APPEND,
     REPLACE

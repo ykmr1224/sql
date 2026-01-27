@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
@@ -37,7 +36,7 @@ class DynamicFieldsHelper {
   }
 
   /** Check if a RelNode has dynamic fields. */
-  private static boolean hasDynamicFields(RelNode node) {
+  static boolean hasDynamicFields(RelNode node) {
     return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
   }
 
@@ -92,43 +91,27 @@ class DynamicFieldsHelper {
     return keys;
   }
 
-  /** Adjust fields to align the static/dynamic fields for join. */
-  static void adjustJoinInputsForDynamicFields(
-      Optional<String> leftAlias, Optional<String> rightAlias, CalcitePlanContext context) {
-    if (hasDynamicFields(context.relBuilder.peek())
-        || hasDynamicFields(context.relBuilder.peek(1))) {
-      // build once to modify the inputs already in the stack.
-      RelNode right = context.relBuilder.build();
-      RelNode left = context.relBuilder.build();
-      List<RelNode> inputs = adjustInputsForDynamicFields(List.of(right, left), context);
-      right = inputs.get(0);
-      left = inputs.get(1);
-      context.relBuilder.push(left);
-      // `as(alias)` is needed since `build()` won't preserve alias
-      leftAlias.map(alias -> context.relBuilder.as(alias));
-      context.relBuilder.push(right);
-      rightAlias.map(alias -> context.relBuilder.as(alias));
-    }
-  }
-
   /** Adjust fields to align the static/dynamic fields in `target` to `theOtherInput` */
   static RelNode adjustFieldsForDynamicFields(
       RelNode target, RelNode theOtherInput, CalcitePlanContext context) {
     if (hasDynamicFields(theOtherInput) && !hasDynamicFields(target)) {
-      List<String> requiredStaticFields = getStaticFields(theOtherInput);
+      List<String> requiredStaticFields = DynamicFieldsHelper.getStaticFields(theOtherInput);
       return adjustFieldsForDynamicFields(target, requiredStaticFields, context);
     }
     return target;
   }
 
   /** Adjust inputs to align the static/dynamic fields each other */
-  static List<RelNode> adjustInputsForDynamicFields(
+  public static List<RelNode> adjustInputsForDynamicFields(
       List<RelNode> inputs, CalcitePlanContext context) {
     boolean requireAdjustment = inputs.stream().anyMatch(input -> hasDynamicFields(input));
     if (requireAdjustment) {
-      List<String> requiredStaticFields = getRequiredStaticFields(inputs);
+      List<String> requiredStaticFields = DynamicFieldsHelper.getRequiredStaticFields(inputs);
       return inputs.stream()
-          .map(input -> adjustFieldsForDynamicFields(input, requiredStaticFields, context))
+          .map(
+              input ->
+                  DynamicFieldsHelper.adjustFieldsForDynamicFields(
+                      input, requiredStaticFields, context))
           .collect(Collectors.toList());
     } else {
       return inputs;
@@ -139,7 +122,7 @@ class DynamicFieldsHelper {
     Set<String> requiredStaticFields = new HashSet<String>();
     for (RelNode input : inputs) {
       if (hasDynamicFields(input)) {
-        requiredStaticFields.addAll(getStaticFields(input));
+        requiredStaticFields.addAll(DynamicFieldsHelper.getStaticFields(input));
       }
     }
     return toSortedList(requiredStaticFields);
@@ -160,7 +143,7 @@ class DynamicFieldsHelper {
   static RelNode adjustFieldsForDynamicFields(
       RelNode node, List<String> staticFieldNames, CalcitePlanContext context) {
     context.relBuilder.push(node);
-    List<String> existingFields = getStaticFields(node);
+    List<String> existingFields = DynamicFieldsHelper.getStaticFields(node);
     List<RexNode> project = new ArrayList<>();
     for (String existingField : existingFields) {
       if (staticFieldNames.contains(existingField)) {
@@ -170,7 +153,8 @@ class DynamicFieldsHelper {
     if (hasDynamicFields(node)) {
       // _MAP = MAP_APPEND(_MAP, MAP(existingFields - staticFields))
       RexNode existingDynamicFieldsMap = context.relBuilder.field(DYNAMIC_FIELDS_MAP);
-      RexNode additionalFieldsMap = getFieldsAsMap(existingFields, staticFieldNames, context);
+      RexNode additionalFieldsMap =
+          DynamicFieldsHelper.getFieldsAsMap(existingFields, staticFieldNames, context);
       RexNode mapAppend =
           context.rexBuilder.makeCall(
               BuiltinFunctionName.MAP_APPEND, existingDynamicFieldsMap, additionalFieldsMap);
@@ -179,7 +163,8 @@ class DynamicFieldsHelper {
       // _MAP = MAP(existingFields - staticFields)
       project.add(
           context.relBuilder.alias(
-              getFieldsAsMap(existingFields, staticFieldNames, context), DYNAMIC_FIELDS_MAP));
+              DynamicFieldsHelper.getFieldsAsMap(existingFields, staticFieldNames, context),
+              DYNAMIC_FIELDS_MAP));
     }
     return context.relBuilder.project(project).build();
   }
@@ -285,7 +270,7 @@ class DynamicFieldsHelper {
   }
 
   /** Convert fields to map representation */
-  private static RexNode getFieldsAsMap(
+  static RexNode getFieldsAsMap(
       Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
     List<String> keys = excludeMetaFields(existingFields);
     keys.removeAll(excluded);

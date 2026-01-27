@@ -401,4 +401,83 @@ public class CalcitePPLSpathWithJoinIT extends CalcitePPLSpathTestBase {
             "user",
             sj("{'userId': 'u2', 'name': 'Bob', 'role': 'user', 'notes': 'from_json_index'}")));
   }
+
+  @Test
+  public void testSpathLookup() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source="
+                + INDEX_JSON
+                + " | spath input=userData | head 1 | lookup "
+                + INDEX_WITHOUT_JSON
+                + " userId | fields userId, name, *");
+    verifySchema(
+        result,
+        schema("userId", "string"),
+        schema("name", "string"),
+        schema("amount", "string"),
+        schema("category", "string"),
+        schema("notes", "string"),
+        schema("orderId", "string"),
+        schema("role", "string"),
+        schema("userData", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "u1",
+            "Alice",
+            "100.0",
+            "user1",
+            "from_regular_index",
+            "order1",
+            "admin",
+            sj("{'userId': 'u1', 'name': 'Alice', 'role': 'admin', 'notes': 'from_json_index'}")),
+        rows(
+            "u1",
+            "Alice",
+            "150.0",
+            "user1",
+            "from_regular_index",
+            "order2",
+            "admin",
+            sj("{'userId': 'u1', 'name': 'Alice', 'role': 'admin', 'notes': 'from_json_index'}")));
+  }
+
+  @Test
+  public void testSpathLookupWithRename() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source="
+                + INDEX_JSON
+                + " | spath input=userData | head 1 | lookup "
+                + INDEX_WITHOUT_JSON
+                + " userId APPEND orderId as name, amount as ama | fields userId, name, *");
+    verifySchema(
+        result,
+        schema("userId", "string"),
+        schema("name", "string"),
+        schema("ama", "string"),
+        schema("category", "string"),
+        schema("notes", "string"),
+        schema("role", "string"),
+        schema("userData", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "u1",
+            "Alice",
+            "100.0",
+            "user1",
+            "from_json_index",
+            "admin",
+            sj("{'userId': 'u1', 'name': 'Alice', 'role': 'admin', 'notes': 'from_json_index'}")),
+        rows(
+            "u1",
+            "Alice",
+            "150.0",
+            "user1",
+            "from_json_index",
+            "admin",
+            sj("{'userId': 'u1', 'name': 'Alice', 'role': 'admin', 'notes': 'from_json_index'}")));
+  }
 }

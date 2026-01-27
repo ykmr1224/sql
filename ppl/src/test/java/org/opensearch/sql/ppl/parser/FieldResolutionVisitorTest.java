@@ -264,6 +264,25 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testLookup() {
+    assertMultiRelationFields(
+        "source=idx1 | where type='foo' | lookup idx2 id as lid append dept as department, city as"
+            + " location | fields lid, b, *",
+        Map.of(
+            "idx1", new FieldResolutionResult(Set.of("lid", "b", "type"), "*"),
+            "idx2", new FieldResolutionResult(Set.of("id", "b", "dept", "city"))));
+  }
+
+  @Test
+  public void testLookupNoMapping() {
+    assertMultiRelationFields(
+        "source=idx1 | where type='foo' | lookup idx2 id | fields id, b, *",
+        Map.of(
+            "idx1", new FieldResolutionResult(Set.of("id", "b", "type"), "*"),
+            "idx2", new FieldResolutionResult(Set.of("id", "b"), "*")));
+  }
+
+  @Test
   public void testWhereWithSubsearch() {
     assertThrows(
         "Filter by subquery is not supported with field resolution.",

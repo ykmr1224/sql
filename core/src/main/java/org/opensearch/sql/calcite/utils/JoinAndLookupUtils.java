@@ -19,6 +19,7 @@ import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.utils.DebugUtils;
 
 public interface JoinAndLookupUtils {
   public enum OverwriteMode {
@@ -104,6 +105,9 @@ public interface JoinAndLookupUtils {
       CalcitePlanContext context) {
     List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
     boolean hasDynamicFields = oldFields.contains(DYNAMIC_FIELDS_MAP);
+    DebugUtils.debug(sourceFieldsCountLeft, "sourceFieldsCountLeft");
+    DebugUtils.debug(expectedProvidedFieldNames, "expectedProvidedFieldNames");
+    DebugUtils.debug(oldFields, "oldFields");
     int dynamicFieldsCount = hasDynamicFields ? 1 : 0;
     assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() + dynamicFieldsCount
             == oldFields.size()

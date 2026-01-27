@@ -103,10 +103,10 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(1000, "Jake", "Engineer", 100000, "IT"),
-        rows(1001, "Hello", "Artist", 70000, null),
+        rows(1001, "Hello", "Artist", 70000, "USA"),
         rows(1002, "John", "Doctor", 120000, "DATA"),
         rows(1003, "David", "Doctor", 120000, "HR"),
-        rows(1004, "David", null, 0, null),
+        rows(1004, "David", null, 0, "Canada"),
         rows(1005, "Jane", "Scientist", 90000, "DATA"));
   }
 
@@ -210,7 +210,7 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(1000, "Jake", "England", 100000, "IT", "Engineer"),
-        rows(1001, "Hello", "USA", 70000, null, null),
+        rows(1001, "Hello", "USA", 70000, null, "Artist"),
         rows(1002, "John", "Canada", 120000, "DATA", "Scientist"),
         rows(1003, "David", null, 120000, "HR", "Doctor"),
         rows(1004, "David", "Canada", 0, null, null),
@@ -231,17 +231,17 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
         result,
         schema("id", "int"),
         schema("name", "string"),
+        schema("major", "string"),
         schema("country", "string"),
-        schema("salary", "int"),
-        schema("major", "string"));
+        schema("salary", "int"));
     verifyDataRows(
         result,
-        rows(1000, "Jake", "England", 100000, "Engineer"),
-        rows(1001, "Hello", "USA", 70000, null),
-        rows(1002, "John", "Canada", 120000, "Scientist"),
-        rows(1003, "David", null, 120000, "Doctor"),
-        rows(1004, "David", "Canada", 0, "Doctor"),
-        rows(1005, "Jane", "Canada", 90000, "Engineer"));
+        rows(1000, "Jake", "Engineer", "England", 100000),
+        rows(1001, "Hello", "Artist", "USA", 70000),
+        rows(1002, "John", "Scientist", "Canada", 120000),
+        rows(1003, "David", "Doctor", null, 120000),
+        rows(1004, "David", "Doctor", "Canada", 0),
+        rows(1005, "Jane", "Engineer", "Canada", 90000));
   }
 
   @Test
@@ -258,17 +258,17 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
         result,
         schema("id", "int"),
         schema("name", "string"),
+        schema("major", "string"),
         schema("country", "string"),
-        schema("salary", "int"),
-        schema("major", "string"));
+        schema("salary", "int"));
     verifyDataRows(
         result,
-        rows(1000, "Jake", "England", 100000, "Engineer"),
-        rows(1001, "Hello", "USA", 70000, "Artist"),
-        rows(1002, "John", "Canada", 120000, "Doctor"),
-        rows(1003, "David", null, 120000, "Doctor"),
-        rows(1004, "David", "Canada", 0, "Doctor"),
-        rows(1005, "Jane", "Canada", 90000, "Scientist"));
+        rows(1000, "Jake", "Engineer", "England", 100000),
+        rows(1001, "Hello", "Artist", "USA", 70000),
+        rows(1002, "John", "Doctor", "Canada", 120000),
+        rows(1003, "David", "Doctor", null, 120000),
+        rows(1004, "David", "Doctor", "Canada", 0),
+        rows(1005, "Jane", "Scientist", "Canada", 90000));
   }
 
   @Test
@@ -292,7 +292,7 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(1000, "Jake", "England", 100000, 1000, "IT", "Engineer"),
-        rows(1001, "Hello", "USA", 70000, null, null, null),
+        rows(1001, "Hello", "USA", 70000, null, null, "Artist"),
         rows(1002, "John", "Canada", 120000, 1002, "DATA", "Scientist"),
         rows(1003, "David", null, 120000, 1003, "HR", "Doctor"),
         rows(1004, "David", "Canada", 0, 1003, "HR", "Doctor"),
@@ -321,10 +321,10 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(100000, 1000, "Jake", "IT", "Engineer"),
-        rows(70000, 1001, null, null, null),
+        rows(70000, 1001, "Hello", "USA", "Artist"),
         rows(120000, 1002, "John", "DATA", "Scientist"),
         rows(120000, 1003, "David", "HR", "Doctor"),
-        rows(0, 1004, null, null, null),
+        rows(0, 1004, "David", "Canada", null),
         rows(90000, 1005, "Jane", "DATA", "Engineer"));
   }
 
@@ -349,24 +349,24 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
 
     JSONObject result = executeQuery("source = s | LOOKUP l id | fields id, col1, col2, col3");
     verifyDataRows(
-        result, rows(1, "x", "b", "y"), rows(2, null, "bb", null), rows(3, "xx", "ccc", "yy"));
+        result, rows(1, "x", "b", "y"), rows(2, "aa", "bb", null), rows(3, "xx", "ccc", "yy"));
 
     result =
         executeQuery(
             "source = s | LOOKUP l id REPLACE id, col1, col3 | fields id, col1, col2, col3");
     verifyDataRows(
-        result, rows(1, "x", "b", "y"), rows(null, null, "bb", null), rows(3, "xx", "ccc", "yy"));
+        result, rows(1, "x", "b", "y"), rows(2, "aa", "bb", null), rows(3, "xx", "ccc", "yy"));
     result =
         executeQuery(
             "source = s | LOOKUP l id APPEND id, col1, col3 | fields id, col1, col2, col3");
     verifyDataRows(
         result, rows(1, "a", "b", "y"), rows(2, "aa", "bb", null), rows(3, "xx", "ccc", "yy"));
     result = executeQuery("source = s | LOOKUP l id REPLACE col1 | fields id, col1, col2");
-    verifyDataRows(result, rows(1, "x", "b"), rows(2, null, "bb"), rows(3, "xx", "ccc"));
+    verifyDataRows(result, rows(1, "x", "b"), rows(2, "aa", "bb"), rows(3, "xx", "ccc"));
     result = executeQuery("source = s | LOOKUP l id APPEND col1 | fields id, col1, col2");
     verifyDataRows(result, rows(1, "a", "b"), rows(2, "aa", "bb"), rows(3, "xx", "ccc"));
     result = executeQuery("source = s | LOOKUP l id REPLACE col1 as col2 | fields id, col1, col2");
-    verifyDataRows(result, rows(1, "a", "x"), rows(2, "aa", null), rows(3, null, "xx"));
+    verifyDataRows(result, rows(1, "a", "x"), rows(2, "aa", "bb"), rows(3, null, "xx"));
     result = executeQuery("source = s | LOOKUP l id APPEND col1 as col2 | fields id, col1, col2");
     verifyDataRows(result, rows(1, "a", "b"), rows(2, "aa", "bb"), rows(3, null, "ccc"));
     result =
@@ -395,7 +395,7 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(1000, "Jake", "England", 100000, "Engineer"),
-        rows(1001, "Hello", "USA", 70000, null),
+        rows(1001, "Hello", "USA", 70000, "Artist"),
         rows(1002, "John", "Canada", 120000, "Scientist"),
         rows(1003, "David", null, 120000, "Doctor"),
         rows(1004, "David", "Canada", 0, "Doctor"),
@@ -487,10 +487,10 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(1000, "Jake", "Engineer", 100000, "IT"),
-        rows(1001, "Hello", "Artist", 70000, null),
+        rows(1001, "Hello", "Artist", 70000, "USA"),
         rows(1002, "John", "Doctor", 120000, "DATA"),
         rows(1003, "David", "Doctor", 120000, "HR"),
-        rows(1004, "David", null, 0, null),
+        rows(1004, "David", null, 0, "Canada"),
         rows(1005, "Jane", "Scientist", 90000, "DATA"));
   }
 }
